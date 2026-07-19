@@ -51,3 +51,29 @@ test('parseSitemap decodes XML entities in URLs', () => {
   const r = parseSitemap('<urlset><url><loc>https://x.com/p?a=1&amp;b=2</loc></url></urlset>');
   assert.equal(r.urls[0], 'https://x.com/p?a=1&b=2');
 });
+
+test('isProductUrl rejects static-asset extensions even under a /product/ path', () => {
+  assert.equal(isProductUrl('https://2b.com.eg/media/catalog/product/cache/8f3b1e/x/y/prod_image.jpg'), false);
+  assert.equal(isProductUrl('https://elarabygroup.com/pub/media/catalog/product/t/o/tornado.webp'), false);
+  assert.equal(isProductUrl('https://2b.com.eg/static/version123/frontend/x/product/logo.svg'), false);
+  assert.equal(isProductUrl('https://x.com/product/a.css'), false);
+  assert.equal(isProductUrl('https://x.com/product/a.js'), false);
+  assert.equal(isProductUrl('https://x.com/product/a.json'), false);
+  assert.equal(isProductUrl('https://x.com/product/a.pdf'), false);
+});
+
+test('isProductUrl rejects asset/static-resource directory segments (Magento image cache)', () => {
+  assert.equal(isProductUrl('https://2b.com.eg/media/catalog/product/foo/bar'), false);
+  assert.equal(isProductUrl('https://elarabygroup.com/pub/media/catalog/product/x'), false);
+  assert.equal(isProductUrl('https://2b.com.eg/static/frontend/x/product/y'), false);
+  assert.equal(isProductUrl('https://x.com/wp-content/uploads/2024/product/a'), false);
+});
+
+test('isProductUrl still recognises real product URLs from live crawl targets', () => {
+  assert.equal(isProductUrl('https://2b.com.eg/product/samsung-tv-55'), true);
+  assert.equal(isProductUrl('https://x.com/ar/product/147807/mrohh-haet'), true);
+  assert.equal(isProductUrl('https://egypt.sharafdg.com/product/kenwood-vacuum-cleaner-vc7050/'), true);
+  assert.equal(isProductUrl('https://btech.com/ar/p/speedlink-kappa-usb-mouse-black-sl-6113-bk'), true);
+  assert.equal(isProductUrl('https://x.com/p/tornado-fridge-355l'), true);
+  assert.equal(isProductUrl('https://jumia.com.eg/toshiba-washer-8kg-p-12345'), true);
+});

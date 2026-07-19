@@ -37,7 +37,19 @@ const PRODUCT_ID = /-p-?\d{3,}/i;
 // pagination index (e.g. /p/2, /p/10/) — a product slug is /p/some-name.
 const PRODUCT_SLUG = /\/p\/(?!\d+(?:[/?]|$))[\w-]+/i;
 
+// Static-asset extensions. Matched right before a query string, fragment, or
+// end of string so e.g. "/logo.svg?v=2" still counts as an .svg asset.
+const ASSET_EXT_RE = /\.(?:jpe?g|png|gif|webp|avif|svg|ico|bmp|css|m?js|json|xml|pdf|zip|woff2?|ttf|eot|mp4|webm|avi|mp3)(?:[?#]|$)/i;
+
+// Asset/static-resource directory segments. Magento (and others) serve
+// product *images* under paths like /media/catalog/product/... which would
+// otherwise false-positive against PRODUCT_PATH above — this must be checked
+// first so it can never be overridden by a positive product-shape match.
+const ASSET_DIR_RE = /\/(?:media|cache|static|assets|uploads|thumbs|thumbnails|skin|pub\/media|wp-content|wp-includes)\//i;
+
 export function isProductUrl(u) {
   const s = String(u || '');
+  if (!s) return false;
+  if (ASSET_EXT_RE.test(s) || ASSET_DIR_RE.test(s)) return false;
   return PRODUCT_PATH.test(s) || PRODUCT_ID.test(s) || PRODUCT_SLUG.test(s);
 }

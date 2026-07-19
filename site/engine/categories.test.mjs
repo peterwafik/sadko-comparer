@@ -66,6 +66,17 @@ test('spelling variants of existing categories are recognised', () => {
   assert.equal(detectCategory('كاتيل كهربائي بلاستيك 1.7 لتر'), 'kettle');
 });
 
+test('bare short names are excluded to avoid misclassifying non-appliances', () => {
+  // كبه/مضرب/هاند alone are common Arabic words that appear in food and
+  // sporting-goods titles from general retailers; only compound forms match.
+  assert.notEqual(detectCategory('كبة لحمة محشية'), 'food_processor');
+  assert.notEqual(detectCategory('مضرب رياضي'), 'hand_mixer');
+  assert.notEqual(detectCategory('هاند فري سماعة'), 'hand_mixer');
+
+  assert.equal(detectCategory('مضرب بيض ميانتا مصرى 200 وات'), 'hand_mixer');
+  assert.equal(detectCategory('محضر طعام مولينكس 800 وات'), 'food_processor');
+});
+
 test('fan type spec matches Arabic and returns the canonical English value', () => {
   assert.equal(extractSpecs('مروحة عمود توشيبا 16 بوصة', 'fan').type, 'stand');
   assert.equal(extractSpecs('مروحة حائط توشيبا 16 بوصة', 'fan').type, 'wall');

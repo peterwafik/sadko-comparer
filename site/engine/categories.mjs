@@ -48,9 +48,9 @@ export const CATEGORIES = {
   hob:       { units: ['cm'],             specs: ['burners', 'fuel'],
                names: ['مسطح', 'مسطح طباخ', 'hob', 'cooktop'] },
   food_processor: { units: ['liter', 'watt'], specs: [],
-               names: ['محضر طعام', 'محضر', 'كبه', 'قطاعه', 'food processor', 'chopper'] },
+               names: ['محضر طعام', 'محضر', 'قطاعه', 'food processor', 'chopper'] },
   hand_mixer: { units: ['watt'],          specs: [],
-               names: ['مضرب بيض', 'مضرب', 'هاند بلندر', 'هاند', 'hand mixer', 'hand blender'] },
+               names: ['مضرب بيض', 'هاند بلندر', 'hand mixer', 'hand blender'] },
 };
 
 /* Decide by EARLIEST occurrence, not mere presence. Arabic product titles lead

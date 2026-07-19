@@ -1595,6 +1595,44 @@ test('M1_STORES holds the 13 planned stores including SADKO', () => {
   assert.ok(M1_STORES.some(s => s.domain === 'rayashop.com'));
 });
 
+/* Several real stores publish product URLs with no /product/ marker
+   (elarabygroup uses a bare slug, egyptlaptop a category path). Filtering on
+   URL shape alone would silently crawl NOTHING from them, so the crawler must
+   fall back to plain sitemap URLs and let extractProduct arbitrate. */
+test('a sitemap with no product-shaped URLs falls back instead of crawling nothing', async () => {
+  const c = openCatalog();
+  const fetchImpl = fakeFetch({
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap.xml',
+    // bare-slug product URLs, exactly like elarabygroup's real sitemap
+    'sitemap.xml': '<urlset>' +
+      '<url><loc>https://t.com/ar/tornado-electric-water-heater-30-l-teee-30d1w</loc></url>' +
+      '<url><loc>https://t.com/ar/tornado-electric-water-heater-40-l-teee-40d1w</loc></url></urlset>',
+    '/ar/tornado-electric-water-heater-30-l': LD('سخان تورنيدو 30 لتر ديجيتال TEEE-30D1W', 4999),
+    '/ar/tornado-electric-water-heater-40-l': LD('سخان تورنيدو 40 لتر ديجيتال TEEE-40D1W', 5499),
+  });
+  const r = await crawlStore(c, { domain: 't.com', name: 'T' }, { maxPages: 10, fetchImpl, delayMs: 0 });
+  assert.equal(r.usedFallback, true, 'must report that it fell back');
+  assert.equal(r.stored, 2, 'both bare-slug products must be stored');
+  c.close();
+});
+
+test('store.productUrl overrides the generic URL heuristic', async () => {
+  const c = openCatalog();
+  const fetchImpl = fakeFetch({
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap.xml',
+    'sitemap.xml': '<urlset>' +
+      '<url><loc>https://t.com/catalog/sku-123</loc></url>' +
+      '<url><loc>https://t.com/about</loc></url></urlset>',
+    '/catalog/sku-123': LD('شاشة شارب 75 بوصة 4K سمارت 4T-C75FN6EX', 39699),
+    '/about': '<html>no product</html>',
+  });
+  const store = { domain: 't.com', name: 'T', productUrl: /\/catalog\/sku-/ };
+  const r = await crawlStore(c, store, { maxPages: 10, fetchImpl, delayMs: 0 });
+  assert.equal(r.shapedUrls, 1, 'only the catalog URL matches the override');
+  assert.equal(r.stored, 1);
+  c.close();
+});
+
 test('an interrupted crawl resumes from its cursor instead of restarting', async () => {
   const c = openCatalog();
   const pages = {
@@ -1637,20 +1675,35 @@ Expected: FAIL — `Cannot find module './stores-m1.mjs'`
    rayashop / amanstores / egyptlaptop / awadserag are included DELIBERATELY —
    their live search is broken, so indexing rescuing them is the proof the
    architecture works. */
+/* The URL counts below come from scripts/probe-sitemaps.mjs, which counted ALL
+   <loc> entries. Spot-checking the real sitemaps showed some of those are
+   navigation, not products — rayashop's sitemap.xml is a CATEGORY sitemap
+   (/en/electronics, /en/laptops/laptops-pcs), so its 22,076 is not 22,076
+   products. Treat these as an upper bound on reachable URLs, not a product
+   count. Task 10 measures the real yield per store.
+
+   sitemapHint  — substring selecting the right child of a sitemap index
+   productUrl   — RegExp replacing the generic isProductUrl heuristic         */
 export const M1_STORES = [
   { domain: 'sadko-group.com', name: 'صادكو جروب', nameEn: 'SADKO Group', tier: 1, local: true },
-  { domain: 'rayashop.com',    name: 'راية شوب',   nameEn: 'Raya Shop',   tier: 1 },  // 22,076
-  { domain: 'hyper-techno.com',name: 'هايبر تكنو', nameEn: 'Hyper Techno',tier: 3 },  // 17,333
+  { domain: 'hyper-techno.com',name: 'هايبر تكنو', nameEn: 'Hyper Techno',tier: 3 },  // 17,333 · /product/ ✓
   { domain: 'jumia.com.eg',    name: 'جوميا',      nameEn: 'Jumia',       tier: 1 },  // 10,000
   { domain: '2b.com.eg',       name: '2B مصر',     nameEn: '2B Egypt',    tier: 1 },  //  7,611
-  { domain: 'btech.com',       name: 'بى تك',      nameEn: 'B.TECH',      tier: 1 },  //  7,205
+  { domain: 'btech.com',       name: 'بى تك',      nameEn: 'B.TECH',      tier: 1 },  //  7,205 · /ar/p/ ✓
+  // bare-slug product URLs — no marker; relies on the fallback path
   { domain: 'elarabygroup.com',name: 'العربى جروب',nameEn: 'ElAraby',     tier: 1 },  //  6,369
-  { domain: 'egyptlaptop.com', name: 'إيجيبت لابتوب', nameEn: 'Egypt Laptop', tier: 2 }, // 6,193
-  { domain: 'elghazawy.com',   name: 'الغزاوى',    nameEn: 'ElGhazawy',   tier: 2 },  //  6,179
-  { domain: 'amanstores.com',  name: 'أمان',       nameEn: 'Aman Stores', tier: 1 },  //  4,885
+  // sitemap index exposes products1.xml; URLs are category-path style
+  { domain: 'egyptlaptop.com', name: 'إيجيبت لابتوب', nameEn: 'Egypt Laptop', tier: 2,
+    sitemapHint: 'products' },                                                        //  6,193
+  { domain: 'elghazawy.com',   name: 'الغزاوى',    nameEn: 'ElGhazawy',   tier: 2 },  //  6,179 · /ar/product/ ✓
+  { domain: 'amanstores.com',  name: 'أمان',       nameEn: 'Aman Stores', tier: 1 },  //  4,885 · /product/view/ ✓
   { domain: 'awadserag.com',   name: 'عوض سراج',   nameEn: 'Awad Serag',  tier: 3 },  //  2,675
   { domain: 'kenzz.com',       name: 'كنز',        nameEn: 'Kenzz',       tier: 2 },  //  2,064
-  { domain: 'egypt.sharafdg.com', name: 'شرف دى جى', nameEn: 'Sharaf DG', tier: 1 },  //  1,892
+  { domain: 'egypt.sharafdg.com', name: 'شرف دى جى', nameEn: 'Sharaf DG', tier: 1 },  //  1,892 · /product/ ✓
+  // sitemap.xml here lists CATEGORIES, not products. Kept in the set so Task 10
+  // measures it honestly; if it yields no products, it needs category-pagination
+  // crawling, which is Milestone 2.
+  { domain: 'rayashop.com',    name: 'راية شوب',   nameEn: 'Raya Shop',   tier: 1 },
 ];
 ```
 
@@ -1691,24 +1744,54 @@ export async function crawlStore(catalog, store, opts = {}) {
     : Math.max((robots.crawlDelay || 0) * 1000, DEFAULT_DELAY);
 
   // 2. sitemaps
+  //
+  // URL SHAPE IS A HINT, NOT A GATE. Measured against the real Milestone-1
+  // stores, several publish product URLs with no conventional marker:
+  //   elarabygroup  /ar/tornado-electric-water-heater-30-l-...-teee-30d1w
+  //   egyptlaptop   /point-of-sale/barcode-scanners/datalogic-qw2100-...
+  // Filtering on `isProductUrl` alone would discard those stores entirely.
+  // So: prefer product-shaped URLs when a sitemap has them, but when a sitemap
+  // yields NONE, fall back to its plain URLs and let extractProduct decide —
+  // JSON-LD presence is a far better product signal than URL shape.
+  //
+  // A store may override discovery via `store.sitemapHint` (a substring that
+  // selects the right child of a sitemap index, e.g. 'products') and
+  // `store.productUrl` (a RegExp replacing the generic heuristic).
   const smUrls = robots.sitemaps.length ? robots.sitemaps
     : [`https://${domain}/sitemap.xml`, `https://www.${domain}/sitemap.xml`];
-  const productUrls = [];
+  const isProduct = store.productUrl ? (u => store.productUrl.test(u)) : isProductUrl;
+  const shaped = [], plain = [];
   const queue = [...smUrls];
   const seenSm = new Set();
-  while (queue.length && productUrls.length < sitemapMax) {
+  while (queue.length && shaped.length < sitemapMax) {
     const sm = queue.shift();
     if (seenSm.has(sm)) continue;
     seenSm.add(sm);
     let parsed;
     try { parsed = parseSitemap(await get(sm)); } catch { res.errors++; continue; }
-    if (parsed.isIndex) queue.push(...parsed.urls.slice(0, 20));
-    else for (const u of parsed.urls) {
-      if (productUrls.length >= sitemapMax) break;
-      if (isProductUrl(u)) productUrls.push(u);
+    if (parsed.isIndex) {
+      // follow product-looking children first; store.sitemapHint wins if set
+      const hint = store.sitemapHint;
+      const children = parsed.urls.slice().sort((a, b) => {
+        const score = u => (hint && u.includes(hint) ? 2 : /product|item|shop/i.test(u) ? 1 : 0);
+        return score(b) - score(a);
+      });
+      queue.push(...children.slice(0, 20));
+    } else {
+      for (const u of parsed.urls) {
+        if (shaped.length >= sitemapMax) break;
+        if (isProduct(u)) shaped.push(u);
+        else if (plain.length < sitemapMax) plain.push(u);
+      }
     }
   }
+  // fall back to unshaped URLs rather than crawling nothing
+  const productUrls = shaped.length ? shaped : plain;
   res.found = productUrls.length;
+  res.shapedUrls = shaped.length;
+  res.usedFallback = !shaped.length && plain.length > 0;
+  if (res.usedFallback)
+    onProgress({ ...res, note: `${domain}: no product-shaped URLs; falling back to ${plain.length} plain URLs` });
 
   // 3. product pages — resume from the stored cursor so an interrupted run
   //    continues instead of refetching everything. Sitemap order is stable.

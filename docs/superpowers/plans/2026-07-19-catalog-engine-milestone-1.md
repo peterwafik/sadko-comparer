@@ -959,7 +959,17 @@ export function openCatalog(file = ':memory:') {
       let offerId;
       if (existing) {
         offerId = existing.id;
-        delFts.run(offerId, null, null, null);
+        // CRITICAL: a contentless FTS5 table needs the row's ORIGINAL indexed values
+
+        // to locate and remove its postings. Passing null deletes NOTHING and leaks
+
+        // stale tokens permanently — search then matches text no listing contains.
+
+        const prev = db.prepare(`SELECT o.title_raw, p.brand, p.model_norm FROM offers o
+
+          JOIN products p ON p.id = o.product_id WHERE o.id = ?`).get(offerId);
+
+        if (prev) delFts.run(offerId, prev.title_raw, prev.brand, prev.model_norm);
         updOffer.run(price, inStock ? 1 : 0, title, now, productId, offerId);
         if (existing.price !== price) insHist.run(offerId, price, now);
       } else {

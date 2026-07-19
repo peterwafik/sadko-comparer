@@ -18,9 +18,9 @@ export const CATEGORIES = {
   dryer:     { units: ['kg'],             specs: [],
                names: ['مجفف', 'دراير', 'dryer'] },
   ac:        { units: ['hp'],             specs: ['inverter', 'mode'],
-               names: ['تكييف', 'مكيف', 'air conditioner', 'conditioner'] },
+               names: ['تكييف', 'تكيف', 'مكيف', 'air conditioner', 'conditioner'] },
   microwave: { units: ['liter', 'watt'],  specs: ['grill'],
-               names: ['ميكروويف', 'مايكروويف', 'microwave'] },
+               names: ['ميكروويف', 'مايكروويف', 'ميكرويف', 'مايكرويف', 'microwave'] },
   oven:      { units: ['liter'],          specs: ['fuel'],
                names: ['فرن', 'oven'] },
   cooker:    { units: ['cm'],             specs: ['burners', 'fuel'],
@@ -36,13 +36,21 @@ export const CATEGORIES = {
   blender:   { units: ['watt'],           specs: [],
                names: ['خلاط', 'blender', 'mixer'] },
   kettle:    { units: ['liter', 'watt'],  specs: [],
-               names: ['غلايه', 'kettle'] },
+               names: ['غلايه', 'كاتيل', 'kettle'] },
   fan:       { units: [],                 specs: ['type'],
                names: ['مروحه', 'fan'] },
   laptop:    { units: ['inch', 'gb', 'tb'], specs: ['cpu', 'ram'],
                names: ['لاب توب', 'لابتوب', 'laptop', 'notebook'] },
   phone:     { units: ['gb'],             specs: ['ram', 'network'],
                names: ['موبايل', 'هاتف', 'smartphone', 'mobile phone'] },
+  iron:      { units: ['watt'],           specs: ['steam'],
+               names: ['مكواه', 'مكوه', 'iron', 'steam iron'] },
+  hob:       { units: ['cm'],             specs: ['burners', 'fuel'],
+               names: ['مسطح', 'مسطح طباخ', 'hob', 'cooktop'] },
+  food_processor: { units: ['liter', 'watt'], specs: [],
+               names: ['محضر طعام', 'محضر', 'كبه', 'قطاعه', 'food processor', 'chopper'] },
+  hand_mixer: { units: ['watt'],          specs: [],
+               names: ['مضرب بيض', 'مضرب', 'هاند بلندر', 'هاند', 'hand mixer', 'hand blender'] },
 };
 
 /* Decide by EARLIEST occurrence, not mere presence. Arabic product titles lead
@@ -87,7 +95,11 @@ const SPEC_READERS = {
   mode:     t => /بارد\s*[-\/ ]?\s*ساخن|cooling ?& ?heating|heat/.test(t) ? 'cool-heat'
               : /بارد|cooling/.test(t) ? 'cool' : undefined,
   network:  t => /\b5g\b/.test(t) ? '5g' : /\b4g\b/.test(t) ? '4g' : undefined,
-  type:     t => (t.match(/\b(stand|desk|wall|ceiling)\b/) || [])[1],
+  type:     t => /عمود|ستاند|قائم|\bstand\b/.test(t) ? 'stand'
+              : /حائط|جدار|\bwall\b/.test(t) ? 'wall'
+              : /سقف|\bceiling\b/.test(t) ? 'ceiling'
+              : /مكتب|طاوله|\bdesk\b/.test(t) ? 'desk' : undefined,
+  steam:    t => /بخار|steam/.test(t) || undefined,
 };
 
 export function extractSpecs(title, category) {

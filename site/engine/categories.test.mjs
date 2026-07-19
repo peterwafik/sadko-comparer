@@ -42,3 +42,34 @@ test('extractSpecs reads declared boolean specs', () => {
   assert.equal(tv.resolution, '4k');
   assert.equal(tv.smart, true);
 });
+
+test('detects new appliance categories: iron, hob, food_processor, hand_mixer', () => {
+  assert.equal(detectCategory('مكواة بخار فيليبس 2400 وات'), 'iron');
+  assert.equal(detectCategory('مسطح طباخ اريستون 60 سم 4 شعلة غاز'), 'hob');
+  assert.equal(detectCategory('محضر طعام كينوود متعدد الاستخدامات 1.5 لتر'), 'food_processor');
+  assert.equal(detectCategory('قطاعة كبة ستانلس'), 'food_processor');
+  assert.equal(detectCategory('مضرب بيض كهربائي فيليبس 300 وات'), 'hand_mixer');
+  assert.equal(detectCategory('هاند بلندر براون 600 وات'), 'hand_mixer');
+
+  const iron = extractSpecs('مكواة بخار فيليبس 2400 وات', 'iron');
+  assert.equal(iron.steam, true);
+
+  const hob = extractSpecs('مسطح طباخ اريستون 60 سم 4 شعلة غاز', 'hob');
+  assert.equal(hob.burners, '4');
+  assert.equal(hob.fuel, 'gas');
+});
+
+test('spelling variants of existing categories are recognised', () => {
+  assert.equal(detectCategory('تكيف يورك 1.5 حصان بارد فقط'), 'ac');
+  assert.equal(detectCategory('ميكرويف توشيبا 20 لتر'), 'microwave');
+  assert.equal(detectCategory('مايكرويف شارب 25 لتر ديجيتال'), 'microwave');
+  assert.equal(detectCategory('كاتيل كهربائي بلاستيك 1.7 لتر'), 'kettle');
+});
+
+test('fan type spec matches Arabic and returns the canonical English value', () => {
+  assert.equal(extractSpecs('مروحة عمود توشيبا 16 بوصة', 'fan').type, 'stand');
+  assert.equal(extractSpecs('مروحة حائط توشيبا 16 بوصة', 'fan').type, 'wall');
+  assert.equal(extractSpecs('مروحة سقف توشيبا', 'fan').type, 'ceiling');
+  assert.equal(extractSpecs('مروحة مكتب صغيرة', 'fan').type, 'desk');
+  assert.equal(extractSpecs('مروحة ستاند توشيبا', 'fan').type, 'stand');
+});

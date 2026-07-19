@@ -32,3 +32,13 @@ test('dimension pairs do not produce a bogus single value', () => {
   // "90 × 60 سم" is a size pair, not one cm measurement
   assert.equal(extractUnits('بوتاجاز فري ستاند 90 × 60 سم 5 شعلة').cm, undefined);
 });
+
+test('a standalone cm reading is still found alongside an unrelated dimension pair', () => {
+  assert.equal(extractUnits('بوتجاز لاجيرمانيا 90 سم 5 شعلة غاز MODERNA بريمو – مروحة- حوامل زهر - استيل').cm, 90);
+  // dimension pair present elsewhere in the title should not suppress a genuine standalone cm
+  assert.equal(extractUnits('غسالة 90 × 60 سم قابلة للطي طول 45 سم').cm, 45);
+});
+
+test('multi-character Latin unit abbreviations require a trailing word boundary', () => {
+  assert.equal(extractUnits('شاشة 12 gbps').gb, undefined);
+});

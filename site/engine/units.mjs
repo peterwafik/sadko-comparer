@@ -19,24 +19,39 @@ const UNITS = [
 ];
 
 /* A dimension pair like "90 × 60 سم" describes width×depth, not one value —
-   detect and skip rather than record a misleading cm. */
-const DIMENSION = /\d+\s*[x×*]\s*\d+/;
+   detect and skip that specific number rather than suppressing cm outright.
+   Checked around the matched number's own position, not the whole title, so
+   a standalone cm reading elsewhere in the same title still gets recorded. */
+function isDimensionPairNumber(t, numStart, numStr) {
+  const numEnd = numStart + numStr.length;
+  const before = t.slice(0, numStart);
+  const after = t.slice(numEnd);
+  return /\d+\s*[x×*]\s*$/.test(before) || /^\s*[x×*]\s*\d+/.test(after);
+}
 
 export function extractUnits(title) {
   const t = normText(normDigits(title));
   const out = {};
   for (const [canon, spellings] of UNITS) {
     for (const sp of spellings) {
-      // bare single-letter units (l, w, k) require a word boundary before them
-      const needsBoundary = /^[a-z]$/.test(sp) || sp === 'ك';
+      // Latin-script spellings (and bare Arabic 'ك') require a trailing word
+      // boundary so a unit doesn't prefix-match inside a longer token, e.g.
+      // "gb" inside "gbps". Arabic words take prefixes/suffixes, so other
+      // Arabic spellings keep no trailing guard.
+      const needsBoundary = /^[a-z]+$/i.test(sp) || sp === 'ك';
       const unitPat = sp.replace(/[.*+?^${}()|[\]\\"]/g, '\\$&');
       const re = new RegExp(
         '(\\d+(?:\\.\\d+)?)\\s*' + unitPat + (needsBoundary ? '(?![a-z\\u0600-\\u06FF])' : ''),
-        'i');
-      const m = t.match(re);
-      if (!m) continue;
-      if (canon === 'cm' && DIMENSION.test(t)) break;   // size pair, not a spec
-      out[canon] = parseFloat(m[1]);
+        'gi');
+      let m;
+      let found = null;
+      while ((m = re.exec(t))) {
+        if (canon === 'cm' && isDimensionPairNumber(t, m.index, m[1])) continue;
+        found = m;
+        break;
+      }
+      if (!found) continue;
+      out[canon] = parseFloat(found[1]);
       break;
     }
   }

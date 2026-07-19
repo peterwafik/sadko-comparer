@@ -21,6 +21,33 @@
 - **Crawler must honour `robots.txt`**, including `Crawl-delay`, and send UA `Mozilla/5.0 (compatible; SADKO-price-comparer/1.0; +https://sadko-group.com/bot)`.
 - **Arabic text is first-class.** Every normalization must handle Arabic-Indic digits (`٠-٩`), alef/ya/ta-marbuta variants, and tatweel.
 - **Commit after every task** using the exact commands given.
+- **Catalog verification is mandatory before declaring any task done.** Unit
+  tests passing is necessary but has proven insufficient: in Tasks 1-3 every
+  module passed its own tests and then failed against real data (a model
+  extractor that fused SKU+model on 30 titles; a unit guard that silently
+  blocked Arabic after Latin; category names that matched a food dish, a sports
+  racket, and a headset). After the unit tests pass, run your module across all
+  471 real products in `site/data/products.json`, report the output
+  distribution, and eyeball it for absurdities. Each task below names the
+  specific command. **Report the numbers honestly — never tune code to hit a
+  target number, and never weaken an assertion to make a test green.**
+
+  The generic form, when a task does not specify its own:
+
+  ```bash
+  node --input-type=module -e "
+  const M = await import('./site/engine/<module>.mjs');
+  const { createRequire } = await import('node:module');
+  const p = createRequire(import.meta.url)('./site/data/products.json').products;
+  const dec = s => s.replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+  const tally = {}; let none = 0;
+  for (const x of p) { const r = M.<fn>(dec(x.title));
+    if (r == null || (typeof r === 'object' && !Object.keys(r).length)) none++;
+    else tally[JSON.stringify(r).slice(0,40)] = (tally[JSON.stringify(r).slice(0,40)]||0)+1; }
+  console.log('produced a result:', p.length - none, 'of', p.length);
+  console.log(Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,15));
+  "
+  ```
 
 ---
 
@@ -2005,6 +2032,192 @@ Expected: `mode: catalog` with a non-zero result count.
 ```bash
 git add site/engine/serve.mjs site/engine/serve.test.mjs site/compare-server.mjs
 git commit -m "feat(engine): catalog-backed search with live top-10 verification"
+```
+
+---
+
+## Task 11a: Query-interpretation UI ("did we understand you?")
+
+**Files:**
+- Modify: `site/engine/serve.mjs` — return the parsed interpretation and accept overrides
+- Modify: `site/compare-server.mjs` — pass `cat`/`spec` query params through, expose `interpretation` in the response
+- Modify: `site/compare.html` — add the interpretation bar markup
+- Modify: `site/assets/js/compare.js` — render chips, handle edits, re-run
+- Test: `site/engine/serve.test.mjs` (extend)
+
+**Interfaces:**
+- Consumes: `identify` from `./matcher.mjs`; `CATEGORIES` from `./categories.mjs`
+- Produces (extends `rankOffers`'s return): `interpretation: {category, brand, model, units, specs, ambiguous, alternatives}`
+- `rankOffers(catalog, query, {verify, verifyTop, limit, override})` — `override` is `{category?, units?, specs?}`; any field present REPLACES the parsed value and is treated as a hard filter.
+
+**Why:** the engine already parses every query into category + units + specs via
+`identify()`. Today that reasoning is invisible: the shopper types «غسالة ٧ كيلو»
+and gets results with no indication of what the engine actually searched for.
+Surfacing it turns a silent guess into a confirmable one — and because a
+confirmed category selects which attributes are *identity-defining*, a single
+correction measurably improves match precision. It also rescues the ~11% of
+titles `detectCategory` cannot classify: the shopper simply tells us.
+
+**UX shape** — a bar directly beneath the search row, before results:
+
+```
+بندوّر على:  [ غسالة ▾ ]  [ 7 كيلو ✕ ]  [ توشيبا ✕ ]  [ + مواصفة ]
+             ^ dropdown     ^ removable chips relax the filter
+```
+
+- Each parsed attribute renders as a removable chip. Removing one relaxes it
+  from a hard filter to unknown, widening results.
+- Category renders as a `<select>` populated from `CATEGORIES`, so a wrong or
+  missing detection is one click to fix.
+- When `ambiguous` is true (no category detected, or the leading token matched
+  two categories within 3 characters of each other), show the bar in a prompting
+  state with `alternatives` offered, rather than silently guessing.
+- Any change re-runs the search with overrides in the query string.
+- Must respect the page's existing i18n: strings go through the `T` table in
+  `compare.js` with `data-i18n` attributes, Arabic default, English when
+  `lang=en`.
+
+- [ ] **Step 1: Write the failing test**
+
+```js
+// append to site/engine/serve.test.mjs
+import { CATEGORIES } from './categories.mjs';
+
+test('rankOffers reports how it interpreted the query', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'غسالة توشيبا 7 كيلو اتوماتيك فتحة علوية', price: 11000 });
+  const r = await rankOffers(c, 'غسالة توشيبا 7 كيلو', { verify: async () => null });
+  assert.equal(r.interpretation.category, 'washer');
+  assert.equal(r.interpretation.brand, 'toshiba');
+  assert.equal(r.interpretation.units.kg, 7);
+  assert.equal(r.interpretation.ambiguous, false);
+  c.close();
+});
+
+test('an unrecognised category is reported ambiguous with alternatives', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'كبة فريش 400 وات 1.5 لتر', price: 2200 });
+  const r = await rankOffers(c, 'كبة فريش 400 وات', { verify: async () => null });
+  assert.equal(r.interpretation.ambiguous, true);
+  assert.ok(Array.isArray(r.interpretation.alternatives));
+  c.close();
+});
+
+test('a category override is applied as a hard filter', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'غسالة توشيبا 7 كيلو اتوماتيك', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2',
+    title: 'غسالة اطباق بوش 12 فرد', price: 18000 });
+  const r = await rankOffers(c, 'غسالة', {
+    verify: async () => null, override: { category: 'dishwasher' } });
+  assert.equal(r.interpretation.category, 'dishwasher');
+  assert.ok(r.results.every(x => !x.title.includes('7 كيلو')),
+    'washer offers must be filtered out when the shopper says dishwasher');
+  c.close();
+});
+
+test('removing a unit override widens the result set', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة توشيبا 9 كيلو', price: 13000 });
+  const narrow = await rankOffers(c, 'غسالة توشيبا 7 كيلو', { verify: async () => null });
+  const wide = await rankOffers(c, 'غسالة توشيبا 7 كيلو', {
+    verify: async () => null, override: { units: {} } });
+  assert.ok(wide.results.length > narrow.results.length,
+    'clearing the kg filter must return both capacities');
+  c.close();
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `node --test site/engine/serve.test.mjs`
+Expected: FAIL — `r.interpretation is undefined`
+
+- [ ] **Step 3: Extend `rankOffers` in `site/engine/serve.mjs`**
+
+Add `override` support and an `interpretation` block. Build the effective
+identity by starting from `identify(query)` and replacing any field present in
+`override`. Compute `ambiguous` as `!effective.category`. Compute
+`alternatives` as the category keys whose names appear anywhere in the
+normalized query, or — when none do — the 6 most common categories
+(`fridge`, `washer`, `tv`, `ac`, `microwave`, `cooker`) as a starting menu.
+Return:
+
+```js
+interpretation: {
+  category: effective.category,
+  brand: effective.brand,
+  model: effective.model,
+  units: effective.units,
+  specs: effective.specs,
+  ambiguous,
+  alternatives,
+}
+```
+
+Keep every existing return field unchanged — `results`, `cheapest`, `stats`.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `node --test site/engine/serve.test.mjs`
+Expected: PASS
+
+- [ ] **Step 5: Thread overrides through the HTTP layer**
+
+In `site/compare-server.mjs`, in the catalog branch of `compare()`, read
+`cat` and any `u_<unit>` / `s_<spec>` query params into an `override` object and
+pass it to `rankOffers`. Include `interpretation` in the JSON response.
+An explicitly empty param (`u_kg=`) means "cleared", not "absent".
+
+- [ ] **Step 6: Add the interpretation bar to the page**
+
+In `site/compare.html`, directly after the `.filters` div inside `.search-card`:
+
+```html
+<div class="interp" id="interp" style="display:none">
+  <span class="interp__label" data-i18n="interpLabel">بندوّر على:</span>
+  <select id="interpCat" class="interp__cat"></select>
+  <span id="interpChips" class="interp__chips"></span>
+</div>
+```
+
+In `site/assets/js/compare.js`:
+- add `interpLabel`, `interpAsk`, and category display names to BOTH the Arabic
+  and English `T` tables — follow the existing table's shape exactly
+- after a successful response, populate `#interpCat` from
+  `data.interpretation.alternatives` (or the full category list) and render one
+  removable chip per unit and spec
+- when `data.interpretation.ambiguous` is true, add an `interp--ask` class and
+  show the `interpAsk` prompt instead of the plain label
+- changing the select or removing a chip re-runs `run()` with the override
+  params appended
+- style the bar in `site/assets/css/site.css`, matching the existing
+  `.search-card` / `.filters` visual language — reuse existing custom properties
+  and spacing rather than introducing a new palette
+
+- [ ] **Step 7: Verify in the real page**
+
+```bash
+PORT=8095 node --env-file-if-exists=site/.env site/compare-server.mjs &
+sleep 8
+curl -s "http://localhost:8095/api/compare?q=$(node -e "process.stdout.write(encodeURIComponent('غسالة توشيبا 7 كيلو'))")&discover=0" \
+  | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('interpretation:',JSON.stringify(j.interpretation))})"
+```
+
+Expected: an `interpretation` object naming category `washer`, brand `toshiba`,
+and `units.kg` 7. Then load `http://localhost:8095/compare.html` in a browser,
+search the same phrase, and confirm the bar renders, the category dropdown
+changes results, and removing the `7 كيلو` chip widens them.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add site/engine/serve.mjs site/engine/serve.test.mjs site/compare-server.mjs \
+        site/compare.html site/assets/js/compare.js site/assets/css/site.css
+git commit -m "feat(ui): confirmable query interpretation on the compare page"
 ```
 
 ---

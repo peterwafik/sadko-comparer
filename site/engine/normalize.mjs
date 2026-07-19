@@ -35,9 +35,30 @@ export function normModel(s) {
    model. */
 const SPEC_ONLY = /^\d+(GB|TB|MB|KG|ML|MM|CM|HZ|HP|W|K|L|INCH|INCHES|LPM|RPM)$/;
 const SPEC_WORDS = new Set(['RAM', 'SSD', 'HDD', 'LED', 'LCD', 'OLED', 'QLED', 'UHD', 'FHD',
-  'HD', 'TV', 'PC', 'USB', 'WIFI', 'AC', 'DC', 'CPU', 'GPU', 'NFC', 'GPS', 'LTE']);
+  'HD', 'TV', 'PC', 'USB', 'WIFI', 'AC', 'DC', 'CPU', 'GPU', 'NFC', 'GPS', 'LTE',
+  'BAGLESS', 'COMPRESSOR', 'INVERTER', 'DIGITAL', 'SOLO', 'GRILL', 'SILVER', 'BLACK',
+  'WHITE', 'STEEL', 'TURBO', 'ECO', 'PLUS', 'MAX', 'PRO', 'SMART', 'TYPE']);
 
-export function extractModel(title) {
+/* A candidate is a "plausible identifier" once it clears the same bar the old
+   single-best scan used: >=5 normalized chars, at least one letter and one
+   digit, and not a pure spec value ("500W" survives SPEC_ONLY as a run only
+   via fusion, so it's re-checked here too). */
+function isValidModel(s) {
+  return s.length >= 5 && /\d/.test(s) && /[A-Z]/.test(s) && !SPEC_ONLY.test(s);
+}
+
+/* Returns every plausible identifier in a title, most-distinctive (longest)
+   first. Consecutive ALL-CAPS/digit fragments are joined across spaces and
+   dashes exactly as before ("RF – 51 FTV – DST" -> one model), but three
+   things now stop a run from swallowing a second, independent identifier:
+   parenthesis boundaries never fuse ("PL-BL1200185 (810307)" -> two runs),
+   ALL-CAPS feature words in SPEC_WORDS terminate a run the way Titlecase
+   prose already did, and a run that is already a valid model on its own
+   starts a fresh candidate rather than absorbing the next fragment when that
+   fragment is *also* independently a valid model (catches adjacent SKU +
+   model pairs with no feature word or bracket between them, e.g.
+   "F500013673 - FW-17VDB"). */
+export function extractModels(title) {
   const t = normDigits(String(title ?? ''));
   const runs = [];
   let cur = [];
@@ -45,22 +66,34 @@ export function extractModel(title) {
 
   for (const tok of t.split(/\s+/)) {
     if (/^[-–—]+$/.test(tok)) continue;          // a lone dash connects, never breaks
+    const hasParen = /[()]/.test(tok);
+    if (hasParen) flush();                        // never fuse across a parenthesis boundary
     const core = normModel(tok);
-    const stripped = tok.replace(/[-–—]/g, '');
+    const stripped = tok.replace(/[-–—()]/g, '');
     const isFragment = core.length > 0 && core.length <= 12 &&
       stripped === stripped.toUpperCase() && /^[A-Z0-9]+$/.test(core);
     if (!isFragment) { flush(); continue; }
     if (SPEC_ONLY.test(core) || SPEC_WORDS.has(core)) { flush(); continue; }
+    if (cur.length) {
+      const accumulated = cur.join('');
+      if (isValidModel(accumulated) && isValidModel(core)) flush();  // two identifiers, not one fused run
+    }
     cur.push(core);
+    if (hasParen) flush();
   }
   flush();
 
-  let best = null;
+  const seen = new Set();
+  const out = [];
   for (const r of runs) {
-    if (r.length < 5) continue;
-    if (!/\d/.test(r) || !/[A-Z]/.test(r)) continue;
-    if (SPEC_ONLY.test(r)) continue;
-    if (!best || r.length > best.length) best = r;
+    if (!isValidModel(r) || seen.has(r)) continue;
+    seen.add(r);
+    out.push(r);
   }
-  return best;
+  out.sort((a, b) => b.length - a.length);
+  return out;
+}
+
+export function extractModel(title) {
+  return extractModels(title)[0] ?? null;
 }

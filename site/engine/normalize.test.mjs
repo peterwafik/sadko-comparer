@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normDigits, normText, normModel, extractModel } from './normalize.mjs';
+import { normDigits, normText, normModel, extractModel, extractModels } from './normalize.mjs';
 
 test('normDigits converts Arabic-Indic digits', () => {
   assert.equal(normDigits('٧٥ بوصة'), '75 بوصة');
@@ -49,4 +49,57 @@ test('extractModel joins fragments split by spaces as well as dashes', () => {
    "No Frost ... Black" would be swallowed into the model. */
 test('extractModel does not absorb Titlecase prose', () => {
   assert.equal(extractModel('Tornado No Frost Black RF-40FTV-BK'), 'RF40FTVBK');
+});
+
+/* DEFECT FIX: two adjacent identifiers (a SKU and a model) with nothing but a
+   dash between them must not be fused into one bogus string. Whichever
+   single candidate extractModel prefers, extractModels must expose both. */
+test('extractModels splits an adjacent SKU + model pair instead of fusing them', () => {
+  const title = 'مبرد مياه مكتبى فريش اسود 2 حنفية F500013673 - FW-17VDB';
+  const models = extractModels(title);
+  assert.ok(!models.includes('F500013673FW17VDB'), 'must not fuse the SKU and model');
+  assert.deepEqual(models, ['F500013673', 'FW17VDB']);
+  assert.equal(extractModel(title), extractModels(title)[0]);
+});
+
+/* DEFECT FIX: an ALL-CAPS feature word (BAGLESS) immediately after a model
+   must terminate the run, the same way Titlecase prose already does. */
+test('extractModels stops a run at an ALL-CAPS feature word', () => {
+  const title = 'مكنسة ال جى 2000 وات - احمر VC5420NNTR - BAGLESS';
+  const models = extractModels(title);
+  assert.ok(!models.includes('VC5420NNTRBAGLESS'), 'must not absorb BAGLESS into the model');
+  assert.deepEqual(models, ['VC5420NNTR']);
+});
+
+/* DEFECT FIX: a model split across multiple dashed fragments, followed by a
+   trailing SKU, must yield the joined model and the separate SKU — not one
+   fused string. */
+test('extractModels separates a multi-fragment model from a trailing SKU', () => {
+  const title = 'ميكروويف فريش 36 لتر ديجيتال بالجريل ــ سيلفر FMW - 36KCG - SSG - F500015260';
+  const models = extractModels(title);
+  assert.ok(!models.includes('FMW36KCGSSGF500015260'), 'must not fuse the model and the SKU');
+  assert.deepEqual(models, ['FMW36KCGSSG', 'F500015260']);
+});
+
+/* DEFECT FIX: a parenthesised SKU must never fuse with the model that
+   precedes it. */
+test('extractModels never fuses across a parenthesis boundary', () => {
+  const title = 'PL-BL1200185 (810307) خلاط بلوتو 1.85 لتر';
+  const models = extractModels(title);
+  assert.ok(!models.includes('PLBL1200185810307'), 'must not fuse across the parenthesis');
+  assert.deepEqual(models, ['PLBL1200185']);
+  assert.equal(extractModel(title), 'PLBL1200185');
+});
+
+test('extractModels orders candidates longest-first and deduplicates', () => {
+  const models = extractModels('مبرد مياه مكتبى فريش اسود 2 حنفية F500013673 - FW-17VDB');
+  for (let i = 1; i < models.length; i++) {
+    assert.ok(models[i - 1].length >= models[i].length, 'expected longest-first ordering');
+  }
+  assert.equal(new Set(models).size, models.length, 'expected no duplicates');
+});
+
+test('extractModels returns [] and extractModel returns null when no identifier is present', () => {
+  assert.deepEqual(extractModels('تلفزيون سامسونج 55 بوصة 4K سمارت'), []);
+  assert.equal(extractModel('تلفزيون سامسونج 55 بوصة 4K سمارت'), null);
 });

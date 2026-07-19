@@ -91,6 +91,27 @@ test('extractModels never fuses across a parenthesis boundary', () => {
   assert.equal(extractModel(title), 'PLBL1200185');
 });
 
+/* REGRESSION: a parenthesis GLUED to the end of a fragment (no space before
+   it) must not sever the fragment from the run that precedes it — it's one
+   fragment with a trailing variant code, not a separate SKU. */
+test('extractModel keeps a fragment joined to its preceding run when a paren is glued to its end', () => {
+  assert.equal(extractModel('AEW - 8460SUP(DS)'), 'AEW8460SUPDS');
+});
+
+/* Companion to the glued-paren case above: a parenthesised group that is its
+   OWN token (space before the "(") is still a standalone SKU and must still
+   be split off the run before it, never fused into it. ("810307" is an
+   all-digit SKU, so it is filtered out by isValidModel same as before — the
+   point pinned here is that it must not fuse into "PLBL1200185810307".) A
+   fix for the glued case above must not regress this one. */
+test('extractModels still splits a standalone parenthesised token from the run before it', () => {
+  const title = 'PL-BL1200185 (810307) خلاط بلوتو 1.85 لتر';
+  const models = extractModels(title);
+  assert.ok(!models.includes('PLBL1200185810307'), 'must not fuse the standalone paren group into the run');
+  assert.deepEqual(models, ['PLBL1200185']);
+  assert.equal(extractModel(title), 'PLBL1200185');
+});
+
 test('extractModels orders candidates longest-first and deduplicates', () => {
   const models = extractModels('مبرد مياه مكتبى فريش اسود 2 حنفية F500013673 - FW-17VDB');
   for (let i = 1; i < models.length; i++) {

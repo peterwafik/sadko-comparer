@@ -62,34 +62,55 @@ export function openCatalog(file = ':memory:') {
     'UPDATE offers SET price=?, in_stock=?, title_raw=?, last_checked=?, product_id=? WHERE id=?');
   const insHist = db.prepare('INSERT INTO price_history (offer_id, price, seen_at) VALUES (?,?,?)');
   const insFts = db.prepare('INSERT INTO offers_fts (rowid, title_raw, brand, model_norm) VALUES (?,?,?,?)');
+  // Contentless FTS5 ('delete' command) needs the ORIGINAL indexed values to
+  // locate and remove the old postings — NULLs remove nothing and leak stale
+  // tokens into the index forever. Fetch what was actually indexed last time:
+  // the offer's own title_raw plus the brand/model_norm of the product it was
+  // linked to at that time (products.brand/model_norm never change after
+  // insert, so this reconstructs the exact row insFts wrote previously).
+  const findOldFts = db.prepare(
+    `SELECT o.title_raw AS title_raw, p.brand AS brand, p.model_norm AS model_norm
+     FROM offers o JOIN products p ON p.id = o.product_id WHERE o.id = ?`);
   const delFts = db.prepare("INSERT INTO offers_fts (offers_fts, rowid, title_raw, brand, model_norm) VALUES ('delete', ?, ?, ?, ?)");
 
   return {
     db,
 
     upsertOffer({ domain, url, title, price, currency = 'EGP', inStock = true, now = Date.now() }) {
-      const idy = identify(title);
-      let row = findProduct.get(idy.key);
-      if (!row) {
-        insProduct.run(idy.key, idy.brand, idy.category, idy.model,
-          JSON.stringify({ units: idy.units, specs: idy.specs }), title);
-        row = findProduct.get(idy.key);
+      // Multi-statement write (product, offer, price-history, FTS delete+insert)
+      // must be all-or-nothing: a failure partway through must never leave an
+      // offer with no FTS row (invisible to search) or an FTS row pointing at
+      // nothing written.
+      db.exec('BEGIN');
+      try {
+        const idy = identify(title);
+        let row = findProduct.get(idy.key);
+        if (!row) {
+          insProduct.run(idy.key, idy.brand, idy.category, idy.model,
+            JSON.stringify({ units: idy.units, specs: idy.specs }), title);
+          row = findProduct.get(idy.key);
+        }
+        const productId = row.id;
+        const existing = findOffer.get(url);
+        let offerId;
+        if (existing) {
+          offerId = existing.id;
+          const old = findOldFts.get(offerId);
+          delFts.run(offerId, old.title_raw, old.brand, old.model_norm);
+          updOffer.run(price, inStock ? 1 : 0, title, now, productId, offerId);
+          if (existing.price !== price) insHist.run(offerId, price, now);
+        } else {
+          insOffer.run(productId, domain, url, price, currency, inStock ? 1 : 0, title, now, now);
+          offerId = findOffer.get(url).id;
+          insHist.run(offerId, price, now);
+        }
+        insFts.run(offerId, title, idy.brand, idy.model);
+        db.exec('COMMIT');
+        return { offerId, productId };
+      } catch (err) {
+        try { db.exec('ROLLBACK'); } catch { /* rollback failure must not mask the original error */ }
+        throw err;
       }
-      const productId = row.id;
-      const existing = findOffer.get(url);
-      let offerId;
-      if (existing) {
-        offerId = existing.id;
-        delFts.run(offerId, null, null, null);
-        updOffer.run(price, inStock ? 1 : 0, title, now, productId, offerId);
-        if (existing.price !== price) insHist.run(offerId, price, now);
-      } else {
-        insOffer.run(productId, domain, url, price, currency, inStock ? 1 : 0, title, now, now);
-        offerId = findOffer.get(url).id;
-        insHist.run(offerId, price, now);
-      }
-      insFts.run(offerId, title, idy.brand, idy.model);
-      return { offerId, productId };
     },
 
     search(query, limit = 200) {

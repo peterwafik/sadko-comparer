@@ -39,11 +39,19 @@ export function identify(title) {
   for (const u of defining) if (allUnits[u] !== undefined) units[u] = allUnits[u];
   const specs = category ? extractSpecs(title, category) : {};
 
+  // With no model, no brand, and no category, there is nothing identity-bearing
+  // to group by — the b:?|c:?|| form would be IDENTICAL for every such listing,
+  // collapsing unrelated products (e.g. an SSD and a mouse pad) into one row at
+  // scale. Fall back to a key derived from the normalized title: deterministic
+  // (same title -> same key, so re-crawls keep their price history) and unique
+  // per distinct title (so unrelated listings never collide).
   const key = model
     ? `m:${model}`
-    : `b:${brand || '?'}|c:${category || '?'}|` +
-      Object.entries(units).sort().map(([k, v]) => `${k}=${v}`).join(',') + '|' +
-      Object.entries(specs).sort().map(([k, v]) => `${k}=${v}`).join(',');
+    : (brand || category)
+      ? `b:${brand || '?'}|c:${category || '?'}|` +
+        Object.entries(units).sort().map(([k, v]) => `${k}=${v}`).join(',') + '|' +
+        Object.entries(specs).sort().map(([k, v]) => `${k}=${v}`).join(',')
+      : `t:${normText(title)}`;
 
   return { brand, category, model, units, specs, key, title };
 }

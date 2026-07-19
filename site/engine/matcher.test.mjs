@@ -164,3 +164,28 @@ test('identity key is stable and equal for the same product', () => {
   const b = id('Tornado Refrigerator 355L RF-40FTV-BK');
   assert.equal(a.key, b.key);
 });
+
+/* CRITICAL: with no model, no brand, and no category, identify() used to
+   produce the SAME key 'b:?|c:?||' for every such listing, collapsing
+   unrelated products into one catalog row at scale. Real crawl titles from
+   2b.com.eg that carry none of those signals. */
+test('two different unidentifiable titles get different keys', () => {
+  const ssd = id('Patriot P300 512GB SSD M2 NVMe');
+  const mousePad = id('Redragon P012 Large Gaming Mouse Pad - Black');
+  assert.equal(ssd.brand, null);
+  assert.equal(ssd.category, null);
+  assert.equal(ssd.model, null);
+  assert.notEqual(ssd.key, mousePad.key);
+});
+
+test('the same unidentifiable title gets the same key on repeated calls', () => {
+  const a = id('Patriot P300 512GB SSD M2 NVMe');
+  const b = id('Patriot P300 512GB SSD M2 NVMe');
+  assert.equal(a.key, b.key);
+});
+
+test('a listing with a model still keys on the model, even with no brand', () => {
+  const a = id('RF-40FTV-BK');
+  assert.equal(a.model, 'RF40FTVBK');
+  assert.equal(a.key, 'm:RF40FTVBK');
+});

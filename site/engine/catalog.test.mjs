@@ -115,6 +115,28 @@ test('title change also updates the searchable brand and model_norm FTS columns,
 // has no NOT NULL constraint) while the subsequent price_history INSERT
 // throws — and assert the whole upsert is rolled back: no changed offer row,
 // no stray history row, and (critically) no orphaned FTS delete either.
+// CRITICAL: listings with no model/brand/category used to all collapse onto
+// the identical key 'b:?|c:?||', merging unrelated products (an SSD and a
+// mouse pad) into a single catalog row. Each unidentifiable listing must get
+// its own product, and re-crawling the same URL must not fork it into a new
+// one.
+test('unidentifiable listings with different titles get distinct product ids, and re-crawls keep the same one', () => {
+  const c = openCatalog();
+  const ssd = c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/1',
+    title: 'Patriot P300 512GB SSD M2 NVMe', price: 2299, inStock: true });
+  const mousePad = c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/2',
+    title: 'Redragon P012 Large Gaming Mouse Pad - Black', price: 259, inStock: true });
+
+  assert.notEqual(ssd.productId, mousePad.productId, 'SSD and mouse pad must not share a product');
+  assert.equal(c.db.prepare('SELECT COUNT(*) n FROM products').get().n, 2);
+
+  const reCrawl = c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/1',
+    title: 'Patriot P300 512GB SSD M2 NVMe', price: 2199, inStock: true });
+  assert.equal(reCrawl.productId, ssd.productId, 're-crawl of the same listing must keep the same product');
+  assert.equal(c.db.prepare('SELECT COUNT(*) n FROM products').get().n, 2, 're-crawl must not create a new product');
+  c.close();
+});
+
 test('a mid-sequence failure during upsert rolls back all writes, including the FTS delete', () => {
   const c = openCatalog();
   const { offerId } = c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p3',

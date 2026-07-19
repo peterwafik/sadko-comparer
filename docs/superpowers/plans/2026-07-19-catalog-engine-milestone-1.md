@@ -13,7 +13,10 @@
 - **Zero runtime dependencies.** No npm packages. `node:sqlite`, `node:test`, `node:fs`, `node:http` only. This is an existing, deliberate property of the codebase (see the no-deps note in `site/headless.mjs`).
 - **Node ≥ 22.5** for `node:sqlite`. Verified working on v24.16.0.
 - **All new engine modules live in `site/engine/`.** Tests in `site/engine/*.test.mjs` beside their module.
-- **Run tests with:** `node --test site/engine/` from repo root `D:\SADKO`.
+- **Run tests with:** `node --test site/engine/*.test.mjs` from repo root `D:\SADKO`.
+  Note the glob — on this Node 24 / Windows setup, passing the *directory*
+  (`node --test site/engine/*.test.mjs`) fails with `Cannot find module 'D:\SADKO\site\engine'`.
+  Single file: `node --test site/engine/<name>.test.mjs`.
 - **Never commit `site/.env`.** It holds a live NVIDIA API key and is gitignored by `*.env`.
 - **Crawler must honour `robots.txt`**, including `Crawl-delay`, and send UA `Mozilla/5.0 (compatible; SADKO-price-comparer/1.0; +https://sadko-group.com/bot)`.
 - **Arabic text is first-class.** Every normalization must handle Arabic-Indic digits (`٠-٩`), alef/ya/ta-marbuta variants, and tatweel.
@@ -1337,7 +1340,7 @@ Note `compare-server.mjs` also has a `normDigits` used by `parsePrice`; keep
 - [ ] **Step 6: Verify the rewire did not break the server**
 
 ```bash
-node --test site/engine/
+node --test site/engine/*.test.mjs
 SADKO_NO_SERVE=1 node -e "import('./site/compare-server.mjs').then(()=>console.log('compare-server parses OK')).catch(e=>{console.error('BROKEN:',e.message);process.exit(1)})"
 ```
 
@@ -1706,7 +1709,7 @@ Expected: PASS — 4 tests
 
 - [ ] **Step 5: Run the whole engine suite**
 
-Run: `node --test site/engine/`
+Run: `node --test site/engine/*.test.mjs`
 Expected: PASS — all tests from Tasks 1-9
 
 - [ ] **Step 6: Commit**
@@ -2084,7 +2087,7 @@ git commit -m "feat(scripts): catalog vs live-fanout benchmark"
 
 ## Definition of Done
 
-- [ ] `node --test site/engine/` passes — all tasks 1-11
+- [ ] `node --test site/engine/*.test.mjs` passes — all tasks 1-11
 - [ ] `node scripts/crawl-m1.mjs --max 50` populates `site/data/catalog.db` for ≥2 stores
 - [ ] `node scripts/bench-catalog.mjs` prints a real, reported ratio
 - [ ] Server responds with `mode: catalog`

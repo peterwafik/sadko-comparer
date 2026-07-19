@@ -79,6 +79,44 @@ test('the water-cooler trap does not match a fridge', () => {
   assert.equal(sameProduct(cooler, fridge).same, false);
 });
 
+/* CONFIRMED FALSE POSITIVES: fan size, oven burner count, and heater control
+   type were not declared as identity-defining attributes, so genuinely
+   different products compared as SAME. */
+test('different fan size means different product', () => {
+  const a = id('مروحة توشيبا 18 بوصة ستاند');
+  const b = id('مروحة توشيبا 30 بوصة ستاند');
+  assert.equal(sameProduct(a, b).same, false);
+});
+
+test('different burner count means different product — ovens', () => {
+  const a = id('فرن كريازى 4 شعلة');
+  const b = id('فرن كريازى 5 شعلة');
+  assert.equal(sameProduct(a, b).same, false);
+});
+
+test('digital vs mechanical control means different product — heaters', () => {
+  const a = id('سخان اوليمبك 30 لتر ديجيتال');
+  const b = id('سخان اوليمبك 30 لتر ميكانيكي');
+  assert.equal(sameProduct(a, b).same, false);
+});
+
+/* Further audit fixes: dishwasher width (45cm slimline vs 60cm full-size) and
+   water-cooler hot/cold mode were also undeclared identity-defining
+   attributes. (freezer gained 'nofrost' too, mirroring fridge, but — like
+   fridge's own nofrost — it only ever registers a positive match; no
+   contradiction case exists in the catalog to assert here.) */
+test('different width means different product — dishwashers', () => {
+  const a = id('غسالة اطباق بيكو 45 سم 10 فرد');
+  const b = id('غسالة اطباق بيكو 60 سم 10 فرد');
+  assert.equal(sameProduct(a, b).same, false);
+});
+
+test('hot/cold mode vs cold-only means different product — water coolers', () => {
+  const a = id('مبرد مياه كولدير 2 حنفية بارد ساخن');
+  const b = id('مبرد مياه كولدير 2 حنفية بارد فقط');
+  assert.equal(sameProduct(a, b).same, false);
+});
+
 test('identity key is stable and equal for the same product', () => {
   const a = id('ثلاجة تورنيدو 2 باب انفرتر نوفروست 355 لتر – اسود RF-40FTV-BK');
   const b = id('Tornado Refrigerator 355L RF-40FTV-BK');

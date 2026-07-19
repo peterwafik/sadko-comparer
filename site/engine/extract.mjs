@@ -6,10 +6,15 @@ import { UI_TITLE, BAD_URL, parsePrice, decodeEntities as decode } from './offer
 export function extractProduct(html, url) {
   if (BAD_URL.test(url)) return null;
   let found = null;
+  const isProduct = (t) => {
+    const s = String(t).toLowerCase();
+    return s === 'product' || s.endsWith('/product');
+  };
   const walk = node => {
     if (found || !node || typeof node !== 'object') return;
     if (Array.isArray(node)) return node.forEach(walk);
-    if (String(node['@type'] || '').toLowerCase() === 'product') {
+    const typeVal = node['@type'];
+    if (Array.isArray(typeVal) ? typeVal.some(isProduct) : isProduct(typeVal)) {
       const offer = [].concat(node.offers || [])[0] || {};
       const price = parsePrice(offer.price ?? offer.lowPrice ?? node.price);
       if (price) {

@@ -40,3 +40,18 @@ test('rejects UI chrome masquerading as a product title', () => {
   const html = LD({ '@type': 'Product', name: 'إضافة إلى السلة', offers: { price: 52405 } });
   assert.equal(extractProduct(html, 'https://s.com/?add-to-cart=3991'), null);
 });
+
+test('accepts @type as an array containing Product', () => {
+  const html = LD({ '@type': ['Product', 'Thing'], name: 'تكييف شارب 2.25 حصان', offers: { price: 53400 } });
+  assert.equal(extractProduct(html, 'https://s.com/product/5').price, 53400);
+});
+
+test('rejects @type as an array without Product', () => {
+  const html = LD({ '@type': ['WebPage', 'Thing'], name: 'صفحة ويب طويلة جداً', offers: { price: 100 } });
+  assert.equal(extractProduct(html, 'https://s.com/product/6'), null);
+});
+
+test('accepts @type as a schema.org URL', () => {
+  const html = LD({ '@type': 'http://schema.org/Product', name: 'ثلاجة تورنيدو 355 لتر', offers: { price: 22269 } });
+  assert.equal(extractProduct(html, 'https://s.com/product/7').price, 22269);
+});

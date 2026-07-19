@@ -22,3 +22,6 @@ extraction/raw/
 .playwright-mcp/
 
 node_modules/
+
+# SDD scratch
+.superpowers/

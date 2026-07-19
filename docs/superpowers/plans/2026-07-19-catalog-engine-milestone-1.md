@@ -32,7 +32,8 @@
 | `site/engine/catalog.mjs` | SQLite schema, upsert, FTS search, price history |
 | `site/engine/robots.mjs` | robots.txt fetch + parse — `Disallow`, `Crawl-delay`, `Sitemap` |
 | `site/engine/sitemap.mjs` | sitemap/sitemap-index parsing → product URLs |
-| `site/engine/extract.mjs` | product page → `{title, price, brand, in_stock}` via JSON-LD |
+| `site/engine/offer-gate.mjs` | shared offer-sanity gate — imported by extract.mjs AND compare-server.mjs |
+| `site/engine/extract.mjs` | product page → `{title, price, currency, inStock}` via JSON-LD |
 | `site/engine/crawler.mjs` | orchestration: robots → sitemap → pages → catalog, resumable |
 | `site/engine/stores-m1.mjs` | the 13 Milestone-1 stores |
 | `site/compare-server.mjs` | MODIFIED: catalog-first search path + live top-10 verification |
@@ -1206,6 +1207,151 @@ git commit -m "feat(engine): sitemap and sitemap-index parsing"
 
 ---
 
+## Task 8a: Shared offer-sanity gate
+
+**Files:**
+- Create: `site/engine/offer-gate.mjs`
+- Modify: `site/compare-server.mjs` — delete its private copies, import from the new module
+- Test: `site/engine/offer-gate.test.mjs`
+
+**Interfaces:**
+- Consumes: nothing
+- Produces:
+  - `UI_TITLE: RegExp`, `BAD_URL: RegExp`
+  - `parsePrice(x: string|number) => number` — 0 when outside 100..2,000,000
+  - `decodeEntities(s: string) => string`
+  - `isProductOffer({title, price, url}) => boolean`
+
+**Why this task exists:** these regexes were fixed earlier in this project after
+they let "add to cart" anchors and `href="#"` nav links be priced and ranked as
+products. Two copies would drift and silently reintroduce that bug. The
+dependency points one way only — `compare-server.mjs` → `engine/` — so there is
+no cycle. Do **not** import from `compare-server.mjs`: it starts an HTTP server
+at module load unless `SADKO_NO_SERVE` is set.
+
+- [ ] **Step 1: Write the failing test**
+
+```js
+// site/engine/offer-gate.test.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { parsePrice, decodeEntities, isProductOffer } from './offer-gate.mjs';
+
+test('parsePrice accepts plausible EGP and rejects the rest', () => {
+  assert.equal(parsePrice('39,699'), 39699);
+  assert.equal(parsePrice('٣٩٦٩٩'), 39699);
+  assert.equal(parsePrice(41000), 41000);
+  assert.equal(parsePrice('99'), 0);          // below floor
+  assert.equal(parsePrice('9999999'), 0);     // above ceiling
+  assert.equal(parsePrice('abc'), 0);
+});
+
+test('decodeEntities unwraps html entities and strips tags', () => {
+  assert.equal(decodeEntities('Cooling&nbsp;&amp;&nbsp;Heating'), 'Cooling & Heating');
+  assert.equal(decodeEntities('<b>شارب</b> 75'), 'شارب 75');
+});
+
+test('isProductOffer rejects UI chrome and non-product URLs', () => {
+  const ok = { title: 'شاشة شارب 75 بوصة 4K', price: 39699, url: 'https://s.com/product/1' };
+  assert.equal(isProductOffer(ok), true);
+  assert.equal(isProductOffer({ ...ok, title: 'إضافة إلى السلة' }), false);
+  assert.equal(isProductOffer({ ...ok, title: 'Add to cart' }), false);
+  assert.equal(isProductOffer({ ...ok, url: 'https://s.com/?add-to-cart=3991' }), false);
+  assert.equal(isProductOffer({ ...ok, url: 'https://s.com/cart' }), false);
+  assert.equal(isProductOffer({ ...ok, url: 'https://s.com/' }), false);   // bare root = nav
+  assert.equal(isProductOffer({ ...ok, price: 0 }), false);
+  assert.equal(isProductOffer({ ...ok, title: 'short' }), false);
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `node --test site/engine/offer-gate.test.mjs`
+Expected: FAIL — `Cannot find module './offer-gate.mjs'`
+
+- [ ] **Step 3: Write minimal implementation**
+
+```js
+// site/engine/offer-gate.mjs
+/* Offer-sanity gate, shared by the crawler's extractor and the live adapters in
+   compare-server.mjs. A harvested "item" is only an OFFER if it points at a real
+   product page and is not storefront chrome. */
+
+export const UI_TITLE = /^(?:إضافة إلى السلة|أضف إلى السلة|اضف للسلة|أضف للسلة|اضف الى السلة|اشتر(?:ى|ي) الآن|عرض المنتج|عرض التفاصيل|اقرأ المزيد|اقرا المزيد|التفاصيل|قارن|المفضلة|السلة|add to cart|add to basket|buy now|read more|view (?:product|details|more)|compare|wishlist|quick view|select options|show details)\s*$/i;
+
+export const BAD_URL = /[?&](?:add-to-cart|add_to_cart|remove_item|s)=|\/(?:cart|checkout|wishlist|compare|my-account|account|login|register)(?:\/|$|\?)/i;
+
+export function parsePrice(x) {
+  if (typeof x === 'number') return x >= 100 && x <= 2e6 ? Math.round(x) : 0;
+  const t = String(x ?? '')
+    .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0))
+    .replace(/[\s,]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '');
+  const v = parseFloat(t.replace(/[^\d.]/g, ''));
+  return v >= 100 && v <= 2e6 ? Math.round(v) : 0;
+}
+
+export function decodeEntities(s) {
+  return String(s ?? '')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
+    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function isProductOffer(o) {
+  if (!o || !o.price || !o.url) return false;
+  const title = String(o.title || '').trim();
+  if (title.length < 8 || UI_TITLE.test(title)) return false;
+  let u; try { u = new URL(o.url); } catch { return false; }
+  // href="#" and bare-domain links resolve to the site root — navigation, not a
+  // product; an offer the customer cannot click is worse than no offer
+  if (!u.pathname || u.pathname === '/') return false;
+  if (BAD_URL.test(u.href)) return false;
+  return true;
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `node --test site/engine/offer-gate.test.mjs`
+Expected: PASS — 3 tests
+
+- [ ] **Step 5: Rewire `compare-server.mjs` to the shared module**
+
+Add to the imports in `site/compare-server.mjs`:
+
+```js
+import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
+```
+
+Then **delete** these now-duplicated definitions from `compare-server.mjs`:
+`const UI_TITLE = …`, `const BAD_URL = …`, `function parsePrice(x) {…}`,
+`function decodeEntities(s) {…}`, and `function isProductOffer(o) {…}`.
+
+Leave every *call site* unchanged — the imported names are identical.
+
+Note `compare-server.mjs` also has a `normDigits` used by `parsePrice`; keep
+`normDigits` where it is, since other code in that file still calls it.
+
+- [ ] **Step 6: Verify the rewire did not break the server**
+
+```bash
+node --test site/engine/
+SADKO_NO_SERVE=1 node -e "import('./site/compare-server.mjs').then(()=>console.log('compare-server parses OK')).catch(e=>{console.error('BROKEN:',e.message);process.exit(1)})"
+```
+
+Expected: all engine tests pass, and `compare-server parses OK`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add site/engine/offer-gate.mjs site/engine/offer-gate.test.mjs site/compare-server.mjs
+git commit -m "refactor(engine): extract shared offer-sanity gate"
+```
+
+---
+
 ## Task 8: Product page extraction
 
 **Files:**
@@ -1213,10 +1359,10 @@ git commit -m "feat(engine): sitemap and sitemap-index parsing"
 - Test: `site/engine/extract.test.mjs`
 
 **Interfaces:**
-- Consumes: nothing
+- Consumes: `parsePrice`, `decodeEntities`, `UI_TITLE`, `BAD_URL` from `./offer-gate.mjs` (Task 8a)
 - Produces: `extractProduct(html: string, url: string) => {title, price, currency, inStock} | null`
 
-**Context:** Reuse the JSON-LD walking approach already proven in `compare-server.mjs`, plus the `isProductOffer` sanity gate rules added this session (reject `href="#"`, `add-to-cart` URLs, UI-chrome titles).
+**Context:** Reuse the JSON-LD walking approach already proven in `compare-server.mjs`. The sanity-gate rules live in `offer-gate.mjs` — import them, do **not** redefine them here.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1276,25 +1422,9 @@ Expected: FAIL — `Cannot find module './extract.mjs'`
 ```js
 // site/engine/extract.mjs
 /* Product page -> normalized record, via schema.org JSON-LD.
-   The UI_TITLE / BAD_URL gate mirrors isProductOffer() in compare-server.mjs:
-   without it, "add to cart" anchors and cart URLs get priced as products. */
-
-const UI_TITLE = /^(?:إضافة إلى السلة|أضف إلى السلة|اضف للسلة|اشتر(?:ى|ي) الآن|عرض المنتج|اقرأ المزيد|قارن|السلة|add to cart|buy now|read more|view (?:product|details)|compare|wishlist|quick view)\s*$/i;
-const BAD_URL = /[?&](?:add-to-cart|add_to_cart)=|\/(?:cart|checkout|wishlist|compare|my-account|login|register)(?:\/|$|\?)/i;
-
-function parsePrice(x) {
-  if (typeof x === 'number') return x >= 100 && x <= 2e6 ? Math.round(x) : 0;
-  const t = String(x ?? '').replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[\s,]/g, '');
-  const v = parseFloat(t.replace(/[^\d.]/g, ''));
-  return v >= 100 && v <= 2e6 ? Math.round(v) : 0;
-}
-
-function decode(s) {
-  return String(s ?? '').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"').replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
-    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
+   The sanity gate is shared with the live adapters — see ./offer-gate.mjs.
+   Without it, "add to cart" anchors and cart URLs get priced as products. */
+import { UI_TITLE, BAD_URL, parsePrice, decodeEntities as decode } from './offer-gate.mjs';
 
 export function extractProduct(html, url) {
   if (BAD_URL.test(url)) return null;

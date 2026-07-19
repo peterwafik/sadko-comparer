@@ -50,6 +50,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage, headlessAvailable } from './headless.mjs';
 import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
+import { openCatalog } from './engine/catalog.mjs';
+import { rankOffers } from './engine/serve.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8082);
@@ -853,6 +855,22 @@ async function auditOffers(job) {
    proven stores). Unproven tier 3–4 stores are swept in the background and
    merged in while the client polls. Price history rides along per offer. */
 const INDEX_FILE = path.join(ROOT, 'data', 'price-index.json');
+/* Catalog path: when site/data/catalog.db exists we answer from the crawled
+   catalog and fall back to live fan-out only when it returns nothing. */
+const CATALOG_FILE = path.join(ROOT, 'data', 'catalog.db');
+let CATALOG = null;
+function catalog() {
+  if (CATALOG === null) CATALOG = existsSync(CATALOG_FILE) ? openCatalog(CATALOG_FILE) : false;
+  return CATALOG;
+}
+/* live re-check of one offer: refetch its product page and lift JSON-LD */
+async function verifyOffer(o) {
+  try {
+    const html = await fetchPage(o.url, 'text/html', 8000);
+    const items = jsonLdProducts(html, o.domain);
+    return items[0]?.price || null;
+  } catch { return null; }
+}
 const FRESH_MS = 10 * 60e3, USABLE_MS = 24 * 3600e3, MAX_QUERIES = 400;
 let INDEX = null;
 async function loadIndex() {
@@ -1072,6 +1090,26 @@ function buildResponse(q, offers, stats, ai, min, max, lang, refreshing, src, ag
 }
 
 async function compare(q, min, max, discover, lang) {
+  const cat = catalog();
+  if (cat) {
+    const r = await rankOffers(cat, q, { verify: verifyOffer, verifyTop: 10 });
+    if (r.results.length) {
+      const filtered = r.results.filter(x => (!min || x.price >= min) && (!max || x.price <= max));
+      return {
+        mode: 'catalog', query: q,
+        results: filtered.map(x => ({
+          store: x.domain, domain: x.domain, type: 'local', title: x.title,
+          price: x.price, effectivePrice: x.price, currency: x.currency, url: x.url,
+          checkedAt: x.checkedAt, flags: x.confidence === 'weak' ? ['variant'] : [],
+          rank: x.rank, verified: x.verified,
+        })),
+        cheapest: r.cheapest, concierge: null, refreshing: false,
+        stats: { ...r.stats, src: 'catalog', headless: headlessAvailable(), ai: !!NVIDIA_KEY },
+        links: storeLinks(q, lang),
+      };
+    }
+  }
+
   await loadIndex(); await loadRegistry();
   const qk = qkey(q);
   let job = JOBS.get(qk);

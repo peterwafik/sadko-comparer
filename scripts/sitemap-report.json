@@ -1,0 +1,1272 @@
+{
+ "at": "2026-07-19T15:04:16.318Z",
+ "results": [
+  {
+   "domain": "rayashop.com",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.rayashop.com/sitemap.xml",
+    "https://rayashop.com/sitemap.xml",
+    "https://rayashop.com/product-sitemap.xml",
+    "https://rayashop.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 22076,
+   "sample": "https://www.rayashop.com/en",
+   "usedSitemap": "https://www.rayashop.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "jumia.com.eg",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://static.jumia.com.eg/index-sitemap.xml",
+    "https://www.jumia.com.eg/slp/nc/sitemap/sitemap.xml",
+    "https://www.jumia.com.eg/ar/slp/nc/sitemap/sitemap.xml"
+   ],
+   "productUrls": 10000,
+   "sample": "https://www.jumia.com.eg/slp/0-18-months-baby-girls-bodysuit",
+   "usedSitemap": "https://www.jumia.com.eg/slp/nc/sitemap/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "2b.com.eg",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://2b.com.eg/en_sitemap.xml",
+    "https://2b.com.eg/ar_sitemap.xml",
+    "https://2b.com.eg/pub/en_sitemap.xml",
+    "https://2b.com.eg/pub/ar_sitemap.xml",
+    "https://2b.com.eg/pub/en_sitemap.xml",
+    "https://2b.com.eg/pub/ar_sitemap.xml"
+   ],
+   "productUrls": 7611,
+   "sample": "https://2b.com.eg/en/",
+   "usedSitemap": "https://2b.com.eg/en_sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "btech.com",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://btech.com/sitemap.xml"
+   ],
+   "productUrls": 7205,
+   "sample": "https://btech.com/ar/p/speedlink-kappa-usb-mouse-black-sl-6113-bk",
+   "usedSitemap": "https://btech.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "elarabygroup.com",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.elarabygroup.com/pub/media/sitemap/ar.xml",
+    "https://www.elarabygroup.com/pub/media/sitemap/en.xml"
+   ],
+   "productUrls": 6369,
+   "sample": "https://www.elarabygroup.com/en/candy-washing-machine-fully-automatic-7-kg-white-color-gv117dc1-egy",
+   "usedSitemap": "https://www.elarabygroup.com/pub/media/sitemap/en.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "amanstores.com",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.amanstores.com/en/sitemap.xml",
+    "https://www.amanstores.com/ar/sitemap.xml"
+   ],
+   "productUrls": 4885,
+   "sample": "https://www.amanstores.com/en/catalog/product/view/id/6231/",
+   "usedSitemap": "https://www.amanstores.com/en/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "egypt.sharafdg.com",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://egypt.sharafdg.com/egypt-sitemap.xml"
+   ],
+   "productUrls": 1892,
+   "sample": "https://egypt.sharafdg.com/product/kenwood-vacuum-cleaner-vc7050/",
+   "usedSitemap": "https://egypt.sharafdg.com/egypt-sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "amazon.eg",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.amazon.eg/sitemap.xml",
+    "https://amazon.eg/sitemap.xml",
+    "https://amazon.eg/product-sitemap.xml",
+    "https://amazon.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "hyperone.com.eg",
+   "tier": 1,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.hyperone.com.eg/sitemap.xml",
+    "https://hyperone.com.eg/sitemap.xml",
+    "https://hyperone.com.eg/product-sitemap.xml",
+    "https://hyperone.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "raneen.com",
+   "tier": 1,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.raneen.com/sitemap.xml",
+    "https://raneen.com/sitemap.xml",
+    "https://raneen.com/product-sitemap.xml",
+    "https://raneen.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "noon.com",
+   "tier": 1,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.noon.com/sitemap.xml",
+    "https://noon.com/sitemap.xml",
+    "https://noon.com/product-sitemap.xml",
+    "https://noon.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "tier": 1,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.carrefouregypt.com/sitemap.xml",
+    "https://carrefouregypt.com/sitemap.xml",
+    "https://carrefouregypt.com/product-sitemap.xml",
+    "https://carrefouregypt.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "egyptlaptop.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": 10,
+   "sitemaps": [
+    "https://egyptlaptop.com/sitemap.xml",
+    "https://egyptlaptop.com/blog1.xml",
+    "https://egyptlaptop.com/categories1.xml",
+    "https://egyptlaptop.com/custom_links1.xml",
+    "https://egyptlaptop.com/feature_variants1.xml",
+    "https://egyptlaptop.com/images1.xml",
+    "https://egyptlaptop.com/images2.xml",
+    "https://egyptlaptop.com/images3.xml",
+    "https://egyptlaptop.com/other_links1.xml",
+    "https://egyptlaptop.com/pages1.xml",
+    "https://egyptlaptop.com/products1.xml"
+   ],
+   "productUrls": 6193,
+   "sample": "https://egyptlaptop.com/point-of-sale/barcode-scanners/datalogic-qw2100-scanner",
+   "usedSitemap": "https://egyptlaptop.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "elghazawy.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://elghazawy.com/sitemap.xml"
+   ],
+   "productUrls": 6179,
+   "sample": "https://elghazawy.com/ar/product/147807/mrohh-haet-brfks-haoay-18-bos-asod-wfh-180",
+   "usedSitemap": "https://elghazawy.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "kenzz.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.kenzz.com/sitemap.xml"
+   ],
+   "productUrls": 2064,
+   "sample": "https://kenzz.com/category/BGY3NQH3X6YN-5XBKCVRT8AGS/%D9%83%D9%84-%D8%AD%D8%A7%D8%AC%D8%A9/%D9%83%D8%AA%D8%A8-%D9%88-%D9%85%D8%AC%D9%84%D8%A7%D8%AA",
+   "usedSitemap": "https://www.kenzz.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "sigma-computer.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://sigma-computer.com/sitemap.xml",
+    "https://sigma-computer.com/en/item/sitemap.xml",
+    "https://sigma-computer.com/ar/item/sitemap.xml"
+   ],
+   "productUrls": 418,
+   "sample": "https://sigma-computer.com/en",
+   "usedSitemap": "https://sigma-computer.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "homzmart.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://homzmart.com/sitemap.xml"
+   ],
+   "productUrls": 262,
+   "sample": "https://homzmart.com/p/7580-cm-ceiling-lamp-black-and-white-yligyl723--YLIG.YL723",
+   "usedSitemap": "https://homzmart.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "kaza.com.eg",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://kaza.com.eg/pub/media/sitemap/Sitemap.xml",
+    "https://kaza.com.eg/pub/media/sitemap/sitemap.ar.xml",
+    "https://kaza.com.eg/pub/media/sitemap/sitemap.en.xml"
+   ],
+   "productUrls": 169,
+   "sample": "https://kaza.com.eg/ar/catalog/product/view/id/7666",
+   "usedSitemap": "https://kaza.com.eg/pub/media/sitemap/Sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "camerashop.com.eg",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://camerashop.com.eg/wp-sitemap.xml"
+   ],
+   "productUrls": 154,
+   "sample": "https://camerashop.com.eg/canon/",
+   "usedSitemap": "https://camerashop.com.eg/wp-sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "fresh.com.eg",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.fresh.com.eg/sitemap.xml",
+    "https://fresh.com.eg/sitemap.xml",
+    "https://fresh.com.eg/product-sitemap.xml",
+    "https://fresh.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 77,
+   "sample": "https://fresh.com.eg/about",
+   "usedSitemap": "https://fresh.com.eg/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "smeg.com.eg",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://smeg.com.eg/sitemap_index.xml"
+   ],
+   "productUrls": 6,
+   "sample": "https://smeg.com.eg/blog/",
+   "usedSitemap": "https://smeg.com.eg/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "imediastores.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.imediastores.com/sitemap_index.xml"
+   ],
+   "productUrls": 2,
+   "sample": "https://www.imediastores.com/shop/",
+   "usedSitemap": "https://www.imediastores.com/sitemap_index.xml",
+   "looksProduct": true,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "dream2000.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://dream2000.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://dream2000.com/agents.md",
+   "usedSitemap": "https://dream2000.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "compumarts.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.compumarts.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://www.compumarts.com/agents.md",
+   "usedSitemap": "https://www.compumarts.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "mobileshop.com.eg",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.mobileshop.com.eg/sitemap.xml",
+    "https://mobileshop.com.eg/sitemap.xml",
+    "https://mobileshop.com.eg/product-sitemap.xml",
+    "https://mobileshop.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "games2egypt.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.games2egypt.com/sitemap.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "zanussi.com.eg",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.zanussi.com.eg/sitemap.xml",
+    "https://zanussi.com.eg/sitemap.xml",
+    "https://zanussi.com.eg/product-sitemap.xml",
+    "https://zanussi.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "unionaire.com",
+   "tier": 2,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.unionaire.com/sitemap.xml",
+    "https://unionaire.com/sitemap.xml",
+    "https://unionaire.com/product-sitemap.xml",
+    "https://unionaire.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "hyper-techno.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://hyper-techno.com/sitemap.xml"
+   ],
+   "productUrls": 17333,
+   "sample": "https://hyper-techno.com/product/2t-c32dg6ex-shash-sharb-32-bos-androyd-rysyfr-dakhly",
+   "usedSitemap": "https://hyper-techno.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "ram-e-shop.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.ram-e-shop.com/sitemap.xml"
+   ],
+   "productUrls": 3072,
+   "sample": "https://www.ram-e-shop.com/shop/category/3d-printer-filament-1",
+   "usedSitemap": "https://www.ram-e-shop.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "awadserag.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.awadserag.com/sitemap.xml"
+   ],
+   "productUrls": 2675,
+   "sample": "https://www.awadserag.com/shop/all-brands",
+   "usedSitemap": "https://www.awadserag.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "ustoreseg.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://ustoreseg.com/sitemap_index.xml"
+   ],
+   "productUrls": 1001,
+   "sample": "https://ustoreseg.com/shop/",
+   "usedSitemap": "https://ustoreseg.com/sitemap_index.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "souqcairo.net",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.souqcairo.net/sitemap.xml",
+    "https://souqcairo.net/sitemap.xml",
+    "https://souqcairo.net/product-sitemap.xml",
+    "https://souqcairo.net/sitemap_products_1.xml"
+   ],
+   "productUrls": 1001,
+   "sample": "https://souqcairo.net/shop/",
+   "usedSitemap": "https://souqcairo.net/product-sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "airo-shop.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://airo-shop.com/sitemap.xml"
+   ],
+   "productUrls": 946,
+   "sample": "https://airo-shop.com/product/sharp-2-25hp-inverter-cool",
+   "usedSitemap": "https://airo-shop.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "eshop.vodafone.com.eg",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://eshop.vodafone.com.eg/sitemap.xml"
+   ],
+   "productUrls": 934,
+   "sample": "https://eshop.vodafone.com.eg/ar/lines/red/numbers",
+   "usedSitemap": "https://eshop.vodafone.com.eg/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "azmyco.com",
+   "tier": 3,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.azmyco.com/sitemap.xml",
+    "https://azmyco.com/sitemap.xml",
+    "https://azmyco.com/product-sitemap.xml",
+    "https://azmyco.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 747,
+   "sample": "https://www.azmyco.com/ar/products/TVs/LG-UHD-4K-TV-43-Inch-UP77-Series-Cinema-Screen-Design-4K-Active-HDR-WebOS-Smart-AI-ThinQ-43UP7750PVB-3/",
+   "usedSitemap": "https://www.azmyco.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "jacoob1.com",
+   "tier": 3,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.jacoob1.com/sitemap.xml",
+    "https://jacoob1.com/sitemap.xml",
+    "https://jacoob1.com/product-sitemap.xml",
+    "https://jacoob1.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 502,
+   "sample": "https://www.jacoob1.com/2026/04/7-tvh-hm07tsk.html",
+   "usedSitemap": "https://www.jacoob1.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "miamicenters.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://miamicenters.com/sitemap_index.xml"
+   ],
+   "productUrls": 471,
+   "sample": "https://miamicenters.com/blog/",
+   "usedSitemap": "https://miamicenters.com/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "wazen.eg",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.wazen.eg/sitemap.xml",
+    "https://wazen.eg/sitemap.xml",
+    "https://wazen.eg/product-sitemap.xml",
+    "https://wazen.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 201,
+   "sample": "https://wazen.eg/blog/",
+   "usedSitemap": "https://www.wazen.eg/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "kareemstores.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.kareemstores.com/sitemap.xml",
+    "https://kareemstores.com/sitemap.xml",
+    "https://kareemstores.com/product-sitemap.xml",
+    "https://kareemstores.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 115,
+   "sample": "https://kareemstores.com/en/products/deals",
+   "usedSitemap": "https://www.kareemstores.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "sevencameras.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.sevencameras.com/sitemap_index.xml"
+   ],
+   "productUrls": 84,
+   "sample": "https://www.sevencameras.com/blog/",
+   "usedSitemap": "https://www.sevencameras.com/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "ehabcenter.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://ehabcenter.com/sitemap_index.xml"
+   ],
+   "productUrls": 57,
+   "sample": "https://ehabcenter.com/",
+   "usedSitemap": "https://ehabcenter.com/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "moreelectronicss.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://moreelectronicss.com/sitemap.xml",
+    "https://moreelectronicss.com/sitemap-1.xml",
+    "https://moreelectronicss.com/sitemap-2.xml",
+    "https://moreelectronicss.com/sitemap-3.xml",
+    "https://moreelectronicss.com/sitemap-4.xml",
+    "https://moreelectronicss.com/sitemap-5.xml",
+    "https://moreelectronicss.com/sitemap-6.xml",
+    "https://moreelectronicss.com/sitemap-7.xml",
+    "https://moreelectronicss.com/sitemap-8.xml",
+    "https://moreelectronicss.com/sitemap-9.xml",
+    "https://moreelectronicss.com/sitemap-10.xml",
+    "https://moreelectronicss.com/sitemap-11.xml",
+    "https://moreelectronicss.com/sitemap-12.xml",
+    "https://moreelectronicss.com/sitemap-13.xml",
+    "https://moreelectronicss.com/sitemap-14.xml",
+    "https://moreelectronicss.com/sitemap-15.xml",
+    "https://moreelectronicss.com/sitemap-16.xml",
+    "https://moreelectronicss.com/sitemap-17.xml",
+    "https://moreelectronicss.com/sitemap-18.xml",
+    "https://moreelectronicss.com/sitemap-19.xml"
+   ],
+   "productUrls": 30,
+   "sample": "https://moreelectronicss.com/",
+   "usedSitemap": "https://moreelectronicss.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "elwaha.com.eg",
+   "tier": 3,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.elwaha.com.eg/sitemap.xml",
+    "https://elwaha.com.eg/sitemap.xml",
+    "https://elwaha.com.eg/product-sitemap.xml",
+    "https://elwaha.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 26,
+   "sample": "http://elwaha.com.eg/products/ovens",
+   "usedSitemap": "https://www.elwaha.com.eg/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "gamerzlounge.me",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://gamerzlounge.me/sitemap.xml",
+    "https://gamerzlounge.me/blog/sitemap-blog.xml"
+   ],
+   "productUrls": 22,
+   "sample": "https://gamerzlounge.me/blog/",
+   "usedSitemap": "https://gamerzlounge.me/blog/sitemap-blog.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "hankerz.com.eg",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.hankerz.com.eg/sitemap_index.xml"
+   ],
+   "productUrls": 21,
+   "sample": "https://www.hankerz.com.eg/resources-center/",
+   "usedSitemap": "https://www.hankerz.com.eg/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "SITEMAP"
+  },
+  {
+   "domain": "sharp-egypt.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.sharp-egypt.com/post-sitemap.xml",
+    "https://www.sharp-egypt.com/page-sitemap.xml",
+    "https://www.sharp-egypt.com/product-sitemap.xml",
+    "https://www.sharp-egypt.com/category-sitemap.xml"
+   ],
+   "productUrls": 19,
+   "sample": "https://www.sharp-egypt.com/shop/",
+   "usedSitemap": "https://www.sharp-egypt.com/product-sitemap.xml",
+   "looksProduct": true,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "uptodate.store",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://uptodate.store/wp-sitemap.xml"
+   ],
+   "productUrls": 17,
+   "sample": "https://uptodate.store/hello-world/",
+   "usedSitemap": "https://uptodate.store/wp-sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "dubaiforshopping.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://dubaiforshopping.com/sitemap_index.xml"
+   ],
+   "productUrls": 14,
+   "sample": "https://dubaiforshopping.com/blog/",
+   "usedSitemap": "https://dubaiforshopping.com/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "audiomisr.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.audiomisr.com/wp-sitemap.xml"
+   ],
+   "productUrls": 12,
+   "sample": "https://www.audiomisr.com/2020/",
+   "usedSitemap": "https://www.audiomisr.com/wp-sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "shaarp.net",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://shaarp.net/sitemap_index.xml"
+   ],
+   "productUrls": 9,
+   "sample": "https://shaarp.net/%d8%aa%d9%83%d9%8a%d9%8a%d9%81-%d8%b4%d8%a7%d8%b1%d8%a8-1-5-%d8%ad%d8%b5%d8%a7%d9%86/",
+   "usedSitemap": "https://shaarp.net/sitemap_index.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "abdulaziz-stores.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.sabat.io/sitemap.xml"
+   ],
+   "productUrls": 8,
+   "sample": "https://sabat.io/products/sabatx",
+   "usedSitemap": "https://www.sabat.io/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "najm.store",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.najm.store/sitemap.xml",
+    "https://najm.store/sitemap.xml",
+    "https://najm.store/product-sitemap.xml",
+    "https://najm.store/sitemap_products_1.xml"
+   ],
+   "productUrls": 8,
+   "sample": "https://najm.store/p/%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%B1%D8%AC%D8%A7%D8%B9-%D9%88%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%A8%D8%AF%D8%A7%D9%84",
+   "usedSitemap": "https://www.najm.store/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "sharpegy.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://white-air.com/sitemap.xml"
+   ],
+   "productUrls": 5,
+   "sample": "https://white-air.com/",
+   "usedSitemap": "https://white-air.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "wdestores.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://wdestores.com/sitemap.xml"
+   ],
+   "productUrls": 3,
+   "sample": "https://wdestores.com/ar/p/%D8%B3%D9%8A%D8%A7%D8%B3%D8%A9-%D8%A7%D9%84%D8%AE%D8%B5%D9%88%D8%B5%D9%8A%D8%A9",
+   "usedSitemap": "https://wdestores.com/sitemap.xml",
+   "looksProduct": true,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "shuttershopegypt.com",
+   "tier": 3,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.shuttershopegypt.com/sitemap.xml",
+    "https://shuttershopegypt.com/sitemap.xml",
+    "https://shuttershopegypt.com/product-sitemap.xml",
+    "https://shuttershopegypt.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 3,
+   "sample": "https://shuttershopegypt.com/en/blog/",
+   "usedSitemap": "https://www.shuttershopegypt.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "abusolimanstores.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://abusolimanstores.com/sitemaps.xml"
+   ],
+   "productUrls": 2,
+   "sample": "https://abusolimanstores.com/",
+   "usedSitemap": "https://abusolimanstores.com/sitemaps.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "riz.shop",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.riz.shop/sitemap.xml",
+    "https://riz.shop/sitemap.xml",
+    "https://riz.shop/product-sitemap.xml",
+    "https://riz.shop/sitemap_products_1.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://riz.shop/agents.md",
+   "usedSitemap": "https://www.riz.shop/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "moreshopping.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://moreshopping.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://moreshopping.com/agents.md",
+   "usedSitemap": "https://moreshopping.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "smartkoshk.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://smartkoshk.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://smartkoshk.com/agents.md",
+   "usedSitemap": "https://smartkoshk.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "brico-eg.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://brico-eg.com/sitemap_index.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://brico-eg.com/shop/",
+   "usedSitemap": "https://brico-eg.com/sitemap_index.xml",
+   "looksProduct": true,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "ennap.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://ennap.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://ennap.com/agents.md",
+   "usedSitemap": "https://ennap.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "alsheikhstores.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://alsheikhstores.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://alsheikhstores.com/agents.md",
+   "usedSitemap": "https://alsheikhstores.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "store.fut-electronics.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://store.fut-electronics.com/sitemap.xml"
+   ],
+   "productUrls": 1,
+   "sample": "https://store.fut-electronics.com/agents.md",
+   "usedSitemap": "https://store.fut-electronics.com/sitemap.xml",
+   "looksProduct": false,
+   "verdict": "THIN"
+  },
+  {
+   "domain": "makka.store",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.makka.store/sitemap.xml",
+    "https://makka.store/sitemap.xml",
+    "https://makka.store/product-sitemap.xml",
+    "https://makka.store/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "mahgoub.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.mahgoub.com/sitemap.xml",
+    "https://mahgoub.com/sitemap.xml",
+    "https://mahgoub.com/product-sitemap.xml",
+    "https://mahgoub.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "dubaiphone.net",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.dubaiphone.net/sitemap.xml",
+    "https://www.dubaiphone.net/sitemap.rss"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "hans.com.eg",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.hans.com.eg/sitemap.xml",
+    "https://hans.com.eg/sitemap.xml",
+    "https://hans.com.eg/product-sitemap.xml",
+    "https://hans.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "appliance.com.eg",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.appliance.com.eg/sitemap.xml",
+    "https://appliance.com.eg/sitemap.xml",
+    "https://appliance.com.eg/product-sitemap.xml",
+    "https://appliance.com.eg/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "switchpluseg.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.switchpluseg.com/sitemap.xml",
+    "https://switchpluseg.com/sitemap.xml",
+    "https://switchpluseg.com/product-sitemap.xml",
+    "https://switchpluseg.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "tal2aa.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.tal2aa.com/sitemap.xml",
+    "https://tal2aa.com/sitemap.xml",
+    "https://tal2aa.com/product-sitemap.xml",
+    "https://tal2aa.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "drmobilestore.com",
+   "tier": 3,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.drmobilestore.com/sitemap.xml",
+    "https://drmobilestore.com/sitemap.xml",
+    "https://drmobilestore.com/product-sitemap.xml",
+    "https://drmobilestore.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://compuscience.com.eg/1_index_sitemap.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "iq-mobiles.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.iq-mobiles.com/sitemap.xml",
+    "https://iq-mobiles.com/sitemap.xml",
+    "https://iq-mobiles.com/product-sitemap.xml",
+    "https://iq-mobiles.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "shams-stores.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": 10,
+   "sitemaps": [
+    "https://www.shams-stores.com/sitemap.xml",
+    "https://shams-stores.com/sitemap.xml",
+    "https://shams-stores.com/product-sitemap.xml",
+    "https://shams-stores.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "maximumhardware.store",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.maximumhardware.store/sitemap.xml",
+    "https://maximumhardware.store/sitemap.xml",
+    "https://maximumhardware.store/product-sitemap.xml",
+    "https://maximumhardware.store/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "eratablet.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.eratablet.com/sitemap.xml",
+    "https://eratablet.com/sitemap.xml",
+    "https://eratablet.com/product-sitemap.xml",
+    "https://eratablet.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "elbadrgroupeg.store",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://elbadrgroupeg.store/sitemap.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "computershopegypt.com",
+   "tier": 3,
+   "robots": null,
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.computershopegypt.com/sitemap.xml",
+    "https://computershopegypt.com/sitemap.xml",
+    "https://computershopegypt.com/product-sitemap.xml",
+    "https://computershopegypt.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "aghezty.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://aghezty.com/sitemap.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "smarttechnology-eg.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://smarttechnology-eg.com/sitemap_index.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "magicduino.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.magicduino.com/sitemap.xml",
+    "https://magicduino.com/sitemap.xml",
+    "https://magicduino.com/product-sitemap.xml",
+    "https://magicduino.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "elnekhelytechnology.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.elnekhelytechnology.com/sitemap.xml",
+    "https://elnekhelytechnology.com/sitemap.xml",
+    "https://elnekhelytechnology.com/product-sitemap.xml",
+    "https://elnekhelytechnology.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  },
+  {
+   "domain": "makerselectronics.com",
+   "tier": 3,
+   "robots": "ok",
+   "crawlDelay": null,
+   "sitemaps": [
+    "https://www.makerselectronics.com/sitemap.xml",
+    "https://makerselectronics.com/sitemap.xml",
+    "https://makerselectronics.com/product-sitemap.xml",
+    "https://makerselectronics.com/sitemap_products_1.xml"
+   ],
+   "productUrls": 0,
+   "sample": null,
+   "verdict": "NONE"
+  }
+ ]
+}

@@ -1,0 +1,101 @@
+/* ============================================================================
+   SADKO rebrand theme — sits UNLAYERED so it beats the engine's @layer sw.
+   Palette derived from extraction/site-graph.json designTokens:
+   brand teal #7ebec5 (deepened for contrast), amber accent #fe9800,
+   Cairo (Arabic) + Open Sans. RTL-first.
+   ========================================================================== */
+
+:root, .sw-root {
+  --sadko-teal:      #7ebec5;
+  --sadko-teal-deep: #2e7e88;
+  --sadko-teal-ink:  #14343a;
+  --sadko-amber:     #fe9800;
+  --sadko-bg:        #f7f5f1;
+  --sadko-card:      #ffffff;
+
+  /* engine tokens */
+  --sw-bg:     var(--sadko-bg);
+  --sw-ink:    var(--sadko-teal-ink);
+  --sw-ink-soft:#5b6b6e;
+  --sw-accent: var(--sadko-teal-deep);
+  --sw-font-display: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+  --sw-font-body:    'Cairo', 'Open Sans', system-ui, sans-serif;
+
+  /* object-position y fraction, mirrored by hotspots.js */
+  --sw-objy: 42%;
+}
+@media (max-width:860px){ :root, .sw-root { --sw-objy: 46%; } }
+@media (max-width:860px) and (orientation:portrait){ :root, .sw-root { --sw-objy: 44%; } }
+
+/* keep engine's object-position in sync with the variable */
+.sw-scene__video, .sw-scene__still { object-position: center var(--sw-objy, 42%); }
+
+/* ---------- RTL flips (page is dir="rtl") ---------- */
+/* copy panel: right side */
+.sw-copy {
+  left: auto;
+  right: clamp(18px, 5vw, 64px);
+  text-align: right;
+}
+.sw-copylayer::before {
+  left: auto; right: 0;
+  background: linear-gradient(270deg, var(--sw-bg) 0%,
+    color-mix(in srgb, var(--sw-bg) 82%, transparent) 34%,
+    color-mix(in srgb, var(--sw-bg) 40%, transparent) 62%, transparent 100%);
+}
+/* route rail: left side */
+.sw-route { right: auto; left: clamp(14px, 2.4vw, 30px); }
+.sw-route__label {
+  right: auto; left: 24px;
+  transform: translateY(-50%) translateX(-6px);
+}
+.sw-route__dot:hover .sw-route__label,
+.sw-route__dot.is-active .sw-route__label { transform: translateY(-50%) translateX(0); }
+
+/* tags flow right */
+.sw-copy__tags { justify-content: flex-end; }
+.sw-copy__cta  { justify-content: flex-end; }
+
+/* keep the "01 / 05" counter latin-ordered inside RTL text */
+.sw-copy__num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+/* Compact copy: smaller headline (the body paragraph was removed from the
+   config) and a panel that never blocks marker clicks — only its buttons are
+   interactive, and hotspots.js gates those on panel visibility. */
+.sw-copy__title { font-size: clamp(1.35rem, 2.9vw, 2.25rem); }
+.sw-copy { pointer-events: none !important; width: min(34vw, 400px); }
+@media (max-width:860px){ .sw-copy { width: auto; } }
+
+@media (max-width:860px){
+  .sw-copy { left: clamp(18px,5vw,64px); right: clamp(18px,5vw,64px); }
+  .sw-copylayer::before{
+    background: linear-gradient(0deg, var(--sw-bg) 8%,
+      color-mix(in srgb, var(--sw-bg) 70%, transparent) 46%, transparent 100%);
+    width:100%;
+  }
+  .sw-route { left: 6px; }
+}
+
+/* ---------- SADKO brand chrome ---------- */
+.sw-brand__mark { display:none; }
+.sw-brand img {
+  height: 34px; width: auto; display: block;
+  background: var(--sadko-teal-deep);
+  border-radius: 10px; padding: 6px 12px;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--sadko-teal-deep) 35%, transparent);
+}
+.sw-topcta { background: var(--sadko-amber); color: #241a05; font-weight: 800; }
+.sw-btn--primary { background: var(--sadko-amber); color: #241a05; }
+
+/* hotline chip in topbar */
+.sadko-hotline {
+  direction: ltr;
+  font: 800 1rem/1 var(--sw-font-display);
+  color: var(--sadko-teal-deep);
+  text-decoration: none;
+  border: 2px solid color-mix(in srgb, var(--sadko-teal-deep) 35%, transparent);
+  border-radius: 999px; padding: 8px 16px;
+  background: color-mix(in srgb, #fff 70%, transparent);
+  backdrop-filter: blur(8px);
+}
+.sadko-hotline:hover { background: var(--sadko-teal-deep); color:#fff; }

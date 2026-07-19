@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>صادكو جروب — بيتك بالكامل</title>
+<meta name="description" content="اتجوّل جوه بيت صادكو — كل فئات الأجهزة الكهربائية فى ثلاث أوض، وأوضة العيلة بتعرض أحدث العروض. اضغط على أى جهاز وتسوّق من فئته مباشرة.">
+<link rel="icon" href="assets/img/sadko-logo-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="assets/js/scrub-engine.js?v=g2" defer></script>
+<script src="assets/js/nav.js?v=g9" defer></script>
+<script src="assets/js/catalog-i18n.js?v=g2" defer></script>
+<script src="assets/js/hotspots.js?v=g4" defer></script>
+<script src="assets/js/posters.js?v=g3" defer></script>
+<script src="assets/js/guide.js?v=g3" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=g7">
+</head>
+<body>
+<div id="world"></div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const C = id => `category/${id}.html`;
+  const OFFERS = C('173607281');   // fallback shop page for world-categories SADKO
+                                   // doesn't list yet (soundbars, heaters, …)
+
+  const SECTIONS = [
+    {
+      id: 'living', label: 'غرفة المعيشة',
+      still: 'assets/img/still_1.jpg',
+      clip: 'assets/vid/leg_1.mp4', clipMobile: 'assets/vid/leg_1-m.mp4',
+      accent: '#2e7e88',
+      scroll: 1.9, linger: 0.5,
+      eyebrow: 'بيتك بالكامل من صادكو',
+      title: 'أهلاً بيك فى بيت صادكو',
+      showcase: 0.03,   // the landing frame — the whole entertainment + climate room
+      hotspots: [       // coords measured on the settle frame (sc_living @0.46s)
+        { fx: 0.500, fy: 0.514, at: 0.06, span: 0.30, label: 'تليفزيونات', href: C('38022381') },
+        { fx: 0.413, fy: 0.606, at: 0.06, span: 0.30, label: 'أنظمة صوت وترفيه', href: OFFERS },
+        { fx: 0.885, fy: 0.167, at: 0.06, span: 0.30, label: 'تكييفات هواء', href: C('38032005') },
+        { fx: 0.619, fy: 0.648, at: 0.12, span: 0.32, sfx: 0.619, sfy: 0.648, label: 'مراوح ومبردات هواء', href: C('50318054') },
+        { fx: 0.773, fy: 0.815, at: 0.12, span: 0.32, sfx: 0.773, sfy: 0.815, label: 'دفايات', href: OFFERS },
+        { fx: 0.060, fy: 0.690, at: 0.20, span: 0.32, sfx: 0.060, sfy: 0.690, label: 'تنقية وترطيب الهواء', href: OFFERS },
+        { fx: 0.371, fy: 0.597, at: 0.20, span: 0.32, sfx: 0.371, sfy: 0.597, label: 'مبردات مياه', href: C('102858075') },
+      ],
+    },
+    {
+      id: 'kitchen', label: 'المطبخ',
+      still: 'assets/img/still_2.jpg',
+      clip: 'assets/vid/leg_2.mp4', clipMobile: 'assets/vid/leg_2-m.mp4',
+      accent: '#c97b12',
+      scroll: 2.1, linger: 0.5,
+      eyebrow: 'قلب البيت',
+      title: 'مطبخ فيه كل حاجة… حرفيًا',
+      showcase: 0.92,   // the settle: full counter line-up + cooker wall + cold corner
+      hotspots: [
+        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, label: 'ميكروييف', href: C('57646037') },
+        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, label: 'خلاطات', href: C('68782006') },
+        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, label: 'كاتيل وماكينات قهوة', href: C('185355010') },
+        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, label: 'قلايات', href: C('185364502') },
+        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, label: 'أجهزة صغيرة', href: C('112439376') },
+        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, label: 'عجانات', href: C('68782006') },
+        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, label: 'محضرات طعام', href: C('68782006') },
+        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, label: 'عصارات', href: C('112439376') },
+        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, label: 'جريل وتوستر', href: C('112439376') },
+        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, label: 'غسالات أطباق', href: C('38022354') },
+        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, label: 'أفران وبوتاجازات', href: C('38003799') },
+        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, label: 'شفاطات', href: C('38003799') },
+        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, label: 'ثلاجات', href: C('38003882') },
+        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, label: 'حلل كهربائية ومفارم', href: C('112439376') },
+        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, label: 'فريزرات', href: C('38005648') },
+      ],
+    },
+    {
+      id: 'laundry', label: 'غرفة الغسيل',
+      still: 'assets/img/still_3.jpg',
+      clip: 'assets/vid/leg_3.mp4', clipMobile: 'assets/vid/leg_3-m.mp4',
+      accent: '#3d7f9e',
+      scroll: 1.8, linger: 0.45,
+      eyebrow: 'ركن الغسيل والعناية',
+      title: 'غسيل وتجفيف ونضافة… وكل حاجة معاها',
+      showcase: 0.50,   // the full-room view: fabric care, cleaning trio, heaters, shelves
+      hotspots: [
+        { fx: 0.654, fy: 0.712, at: 0.50, span: 0.28, label: 'غسالات ملابس', href: C('38003963') },
+        { fx: 0.549, fy: 0.712, at: 0.50, span: 0.28, label: 'مجففات ملابس', href: C('38005652') },
+        { fx: 0.763, fy: 0.255, at: 0.50, span: 0.28, label: 'سخانات غاز', href: C('48143206') },
+        { fx: 0.833, fy: 0.185, at: 0.50, span: 0.28, label: 'سخانات كهرباء', href: C('48149056') },
+        { fx: 0.257, fy: 0.583, at: 0.50, span: 0.28, label: 'مكاوى', href: C('81167227') },
+        { fx: 0.327, fy: 0.375, at: 0.50, span: 0.28, label: 'مكاوى بخار وستيمر', href: C('81167227') },
+        { fx: 0.372, fy: 0.712, at: 0.50, span: 0.28, label: 'مكانس', href: C('81170222') },
+        { fx: 0.461, fy: 0.606, at: 0.50, span: 0.28, label: 'مكانس روبوت وعمودية', href: C('81170222') },
+        { fx: 0.255, fy: 0.556, at: 0.86, span: 0.20, sfx: 0.945, sfy: 0.550, label: 'ماكينات خياطة', href: OFFERS },
+        { fx: 0.344, fy: 0.580, at: 0.86, span: 0.20, sfx: 0.945, sfy: 0.645, label: 'عناية شخصية', href: C('112439376') },
+      ],
+    },
+    {
+      id: 'family', label: 'أوضة العيلة',
+      still: 'assets/img/still_4.jpg',
+      clip: 'assets/vid/leg_4.mp4', clipMobile: 'assets/vid/leg_4-m.mp4',
+      accent: '#8a6242',
+      scroll: 2.0, linger: 0.55,
+      eyebrow: 'حكاية عيلة من 1961',
+      title: 'أوضة العيلة… وعروضنا على الحيطة',
+      showcase: 0.88,   // the gallery-wall hold
+      showcaseLabel: 'شوف العروض',
+      hotspots: [
+        { fx: 0.313, fy: 0.136, at: 0.85, span: 0.35, label: 'عروض صادكو', href: C('173607281') },
+        { fx: 0.680, fy: 0.660, at: 0.85, span: 0.35, label: 'الأكثر مبيعاً', href: C('195273251') },
+        { fx: 0.086, fy: 0.375, at: 0.85, span: 0.35, label: 'حرف يدوية ومنتجات عضوية', href: C('167433056') },
+      ],
+      cta: {
+        primary:   { label: 'تسوّق عروض صادكو', href: C('173607281') },
+        secondary: { label: 'الأكثر مبيعاً', href: C('195273251') },
+      },
+    },
+  ];
+
+  /* ---- English mode: overlay the scene copy (labels, titles, hotspot names)
+     onto the Arabic-authored config. Language comes from nav.js (skLang). ---- */
+  const EN = !!(window.skLang && window.skLang.get() === 'en');
+  if (EN) {
+    document.documentElement.lang = 'en';
+    document.documentElement.dir = 'ltr';
+    document.title = 'SADKO Group — Your Whole Home';
+    const L = {
+      living: { label: 'Living Room', eyebrow: 'Your whole home from SADKO', title: 'Welcome to the SADKO house',
+        spots: ['TVs', 'Sound & entertainment', 'Air conditioners', 'Fans & air coolers', 'Space heaters', 'Air purifiers & humidifiers', 'Water dispensers'] },
+      kitchen: { label: 'Kitchen', eyebrow: 'The heart of the home', title: 'A kitchen with everything… literally',
+        spots: ['Microwaves', 'Blenders', 'Kettles & coffee machines', 'Air fryers', 'Small appliances', 'Dough mixers', 'Food processors', 'Juicers', 'Grills & toasters', 'Dishwashers', 'Ovens & cookers', 'Hoods', 'Refrigerators', 'Electric pots & choppers', 'Freezers'] },
+      laundry: { label: 'Laundry Room', eyebrow: 'Laundry & care corner', title: 'Washing, drying, cleaning… and everything with it',
+        spots: ['Washing machines', 'Clothes dryers', 'Gas water heaters', 'Electric water heaters', 'Irons', 'Steam irons & steamers', 'Vacuum cleaners', 'Robot & stick vacuums', 'Sewing machines', 'Personal care'] },
+      family: { label: 'Family Room', eyebrow: 'A family story since 1961', title: 'The family room… with our offers on the wall',
+        showcaseLabel: 'See the offers',
+        spots: ['SADKO offers', 'Best sellers', 'Handicrafts & organic'],
+        cta: { primary: 'Shop SADKO offers', secondary: 'Best sellers' } },
+    };
+    for (const s of SECTIONS) {
+      const e = L[s.id]; if (!e) continue;
+      s.label = e.label; s.eyebrow = e.eyebrow; s.title = e.title;
+      if (e.showcaseLabel) s.showcaseLabel = e.showcaseLabel;
+      (s.hotspots || []).forEach((h, i) => { if (e.spots[i]) h.label = e.spots[i]; });
+      if (s.cta && e.cta) { s.cta.primary.label = e.cta.primary; s.cta.secondary.label = e.cta.secondary; }
+    }
+  }
+
+  const api = mountScrollWorld(document.getElementById('world'), {
+    nav: false,               // core-pages strap comes from nav.js; rooms live in the dock
+    hint: EN ? 'Scroll to enter the house' : 'اسحب لتدخل البيت',
+    diveScroll: 1.5,
+    connScroll: 0.9,
+    crossfade: 0.1,
+    sections: SECTIONS,
+    connectors: [],            // architecture A: legs chain directly, no connectors
+    connectorsMobile: [],
+  });
+
+  mountHotspots(document.getElementById('world'), api, SECTIONS);
+
+  // Rotating offers inside the family-room picture frames (the three blank
+  // canvases of the gallery wall at the section's settle band).
+  mountPosters(document.getElementById('world'), api, 3, {
+    at: 0.88, span: 0.40,
+    slots: [
+      { fx: 0.252, fy: 0.236, fw: 0.160, fh: 0.319 },
+      { fx: 0.426, fy: 0.236, fw: 0.150, fh: 0.319 },
+      { fx: 0.596, fy: 0.236, fw: 0.159, fh: 0.319 },
+    ],
+    feeds: [
+      { href: C('173607281'), badge: EN ? 'SADKO offers' : 'عروض صادكو', categoryIds: [38022381, 38032005, 38003882, 112439376, 38003963] },
+      { href: C('195273251'), badge: EN ? 'Best sellers' : 'الأكثر مبيعاً', categoryIds: [38003882, 38022381, 40507239, 81170222, 185355010] },
+      { href: C('173607281'), badge: EN ? 'Special discount' : 'خصم خاص', categoryIds: [38003799, 38005648, 50318054, 57646037, 185364502] },
+    ],
+  });
+
+  mountGuide(document.getElementById('world'), api, SECTIONS);
+  window.__swApi = api;   // exposed for QA tooling (?spots etc.)
+});
+</script>
+</body>
+</html>

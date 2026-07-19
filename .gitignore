@@ -1,0 +1,24 @@
+# local secrets — never commit
+.env
+*.env
+!*.env.example
+
+# engine runtime state
+site/data/price-index.json
+site/server.out.log
+site/server.err.log
+
+# diagnostics output
+scripts/adapter-report*.json
+scripts/noparse-report.json
+scripts/endpoint-report.json
+scripts/adapter-sweep*.log
+scripts/stores.backup.json
+
+# intermediate render artifacts (167MB, regenerable from generation/prompts)
+# NOTE: site/assets/vid IS tracked — the live site needs those files.
+generation/out/
+extraction/raw/
+.playwright-mcp/
+
+node_modules/

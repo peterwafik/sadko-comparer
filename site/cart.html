@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>سلة التسوق — صادكو جروب</title>
+<link rel="icon" href="assets/img/sadko-logo-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/category.css">
+<style>
+:root{--accent:#2e7e88;}
+.cart-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px;align-items:start;}
+.citem{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:14px;align-items:center;
+  background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;
+  box-shadow:0 8px 24px rgba(20,52,58,.07);border:1px solid rgba(46,126,136,.1);}
+.citem img{width:96px;height:96px;object-fit:contain;border-radius:10px;background:#f6f4f0;}
+.citem h3{margin:0 0 6px;font-size:.9rem;line-height:1.5;color:#14343a;}
+.citem .p{font:800 .95rem 'Cairo',sans-serif;color:#2e7e88;direction:ltr;display:inline-block;}
+.qty{display:inline-flex;align-items:center;gap:8px;margin-inline-start:14px;}
+.qty button{width:30px;height:30px;border-radius:9px;border:1.5px solid rgba(46,126,136,.3);
+  background:#fff;font:800 1rem 'Cairo',sans-serif;color:#2e7e88;cursor:pointer;}
+.qty button:hover{background:#2e7e88;color:#fff;}
+.qty b{min-width:26px;text-align:center;font:800 .95rem 'Cairo',sans-serif;}
+.rm{border:0;background:none;color:#b3423a;font:700 .78rem 'Cairo',sans-serif;cursor:pointer;text-decoration:underline;}
+.summary{position:sticky;top:86px;background:#fff;border-radius:18px;padding:20px;
+  box-shadow:0 12px 34px rgba(20,52,58,.1);border:1px solid rgba(46,126,136,.12);}
+.summary h3{margin:0 0 14px;color:#14343a;}
+.summary .row{display:flex;justify-content:space-between;font:700 .9rem 'Cairo',sans-serif;color:#5b6b6e;margin-bottom:8px;}
+.summary .row.total{font-size:1.05rem;color:#14343a;border-top:1.5px dashed rgba(46,126,136,.25);padding-top:12px;margin-top:12px;}
+.summary .row.total b{color:#2e7e88;direction:ltr;}
+.act{display:block;width:100%;text-align:center;font:800 .92rem 'Cairo',sans-serif;text-decoration:none;
+  border-radius:999px;padding:13px 10px;margin-top:10px;cursor:pointer;border:0;}
+.act--call{background:#fe9800;color:#241a05;}
+.act--mail{background:#2e7e88;color:#fff;}
+.act--save{background:#fff;color:#14343a;border:1.5px solid rgba(20,52,58,.25);}
+.act--clear{background:none;color:#b3423a;text-decoration:underline;padding:6px;}
+.note{font:600 .78rem 'Cairo',sans-serif;color:#5b6b6e;line-height:1.7;margin-top:14px;}
+@media (max-width:860px){.cart-layout{grid-template-columns:1fr;}.summary{position:static;}}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <p class="hero__crumb"><a href="index.html">البيت</a> ← <span>سلة التسوق</span></p>
+  <h1 class="hero__title">سلة التسوق</h1>
+  <p class="hero__meta" id="heroMeta"></p>
+</section>
+
+<main class="wrap">
+  <div class="cart-layout" id="layout">
+    <div id="items"></div>
+    <aside class="summary" id="summary">
+      <h3>ملخص الطلب</h3>
+      <div class="row"><span>عدد القطع</span><b id="sCount">0</b></div>
+      <div class="row total"><span>الإجمالى</span><b id="sTotal">0 جنيه</b></div>
+      <a class="act act--call" href="tel:19140">اطلب دلوقتى — اتصل 19140</a>
+      <a class="act act--mail" id="mailBtn" href="#">ابعت الطلب بالإيميل</a>
+      <button class="act act--save" id="saveBtn" type="button">احفظ الطلب فى «الطلبات»</button>
+      <button class="act act--clear" id="clearBtn" type="button">فضّى السلة</button>
+      <p class="note">الدفع عند الاستلام أو بالبطاقة · توصيل مجانى داخل القاهرة والجيزة والإسكندرية · للتقسيط اسأل خدمة العملاء على 19140.</p>
+    </aside>
+  </div>
+  <p class="empty" id="empty" hidden>سلتك فاضية — <a href="shop.html">اتفضل على المتجر</a> أو اتفسّح فى <a href="index.html">بيت صادكو</a> ودوس على أى جهاز يعجبك.</p>
+</main>
+
+<footer class="foot">
+  <div class="foot__inner">
+    <img src="assets/img/sadko-logo-white.png" alt="صادكو جروب" class="foot__logo">
+    <p>الخط الساخن <a href="tel:19140" dir="ltr">19140</a> · <a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></p>
+    <p class="foot__copy">© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)</p>
+  </div>
+</footer>
+
+<script src="assets/js/nav.js?v=g9" defer></script>
+<script defer>
+document.addEventListener('DOMContentLoaded', () => {
+  const fmt = n => n.toLocaleString('en-US');
+  const clean = s => String(s||'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+
+  function paint() {
+    const items = skCart.items();
+    const box = document.getElementById('items');
+    document.getElementById('layout').style.display = items.length ? '' : 'none';
+    document.getElementById('empty').hidden = items.length > 0;
+    document.getElementById('heroMeta').textContent = items.length
+      ? (skCart.count() + ' قطعة — إجمالى ' + fmt(skCart.total()) + ' جنيه') : 'فاضية لسه';
+    box.innerHTML = '';
+    items.forEach(i => {
+      const el = document.createElement('div');
+      el.className = 'citem';
+      el.innerHTML =
+        '<img src="' + (i.image||'') + '" alt="">' +
+        '<div><h3></h3><span class="p">' + fmt((i.price||0)*i.qty) + ' جنيه</span>' +
+          '<span class="qty"><button type="button" data-d="-1">−</button><b>' + i.qty + '</b><button type="button" data-d="1">+</button></span>' +
+        '</div>' +
+        '<button class="rm" type="button">شيل</button>';
+      el.querySelector('h3').textContent = clean(i.title);
+      el.querySelectorAll('.qty button').forEach(b =>
+        b.addEventListener('click', () => { skCart.setQty(i.id, i.qty + (+b.dataset.d)); paint(); }));
+      el.querySelector('.rm').addEventListener('click', () => { skCart.remove(i.id); paint(); });
+      box.appendChild(el);
+    });
+    document.getElementById('sCount').textContent = skCart.count();
+    document.getElementById('sTotal').textContent = fmt(skCart.total()) + ' جنيه';
+
+    const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ' — ' + fmt((i.price||0)*i.qty) + ' جنيه');
+    const body = 'السلام عليكم،%0D%0Aعايز أطلب الأجهزة دى:%0D%0A' +
+      encodeURIComponent(lines.join('\n')).replace(/%0A/g,'%0D%0A') +
+      '%0D%0Aالإجمالى: ' + fmt(skCart.total()) + ' جنيه%0D%0Aالاسم:%0D%0Aالعنوان:%0D%0Aرقم الموبايل:';
+    document.getElementById('mailBtn').href =
+      'mailto:csupport@sadko-group.com?subject=' + encodeURIComponent('طلب جديد من الموقع') + '&body=' + body;
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const items = skCart.items();
+    if (!items.length) return;
+    let orders = [];
+    try { orders = JSON.parse(localStorage.getItem('sadko-orders-v1')) || []; } catch(e){}
+    orders.unshift({ id: 'SK-' + Date.now().toString(36).toUpperCase(), at: new Date().toISOString(),
+      items, total: skCart.total(), status: 'محفوظ — لسه ما اتأكدش' });
+    try { localStorage.setItem('sadko-orders-v1', JSON.stringify(orders)); } catch(e){}
+    skCart.clear();
+    location.href = 'orders.html';
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => { skCart.clear(); paint(); });
+  paint();
+});
+</script>
+</body>
+</html>

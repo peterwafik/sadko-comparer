@@ -1,0 +1,783 @@
+{
+ "v": 7,
+ "stores": [
+  {
+   "domain": "sadko-group.com",
+   "name": "صادكو جروب",
+   "nameEn": "SADKO Group",
+   "type": "mega",
+   "t": 1,
+   "platform": "local"
+  },
+  {
+   "domain": "2b.com.eg",
+   "name": "2B مصر",
+   "nameEn": "2B Egypt",
+   "type": "mega",
+   "t": 1,
+   "platform": "gql",
+   "gqlHost": "2b.com.eg",
+   "lastOk": 1784471703222,
+   "failN": 0
+  },
+  {
+   "domain": "raneen.com",
+   "name": "رنين",
+   "nameEn": "Raneen",
+   "type": "mega",
+   "t": 1,
+   "platform": "gql",
+   "lastOk": 1784471706793,
+   "failN": 0
+  },
+  {
+   "domain": "elarabygroup.com",
+   "name": "العربى جروب",
+   "nameEn": "ElAraby Group",
+   "type": "mega",
+   "t": 1,
+   "platform": "gql",
+   "lastOk": 1784471703088,
+   "failN": 0
+  },
+  {
+   "domain": "rayashop.com",
+   "name": "راية شوب",
+   "nameEn": "Raya Shop",
+   "type": "mega",
+   "t": 1,
+   "platform": "gql"
+  },
+  {
+   "domain": "jumia.com.eg",
+   "name": "جوميا",
+   "nameEn": "Jumia",
+   "type": "mega",
+   "t": 1,
+   "platform": "jumia"
+  },
+  {
+   "domain": "noon.com",
+   "name": "نون",
+   "nameEn": "noon",
+   "type": "mega",
+   "t": 1,
+   "platform": "noon"
+  },
+  {
+   "domain": "btech.com",
+   "name": "بى تك",
+   "nameEn": "B.TECH",
+   "type": "mega",
+   "t": 1,
+   "platform": "btech",
+   "needsHeadless": true,
+   "lastOk": 1784471709229,
+   "failN": 0
+  },
+  {
+   "domain": "amazon.eg",
+   "name": "أمازون مصر",
+   "nameEn": "Amazon Egypt",
+   "type": "mega",
+   "t": 1,
+   "platform": "amazon",
+   "needsHeadless": true,
+   "lastOk": 1784471705894,
+   "failN": 0
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "name": "كارفور مصر",
+   "nameEn": "Carrefour Egypt",
+   "type": "mega",
+   "t": 1,
+   "platform": "carrefour",
+   "needsHeadless": true
+  },
+  {
+   "domain": "egypt.sharafdg.com",
+   "name": "شرف دى جى",
+   "nameEn": "Sharaf DG",
+   "type": "mega",
+   "t": 1,
+   "platform": "woo"
+  },
+  {
+   "domain": "hyperone.com.eg",
+   "name": "هايبر وان",
+   "nameEn": "Hyper One",
+   "type": "mega",
+   "t": 1,
+   "platform": "auto"
+  },
+  {
+   "domain": "amanstores.com",
+   "name": "أمان",
+   "nameEn": "Aman Stores",
+   "type": "mega",
+   "t": 1,
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784470228465
+  },
+  {
+   "domain": "kenzz.com",
+   "name": "كنز",
+   "nameEn": "Kenzz",
+   "type": "mega",
+   "t": 2,
+   "platform": "auto"
+  },
+  {
+   "domain": "elghazawy.com",
+   "name": "الغزاوى",
+   "nameEn": "ElGhazawy",
+   "type": "mega",
+   "t": 2,
+   "platform": "render",
+   "renderTpl": "https://www.elghazawy.com/en/search?q={q}",
+   "needsHeadless": true
+  },
+  {
+   "domain": "kaza.com.eg",
+   "name": "كازا",
+   "nameEn": "Kaza Stores",
+   "type": "mega",
+   "t": 2,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471720905
+  },
+  {
+   "domain": "homzmart.com",
+   "name": "هومزمارت",
+   "nameEn": "Homzmart",
+   "type": "mega",
+   "t": 2,
+   "platform": "render",
+   "renderTpl": "https://homzmart.com/en/search?keyword={q}",
+   "needsHeadless": true
+  },
+  {
+   "domain": "dream2000.com",
+   "name": "دريم 2000",
+   "nameEn": "Dream 2000",
+   "type": "mega",
+   "t": 2,
+   "platform": "jsonld:/search?q="
+  },
+  {
+   "domain": "imediastores.com",
+   "name": "آى ميديا",
+   "nameEn": "iMedia Stores",
+   "type": "mega",
+   "t": 2,
+   "platform": "woo",
+   "failN": 2,
+   "lastFail": 1784470532533
+  },
+  {
+   "domain": "mobileshop.com.eg",
+   "name": "موبايل شوب",
+   "nameEn": "Mobile Shop",
+   "type": "mega",
+   "t": 2,
+   "platform": "auto"
+  },
+  {
+   "domain": "sigma-computer.com",
+   "name": "سيجما كمبيوتر",
+   "nameEn": "Sigma Computer",
+   "type": "local",
+   "t": 2,
+   "platform": "auto"
+  },
+  {
+   "domain": "compumarts.com",
+   "name": "كمبيومارتس",
+   "nameEn": "Compumarts",
+   "type": "local",
+   "t": 2,
+   "platform": "shopify"
+  },
+  {
+   "domain": "egyptlaptop.com",
+   "name": "إيجيبت لابتوب",
+   "nameEn": "Egypt Laptop",
+   "type": "local",
+   "t": 2,
+   "platform": "auto"
+  },
+  {
+   "domain": "games2egypt.com",
+   "name": "جيمز 2 إيجيبت",
+   "nameEn": "Games 2 Egypt",
+   "type": "local",
+   "t": 2,
+   "platform": "auto"
+  },
+  {
+   "domain": "camerashop.com.eg",
+   "name": "كاميرا شوب",
+   "nameEn": "Camera Shop",
+   "type": "local",
+   "t": 2,
+   "platform": "woo",
+   "failN": 2,
+   "lastFail": 1784470540207
+  },
+  {
+   "domain": "fresh.com.eg",
+   "name": "فريش",
+   "nameEn": "Fresh",
+   "type": "official",
+   "t": 2,
+   "platform": "auto"
+  },
+  {
+   "domain": "unionaire.com",
+   "name": "يونيون اير",
+   "nameEn": "Unionaire",
+   "type": "official",
+   "t": 2,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471729275
+  },
+  {
+   "domain": "smeg.com.eg",
+   "name": "سميج",
+   "nameEn": "Smeg Egypt",
+   "type": "official",
+   "t": 2,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471729282
+  },
+  {
+   "domain": "zanussi.com.eg",
+   "name": "زانوسى",
+   "nameEn": "Zanussi Egypt",
+   "type": "official",
+   "t": 2,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471731869
+  },
+  {
+   "domain": "abdulaziz-stores.com",
+   "name": "عبد العزيز",
+   "nameEn": "Abdulaziz Stores",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/catalogsearch/result/?q=",
+   "lastOk": 1784470544814,
+   "failN": 0
+  },
+  {
+   "domain": "riz.shop",
+   "name": "رزق الله",
+   "nameEn": "Rizkalla",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/search/?q="
+  },
+  {
+   "domain": "ehabcenter.com",
+   "name": "إيهاب سنتر",
+   "nameEn": "Ehab Center",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 3,
+   "lastFail": 1784471727241
+  },
+  {
+   "domain": "awadserag.com",
+   "name": "عوض سراج",
+   "nameEn": "Awad Serag",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471733258
+  },
+  {
+   "domain": "makka.store",
+   "name": "مكة ستور",
+   "nameEn": "Makka Store",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "wazen.eg",
+   "name": "وازن",
+   "nameEn": "Wazen",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 1,
+   "lastFail": 1784470560699
+  },
+  {
+   "domain": "aghezty.com",
+   "name": "أجهزتى",
+   "nameEn": "Aghezty",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471735882
+  },
+  {
+   "domain": "airo-shop.com",
+   "name": "أيرو شوب",
+   "nameEn": "Airo Shop",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "ustoreseg.com",
+   "name": "يو ستورز",
+   "nameEn": "U Stores",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 3,
+   "lastFail": 1784471732300
+  },
+  {
+   "domain": "abusolimanstores.com",
+   "name": "أبو سليمان",
+   "nameEn": "Abu Soliman",
+   "type": "local",
+   "t": 3,
+   "platform": "woo"
+  },
+  {
+   "domain": "najm.store",
+   "name": "نجم ستور",
+   "nameEn": "Najm Store",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784470268999
+  },
+  {
+   "domain": "wdestores.com",
+   "name": "دبليو دى إى",
+   "nameEn": "WDE Stores",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784470273122
+  },
+  {
+   "domain": "hyper-techno.com",
+   "name": "هايبر تكنو",
+   "nameEn": "Hyper Techno",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/search?q=",
+   "failN": 1,
+   "lastFail": 1784470268603
+  },
+  {
+   "domain": "souqcairo.net",
+   "name": "سوق القاهرة",
+   "nameEn": "Souq Cairo",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471743439
+  },
+  {
+   "domain": "dubaiforshopping.com",
+   "name": "دبى للتسوق",
+   "nameEn": "Dubai for Shopping",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 1,
+   "lastFail": 1784470271323
+  },
+  {
+   "domain": "azmyco.com",
+   "name": "عزمى",
+   "nameEn": "Azmy Co",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "jacoob1.com",
+   "name": "يعقوب",
+   "nameEn": "Jacoob",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 2,
+   "lastFail": 1784470582532
+  },
+  {
+   "domain": "miamicenters.com",
+   "name": "ميامى سنتر",
+   "nameEn": "Miami Center",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 2,
+   "lastFail": 1784471740870
+  },
+  {
+   "domain": "moreelectronicss.com",
+   "name": "مور إلكترونيكس",
+   "nameEn": "More Electronics",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 3,
+   "lastFail": 1784471741303
+  },
+  {
+   "domain": "moreshopping.com",
+   "name": "مور شوبينج",
+   "nameEn": "More Shopping",
+   "type": "local",
+   "t": 3,
+   "platform": "shopify"
+  },
+  {
+   "domain": "brico-eg.com",
+   "name": "بريكو",
+   "nameEn": "Brico Egypt",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 2,
+   "lastFail": 1784470580170
+  },
+  {
+   "domain": "mahgoub.com",
+   "name": "محجوب",
+   "nameEn": "Mahgoub",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 2,
+   "lastFail": 1784470586602
+  },
+  {
+   "domain": "elwaha.com.eg",
+   "name": "الواحة",
+   "nameEn": "Waha Appliances",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "hans.com.eg",
+   "name": "هانز",
+   "nameEn": "HANS Egypt",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "appliance.com.eg",
+   "name": "أبلاينس",
+   "nameEn": "Appliance Egypt",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "dubaiphone.net",
+   "name": "دبى فون",
+   "nameEn": "Dubai Phone",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 1,
+   "lastFail": 1784470291754
+  },
+  {
+   "domain": "smartkoshk.com",
+   "name": "سمارت كشك",
+   "nameEn": "Smart Koshk",
+   "type": "local",
+   "t": 3,
+   "platform": "shopify"
+  },
+  {
+   "domain": "ennap.com",
+   "name": "إناب",
+   "nameEn": "Ennap",
+   "type": "local",
+   "t": 3,
+   "platform": "shopify"
+  },
+  {
+   "domain": "switchpluseg.com",
+   "name": "سويتش بلس",
+   "nameEn": "Switch Plus",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471756223
+  },
+  {
+   "domain": "drmobilestore.com",
+   "name": "دكتور موبايل",
+   "nameEn": "Dr Mobile",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784470598104
+  },
+  {
+   "domain": "alsheikhstores.com",
+   "name": "الشيخ ستورز",
+   "nameEn": "Al Sheikh Stores",
+   "type": "local",
+   "t": 3,
+   "platform": "shopify"
+  },
+  {
+   "domain": "iq-mobiles.com",
+   "name": "آى كيو موبايل",
+   "nameEn": "IQ Mobile",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471756440
+  },
+  {
+   "domain": "kareemstores.com",
+   "name": "كريم ستورز",
+   "nameEn": "Kareem Stores",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/products?q=",
+   "failN": 3,
+   "lastFail": 1784471750786
+  },
+  {
+   "domain": "shams-stores.com",
+   "name": "شمس ستورز",
+   "nameEn": "Shams Stores",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471756845
+  },
+  {
+   "domain": "tal2aa.com",
+   "name": "طلعة",
+   "nameEn": "Tal2a",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "eratablet.com",
+   "name": "إيرا تابلت",
+   "nameEn": "ERA Tablet",
+   "type": "local",
+   "t": 3,
+   "platform": "woo"
+  },
+  {
+   "domain": "maximumhardware.store",
+   "name": "ماكسيمم هاردوير",
+   "nameEn": "Maximum Hardware",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/index.php?route=product/search&search="
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "name": "كمبيوساينس",
+   "nameEn": "CompuScience",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471760774
+  },
+  {
+   "domain": "computershopegypt.com",
+   "name": "كمبيوتر شوب",
+   "nameEn": "Computer Shop Egypt",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471761383
+  },
+  {
+   "domain": "elbadrgroupeg.store",
+   "name": "البدر جروب",
+   "nameEn": "El Badr Group",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 3,
+   "lastFail": 1784471761594
+  },
+  {
+   "domain": "elnekhelytechnology.com",
+   "name": "النخيلى",
+   "nameEn": "El Nekhely",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 2,
+   "lastFail": 1784470613228
+  },
+  {
+   "domain": "uptodate.store",
+   "name": "أب تو ديت",
+   "nameEn": "UpToDate Store",
+   "type": "local",
+   "t": 3,
+   "platform": "woo"
+  },
+  {
+   "domain": "hankerz.com.eg",
+   "name": "هانكرز",
+   "nameEn": "Hankerz",
+   "type": "local",
+   "t": 3,
+   "platform": "woo"
+  },
+  {
+   "domain": "smarttechnology-eg.com",
+   "name": "سمارت تكنولوجى",
+   "nameEn": "Smart Technology",
+   "type": "local",
+   "t": 3,
+   "platform": "auto"
+  },
+  {
+   "domain": "ram-e-shop.com",
+   "name": "رام إلكترونيكس",
+   "nameEn": "RAM Electronics",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/ar/website/search?search=",
+   "failN": 3,
+   "lastFail": 1784471761391
+  },
+  {
+   "domain": "store.fut-electronics.com",
+   "name": "فيوتشر إلكترونيكس",
+   "nameEn": "Future Electronics",
+   "type": "local",
+   "t": 3,
+   "platform": "shopify"
+  },
+  {
+   "domain": "makerselectronics.com",
+   "name": "ميكرز إلكترونيكس",
+   "nameEn": "Makers Electronics",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 3,
+   "lastFail": 1784471763936
+  },
+  {
+   "domain": "magicduino.com",
+   "name": "ماجيك دوينو",
+   "nameEn": "MagicDuino",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/index.php?route=product/search&search=",
+   "failN": 2,
+   "lastFail": 1784470621543
+  },
+  {
+   "domain": "gamerzlounge.me",
+   "name": "جيمرز لاونج",
+   "nameEn": "Gamerz Lounge",
+   "type": "local",
+   "t": 3,
+   "platform": "jsonld:/?s="
+  },
+  {
+   "domain": "sevencameras.com",
+   "name": "سفن كاميراز",
+   "nameEn": "Seven Cameras",
+   "type": "local",
+   "t": 3,
+   "platform": "auto",
+   "failN": 2,
+   "lastFail": 1784470628117
+  },
+  {
+   "domain": "shuttershopegypt.com",
+   "name": "شتر شوب",
+   "nameEn": "Shutter Shop",
+   "type": "local",
+   "t": 3,
+   "platform": "woo",
+   "failN": 3,
+   "lastFail": 1784471765845
+  },
+  {
+   "domain": "audiomisr.com",
+   "name": "أوديو مصر",
+   "nameEn": "Audio Misr",
+   "type": "local",
+   "t": 3,
+   "platform": "woo"
+  },
+  {
+   "domain": "sharpegy.com",
+   "name": "sharpegy",
+   "type": "local",
+   "platform": "auto",
+   "addedBy": "discovery",
+   "lastOk": 1784453452899
+  },
+  {
+   "domain": "shaarp.net",
+   "name": "shaarp",
+   "type": "local",
+   "platform": "woo",
+   "addedBy": "discovery",
+   "lastOk": 1784453459562,
+   "failN": 2,
+   "lastFail": 1784470547971
+  },
+  {
+   "domain": "sharp-egypt.com",
+   "name": "sharp-egypt",
+   "type": "local",
+   "platform": "woo",
+   "addedBy": "discovery",
+   "lastOk": 1784453459843,
+   "failN": 1,
+   "lastFail": 1784470549216
+  },
+  {
+   "domain": "eshop.vodafone.com.eg",
+   "name": "eshop",
+   "type": "local",
+   "platform": "auto",
+   "addedBy": "discovery",
+   "lastOk": 1784454990466
+  }
+ ]
+}

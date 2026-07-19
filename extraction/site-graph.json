@@ -1,0 +1,317 @@
+{
+  "$schema": "sadko-group-site-graph/v1",
+  "extractedAt": "2026-07-18",
+  "site": {
+    "name": "SADKO Group",
+    "nameAr": "صادكو جروب",
+    "url": "https://www.sadko-group.com/",
+    "primaryLanguage": "ar",
+    "direction": "rtl",
+    "secondaryLanguage": "en",
+    "country": "EG",
+    "currency": "EGP",
+    "currencyLabel": "LE",
+    "industry": "Home appliances & electronics retail (installment-led)"
+  },
+
+  "platform": {
+    "cms": "WordPress",
+    "theme": "Divi (Elegant Themes)",
+    "themeBuilderIds": ["tb-5493 (header template)", "tb-5486 (footer template)"],
+    "commerce": {
+      "provider": "Ecwid (Lightspeed) — SaaS storefront",
+      "plugin": "ecwid-shopping-cart",
+      "storeId": "18028328",
+      "renderMode": "JavaScript widget injected into a single WordPress page (/shop/)",
+      "note": "Category and product URLs are virtual routes produced by the Ecwid widget, NOT WordPress pages. They cannot be edited as files."
+    },
+    "agency": "The Wizards (footer credit)",
+    "externalServices": {
+      "orderTracking": "https://movex.com.eg/track-shipment/",
+      "cdn": "cloudfront.net (Ecwid product imagery)"
+    }
+  },
+
+  "rebrandingModel": {
+    "summary": "Rebranding surface is 14 editable WordPress/Divi pages + 2 Ecwid templates + 1 global theme layer. It is NOT 501 individual pages.",
+    "surfaces": [
+      {
+        "id": "wp-pages",
+        "count": 10,
+        "editable": true,
+        "how": "Divi Visual Builder / page templates",
+        "items": ["home", "about-sadko", "stores-location", "track-your-order", "shop", "cart", "checkout", "terms-conditions", "shipping-payment-info", "return-policy"]
+      },
+      {
+        "id": "wp-posts",
+        "count": 4,
+        "editable": true,
+        "how": "WordPress post editor",
+        "items": ["ثلاجات", "فريزرات", "أفران", "غسالات"],
+        "note": "Arabic-slug posts in the 'technology' category that currently render the Ecwid catalog rather than editorial content. Strong rebrand candidates: convert to real buying-guide landing pages."
+      },
+      {
+        "id": "global-chrome",
+        "count": 2,
+        "editable": true,
+        "how": "Divi Theme Builder templates tb-5493 / tb-5486",
+        "items": ["global header", "global footer"],
+        "note": "Rebranding these two updates every page on the site at once. Highest leverage."
+      },
+      {
+        "id": "ecwid-templates",
+        "count": 2,
+        "editable": "via Ecwid design settings + custom CSS only",
+        "how": "Ecwid Control Panel > Design, plus CSS overrides injected from WordPress",
+        "items": ["category-page-template", "product-page-template"],
+        "note": "These two templates drive all 30 categories and all 471 products. Restyle once, applies everywhere."
+      }
+    ],
+    "priorityOrder": [
+      "global-chrome (header + footer) — affects 100% of pages",
+      "home — highest traffic, most branded surface",
+      "ecwid-templates — covers 501 store routes with 2 edits",
+      "about-sadko + stores-location — brand storytelling and trust",
+      "wp-posts — convert to true content landing pages",
+      "policy pages (terms/shipping/return) — currently English-only in an Arabic site; localization is a rebrand task",
+      "track-your-order — currently a 'Coming Soon' placeholder; rebuild or remove"
+    ]
+  },
+
+  "designTokens": {
+    "source": "Extracted from compiled Divi CSS and inline critical CSS",
+    "colors": {
+      "brandTeal": "#7ebec5",
+      "brandTealAlt": "#82c0c7",
+      "white": "#ffffff",
+      "black": "#000000",
+      "darkNeutral": "#333333",
+      "bodyText": "#666666",
+      "mutedText": "#9f9f9f",
+      "diviDefaultBlue": "#2ea3f2",
+      "accentOrange": "#fe9800",
+      "accentYellow": "#ffd03f",
+      "social": { "facebook": "#3b5998", "twitter": "#55acee" }
+    },
+    "colorNotes": "#2ea3f2 is an UNCHANGED Divi factory default, not a deliberate brand choice — it leaks through links and buttons. #7ebec5 teal is the actual brand accent. A rebrand should eliminate #2ea3f2 entirely.",
+    "typography": {
+      "arabic": { "family": "Cairo", "weights": [200, 300, 400, 500, 600, 700, 800, 900], "source": "Google Fonts" },
+      "latin": { "family": "Open Sans", "weights": [300, 400, 600, 700, 800], "source": "Google Fonts" },
+      "iconFonts": ["ETmodules (Divi)", "FontAwesome"]
+    },
+    "logo": {
+      "primary": "https://sadko-group.com/wp-content/uploads/2024/08/sadko-logo-W22.png",
+      "variant": "white knockout",
+      "widths": [500, 370, 300],
+      "favicon": "cropped-sadko-logo-W22-{32x32,180x180,192x192,270x270}.png",
+      "note": "Only a white version is in use — there is no dark-background-safe or monochrome variant. A rebrand needs a full logo lockup set."
+    }
+  },
+
+  "globalChrome": {
+    "header": {
+      "templateId": "tb-5493",
+      "logo": "SADKO Group white logo, links to /",
+      "hotlineBanner": "call 19140 (rendered as an IMAGE, not live text — not selectable, not clickable-to-dial, invisible to search engines and screen readers)",
+      "nav": [
+        { "labelAr": "عن صادكو جروب", "labelEn": "About SADKO Group", "href": "/about-sadko/" },
+        { "labelAr": "تابع طلبك", "labelEn": "Track Your Order", "href": "/track-your-order/", "note": "page is a placeholder; real tracking is external at movex.com.eg" },
+        { "labelAr": "مواقع المعارض", "labelEn": "Store Locations", "href": "/stores-location/" }
+      ],
+      "storeControls": ["Search Products", "My Account", "Track Orders", "Favorites", "Shopping Bag"],
+      "controlsNote": "These 5 controls are rendered by Ecwid, not by Divi. They are styled separately from the WordPress nav — a common source of visual inconsistency to fix during rebrand."
+    },
+    "footer": {
+      "templateId": "tb-5486",
+      "contact": { "hotline": "19140", "email": "csupport@sadko-group.com" },
+      "social": [
+        { "platform": "Facebook", "present": true },
+        { "platform": "YouTube", "present": true },
+        { "platform": "X / Twitter", "present": true }
+      ],
+      "socialNote": "No Instagram or TikTok presence linked — a gap for an Egyptian consumer-retail brand.",
+      "paymentBadges": "Payment method logo strip (image asset)",
+      "accountLinks": ["Account", "Order tracking", "Favorites"],
+      "copyright": "Copyright © sadko-group.com 2024 | Powered by: The Wizards",
+      "copyrightNote": "Hardcoded to 2024 — stale. Should be dynamic."
+    }
+  },
+
+  "routes": {
+    "wordpressPages": [
+      { "path": "/", "title": "Home", "type": "page", "editable": true, "file": "pages/home.md" },
+      { "path": "/about-sadko/", "title": "عن صادكو جروب / About SADKO Group", "type": "page", "editable": true, "file": "pages/about-sadko.md" },
+      { "path": "/stores-location/", "title": "مواقع المعارض / Store Locations", "type": "page", "editable": true, "file": "pages/stores-location.md" },
+      { "path": "/track-your-order/", "title": "تابع طلبك / Track Your Order", "type": "page", "editable": true, "file": "pages/track-your-order.md", "status": "placeholder — 'Coming Soon'" },
+      { "path": "/shop/", "title": "Shop", "type": "page", "editable": "shell only", "file": "pages/shop.md", "note": "Divi shell hosting the Ecwid widget" },
+      { "path": "/cart/", "title": "Cart", "type": "page", "editable": "shell only", "note": "Ecwid-rendered cart" },
+      { "path": "/checkout/", "title": "Checkout", "type": "page", "editable": "shell only", "note": "Ecwid-rendered checkout" },
+      { "path": "/terms-conditions/", "title": "Terms & Conditions", "type": "page", "editable": true, "file": "pages/terms-conditions.md", "language": "en" },
+      { "path": "/shipping-payment-info/", "title": "Shipping & Payment Info", "type": "page", "editable": true, "file": "pages/shipping-payment-info.md", "language": "en" },
+      { "path": "/return-policy/", "title": "Return Policy", "type": "page", "editable": true, "file": "pages/return-policy.md", "language": "en" }
+    ],
+    "wordpressPosts": [
+      { "path": "/ثلاجات/", "encoded": "/%d8%ab%d9%84%d8%a7%d8%ac%d8%a7%d8%aa/", "title": "ثلاجات (Refrigerators)", "category": "technology" },
+      { "path": "/فريزرات/", "encoded": "/%d9%81%d8%b1%d9%8a%d8%b2%d8%b1%d8%a7%d8%aa/", "title": "فريزرات (Freezers)", "category": "technology" },
+      { "path": "/أفران/", "encoded": "/%d8%a3%d9%81%d8%b1%d8%a7%d9%86/", "title": "أفران (Ovens)", "category": "technology" },
+      { "path": "/غسالات/", "encoded": "/%d8%ba%d8%b3%d8%a7%d9%84%d8%a7%d8%aa/", "title": "غسالات (Washing Machines)", "category": "technology" }
+    ],
+    "taxonomies": [
+      { "path": "/category/technology/", "title": "Technology", "type": "category-archive" }
+    ],
+    "ecwidVirtualRoutes": {
+      "categories": 30,
+      "products": 471,
+      "total": 501,
+      "pattern": {
+        "category": "/shop/{arabic-slug}-c{categoryId}",
+        "product": "/shop/{arabic-slug}-p{productId}"
+      },
+      "dataFile": "catalog.json",
+      "note": "All 501 routes render from the 2 Ecwid templates below. Do not attempt per-page rebranding."
+    }
+  },
+
+  "ecwidTemplates": {
+    "categoryPage": {
+      "route": "/shop/{slug}-c{id}",
+      "instances": 30,
+      "components": [
+        { "name": "breadcrumb", "example": "Store / ثلاجات" },
+        { "name": "categoryTitle" },
+        { "name": "subcategoryTiles", "description": "Image + label cards linking to child categories", "example": ["نو فروست", "ديفروست"] },
+        { "name": "sortDropdown", "options": ["We recommend", "Newest arrivals", "Price: Low to High", "Price: High to Low", "Name: A to Z", "Name: Z to A"] },
+        { "name": "currencySelector", "label": "Display prices in: EGP" },
+        { "name": "productGrid", "cardAnatomy": ["product image", "Arabic product name", "SKU", "price (LE)", "compare-at price when discounted", "discount/save badge", "Buy Now button"] },
+        { "name": "filterControls", "note": "sort + clear-filter; faceted filtering is minimal" }
+      ],
+      "observations": [
+        "Parent categories (e.g. ثلاجات) show ONLY subcategory tiles — no products, no category description copy. This is a weak landing experience and a prime rebrand opportunity.",
+        "No category-level hero imagery, intro copy, or SEO text."
+      ]
+    },
+    "productPage": {
+      "route": "/shop/{slug}-p{id}",
+      "instances": 471,
+      "components": [
+        { "name": "breadcrumb", "example": "Store / تليفزيونات" },
+        { "name": "gallery", "description": "Main image + thumbnail strip with prev/next arrows" },
+        { "name": "productTitle" },
+        { "name": "sku", "example": "SKU 80430601" },
+        { "name": "price", "example": "LE 21,499.00", "state": "sale price" },
+        { "name": "compareAtPrice", "example": "LE 23,990.00" },
+        { "name": "discountBadge", "example": "Save LE 2,491.00" },
+        { "name": "quantitySelector", "controls": ["increment", "decrement", "Add More"] },
+        { "name": "primaryActions", "buttons": ["Add to Cart", "Go to Checkout"] },
+        { "name": "wishlist", "labels": ["Save this product for later", "Favorite", "view wishlist"] },
+        { "name": "supportPrompt", "label": "Have questions?" },
+        { "name": "socialShare", "platforms": ["Facebook", "X/Twitter", "Pinterest"] },
+        { "name": "descriptionTab", "content": "Full technical specifications, free-text HTML per product" },
+        { "name": "warrantyNote", "example": "3-year warranty — الهيئة العربية للتصنيع (Arab Organization for Industrialization)" }
+      ],
+      "observations": [
+        "No customer reviews or ratings component.",
+        "No structured specification TABLE — specs are unstructured prose inside the description tab, so they cannot be filtered or compared.",
+        "No related/recommended products module.",
+        "No stock/availability indicator.",
+        "No installment-plan calculator — despite installment sales being the company's founding business model and core differentiator. Largest commercial gap on the site."
+      ]
+    }
+  },
+
+  "catalogTaxonomy": {
+    "note": "Inferred parent/child structure from category names and subcategory tiles.",
+    "tree": [
+      { "id": "38003882", "name": "ثلاجات", "en": "Refrigerators", "children": [
+        { "id": "38022268", "name": "نو فروست", "en": "No Frost" },
+        { "id": "38022269", "name": "ديفروست", "en": "Defrost" }
+      ]},
+      { "id": "38005648", "name": "فريزرات", "en": "Freezers", "children": [
+        { "id": "38022353", "name": "فريزر أفقى", "en": "Chest Freezer" },
+        { "id": "38005649", "name": "فريزر رأسى", "en": "Upright Freezer" }
+      ]},
+      { "id": "38003799", "name": "أفران", "en": "Ovens", "children": [
+        { "id": "50846528", "name": "4 شعلة", "en": "4-Burner" },
+        { "id": "50844229", "name": "5 شعلة", "en": "5-Burner" },
+        { "id": "38022202", "name": "أفران كهربائية", "en": "Electric Ovens" }
+      ]},
+      { "id": "38005652", "name": "غسالات", "en": "Washing Machines", "children": [
+        { "id": "38003963", "name": "غسالات ملابس", "en": "Clothes Washers" },
+        { "id": "38022354", "name": "غسالات أطباق", "en": "Dishwashers" }
+      ]},
+      { "id": "40507239", "name": "سخانات مياه", "en": "Water Heaters", "children": [
+        { "id": "48149056", "name": "سخانات كهرباء", "en": "Electric Heaters" },
+        { "id": "48143206", "name": "سخانات غاز", "en": "Gas Heaters" }
+      ]},
+      { "id": "112439376", "name": "اجهزة صغيرة", "en": "Small Appliances", "children": [
+        { "id": "81170222", "name": "مكانس", "en": "Vacuum Cleaners" },
+        { "id": "81167227", "name": "مكاوى", "en": "Irons" },
+        { "id": "68782006", "name": "خلاطات و محضرات طعام", "en": "Blenders & Food Processors" },
+        { "id": "57646037", "name": "ميكروييف", "en": "Microwaves" },
+        { "id": "185355010", "name": "كاتيل و ماكينات قهوة", "en": "Kettles & Coffee Machines" },
+        { "id": "185364502", "name": "قلايات", "en": "Fryers" }
+      ]},
+      { "id": "38032005", "name": "تكييفات هواء", "en": "Air Conditioners", "children": [] },
+      { "id": "38022381", "name": "تليفزيونات", "en": "Televisions", "children": [] },
+      { "id": "50318054", "name": "مبردات هواء ومراوح", "en": "Air Coolers & Fans", "children": [] },
+      { "id": "102858075", "name": "مبردات مياه", "en": "Water Coolers", "children": [] },
+      { "id": "167433056", "name": "حرف يدوية ومنتجات عضوية", "en": "Handicrafts & Organic Products", "children": [], "note": "Off-brand outlier vs. an appliance retailer — flag during rebrand strategy" },
+      { "id": "173607281", "name": "عروض صادكو", "en": "SADKO Offers", "children": [], "type": "merchandising" },
+      { "id": "195273251", "name": "المنتجات الاكثر مبيعاً", "en": "Best Sellers", "children": [], "type": "merchandising" }
+    ],
+    "homepageCategoryGrid": [
+      "ثلاجات", "فريزرات", "عروض صادكو", "المنتجات الاكثر مبيعاً",
+      "أفران", "غسالات", "تكييفات هواء", "سخانات مياه",
+      "تليفزيونات", "مبردات هواء ومراوح", "مبردات مياه", "اجهزة صغيرة"
+    ]
+  },
+
+  "brands": ["Kiriazi (كريازى)", "LG", "Carrier", "Fresh", "Pluto", "NOVA"],
+  "brandNote": "SADKO is the exclusive distributor for Kiriazi — the single most important brand relationship and a core positioning asset that the current site barely surfaces.",
+
+  "features": {
+    "present": [
+      "Product catalog browsing (30 categories, 471 SKUs)",
+      "Cart and checkout (Ecwid-hosted)",
+      "User accounts",
+      "Favorites / wishlist",
+      "Product search",
+      "Sort by price / name / recency",
+      "Currency display selector (EGP)",
+      "Social sharing on products",
+      "Store locator (7 showrooms, static text)",
+      "Cash on delivery and credit card payment",
+      "Free delivery in Cairo, Giza, Alexandria"
+    ],
+    "missing": [
+      "Installment-plan calculator or application flow (core to the business model)",
+      "Product reviews and ratings",
+      "Structured spec tables / product comparison",
+      "Related or recommended products",
+      "Stock availability indicators",
+      "Functional in-house order tracking (outsourced to movex.com.eg)",
+      "Arabic translations of Terms, Shipping, and Return policy pages",
+      "Working hours and map embeds for the 7 showrooms",
+      "Blog or editorial content (the 4 Arabic posts render catalog, not articles)",
+      "Newsletter capture",
+      "WhatsApp contact (standard for Egyptian retail)",
+      "Instagram / TikTok presence",
+      "Warranty and after-sales service portal",
+      "Live chat"
+    ]
+  },
+
+  "rebrandingFlags": [
+    { "severity": "high", "issue": "Hotline '19140' is a raster image, not text", "impact": "Not selectable, not tap-to-call on mobile, invisible to SEO and screen readers", "where": "global header, all pages" },
+    { "severity": "high", "issue": "Policy pages are English-only on an Arabic RTL site", "impact": "Legal and trust content unreadable to the primary audience", "where": "terms-conditions, shipping-payment-info, return-policy" },
+    { "severity": "high", "issue": "No installment offering anywhere on the site", "impact": "The company was founded on installment sales; the site omits its main differentiator", "where": "sitewide" },
+    { "severity": "medium", "issue": "Divi factory-default blue #2ea3f2 still active", "impact": "Reads as an unstyled template; conflicts with the #7ebec5 brand teal", "where": "links and buttons sitewide" },
+    { "severity": "medium", "issue": "/track-your-order/ is a 'Coming Soon' placeholder", "impact": "Dead-end page linked from the primary navigation", "where": "track-your-order" },
+    { "severity": "medium", "issue": "Parent category pages show only subcategory tiles", "impact": "No copy, no hero, no SEO value, weak landing experience", "where": "Ecwid category template" },
+    { "severity": "medium", "issue": "Footer copyright hardcoded to 2024", "impact": "Site reads as abandoned", "where": "global footer" },
+    { "severity": "medium", "issue": "Two visual systems collide (Divi chrome vs. Ecwid storefront)", "impact": "Inconsistent typography, buttons, and spacing between WP pages and store pages", "where": "sitewide" },
+    { "severity": "low", "issue": "Only a white logo variant exists", "impact": "No dark or monochrome lockup for light backgrounds, print, or social", "where": "brand assets" },
+    { "severity": "low", "issue": "'حرف يدوية ومنتجات عضوية' (Handicrafts & Organic) sits oddly in an appliance catalog", "impact": "Dilutes category positioning", "where": "catalog taxonomy" },
+    { "severity": "low", "issue": "Showroom listings lack hours and maps", "impact": "Reduces store-visit conversion", "where": "stores-location" }
+  ]
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الطلبات — صادكو جروب</title>
+<link rel="icon" href="assets/img/sadko-logo-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/category.css">
+<style>
+:root{--accent:#2e7e88;}
+.order{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;
+  box-shadow:0 8px 24px rgba(20,52,58,.07);border:1px solid rgba(46,126,136,.1);}
+.order__head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.order__id{font:800 .92rem 'Cairo',sans-serif;color:#14343a;direction:ltr;}
+.order__date{font:600 .78rem 'Cairo',sans-serif;color:#5b6b6e;}
+.order__status{font:800 .75rem 'Cairo',sans-serif;color:#8a5b12;background:#fdeacc;border-radius:999px;padding:5px 12px;}
+.order ul{margin:0;padding:0;list-style:none;}
+.order li{font:600 .82rem 'Cairo',sans-serif;color:#3f5457;padding:4px 0;border-bottom:1px dashed rgba(46,126,136,.14);}
+.order li:last-child{border:0;}
+.order__total{font:800 .95rem 'Cairo',sans-serif;color:#2e7e88;margin-top:8px;}
+.track{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:26px;}
+.track a{display:block;text-decoration:none;background:#fff;border-radius:16px;padding:18px;
+  border:1px solid rgba(46,126,136,.12);box-shadow:0 8px 24px rgba(20,52,58,.07);}
+.track a:hover{border-color:#2e7e88;}
+.track b{display:block;font:800 .95rem 'Cairo',sans-serif;color:#14343a;margin-bottom:6px;}
+.track span{font:600 .8rem 'Cairo',sans-serif;color:#5b6b6e;line-height:1.7;}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <p class="hero__crumb"><a href="index.html">البيت</a> ← <span>الطلبات</span></p>
+  <h1 class="hero__title">طلباتك</h1>
+  <p class="hero__meta" id="heroMeta"></p>
+</section>
+
+<main class="wrap">
+  <div id="orders"></div>
+  <p class="empty" id="empty" hidden>مفيش طلبات محفوظة لسه — املا <a href="cart.html">سلتك</a> من <a href="shop.html">المتجر</a> ودوس «احفظ الطلب».</p>
+
+  <div class="track">
+    <a href="tel:19140"><b>📞 أكّد طلبك</b><span>الطلبات المحفوظة هنا بتتأكد بمكالمة واحدة على الخط الساخن 19140 — اذكر رقم الطلب.</span></a>
+    <a href="https://movex.com.eg" target="_blank" rel="noopener"><b>🚚 تتبع شحنتك</b><span>الشحنات المؤكدة بتتسلم لشركة موڤكس — تقدر تتبعها برقم شحنتك على movex.com.eg</span></a>
+    <a href="mailto:csupport@sadko-group.com"><b>✉️ خدمة العملاء</b><span>لأى استفسار عن طلب أو ضمان أو صيانة: csupport@sadko-group.com</span></a>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="foot__inner">
+    <img src="assets/img/sadko-logo-white.png" alt="صادكو جروب" class="foot__logo">
+    <p>الخط الساخن <a href="tel:19140" dir="ltr">19140</a> · <a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></p>
+    <p class="foot__copy">© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)</p>
+  </div>
+</footer>
+
+<script src="assets/js/nav.js?v=g9" defer></script>
+<script defer>
+document.addEventListener('DOMContentLoaded', () => {
+  const fmt = n => n.toLocaleString('en-US');
+  const clean = s => String(s||'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+  let orders = [];
+  try { orders = JSON.parse(localStorage.getItem('sadko-orders-v1')) || []; } catch(e){}
+  document.getElementById('empty').hidden = orders.length > 0;
+  document.getElementById('heroMeta').textContent = orders.length
+    ? (orders.length + ' طلب محفوظ على الجهاز ده')
+    : 'احفظ سلتك كطلب وتابعه من هنا';
+  const box = document.getElementById('orders');
+  orders.forEach(o => {
+    const el = document.createElement('article');
+    el.className = 'order';
+    const d = new Date(o.at);
+    el.innerHTML =
+      '<div class="order__head">' +
+        '<span class="order__id">' + o.id + '</span>' +
+        '<span class="order__date">' + d.toLocaleDateString('ar-EG', {year:'numeric',month:'long',day:'numeric'}) + '</span>' +
+        '<span class="order__status">' + o.status + '</span>' +
+      '</div>' +
+      '<ul>' + o.items.map(i => '<li>' + clean(i.title) + ' × ' + i.qty + '</li>').join('') + '</ul>' +
+      '<p class="order__total">الإجمالى: ' + fmt(o.total) + ' جنيه</p>';
+    box.appendChild(el);
+  });
+});
+</script>
+</body>
+</html>

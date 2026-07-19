@@ -57,8 +57,8 @@ test('a page that fails to parse does not abort the crawl', async () => {
   c.close();
 });
 
-test('M1_STORES holds the 13 planned stores including SADKO', () => {
-  assert.equal(M1_STORES.length, 13);
+test('M1_STORES holds the 12 planned stores including SADKO', () => {
+  assert.equal(M1_STORES.length, 12);
   assert.ok(M1_STORES.some(s => s.domain === 'sadko-group.com'));
   assert.ok(M1_STORES.some(s => s.domain === 'rayashop.com'));
 });

@@ -1,5 +1,6 @@
-/* Milestone-1 stores: SADKO's own catalog plus the 12 highest-value sitemap
-   stores measured by scripts/probe-sitemaps.mjs (94,482 product URLs total).
+/* Milestone-1 stores: SADKO's own catalog plus the 11 highest-value sitemap
+   stores measured by scripts/probe-sitemaps.mjs (88,113 product URLs total,
+   after dropping elarabygroup.com — see below).
    rayashop / amanstores / egyptlaptop / awadserag are included DELIBERATELY —
    their live search is broken, so indexing rescuing them is the proof the
    architecture works. */
@@ -18,8 +19,12 @@ export const M1_STORES = [
   { domain: 'jumia.com.eg',    name: 'جوميا',      nameEn: 'Jumia',       tier: 1 },  // 10,000
   { domain: '2b.com.eg',       name: '2B مصر',     nameEn: '2B Egypt',    tier: 1 },  //  7,611
   { domain: 'btech.com',       name: 'بى تك',      nameEn: 'B.TECH',      tier: 1 },  //  7,205 · /ar/p/ ✓
-  // bare-slug product URLs — no marker; relies on the fallback path
-  { domain: 'elarabygroup.com',name: 'العربى جروب',nameEn: 'ElAraby',     tier: 1 },  //  6,369
+  // elarabygroup.com (6,369 URLs) was REMOVED from Milestone 1: it actively
+  // blocks automated clients — every request past robots.txt, including the
+  // homepage, returns HTTP 403 with a fake image/jpeg body, or ECONNRESET.
+  // This is a deliberate anti-bot measure, not a misconfiguration. Re-adding
+  // it requires the store's permission, not a user-agent/header/proxy
+  // workaround — that stays out of bounds.
   // sitemap index exposes products1.xml; URLs are category-path style
   { domain: 'egyptlaptop.com', name: 'إيجيبت لابتوب', nameEn: 'Egypt Laptop', tier: 2,
     sitemapHint: 'products' },                                                        //  6,193

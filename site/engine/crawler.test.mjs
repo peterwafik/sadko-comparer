@@ -84,6 +84,74 @@ test('a sitemap with no product-shaped URLs falls back instead of crawling nothi
   c.close();
 });
 
+/* Finding 1 regression: shaped and plain must accumulate across an entire
+   sitemap index. A single stray shaped URL (e.g. a /product/ promo link)
+   must NOT suppress the plain bare-slug URLs for the rest of the store —
+   this fails against the old `shaped.length ? shaped : plain` logic, which
+   would crawl only the one promo URL and starve the store of its real
+   catalog. */
+test('one stray shaped URL does not starve the store of its plain URLs', async () => {
+  const c = openCatalog();
+  const fetchImpl = fakeFetch({
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap.xml',
+    'sitemap.xml': '<urlset>' +
+      '<url><loc>https://t.com/product/promo</loc></url>' +
+      '<url><loc>https://t.com/ar/tornado-electric-water-heater-30-l-teee-30d1w</loc></url>' +
+      '<url><loc>https://t.com/ar/tornado-electric-water-heater-40-l-teee-40d1w</loc></url></urlset>',
+    '/product/promo': LD('عرض ترويجى شاشة شارب 75 بوصة 4T-C75FN6EX', 39699),
+    '/ar/tornado-electric-water-heater-30-l': LD('سخان تورنيدو 30 لتر ديجيتال TEEE-30D1W', 4999),
+    '/ar/tornado-electric-water-heater-40-l': LD('سخان تورنيدو 40 لتر ديجيتال TEEE-40D1W', 5499),
+  });
+  const r = await crawlStore(c, { domain: 't.com', name: 'T' }, { maxPages: 10, fetchImpl, delayMs: 0 });
+  assert.equal(r.shapedUrls, 1, 'only the /product/ URL matches the shape heuristic');
+  assert.equal(r.usedFallback, true, 'plain URLs were needed alongside the one shaped URL');
+  assert.equal(r.stored, 3, 'the promo AND both bare-slug heaters must be stored');
+  assert.equal(c.search('TEEE-30D1W').length, 1, 'the 30L heater must be crawled');
+  assert.equal(c.search('TEEE-40D1W').length, 1, 'the 40L heater must be crawled');
+  c.close();
+});
+
+test('shaped URLs are fetched before plain URLs', async () => {
+  const c = openCatalog();
+  const pages = {
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap.xml',
+    'sitemap.xml': '<urlset>' +
+      '<url><loc>https://t.com/plain-one</loc></url>' +
+      '<url><loc>https://t.com/product/shaped</loc></url>' +
+      '<url><loc>https://t.com/plain-two</loc></url></urlset>',
+    '/plain-one': LD('سخان تورنيدو TEEE-30D1W', 4999),
+    '/product/shaped': LD('شاشة شارب 4T-C75FN6EX', 39699),
+    '/plain-two': LD('غسالة توشيبا AEW-8460SUP', 12079),
+  };
+  const fetched = [];
+  const spy = async (url, o) => { fetched.push(url); return fakeFetch(pages)(url, o); };
+  const r = await crawlStore(c, { domain: 't.com', name: 'T' }, { maxPages: 10, fetchImpl: spy, delayMs: 0 });
+  assert.equal(r.stored, 3);
+  const pageFetches = fetched.filter(u => !u.includes('robots') && !u.includes('sitemap'));
+  assert.equal(pageFetches[0], 'https://t.com/product/shaped', 'the shaped URL must be fetched first');
+  c.close();
+});
+
+test('a duplicated <loc> across sub-sitemaps is fetched only once', async () => {
+  const c = openCatalog();
+  const pages = {
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap-index.xml',
+    'sitemap-index.xml': '<sitemapindex>' +
+      '<sitemap><loc>https://t.com/sitemap-products-1.xml</loc></sitemap>' +
+      '<sitemap><loc>https://t.com/sitemap-products-2.xml</loc></sitemap></sitemapindex>',
+    'sitemap-products-1.xml': '<urlset><url><loc>https://t.com/product/dup</loc></url></urlset>',
+    'sitemap-products-2.xml': '<urlset><url><loc>https://t.com/product/dup</loc></url></urlset>',
+    '/product/dup': LD('شاشة شارب 4T-C75FN6EX', 39699),
+  };
+  const fetched = [];
+  const spy = async (url, o) => { fetched.push(url); return fakeFetch(pages)(url, o); };
+  const r = await crawlStore(c, { domain: 't.com', name: 'T' }, { maxPages: 10, fetchImpl: spy, delayMs: 0 });
+  assert.equal(r.stored, 1);
+  const dupFetches = fetched.filter(u => u.includes('/product/dup'));
+  assert.equal(dupFetches.length, 1, 'the duplicated loc must be fetched only once');
+  c.close();
+});
+
 test('store.productUrl overrides the generic URL heuristic', async () => {
   const c = openCatalog();
   const fetchImpl = fakeFetch({

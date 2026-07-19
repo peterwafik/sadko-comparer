@@ -74,13 +74,26 @@ export async function crawlStore(catalog, store, opts = {}) {
       }
     }
   }
-  // fall back to unshaped URLs rather than crawling nothing
-  const productUrls = shaped.length ? shaped : plain;
+  // Crawl the UNION of shaped and plain URLs — never choose one list or the
+  // other. `shaped` and `plain` accumulate across an entire sitemap index
+  // spanning many sub-sitemaps, so picking one list based on whether ANY
+  // shaped URL was seen anywhere lets a single stray shaped match (a
+  // /product/ nav link, say) silently suppress every plain URL for the
+  // whole store. Shaped URLs go first so they win the `maxPages` budget when
+  // there are plenty of them; plain URLs fill the rest. De-duplicate while
+  // preserving that order (first occurrence wins) since sub-sitemaps can
+  // repeat a <loc>, and the resume cursor is an index into this list so the
+  // ordering must stay deterministic for the same input.
+  const seenUrl = new Set();
+  const productUrls = [];
+  for (const u of shaped) { if (!seenUrl.has(u)) { seenUrl.add(u); productUrls.push(u); } }
+  let addedPlain = 0;
+  for (const u of plain) { if (!seenUrl.has(u)) { seenUrl.add(u); productUrls.push(u); addedPlain++; } }
   res.found = productUrls.length;
   res.shapedUrls = shaped.length;
-  res.usedFallback = !shaped.length && plain.length > 0;
+  res.usedFallback = addedPlain > 0;
   if (res.usedFallback)
-    onProgress({ ...res, note: `${domain}: no product-shaped URLs; falling back to ${plain.length} plain URLs` });
+    onProgress({ ...res, note: `${domain}: only ${shaped.length} product-shaped URL(s); including ${addedPlain} plain URL(s) too` });
 
   // 3. product pages — resume from the stored cursor so an interrupted run
   //    continues instead of refetching everything. Sitemap order is stable.

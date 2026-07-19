@@ -117,6 +117,48 @@ test('hot/cold mode vs cold-only means different product — water coolers', () 
   assert.equal(sameProduct(a, b).same, false);
 });
 
+/* Review finding: the 'exact' tier previously short-circuited before the
+   brand/category guards ran, so a coincidental model-token match across
+   brands or categories was wrongly declared 'exact'. At 471 products this
+   never collided; at ~94,000 products across 13 stores it will. */
+test('same model token but different brand is not the same product', () => {
+  const a = { brand: 'sharp', category: 'tv', model: 'ABC123', units: {}, specs: {}, key: 'x', title: '' };
+  const b = { brand: 'samsung', category: 'tv', model: 'ABC123', units: {}, specs: {}, key: 'y', title: '' };
+  const r = sameProduct(a, b);
+  assert.equal(r.same, false);
+  assert.notEqual(r.confidence, 'exact');
+});
+
+test('same model token but different category is not the same product', () => {
+  const a = { brand: 'sharp', category: 'tv', model: 'ABC123', units: {}, specs: {}, key: 'x', title: '' };
+  const b = { brand: 'sharp', category: 'fridge', model: 'ABC123', units: {}, specs: {}, key: 'y', title: '' };
+  const r = sameProduct(a, b);
+  assert.equal(r.same, false);
+  assert.notEqual(r.confidence, 'exact');
+});
+
+test('same model token with one brand null is still exact — absence is not a conflict', () => {
+  const a = { brand: null, category: 'tv', model: 'ABC123', units: {}, specs: {}, key: 'x', title: '' };
+  const b = { brand: 'sharp', category: 'tv', model: 'ABC123', units: {}, specs: {}, key: 'y', title: '' };
+  const r = sameProduct(a, b);
+  assert.equal(r.same, true);
+  assert.equal(r.confidence, 'exact');
+});
+
+/* PINNED (not asserted as ideal): a model present on only one side never
+   enters the bothKnown/oneMissing scoring that demotes other one-sided
+   attributes to 'weak' — it falls straight through to the general
+   brand+category+specs path below. A missing model is treated as a terse
+   listing, not a contradiction. This test pins today's actual behavior so a
+   future change to it is a deliberate decision, not an accident. */
+test('a model present on only one side does not by itself block or demote the match', () => {
+  const a = id('شاشة شارب 75 بوصة 4K سمارت XY-75');
+  const b = id('شاشة شارب 75 بوصة 4K سمارت'); // no model token present
+  const r = sameProduct(a, b);
+  assert.equal(r.same, true);
+  assert.equal(r.confidence, 'strong');
+});
+
 test('identity key is stable and equal for the same product', () => {
   const a = id('ثلاجة تورنيدو 2 باب انفرتر نوفروست 355 لتر – اسود RF-40FTV-BK');
   const b = id('Tornado Refrigerator 355L RF-40FTV-BK');

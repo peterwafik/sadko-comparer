@@ -51,15 +51,18 @@ export function identify(title) {
 /* The rule: present in both and different => different product.
    Present in one only => unknown, allowed, lower confidence. */
 export function sameProduct(a, b) {
-  if (a.model && b.model)
-    return a.model === b.model
-      ? { same: true, confidence: 'exact', reason: 'model match' }
-      : { same: false, confidence: 'none', reason: 'model mismatch' };
-
+  // Brand/category contradictions override everything downstream, including
+  // an exact model-token match — a coincidental token collision across
+  // brands or categories must never be crowned 'exact'.
   if (a.category && b.category && a.category !== b.category)
     return { same: false, confidence: 'none', reason: 'category mismatch' };
   if (a.brand && b.brand && a.brand !== b.brand)
     return { same: false, confidence: 'none', reason: 'brand mismatch' };
+
+  if (a.model && b.model)
+    return a.model === b.model
+      ? { same: true, confidence: 'exact', reason: 'model match' }
+      : { same: false, confidence: 'none', reason: 'model mismatch' };
 
   let bothKnown = 0, oneMissing = 0;
   const compare = (av, bv) => {

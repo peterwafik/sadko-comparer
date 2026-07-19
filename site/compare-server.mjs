@@ -49,6 +49,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage, headlessAvailable } from './headless.mjs';
+import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8082);
@@ -204,22 +205,12 @@ function normDigits(s) {
   return String(s).replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0)).replace(/[٬٫]/g, ',');
 }
-function parsePrice(x) {
-  if (typeof x === 'number') return x >= 100 && x <= 2e6 ? Math.round(x) : 0;
-  const t = normDigits(String(x || '')).replace(/[\s,]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '');
-  const v = parseFloat(t.replace(/[^\d.]/g, ''));
-  return v >= 100 && v <= 2e6 ? Math.round(v) : 0;
-}
 function extractPrices(text) {
   const t = normDigits(String(text || ''));
   const out = [];
   const re = /(?:EGP|LE|E£|ج\.?\s?م|جنيه)\s*[:\s]?([\d][\d.,\s]{1,12})|([\d][\d.,\s]{1,12})\s*(?:EGP|LE|E£|ج\.?\s?م|جنيه)/gi;
   let m; while ((m = re.exec(t))) { const v = parsePrice(m[1] || m[2]); if (v) out.push(v); }
   return out;
-}
-function decodeEntities(s) {
-  return String(s || '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d)).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 /* headless tier: a small concurrency gate so we never open too many tabs */
 const BTECH_SCRIPT = `(async()=>{
@@ -286,26 +277,6 @@ async function fetchPage(url, accept = 'text/html', timeoutMs = 9000) {
 }
 function absUrl(u, domain) {
   try { return new URL(u, 'https://' + domain).href; } catch { return 'https://' + domain; }
-}
-
-/* ---- offer sanity gate ----------------------------------------------------
-   A harvested "item" is only an OFFER if it points at a real product page and
-   isn't storefront chrome. Without this the harvesters return "add to cart"
-   anchors (?add-to-cart=3991), nav labels whose href is "#", and cart/wishlist
-   links — all of which then get priced and ranked. Every adapter output funnels
-   through here. */
-const UI_TITLE = /^(?:إضافة إلى السلة|أضف إلى السلة|اضف للسلة|أضف للسلة|اضف الى السلة|اشتر(?:ى|ي) الآن|عرض المنتج|عرض التفاصيل|اقرأ المزيد|اقرا المزيد|التفاصيل|قارن|المفضلة|السلة|add to cart|add to basket|buy now|read more|view (?:product|details|more)|compare|wishlist|quick view|select options|show details)\s*$/i;
-const BAD_URL = /[?&](?:add-to-cart|add_to_cart|remove_item|s)=|\/(?:cart|checkout|wishlist|compare|my-account|account|login|register)(?:\/|$|\?)/i;
-function isProductOffer(o) {
-  if (!o || !o.price || !o.url) return false;
-  const title = String(o.title || '').trim();
-  if (title.length < 8 || UI_TITLE.test(title)) return false;
-  let u; try { u = new URL(o.url); } catch { return false; }
-  // href="#" and bare-domain links resolve to the site root — navigation, not a
-  // product; an offer the customer cannot click is worse than no offer
-  if (!u.pathname || u.pathname === '/') return false;
-  if (BAD_URL.test(u.href)) return false;
-  return true;
 }
 
 /* JSON-LD: schema.org Product / ItemList on any page */

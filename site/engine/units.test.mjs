@@ -42,3 +42,10 @@ test('a standalone cm reading is still found alongside an unrelated dimension pa
 test('multi-character Latin unit abbreviations require a trailing word boundary', () => {
   assert.equal(extractUnits('شاشة 12 gbps').gb, undefined);
 });
+
+test('Latin unit boundary must not block Arabic script running on with no space', () => {
+  // No "قدم" fallback anywhere in this title: if the Latin "Feet" match is
+  // wrongly suppressed because Arabic script follows it directly, this must
+  // fail rather than silently pass via a redundant Arabic spelling.
+  assert.equal(extractUnits('Kiriazi Refrigerator E280 - 2 Doors 10 Feetثلاجة كريازى').feet, 10);
+});

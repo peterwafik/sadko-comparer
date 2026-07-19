@@ -38,10 +38,21 @@ export function extractUnits(title) {
       // boundary so a unit doesn't prefix-match inside a longer token, e.g.
       // "gb" inside "gbps". Arabic words take prefixes/suffixes, so other
       // Arabic spellings keep no trailing guard.
-      const needsBoundary = /^[a-z]+$/i.test(sp) || sp === 'ك';
+      //
+      // The boundary itself differs by script: a Latin spelling must not be
+      // followed by more Latin/digits (blocks "gb" in "gbps"), but real
+      // catalog titles run an English fragment straight into an Arabic one
+      // with no space ("10 Feetثلاجة") — so Arabic script must still be
+      // allowed to follow. Bare Arabic 'ك' has the opposite need: it must
+      // not be followed by more Arabic letters (blocks 'ك' inside 'كيلو').
+      const isLatin = /^[a-z]+$/i.test(sp);
+      const isBareArabicKaf = sp === 'ك';
+      let boundary = '';
+      if (isLatin) boundary = '(?![a-zA-Z0-9])';
+      else if (isBareArabicKaf) boundary = '(?![a-z\\u0600-\\u06FF])';
       const unitPat = sp.replace(/[.*+?^${}()|[\]\\"]/g, '\\$&');
       const re = new RegExp(
-        '(\\d+(?:\\.\\d+)?)\\s*' + unitPat + (needsBoundary ? '(?![a-z\\u0600-\\u06FF])' : ''),
+        '(\\d+(?:\\.\\d+)?)\\s*' + unitPat + boundary,
         'gi');
       let m;
       let found = null;

@@ -2,12 +2,42 @@
    zero-dependency rule; sitemaps are a fixed, simple shape.
    Pure — fetching and walking live in crawler.mjs. */
 
+// Matches <loc>, optionally namespaced (e.g. <xhtml:loc>), with either plain
+// text or CDATA-wrapped content. The backreference (\1) ties the closing tag
+// to the same (possibly namespaced) tag name as the opening one.
+const LOC_RE = /<((?:[\w-]+:)?loc)\b[^>]*>\s*(?:<!\[CDATA\[([\s\S]*?)\]\]>|([\s\S]*?))\s*<\/\1\s*>/gi;
+
+function decodeXmlEntities(s) {
+  return String(s)
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
 export function parseSitemap(xml) {
   const text = String(xml || '');
-  const urls = [...text.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map(m => m[1]);
+  const urls = [];
+  for (const m of text.matchAll(LOC_RE)) {
+    const raw = m[2] !== undefined ? m[2] : m[3];
+    if (raw == null) continue;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    urls.push(decodeXmlEntities(trimmed));
+  }
   return { isIndex: /<sitemapindex/i.test(text), urls };
 }
 
+const PRODUCT_PATH = /\/(product|products|item)\/[\w-]+/i;
+const PRODUCT_ID = /-p-?\d{3,}/i;
+// A /p/ segment is a product slug only when it isn't a purely-numeric
+// pagination index (e.g. /p/2, /p/10/) — a product slug is /p/some-name.
+const PRODUCT_SLUG = /\/p\/(?!\d+(?:[/?]|$))[\w-]+/i;
+
 export function isProductUrl(u) {
-  return /\/(product|products|item)\//i.test(u) || /-p-?\d{3,}/i.test(u) || /\/p\/[\w-]+/i.test(u);
+  const s = String(u || '');
+  return PRODUCT_PATH.test(s) || PRODUCT_ID.test(s) || PRODUCT_SLUG.test(s);
 }

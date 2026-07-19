@@ -32,3 +32,22 @@ test('tolerates malformed xml without throwing', () => {
   assert.doesNotThrow(() => parseSitemap('<urlset><url><loc>broken'));
   assert.deepEqual(parseSitemap('not xml at all').urls, []);
 });
+
+test('isProductUrl rejects pagination and bare category roots (Finding 6)', () => {
+  assert.equal(isProductUrl('https://x.com/blog/p/2'), false);
+  assert.equal(isProductUrl('https://x.com/category/laptops/p/10/'), false);
+  assert.equal(isProductUrl('https://x.com/products/'), false);
+  assert.equal(isProductUrl('https://x.com/p/some-product-name'), true);
+});
+
+test('parseSitemap extracts CDATA and namespaced <loc> tags', () => {
+  const cdata = parseSitemap('<urlset><url><loc><![CDATA[https://x.com/product/a]]></loc></url></urlset>');
+  assert.deepEqual(cdata.urls, ['https://x.com/product/a']);
+  const ns = parseSitemap('<urlset><url><xhtml:loc>https://x.com/product/a</xhtml:loc></url></urlset>');
+  assert.deepEqual(ns.urls, ['https://x.com/product/a']);
+});
+
+test('parseSitemap decodes XML entities in URLs', () => {
+  const r = parseSitemap('<urlset><url><loc>https://x.com/p?a=1&amp;b=2</loc></url></urlset>');
+  assert.equal(r.urls[0], 'https://x.com/p?a=1&b=2');
+});

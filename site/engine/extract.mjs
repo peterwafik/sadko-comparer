@@ -1,7 +1,8 @@
-/* Product page -> normalized record, via schema.org JSON-LD, falling back to
-   schema.org microdata when no JSON-LD product is present (same standard,
-   different serialization — real Egyptian storefronts, e.g. WooCommerce
-   sites, emit microdata instead of ld+json).
+/* Product page -> normalized record, via a three-rung ladder: schema.org
+   JSON-LD, falling back to schema.org microdata, falling back to Open Graph
+   product tags (og:title/og:price:amount) when a store publishes NEITHER
+   schema.org format — confirmed live on hyper-techno.com, which emits only
+   <meta property="og:..."> tags and yielded zero products before this rung.
    The sanity gate is shared with the live adapters — see ./offer-gate.mjs.
    Without it, "add to cart" anchors and cart URLs get priced as products. */
 import { UI_TITLE, BAD_URL, parsePrice, decodeEntities as decode } from './offer-gate.mjs';
@@ -77,6 +78,47 @@ function extractMicrodata(html) {
   };
 }
 
+// Open Graph fallback: only reached when neither JSON-LD nor microdata found
+// anything. Reads <meta> tags whose "property" (or, in the wild, "name")
+// attribute matches a given key — attribute order varies site to site, so
+// "property"/"name" and "content" are each located independently within the
+// tag's attribute text rather than assumed to appear in a fixed order.
+function readMeta(html, key) {
+  const re = /<meta\b([^>]*)>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    const attrs = m[1];
+    const keyMatch = attrs.match(/\b(?:property|name)=["']([^"']*)["']/i);
+    if (!keyMatch || keyMatch[1].toLowerCase() !== key) continue;
+    const contentMatch = attrs.match(/\bcontent=["']([^"']*)["']/i);
+    if (contentMatch) return contentMatch[1];
+  }
+  return null;
+}
+
+function extractOpenGraph(html) {
+  const ogTitle = readMeta(html, 'og:title');
+  const rawTitle = ogTitle != null ? ogTitle : (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1];
+  if (!rawTitle) return null;
+  const title = decode(rawTitle);
+
+  const priceRaw = readMeta(html, 'og:price:amount') ?? readMeta(html, 'product:price:amount');
+  const price = parsePrice(priceRaw);
+  if (!price) return null;
+
+  const currencyRaw = readMeta(html, 'og:price:currency') ?? readMeta(html, 'product:price:currency');
+  const currency = (currencyRaw != null ? decode(currencyRaw).trim() : '') || 'EGP';
+
+  const availability = readMeta(html, 'og:availability') ?? readMeta(html, 'product:availability') ?? '';
+
+  return {
+    title,
+    price,
+    currency,
+    inStock: !/OutOfStock|SoldOut|Discontinued/i.test(availability),
+  };
+}
+
 export function extractProduct(html, url) {
   if (BAD_URL.test(url)) return null;
   let found = null;
@@ -112,6 +154,9 @@ export function extractProduct(html, url) {
   }
   if (!found) {
     try { found = extractMicrodata(str); } catch { found = null; }
+  }
+  if (!found) {
+    try { found = extractOpenGraph(str); } catch { found = null; }
   }
   if (!found) return null;
   if (!found.title || found.title.length < 8 || UI_TITLE.test(found.title)) return null;

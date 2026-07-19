@@ -121,3 +121,95 @@ test('microdata: UI-chrome title is rejected by the shared gate', () => {
   const html = MICRO({ name: 'Add to Cart' });
   assert.equal(extractProduct(html, 'https://s.com/product/12'), null);
 });
+
+// Open Graph fallback fixtures — real markup shape confirmed live on
+// hyper-techno.com, which publishes neither JSON-LD nor microdata.
+test('Open Graph: extracts title and price when neither JSON-LD nor microdata is present', () => {
+  const html = `<html><head>
+<meta property="og:title" content="2T-C32DG6EX-شاشة شارب 32 بوصة أندرويد ريسيفر داخلي" />
+<meta property="og:price:amount" content="EGP8,699.00" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://hyper-techno.com/product/2t-c32dg6ex');
+  assert.equal(p.title, '2T-C32DG6EX-شاشة شارب 32 بوصة أندرويد ريسيفر داخلي');
+  assert.equal(p.price, 8699);
+  assert.equal(p.currency, 'EGP');
+  assert.equal(p.inStock, true);
+});
+
+test('Open Graph: property and content attributes in reversed order still parse', () => {
+  const html = `<html><head>
+<meta content="EGP8,699.00" property="og:price:amount" />
+<meta content="Sharp 32 Android TV Receiver" property="og:title" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://s.com/product/13');
+  assert.equal(p.title, 'Sharp 32 Android TV Receiver');
+  assert.equal(p.price, 8699);
+});
+
+test('Open Graph: name="og:price:amount" (instead of property=) still parses', () => {
+  const html = `<html><head>
+<meta property="og:title" content="Sharp 32 Android TV Receiver" />
+<meta name="og:price:amount" content="EGP8,699.00" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://s.com/product/14');
+  assert.equal(p.price, 8699);
+});
+
+test('Open Graph: product:price:amount / product:price:currency variant also parses', () => {
+  const html = `<html><head>
+<meta property="og:title" content="Sharp 32 Android TV Receiver" />
+<meta property="product:price:amount" content="EGP8,699.00" />
+<meta property="product:price:currency" content="EGP" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://s.com/product/15');
+  assert.equal(p.price, 8699);
+  assert.equal(p.currency, 'EGP');
+});
+
+test('Open Graph: falls back to <title> only when og:title is absent', () => {
+  const html = `<html><head>
+<title>Sharp 32 Android TV Receiver</title>
+<meta property="og:price:amount" content="EGP8,699.00" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://s.com/product/16');
+  assert.equal(p.title, 'Sharp 32 Android TV Receiver');
+  assert.equal(p.price, 8699);
+});
+
+test('JSON-LD still wins when both JSON-LD and Open Graph are present', () => {
+  const html = `<html><head>
+<script type="application/ld+json">${JSON.stringify({
+    '@type': 'Product', name: 'غسالة سامسونج 10 كيلو', offers: { price: 15999 },
+  })}</script>
+<meta property="og:title" content="Sharp 32 Android TV Receiver" />
+<meta property="og:price:amount" content="EGP8,699.00" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://s.com/product/17');
+  assert.equal(p.title, 'غسالة سامسونج 10 كيلو');
+  assert.equal(p.price, 15999);
+});
+
+test('Microdata still wins over Open Graph when both are present', () => {
+  const og = `<meta property="og:title" content="Sharp 32 Android TV Receiver" /><meta property="og:price:amount" content="EGP8,699.00" />`;
+  const html = MICRO().replace('<body>', `<body>${og}`);
+  const p = extractProduct(html, 'https://s.com/product/18');
+  assert.equal(p.title, 'Kenwood Vacuum Cleaner VC7050');
+  assert.equal(p.price, 7919);
+});
+
+test('Open Graph: out-of-stock sets inStock false', () => {
+  const html = `<html><head>
+<meta property="og:title" content="Sharp 32 Android TV Receiver" />
+<meta property="og:price:amount" content="EGP8,699.00" />
+<meta property="og:availability" content="OutOfStock" />
+</head><body></body></html>`;
+  const p = extractProduct(html, 'https://s.com/product/19');
+  assert.equal(p.inStock, false);
+});
+
+test('Open Graph: og:title with no price returns null', () => {
+  const html = `<html><head>
+<meta property="og:title" content="Sharp 32 Android TV Receiver" />
+</head><body></body></html>`;
+  assert.equal(extractProduct(html, 'https://s.com/product/20'), null);
+});

@@ -2,6 +2,7 @@
    listings keyed by URL, `price_history` tracks changes over time. */
 import { DatabaseSync } from 'node:sqlite';
 import { identify } from './matcher.mjs';
+import { normText } from './normalize.mjs';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS products (
@@ -45,6 +46,40 @@ function ftsQuery(q) {
     .filter(Boolean);
   if (!terms.length) return null;
   return terms.map(t => `"${t}"`).join(' OR ');
+}
+
+/* Words that appear across totally unrelated categories (a TV, a cable, a
+   router, a printer can ALL be "Smart" and "HD") and so carry no identity
+   signal on their own. FTS's OR-query treats every term as equally
+   meaningful; this list is what the precision filter below ignores when
+   deciding whether a candidate is a real match or just noise. */
+const GENERIC_TOKENS = new Set([
+  'smart', 'full', 'hd', 'fhd', 'uhd', '4k', '8k', 'led', 'lcd', 'new', 'pro',
+  'plus', 'max', 'series', 'inch', 'cm', 'with', 'and', 'for', 'the',
+]);
+
+/* The query's identity-bearing tokens: split on whitespace AND on hyphen/
+   dash/slash/quote punctuation (so "43-Inch" yields "43" and "inch"
+   separately, matching how extractUnits treats the same separator),
+   normalized for Arabic/Latin folding, generic words dropped. */
+export function distinctiveTokens(query) {
+  const t = normText(query);
+  return t.split(/[\s\-–—"'/,.]+/).map(w => w.trim()).filter(Boolean)
+    .filter(w => !GENERIC_TOKENS.has(w));
+}
+
+/* Precision filter applied to FTS's cheap OR-recall: an offer is only a real
+   candidate if its title contains at least half (minimum 1) of the query's
+   distinctive tokens — not merely ANY shared word. A query with nothing
+   distinctive at all (every token generic) has no basis to exclude anything
+   here, so it is left to the identity matcher downstream. */
+export function hasDistinctiveOverlap(query, title) {
+  const qTokens = distinctiveTokens(query);
+  if (!qTokens.length) return true;
+  const nt = normText(title);
+  const hits = qTokens.filter(tok => nt.includes(tok)).length;
+  const required = Math.max(1, Math.ceil(qTokens.length / 2));
+  return hits >= required;
 }
 
 export function openCatalog(file = ':memory:') {

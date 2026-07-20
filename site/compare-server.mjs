@@ -1118,7 +1118,15 @@ async function compare(q, min, max, discover, lang, override) {
   const cat = catalog();
   if (cat) {
     const r = await rankOffers(cat, q, { verify: verifyOffer, verifyTop: 10, override });
-    if (r.results.length) {
+    // Only answer from the catalog when it produced something genuinely
+    // useful: a real identity match (r.confident — at least one exact/strong
+    // crowned result) or a legitimate category browse (r.browse). ANY other
+    // non-empty result set is just weak/noise matches (e.g. "Arion 43-Inch
+    // Full HD Smart" matching a screen protector and a printer on shared
+    // words like "Full"/"Smart"/"HD") and must fall through to the live
+    // fan-out below, exactly as when the catalog is empty (CRITICAL 1,
+    // garbage-match review).
+    if (r.results.length && (r.browse || r.confident)) {
       const filtered = r.results.filter(x => (!min || x.price >= min) && (!max || x.price <= max));
       const results = filtered.map(x => ({
         store: x.domain, domain: x.domain, type: 'local', title: x.title,

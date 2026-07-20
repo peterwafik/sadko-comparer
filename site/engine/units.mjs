@@ -51,8 +51,13 @@ export function extractUnits(title) {
       if (isLatin) boundary = '(?![a-zA-Z0-9])';
       else if (isBareArabicKaf) boundary = '(?![a-z\\u0600-\\u06FF])';
       const unitPat = sp.replace(/[.*+?^${}()|[\]\\"]/g, '\\$&');
+      // Separator between the number and the unit spelling: real titles use
+      // no space ("4.7لتر"), a plain space ("43 inch"), OR a hyphen/en-dash/
+      // em-dash with optional surrounding spaces ("43-Inch", "8 - kg") —
+      // Amazon-style titles lean on the hyphenated form constantly. All three
+      // forms are folded into one optional-whitespace-or-dash run.
       const re = new RegExp(
-        '(\\d+(?:\\.\\d+)?)\\s*' + unitPat + boundary,
+        '(\\d+(?:\\.\\d+)?)[\\s\\-–—]*' + unitPat + boundary,
         'gi');
       let m;
       let found = null;

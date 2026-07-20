@@ -255,6 +255,128 @@ test('a bare category with no matching offers in the catalog returns an empty re
   c.close();
 });
 
+// ===== Garbage-match review (product owner search for a real, uncatalogued
+// TV returned 20 irrelevant results sharing only generic words) =====
+
+// CRITICAL 2: ftsQuery() ORs every term together, so a five-word query
+// matched any offer sharing just one common word. Seeded with the actual
+// garbage titles from the bug report.
+test('CRITICAL 2: a query overlapping an offer only on generic words does not match it (real garbage from bug report)', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'jumia.com.eg', url: 'https://jumia.com.eg/p/124',
+    title: 'Full Cover Tempered Glass for Samsung Galaxy M33', price: 124 });
+  c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/429',
+    title: 'DEVIA EC317 Smart Series PD Cable 100W Type-C', price: 429 });
+  c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/649',
+    title: 'D-Link N300 Smart Router - R04', price: 649 });
+  c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/749',
+    title: 'Devia Smart Series Multi-function Folding Stand', price: 749 });
+  c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/7199',
+    title: 'HP Smart Tank 582 All-in-One Printer', price: 7199 });
+
+  const r = await rankOffers(c, 'Arion 43-Inch Full HD Smart', { verify: async () => null });
+  assert.equal(r.results.length, 0,
+    'none of these — sharing only "Full"/"Smart"/"HD" with the query — should be returned');
+  assert.equal(r.cheapest, null);
+  c.close();
+});
+
+// CRITICAL 1: the signal a caller (compare-server.mjs) uses to decide whether
+// the catalog produced something genuinely useful. Chosen signals: a
+// `confident` boolean (true only when a crownable exact/strong result was
+// actually crowned) and a `browse` boolean (true only for the intentional
+// bare-category browse path, where cheapest is null by design but the answer
+// is still legitimate). Both default false on the early-exit/no-match paths.
+test('CRITICAL 1 signal: only-weak non-browse results are marked not confident, so a caller can fall through', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'terse.com', url: 'https://terse.com/1', title: 'شاشة شارب سمارت', price: 9000 });
+  const r = await rankOffers(c, 'شاشة شارب 75 بوصة 4K سمارت', { verify: async () => null });
+  assert.ok(r.results.length > 0, 'the terse listing is still shown, price-sorted, as weak');
+  assert.equal(r.cheapest, null, 'nothing crowned');
+  assert.equal(r.confident, false, 'only-weak results must not read as confident');
+  assert.equal(r.browse, false, 'this is not a browse query');
+  c.close();
+});
+
+test('CRITICAL 1 signal: a genuine exact/strong match IS confident, and a bare-category browse IS browse', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'real.com', url: 'https://real.com/1',
+    title: 'شاشة شارب 75 بوصة 4K سمارت', price: 39699 });
+  const identified = await rankOffers(c, 'شاشة شارب 75 بوصة 4K سمارت', { verify: async () => null });
+  assert.ok(identified.cheapest, 'sanity: this query crowns');
+  assert.equal(identified.confident, true);
+  assert.equal(identified.browse, false);
+
+  const c2 = openCatalog();
+  c2.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 8 كيلو', price: 12000 });
+  const browsed = await rankOffers(c2, 'غسالة', { verify: async () => null });
+  assert.equal(browsed.cheapest, null, 'sanity: a browse crowns nothing');
+  assert.equal(browsed.browse, true);
+  assert.equal(browsed.confident, true, 'a legitimate browse still counts as a confident catalog answer');
+  c.close(); c2.close();
+});
+
+// Item 3: the server's catalog branch (compare-server.mjs `compare()`) uses
+// exactly `r.results.length && (r.browse || r.confident)` to decide whether
+// to answer from the catalog or fall through to the live fan-out.
+// compare-server.mjs starts an HTTP server at module load and exports only
+// { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts,
+// htmlHarvest } (exports intentionally left unchanged), so `compare()` itself
+// is not reachable from a test without importing the whole server module.
+// Testing directly at the server level is therefore impractical; this
+// reproduces the server's exact branch condition against rankOffers()
+// output, which is the documented, tested contract compare-server.mjs relies on.
+test('server fall-through condition: catalog answers only when confident or browsing, else falls through to live', async () => {
+  const answersFromCatalog = r => r.results.length && (r.browse || r.confident);
+
+  const weakOnlyCatalog = openCatalog();
+  weakOnlyCatalog.upsertOffer({ domain: 'terse.com', url: 'https://terse.com/1',
+    title: 'شاشة شارب سمارت', price: 9000 });
+  const weakOnly = await rankOffers(weakOnlyCatalog, 'شاشة شارب 75 بوصة 4K سمارت', { verify: async () => null });
+  assert.ok(!answersFromCatalog(weakOnly), 'only-weak results must fall through to live fan-out');
+  weakOnlyCatalog.close();
+
+  const garbageCatalog = openCatalog();
+  garbageCatalog.upsertOffer({ domain: 'jumia.com.eg', url: 'https://jumia.com.eg/p/124',
+    title: 'Full Cover Tempered Glass for Samsung Galaxy M33', price: 124 });
+  const garbage = await rankOffers(garbageCatalog, 'Arion 43-Inch Full HD Smart', { verify: async () => null });
+  assert.ok(!answersFromCatalog(garbage), 'zero-result garbage query must fall through to live fan-out');
+  garbageCatalog.close();
+
+  const confidentCatalog = openCatalog();
+  confidentCatalog.upsertOffer({ domain: 'real.com', url: 'https://real.com/1',
+    title: 'شاشة شارب 75 بوصة 4K سمارت', price: 39699 });
+  const confident = await rankOffers(confidentCatalog, 'شاشة شارب 75 بوصة 4K سمارت', { verify: async () => null });
+  assert.ok(answersFromCatalog(confident), 'a genuine crowned match must answer from the catalog');
+  confidentCatalog.close();
+
+  const browseCatalog = openCatalog();
+  browseCatalog.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 8 كيلو', price: 12000 });
+  const browsed = await rankOffers(browseCatalog, 'غسالة', { verify: async () => null });
+  assert.ok(answersFromCatalog(browsed), 'a legitimate category browse must answer from the catalog');
+  browseCatalog.close();
+});
+
+// Regression: the new distinctive-overlap filter must not break genuine
+// matches whose distinctive tokens (brand, size) really do appear in the
+// offer title — mirrors the two real catalog queries named in the fix spec.
+test('regression: LG and Sharp TV queries still crown despite the new distinctive-overlap filter', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'شاشة ال جي 43 بوصة سمارت فل اتش دي', price: 14900 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2',
+    title: 'شاشة شارب 32 بوصة اتش دي', price: 8699 });
+  // noise: shares only generic words with both queries, no brand/size overlap
+  c.upsertOffer({ domain: 'noise.com', url: 'https://noise.com/3', title: 'كابل شحن سريع سمارت', price: 150 });
+
+  const lg = await rankOffers(c, 'شاشة ال جي 43 بوصة', { verify: async () => null });
+  assert.equal(lg.cheapest && lg.cheapest.price, 14900, 'LG 43-inch TV must still crown');
+
+  const sharp = await rankOffers(c, 'شاشة شارب 32 بوصة', { verify: async () => null });
+  assert.equal(sharp.cheapest && sharp.cheapest.price, 8699, 'Sharp 32-inch TV must still crown');
+  c.close();
+});
+
 test('removing a unit override widens the result set', async () => {
   const c = openCatalog();
   c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });

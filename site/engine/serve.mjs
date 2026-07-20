@@ -4,6 +4,7 @@
 import { identify, sameProduct } from './matcher.mjs';
 import { CATEGORIES } from './categories.mjs';
 import { normText } from './normalize.mjs';
+import { hasDistinctiveOverlap } from './catalog.mjs';
 
 const CROWNABLE = new Set(['exact', 'strong']);
 /* shown as a starting menu when the query names no recognisable category at
@@ -120,17 +121,34 @@ export async function rankOffers(catalog, query, opts = {}) {
       });
     }
     results.sort((a, b) => a.price - b.price);
+    // A browse has no single product to crown (cheapest stays null by
+    // design) but it IS a legitimate, intentional answer from the catalog —
+    // `browse: true` is the signal callers use (see compare-server.mjs) to
+    // distinguish "genuinely nothing to browse" from "browsed, here it is."
     return {
       results,
       cheapest: null,
       stats: { candidates: catOffers.length, matched: results.length, verified: 0 },
       interpretation,
+      browse: true,
+      confident: true,
     };
   }
 
-  const rows = catalog.search(query, limit);
+  // Precision filter over FTS's cheap OR-recall (CRITICAL 2, garbage-match
+  // review): ftsQuery() ORs every term together, so a five-word query like
+  // "Arion 43-Inch Full HD Smart" matches ANY offer sharing just one common
+  // word ("Smart"/"Full"/"HD"). Drop candidates that don't share a
+  // meaningful portion of the query's distinctive tokens before they ever
+  // reach identity comparison below.
+  const ftsRows = catalog.search(query, limit);
+  const rows = ftsRows.filter(r => hasDistinctiveOverlap(query, r.title_raw));
   if (!rows.length)
-    return { results: [], cheapest: null, stats: { candidates: 0, matched: 0, verified: 0 }, interpretation };
+    return {
+      results: [], cheapest: null,
+      stats: { candidates: ftsRows.length, matched: 0, verified: 0 },
+      interpretation, browse: false, confident: false,
+    };
 
   // Pass 1 — identity-filter the FTS candidates, but use the result ONLY to
   // discover which distinct PRODUCTS the query matches. FTS5's `search()`
@@ -151,7 +169,11 @@ export async function rankOffers(catalog, query, opts = {}) {
     if (confidence) matchedProductIds.add(r.product_id);
   }
   if (!matchedProductIds.size)
-    return { results: [], cheapest: null, stats: { candidates: rows.length, matched: 0, verified: 0 }, interpretation };
+    return {
+      results: [], cheapest: null,
+      stats: { candidates: ftsRows.length, matched: 0, verified: 0 },
+      interpretation, browse: false, confident: false,
+    };
 
   // Pass 2 — pull EVERY offer of every matched product, price-ordered. This
   // is the complete set ranking actually happens over, so a matched
@@ -213,10 +235,19 @@ export async function rankOffers(catalog, query, opts = {}) {
   for (const r of results)
     if (CROWNABLE.has(r.confidence) && r.inStock && rank < 5) r.rank = ++rank;
 
+  const cheapest = results.find(r => r.rank === 1) || null;
   return {
     results,
-    cheapest: results.find(r => r.rank === 1) || null,
-    stats: { candidates: rows.length, matched: results.length, verified },
+    cheapest,
+    stats: { candidates: ftsRows.length, matched: results.length, verified },
     interpretation,
+    browse: false,
+    // The fall-through signal (CRITICAL 1, garbage-match review): the catalog
+    // only counts as a confident answer when it actually crowned something
+    // (an 'exact'/'strong' in-stock offer). Non-empty `results` full of
+    // 'weak' matches — the Arion case, before the overlap filter above even
+    // gets involved — must NOT read as confident, or compare-server.mjs will
+    // never fall through to the live fan-out that actually stocks the item.
+    confident: cheapest !== null,
   };
 }

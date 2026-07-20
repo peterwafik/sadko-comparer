@@ -49,3 +49,19 @@ test('Latin unit boundary must not block Arabic script running on with no space'
   // fail rather than silently pass via a redundant Arabic spelling.
   assert.equal(extractUnits('Kiriazi Refrigerator E280 - 2 Doors 10 Feetثلاجة كريازى').feet, 10);
 });
+
+// IMPORTANT 3 (garbage-match review): a hyphen between the number and the
+// unit was not accepted at all — only "43 inch" and "43inch" worked, not the
+// hyphenated form Amazon-style English titles use constantly.
+test('IMPORTANT 3: a hyphen between the number and unit is parsed, same as space or no space', () => {
+  assert.equal(extractUnits('Arion 43-Inch Full HD Smart').inch, 43, 'hyphenated form must parse');
+  assert.equal(extractUnits('Toshiba 8-kg washer').kg, 8, 'hyphenated form must parse');
+  assert.equal(extractUnits('LG 55-inch').inch, 55, 'hyphenated form must parse');
+  // regression: the pre-existing space/no-space forms must still work
+  assert.equal(extractUnits('LG 43 inch').inch, 43, 'spaced form must still parse');
+  assert.equal(extractUnits('LG 43inch').inch, 43, 'no-space form must still parse');
+  assert.equal(extractUnits('شاشة شارب ٧٥ بوصة').inch, 75, 'Arabic-Indic digit form must still parse');
+  // regression: the dimension-pair guard must still suppress a bogus cm reading
+  assert.equal(extractUnits('بوتاجاز فري ستاند 90 × 60 سم 5 شعلة').cm, undefined,
+    'dimension pair must still yield no cm');
+});

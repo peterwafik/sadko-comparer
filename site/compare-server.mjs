@@ -676,6 +676,23 @@ function accessoryIn(text) {
     ? new RegExp('(^|[^a-z0-9])' + a + '([^a-z0-9]|$)').test(text)
     : text.includes(normAr(a));
 }
+/* the accessory blocklist must only inspect the LEADING segment of a title —
+   the part that states what the product IS. Real titles put the product
+   type first and push feature lists (which routinely mention "filter",
+   "cover", "tray", "sensor"...) after the first comma/dash/paren; an actual
+   accessory listing ("Water Filter for TOSHIBA Refrigerator...") has the
+   accessory word itself in that leading segment, so it's still caught.
+   Search for the boundary only within the first ~50 chars — real product-type
+   declarations are short, and capping the window stops a delimiter that's
+   buried deep in a long title (e.g. inside a model number well past the
+   product name) from accidentally widening the segment we inspect; if no
+   boundary shows up in that window, the 50-char window itself is the segment. */
+function leadingSegment(t) {
+  const LEAD_WINDOW = 50;
+  const head = t.slice(0, LEAD_WINDOW);
+  const m = head.match(/[,،\-–—|(]/);
+  return m ? head.slice(0, m.index) : head;
+}
 function tokenInTitle(t, tok) {
   const g = SYN_BY_TOKEN.get(tok);
   return g ? g.some(v => variantInTitle(t, v)) : variantInTitle(t, tok);
@@ -684,9 +701,10 @@ function isRelevant(title, q) {
   const toks = queryTokens(q);
   if (!toks.length) return true;
   const t = normAr(title);
-  // reject spare parts / accessories unless the query itself asked for one
+  // reject spare parts / accessories unless the query itself asked for one —
+  // only the leading product-type segment is checked (see leadingSegment)
   const qn = normAr(q);
-  if (!ACCESSORY.some(accessoryIn(qn)) && ACCESSORY.some(accessoryIn(t))) return false;
+  if (!ACCESSORY.some(accessoryIn(qn)) && ACCESSORY.some(accessoryIn(leadingSegment(t)))) return false;
   // sizes/capacities are non-negotiable: a 75-inch query must not return a
   // 32-inch TV, a 7-kilo query must not return a 9-kilo washer — every number
   // in the query must appear as a standalone number in the title (digit

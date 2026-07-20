@@ -29,8 +29,8 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1784530615782,
-   "failN": 1,
+   "lastOk": 1784539505824,
+   "failN": 0,
    "lastFail": 1784537265148
   },
   {
@@ -50,8 +50,8 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "failN": 2,
-   "lastFail": 1784537265150
+   "failN": 3,
+   "lastFail": 1784539512323
   },
   {
    "domain": "jumia.com.eg",
@@ -60,8 +60,8 @@
    "type": "mega",
    "t": 1,
    "platform": "jumia",
-   "failN": 0,
-   "lastFail": 1784530548007,
+   "failN": 1,
+   "lastFail": 1784540387409,
    "lastOk": 1784537258433
   },
   {
@@ -71,7 +71,7 @@
    "type": "mega",
    "t": 1,
    "platform": "noon",
-   "lastOk": 1784537258312,
+   "lastOk": 1784539505755,
    "failN": 0
   },
   {
@@ -93,7 +93,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1784537258967,
+   "lastOk": 1784540387307,
    "failN": 0
   },
   {
@@ -294,8 +294,8 @@
    "t": 3,
    "platform": "jsonld:/catalogsearch/result/?q=",
    "lastOk": 1784529334533,
-   "failN": 1,
-   "lastFail": 1784537276430
+   "failN": 3,
+   "lastFail": 1784540395944
   },
   {
    "domain": "riz.shop",
@@ -304,8 +304,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/search/?q=",
-   "failN": 1,
-   "lastFail": 1784537295175
+   "failN": 3,
+   "lastFail": 1784540407493
   },
   {
    "domain": "ehabcenter.com",
@@ -334,8 +334,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 1,
-   "lastFail": 1784537301186
+   "failN": 3,
+   "lastFail": 1784540413507
   },
   {
    "domain": "wazen.eg",
@@ -478,7 +478,9 @@
    "nameEn": "More Shopping",
    "type": "local",
    "t": 3,
-   "platform": "shopify"
+   "platform": "shopify",
+   "lastOk": 1784539535369,
+   "failN": 0
   },
   {
    "domain": "brico-eg.com",
@@ -523,8 +525,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 1,
-   "lastFail": 1784537310185
+   "failN": 3,
+   "lastFail": 1784540419578
   },
   {
    "domain": "dubaiphone.net",
@@ -697,8 +699,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 1,
-   "lastFail": 1784529378023
+   "failN": 2,
+   "lastFail": 1784539560504
   },
   {
    "domain": "ram-e-shop.com",
@@ -781,8 +783,8 @@
    "platform": "auto",
    "addedBy": "discovery",
    "lastOk": 1784453452899,
-   "failN": 2,
-   "lastFail": 1784537286169
+   "failN": 3,
+   "lastFail": 1784539529421
   },
   {
    "domain": "shaarp.net",

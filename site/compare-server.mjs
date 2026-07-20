@@ -50,6 +50,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage, headlessAvailable } from './headless.mjs';
 import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
+import { extractUnits } from './engine/units.mjs';
 import { openCatalog } from './engine/catalog.mjs';
 import { rankOffers } from './engine/serve.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
@@ -663,6 +664,10 @@ const SYN_RAW = [
   ['سيلفر', 'فضي', 'silver'],
   ['ستانلس', 'استانلس', 'stainless'],
   ['ريسيفر', 'رسيفر', 'receiver'],
+  ['شاحن', 'charger'],
+  ['حائط', 'wall'],
+  ['زولو', 'zolo'],
+  ['انكر', 'anker'],
 ];
 const SYN = [...SYN_RAW, ...Object.values(BRANDS)].map(g => g.map(normAr));
 const SYN_BY_TOKEN = new Map();
@@ -745,6 +750,20 @@ function isRelevant(title, q) {
   // "175" or "750"). A bare digit with no unit attached in the query (e.g. the
   // "1" in "1 x USB-A") is incidental and is NOT required — see numberHasUnit.
   for (const n of toks) if (/^\d+$/.test(n) && numberHasUnit(qn, n) && !new RegExp('(^|\\D)' + n + '(\\D|$)').test(t)) return false;
+  // a stated unit VALUE must match even when the number and unit are fused
+  // with no separator ("140W") — queryTokens turns that into the single WORD
+  // token "140w", so it never reaches the digit-token rule above and never
+  // hits UNIT_TOKENS (which only knows the bare unit word "watt"). extractUnits
+  // (engine/units.mjs) parses "140W", "20 W", "75 بوصة" etc. uniformly, so use
+  // it directly on the raw title/query text: for every unit the QUERY states a
+  // value for, if the TITLE also states a value for that unit and it differs,
+  // this is a different product (a 20W charger is not a 140W charger) — the
+  // same contradiction-disqualifies/silence-is-unknown asymmetry
+  // engine/matcher.mjs's sameProduct() already uses for the catalog path.
+  const qUnitValues = extractUnits(q);
+  const tUnitValues = extractUnits(title);
+  for (const [unit, qv] of Object.entries(qUnitValues))
+    if (tUnitValues[unit] !== undefined && tUnitValues[unit] !== qv) return false;
   const word = [...new Set(toks.filter(x => !/^\d+$/.test(x)))];
   if (!word.length) return true;
   // spec-critical unit words are non-negotiable too (كيلو/بوصة/لتر/قدم/حصان…)

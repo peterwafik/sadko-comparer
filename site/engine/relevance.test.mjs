@@ -123,3 +123,42 @@ test('number-rule regression: phone back-cover accessory (English) is still drop
   const t = 'Back Cover Case for Samsung Galaxy S24';
   assert.equal(isRelevant(t, q), false);
 });
+
+// ---- unit-mismatch defect: "140W" fuses the number and unit into ONE word
+// token ("140w"), so it never hits the mandatory standalone-number rule (that
+// only fires for digit-only tokens) and never hits UNIT_TOKENS (which only
+// knows the bare word "watt"/"وات"). A 20W charger was passing the 60%
+// word-overlap check on shared words ("anker", "zolo", "wall", "charger",
+// "gan", "usb"...) and being crowned "cheapest" for a 140W search — the same
+// wrong-product failure class as a 65-inch TV matching a 75-inch search.
+// extractUnits (engine/units.mjs) parses "140W"/"20 W" uniformly regardless
+// of spacing; isRelevant now uses it directly: a unit VALUE the query states
+// must not be CONTRADICTED by a value the title states for that same unit.
+// Absence in the title is unknown, not a contradiction — the identical
+// asymmetry engine/matcher.mjs's sameProduct() already uses for the catalog
+// path (present in both + differ => different product; present in one only
+// => unknown, allowed). ----
+test('unit-mismatch fix: a 20W charger is dropped for a 140W query (amazon-style title)', () => {
+  const t = 'Anker A2699 ZOLO 20W GaN Single-Port Fast Charger';
+  assert.equal(isRelevant(t, ANKER_Q), false);
+});
+
+test('unit-mismatch fix: a 20W charger is dropped for a 140W query (spaced "20 W", noon-style title)', () => {
+  const t = 'Anker Zolo 1C Wall Charger Type-C 20 W Fast Charger';
+  assert.equal(isRelevant(t, ANKER_Q), false);
+});
+
+test('unit-mismatch fix: a 20W charger is dropped for a 140W query (trailing "20W", different model line)', () => {
+  const t = 'Anker A2149L21 Power Port Wall Chargers, III 20W';
+  assert.equal(isRelevant(t, ANKER_Q), false);
+});
+
+test('unit-mismatch fix: a genuine 140W listing (Arabic transliteration) is kept', () => {
+  const t = 'شاحن انكر زولو 140 وات حائط USB-C';
+  assert.equal(isRelevant(t, ANKER_Q), true);
+});
+
+test('unit-mismatch fix: a title stating NO wattage is kept — absence is not a contradiction', () => {
+  const t = 'Anker Zolo Wall Charger GaN 3 Ports USB-C Touchscreen';
+  assert.equal(isRelevant(t, ANKER_Q), true);
+});

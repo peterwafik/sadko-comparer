@@ -124,3 +124,35 @@ test('extractModels returns [] and extractModel returns null when no identifier 
   assert.deepEqual(extractModels('تلفزيون سامسونج 55 بوصة 4K سمارت'), []);
   assert.equal(extractModel('تلفزيون سامسونج 55 بوصة 4K سمارت'), null);
 });
+
+/* DEFECT FIX: a single hyphen/paren-dense token with no internal space to
+   split on can normalize to well over 12 chars ("GR-RT468WE-PMN(49)-PRO" ->
+   "GRRT468WEPMN49PRO", 17 chars). The old per-fragment cap of 12 rejected it
+   outright, so the model was never found and a real cheaper offer never
+   matched. The cap is raised to 32 — comfortably above real model numbers —
+   while the ALL-CAPS/alphanumeric/digit+letter/SPEC_ONLY/SPEC_WORDS checks
+   still keep prose out. */
+test('extractModel finds a model whose normalized single token exceeds 12 chars', () => {
+  assert.equal(
+    extractModel('TOSHIBA Refrigerator GR-RT468WE-PMN(49)-PRO, Inverter, Cooling Zone'),
+    'GRRT468WEPMN49PRO'
+  );
+});
+
+/* Companion: the same model embedded in a longer, differently-worded real
+   Amazon title must extract to the identical string so the query and the
+   listing can match. */
+test('extractModel finds the same long model in a longer real-world title', () => {
+  assert.equal(
+    extractModel('TOSHIBA Refrigerator GR-RT468WE-PMN(49)-PRO, Inverter, Cooling Zone, No Frost'),
+    'GRRT468WEPMN49PRO'
+  );
+});
+
+/* Guard against the raised cap making the extractor greedy: a long ALL-CAPS
+   prose phrase (no model, just feature words) must still yield null. Digits
+   are what the cap used to gate on; this proves the digit+letter requirement
+   in isValidModel does that job on its own. */
+test('extractModel still rejects long ALL-CAPS prose with no digits after the cap increase', () => {
+  assert.equal(extractModel('REFRIGERATOR NO FROST INVERTER COOLING'), null);
+});

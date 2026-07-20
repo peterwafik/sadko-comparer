@@ -76,7 +76,14 @@ export function extractModels(title) {
     if (opensParen) flush();                      // never fuse a standalone paren group with what precedes it
     const core = normModel(tok);
     const stripped = tok.replace(/[-–—()]/g, '');
-    const isFragment = core.length > 0 && core.length <= 12 &&
+    // Per-fragment cap of 32: real model numbers routinely exceed the old 12
+    // ("GR-RT468WE-PMN(49)-PRO" normalizes to a single 17-char token with no
+    // internal space/dash boundary to split on). The cap isn't what keeps
+    // prose out — ALL-CAPS-only, alphanumeric-only, digit+letter-required,
+    // and the SPEC_ONLY/SPEC_WORDS filters below already do that — it only
+    // guards against pathological single tokens. 32 comfortably fits real
+    // SKUs/models while still bounding runaway input.
+    const isFragment = core.length > 0 && core.length <= 32 &&
       stripped === stripped.toUpperCase() && /^[A-Z0-9]+$/.test(core);
     if (!isFragment) { flush(); continue; }
     if (SPEC_ONLY.test(core) || SPEC_WORDS.has(core)) { flush(); continue; }

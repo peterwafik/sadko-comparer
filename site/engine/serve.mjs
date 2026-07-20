@@ -3,8 +3,24 @@
    crowned. Only 'exact'/'strong' offers can take rank 1. */
 import { identify, sameProduct } from './matcher.mjs';
 import { CATEGORIES } from './categories.mjs';
+import { normText } from './normalize.mjs';
 
 const CROWNABLE = new Set(['exact', 'strong']);
+/* shown as a starting menu when the query names no recognisable category at
+   all — the handful of appliance types shoppers search for most */
+const COMMON_CATEGORIES = ['fridge', 'washer', 'tv', 'ac', 'microwave', 'cooker'];
+
+/* Category keys whose Arabic/English names appear anywhere in the query text
+   (order of the CATEGORIES table), falling back to a common-appliance menu
+   when nothing in the query hints at a category at all. Used to populate the
+   "did you mean" alternatives offered by the interpretation bar. */
+function categoryAlternatives(query) {
+  const t = normText(query);
+  const hits = Object.entries(CATEGORIES)
+    .filter(([, def]) => def.names.some(n => t.includes(normText(n))))
+    .map(([key]) => key);
+  return hits.length ? hits : COMMON_CATEGORIES;
+}
 
 /* sameProduct() is symmetric — correctly so, since it is also used to group
    listing-vs-listing for catalog identity. But ranking compares a QUERY
@@ -37,12 +53,32 @@ function queryDirectionalConfidence(want, got, m) {
 }
 
 export async function rankOffers(catalog, query, opts = {}) {
-  const { verify = async () => null, verifyTop = 10, limit = 200 } = opts;
-  const rows = catalog.search(query, limit);
-  if (!rows.length) return { results: [], cheapest: null, stats: { candidates: 0, verified: 0 } };
+  const { verify = async () => null, verifyTop = 10, limit = 200, override = {} } = opts;
 
-  // keep only offers whose identity is compatible with the query's identity
-  const want = identify(query);
+  // keep only offers whose identity is compatible with the query's identity —
+  // starting from what identify() parsed, then letting any field the shopper
+  // (or the UI) explicitly confirmed/overrode REPLACE the parsed value. An
+  // override is a HARD filter: it is not merged into the parsed value, it
+  // stands in for it entirely (so clearing a unit means override.units = {},
+  // not "same as parsed minus one key").
+  const parsed = identify(query);
+  const want = {
+    ...parsed,
+    category: 'category' in override ? override.category || null : parsed.category,
+    units: 'units' in override ? override.units : parsed.units,
+    specs: 'specs' in override ? override.specs : parsed.specs,
+  };
+  const ambiguous = !want.category;
+  const interpretation = {
+    category: want.category, brand: want.brand, model: want.model,
+    units: want.units, specs: want.specs, ambiguous,
+    alternatives: categoryAlternatives(query),
+  };
+
+  const rows = catalog.search(query, limit);
+  if (!rows.length)
+    return { results: [], cheapest: null, stats: { candidates: 0, verified: 0 }, interpretation };
+
   const scored = [];
   for (const r of rows) {
     const got = identify(r.title_raw);
@@ -91,5 +127,6 @@ export async function rankOffers(catalog, query, opts = {}) {
     results,
     cheapest: results.find(r => r.rank === 1) || null,
     stats: { candidates: rows.length, matched: results.length, verified },
+    interpretation,
   };
 }

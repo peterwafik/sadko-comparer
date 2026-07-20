@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openCatalog } from './catalog.mjs';
 import { rankOffers } from './serve.mjs';
+import { CATEGORIES } from './categories.mjs';
 
 function seeded() {
   const c = openCatalog();
@@ -98,5 +99,52 @@ test('weak offers are returned in results but never take rank 1', async () => {
   assert.equal(weakOnes.length, 2, 'both terse listings must be weak, not strong');
   assert.ok(weakOnes.every(x => x.rank === undefined), 'weak results must not receive any rank');
   assert.equal(r.cheapest.domain, 'real.com');
+  c.close();
+});
+
+test('rankOffers reports how it interpreted the query', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'غسالة توشيبا 7 كيلو اتوماتيك فتحة علوية', price: 11000 });
+  const r = await rankOffers(c, 'غسالة توشيبا 7 كيلو', { verify: async () => null });
+  assert.equal(r.interpretation.category, 'washer');
+  assert.equal(r.interpretation.brand, 'toshiba');
+  assert.equal(r.interpretation.units.kg, 7);
+  assert.equal(r.interpretation.ambiguous, false);
+  c.close();
+});
+
+test('an unrecognised category is reported ambiguous with alternatives', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'كبة فريش 400 وات 1.5 لتر', price: 2200 });
+  const r = await rankOffers(c, 'كبة فريش 400 وات', { verify: async () => null });
+  assert.equal(r.interpretation.ambiguous, true);
+  assert.ok(Array.isArray(r.interpretation.alternatives));
+  c.close();
+});
+
+test('a category override is applied as a hard filter', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'غسالة توشيبا 7 كيلو اتوماتيك', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2',
+    title: 'غسالة اطباق بوش 12 فرد', price: 18000 });
+  const r = await rankOffers(c, 'غسالة', {
+    verify: async () => null, override: { category: 'dishwasher' } });
+  assert.equal(r.interpretation.category, 'dishwasher');
+  assert.ok(r.results.every(x => !x.title.includes('7 كيلو')),
+    'washer offers must be filtered out when the shopper says dishwasher');
+  c.close();
+});
+
+test('removing a unit override widens the result set', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة توشيبا 9 كيلو', price: 13000 });
+  const narrow = await rankOffers(c, 'غسالة توشيبا 7 كيلو', { verify: async () => null });
+  const wide = await rankOffers(c, 'غسالة توشيبا 7 كيلو', {
+    verify: async () => null, override: { units: {} } });
+  assert.ok(wide.results.length > narrow.results.length,
+    'clearing the kg filter must return both capacities');
   c.close();
 });

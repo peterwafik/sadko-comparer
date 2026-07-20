@@ -1089,10 +1089,36 @@ function buildResponse(q, offers, stats, ai, min, max, lang, refreshing, src, ag
   };
 }
 
-async function compare(q, min, max, discover, lang) {
+/* Reads the interpretation-bar overrides out of the query string:
+     cat=<category>          confirms/replaces the detected category
+     u_<unit>=<value>        confirms/replaces one parsed unit (e.g. u_kg=7)
+     s_<spec>=<value>        confirms/replaces one parsed spec (e.g. s_smart=true)
+   An explicitly EMPTY param (u_kg=) means that attribute was removed by the
+   shopper — it still marks the whole field (units/specs) as "present" in the
+   override so rankOffers treats it as a hard filter, it just omits that one
+   key, which is exactly how a removed chip widens the result set. */
+function parseOverride(sp) {
+  const override = {};
+  if (sp.has('cat')) override.category = sp.get('cat') || null;
+  let units = null, specs = null;
+  for (const [k, v] of sp) {
+    if (k.startsWith('u_')) {
+      units = units || {};
+      if (v !== '') units[k.slice(2)] = /^-?\d+(\.\d+)?$/.test(v) ? parseFloat(v) : v;
+    } else if (k.startsWith('s_')) {
+      specs = specs || {};
+      if (v !== '') specs[k.slice(2)] = v === 'true' ? true : v === 'false' ? false : v;
+    }
+  }
+  if (units) override.units = units;
+  if (specs) override.specs = specs;
+  return override;
+}
+
+async function compare(q, min, max, discover, lang, override) {
   const cat = catalog();
   if (cat) {
-    const r = await rankOffers(cat, q, { verify: verifyOffer, verifyTop: 10 });
+    const r = await rankOffers(cat, q, { verify: verifyOffer, verifyTop: 10, override });
     if (r.results.length) {
       const filtered = r.results.filter(x => (!min || x.price >= min) && (!max || x.price <= max));
       return {
@@ -1106,6 +1132,7 @@ async function compare(q, min, max, discover, lang) {
         cheapest: r.cheapest, concierge: null, refreshing: false,
         stats: { ...r.stats, src: 'catalog', headless: headlessAvailable(), ai: !!NVIDIA_KEY },
         links: storeLinks(q, lang),
+        interpretation: r.interpretation,
       };
     }
   }
@@ -1184,7 +1211,8 @@ http.createServer(async (req, res) => {
     if (q.length < 2) return json(200, { error: lang === 'en' ? 'Type a product name first' : 'اكتب اسم الجهاز الأول' });
     try {
       return json(200, await compare(q, +u.searchParams.get('min') || 0,
-        +u.searchParams.get('max') || 0, u.searchParams.get('discover') !== '0', lang));
+        +u.searchParams.get('max') || 0, u.searchParams.get('discover') !== '0', lang,
+        parseOverride(u.searchParams)));
     } catch (e) {
       return json(500, { error: lang === 'en' ? 'The engine hit a problem — try again' : 'المحرك وقع فى مشكلة — جرّب تانى',
         detail: String(e.message || e) });

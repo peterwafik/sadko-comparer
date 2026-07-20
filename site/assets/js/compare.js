@@ -280,7 +280,9 @@
     // a previous search; an override passed in explicitly (select/chip edit)
     // always sticks, and otherwise re-running the SAME query (e.g. toggling a
     // store-type filter) keeps whatever override was already in effect
-    if (overrideParams) lastOverrideParams = overrideParams;
+    const override = overrideParams && typeof overrideParams[Symbol.iterator] === 'function'
+      ? overrideParams : null;
+    if (override) lastOverrideParams = override;
     else if (q !== lastQ) lastOverrideParams = null;
     lastQ = q;
     clearTimeout(pollT); pollN = 0; activeQ = q;
@@ -296,7 +298,10 @@
     const p = new URLSearchParams({ q, lang: LANG });
     if (+$('min').value) p.set('min', $('min').value);
     if (+$('max').value) p.set('max', $('max').value);
-    if (overrideParams) for (const [k, v] of overrideParams) p.set(k, v);
+    // only accept a genuine iterable of [key, value] pairs — a stray Event or
+    // other truthy non-iterable must not break the whole search
+    if (overrideParams && typeof overrideParams[Symbol.iterator] === 'function')
+      for (const [k, v] of overrideParams) p.set(k, v);
     try {
       const r = await fetch('/api/compare?' + p, { signal: AbortSignal.timeout(70000) });
       return await r.json();
@@ -400,7 +405,9 @@
       `<a class="cc-cta" href="tel:19140">${T.ccCta}</a>`;
   }
 
-  $('go').addEventListener('click', run);
+  // NOTE: wrap in an arrow — passing `run` directly hands it the click Event as
+  // its `overrideParams` argument, which then blows up on iteration.
+  $('go').addEventListener('click', () => run());
   $('q').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
   document.querySelectorAll('.tf').forEach(c => c.addEventListener('change', () => { if ($('results').innerHTML) run(); }));
 

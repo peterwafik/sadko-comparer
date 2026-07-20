@@ -1121,15 +1121,28 @@ async function compare(q, min, max, discover, lang, override) {
     const r = await rankOffers(cat, q, { verify: verifyOffer, verifyTop: 10, override });
     if (r.results.length) {
       const filtered = r.results.filter(x => (!min || x.price >= min) && (!max || x.price <= max));
+      const results = filtered.map(x => ({
+        store: x.domain, domain: x.domain, type: 'local', title: x.title,
+        price: x.price, effectivePrice: x.price, currency: x.currency, url: x.url,
+        checkedAt: x.checkedAt, flags: x.confidence === 'weak' ? ['variant'] : [],
+        rank: x.rank, verified: x.verified,
+      }));
+      // derive cheapest from the MAPPED and price-FILTERED rows: rankOffers'
+      // own `cheapest` carries `domain` but not `store`, and predates the
+      // min/max filter, so using it directly would render an undefined store
+      // name and could crown a row the shopper's price filter excluded
+      const cheapest = results.find(x => x.rank === 1) || null;
+      const sadko = results.find(x => x.domain === 'sadko-group.com');
       return {
         mode: 'catalog', query: q,
-        results: filtered.map(x => ({
-          store: x.domain, domain: x.domain, type: 'local', title: x.title,
-          price: x.price, effectivePrice: x.price, currency: x.currency, url: x.url,
-          checkedAt: x.checkedAt, flags: x.confidence === 'weak' ? ['variant'] : [],
-          rank: x.rank, verified: x.verified,
-        })),
-        cheapest: r.cheapest, concierge: null, refreshing: false,
+        results,
+        cheapest,
+        concierge: cheapest ? {
+          cheapestStore: cheapest.store, cheapestPrice: cheapest.price,
+          sadkoHasIt: !!sadko, sadkoPrice: sadko ? sadko.price : null,
+          pitch: 'validation+shipping+maintenance', hotline: '19140',
+        } : null,
+        refreshing: false,
         stats: { ...r.stats, src: 'catalog', headless: headlessAvailable(), ai: !!NVIDIA_KEY },
         links: storeLinks(q, lang),
         interpretation: r.interpretation,

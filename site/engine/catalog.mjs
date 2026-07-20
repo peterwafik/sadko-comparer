@@ -149,6 +149,23 @@ export function openCatalog(file = ':memory:') {
         ORDER BY o.price ASC`).all(...ids);
     },
 
+    /* Every offer whose product belongs to the given category, price-ascending
+       — powers bare-category "browse" queries (see serve.mjs: a query with a
+       category but no brand/model isn't asking "is this the same product as
+       X", it's "show me washers"). Same row shape as search() and
+       offersForProducts() so callers can treat all three interchangeably. */
+    offersForCategory(category) {
+      if (!category) return [];
+      return db.prepare(`
+        SELECT o.id AS offer_id, o.product_id, o.domain, o.url, o.price, o.currency,
+               o.in_stock, o.title_raw, o.last_checked,
+               p.brand, p.category, p.model_norm
+        FROM offers o
+        JOIN products p ON p.id = o.product_id
+        WHERE p.category = ?
+        ORDER BY o.price ASC`).all(category);
+    },
+
     priceHistory(offerId) {
       return db.prepare('SELECT price, seen_at FROM price_history WHERE offer_id=? ORDER BY seen_at').all(offerId);
     },

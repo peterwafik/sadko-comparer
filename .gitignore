@@ -5,6 +5,8 @@
 
 # engine runtime state
 site/data/price-index.json
+# SQLite write-ahead/session state — meaningless outside the writing process
+site/data/catalog.db-*
 site/server.out.log
 site/server.err.log
 

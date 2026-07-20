@@ -52,6 +52,29 @@ function queryDirectionalConfidence(want, got, m) {
   return 'strong';
 }
 
+/* Directional contradiction check for browse queries (see below): an offer
+   is excluded only when it STATES a different value for a unit/spec the
+   query explicitly asked for. An offer that omits the attribute entirely is
+   unknown, not contradicted, and stays in the browse — mirrors the
+   "present in one only => unknown, allowed" rule sameProduct() uses, but
+   one-directional since a browse query has no single offer to compare
+   against on the other side. */
+function browseContradicts(want, got, def) {
+  for (const u of def.units) {
+    const qv = want.units[u];
+    if (qv === undefined) continue;
+    const gv = got.units[u];
+    if (gv !== undefined && String(gv) !== String(qv)) return true;
+  }
+  for (const s of def.specs) {
+    const qv = want.specs[s];
+    if (qv === undefined) continue;
+    const gv = got.specs[s];
+    if (gv !== undefined && String(gv) !== String(qv)) return true;
+  }
+  return false;
+}
+
 export async function rankOffers(catalog, query, opts = {}) {
   const { verify = async () => null, verifyTop = 10, limit = 200, override = {} } = opts;
 
@@ -74,6 +97,36 @@ export async function rankOffers(catalog, query, opts = {}) {
     units: want.units, specs: want.specs, ambiguous,
     alternatives: categoryAlternatives(query),
   };
+
+  // A bare category query — no brand, no model — is not asking "is this the
+  // same product as X"; there IS no single X. It's a browse: "show me
+  // washers, cheapest first." sameProduct()'s identity rules correctly
+  // refuse to match such a query against any single offer (that rule stays
+  // untouched below for identified queries), so route a browse around
+  // ranking/crowning entirely: pull every offer in the category, drop only
+  // the ones that contradict a unit/spec the query DID state, sort by
+  // price, and crown nothing — there is no "this is the product" to crown.
+  if (want.category && !want.brand && !want.model) {
+    const def = CATEGORIES[want.category];
+    const catOffers = catalog.offersForCategory(want.category);
+    const results = [];
+    for (const r of catOffers) {
+      const got = identify(r.title_raw);
+      if (def && browseContradicts(want, got, def)) continue;
+      results.push({
+        domain: r.domain, url: r.url, title: r.title_raw, price: r.price,
+        currency: r.currency || 'EGP', confidence: 'weak',
+        verified: false, checkedAt: r.last_checked, inStock: !!r.in_stock,
+      });
+    }
+    results.sort((a, b) => a.price - b.price);
+    return {
+      results,
+      cheapest: null,
+      stats: { candidates: catOffers.length, matched: results.length, verified: 0 },
+      interpretation,
+    };
+  }
 
   const rows = catalog.search(query, limit);
   if (!rows.length)

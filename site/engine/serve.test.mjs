@@ -200,6 +200,61 @@ test('CRITICAL 3: an out-of-stock cheaper offer is shown but never crowned', asy
   c.close();
 });
 
+// Part 1 (browse fix): a bare category query — no brand, no model — used to
+// fall through sameProduct's "insufficient identity" rule and return nothing,
+// even when the catalog holds many offers of that category. It's a browse,
+// not an identity match: return everything in the category, price-ascending,
+// weak confidence, crowning nothing.
+test('a bare category query browses every offer in that category, price-ascending, all weak, nothing crowned', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 8 كيلو اتوماتيك', price: 12000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة بوش 7 كيلو فتحة علوية', price: 9000 });
+  c.upsertOffer({ domain: 'c.com', url: 'https://c.com/3', title: 'غسالة سامسونج 9 كيلو', price: 15000 });
+  const r = await rankOffers(c, 'غسالة', { verify: async () => null });
+  assert.equal(r.results.length, 3, 'all three washer offers must be returned');
+  assert.deepEqual(r.results.map(x => x.price), [9000, 12000, 15000], 'must be price-ascending');
+  assert.ok(r.results.every(x => x.confidence === 'weak'), 'a browse match is never strong/exact');
+  assert.equal(r.cheapest, null, 'a browse query crowns nothing');
+  assert.ok(r.results.every(x => x.rank !== 1), 'no result may carry rank 1 on a browse');
+  c.close();
+});
+
+test('a bare category query with a stated unit excludes offers that state a different value for it', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 8 كيلو اتوماتيك', price: 12000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة بوش 10 كيلو فتحة علوية', price: 20000 });
+  c.upsertOffer({ domain: 'c.com', url: 'https://c.com/3', title: 'غسالة سامسونج اتوماتيك', price: 15000 }); // kg unstated
+  const r = await rankOffers(c, 'غسالة 8 كيلو', { verify: async () => null });
+  const prices = r.results.map(x => x.price).sort((a, b) => a - b);
+  assert.deepEqual(prices, [12000, 15000], 'the explicit 10kg offer must be excluded; the kg-unstated offer must stay');
+  assert.equal(r.cheapest, null);
+  c.close();
+});
+
+// Regression guard: a query WITH a brand must still go through sameProduct
+// unchanged — identity matching and crowning must not be weakened by the
+// browse path.
+test('a category query WITH a brand still crowns via sameProduct, unaffected by the browse path', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 8 كيلو اتوماتيك AEW-8460SUP', price: 12079 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة بوش 8 كيلو اتوماتيك', price: 9000 });
+  const r = await rankOffers(c, 'غسالة توشيبا 8 كيلو', { verify: async () => null });
+  assert.ok(r.cheapest, 'a brand-qualified query must still crown a result');
+  assert.equal(r.cheapest.domain, 'a.com');
+  assert.equal(r.cheapest.price, 12079);
+  assert.ok(!r.results.some(x => x.domain === 'b.com'), 'the different-brand offer must not appear at all');
+  c.close();
+});
+
+test('a bare category with no matching offers in the catalog returns an empty result set without throwing', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'شاشة شارب 75 بوصة 4K سمارت', price: 39699 });
+  const r = await rankOffers(c, 'ثلاجة', { verify: async () => null });
+  assert.deepEqual(r.results, []);
+  assert.equal(r.cheapest, null);
+  c.close();
+});
+
 test('removing a unit override widens the result set', async () => {
   const c = openCatalog();
   c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });

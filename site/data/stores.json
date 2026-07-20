@@ -29,9 +29,9 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1784539505824,
-   "failN": 0,
-   "lastFail": 1784537265148
+   "lastOk": 1784542514909,
+   "failN": 1,
+   "lastFail": 1784542620195
   },
   {
    "domain": "elarabygroup.com",
@@ -93,7 +93,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1784540387307,
+   "lastOk": 1784542514770,
    "failN": 0
   },
   {
@@ -344,8 +344,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 0,
-   "lastFail": 1784529336678,
+   "failN": 1,
+   "lastFail": 1784542527231,
    "lastOk": 1784537273700
   },
   {
@@ -411,8 +411,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/search?q=",
-   "failN": 1,
-   "lastFail": 1784470268603
+   "failN": 3,
+   "lastFail": 1784542646717
   },
   {
    "domain": "souqcairo.net",
@@ -699,8 +699,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 2,
-   "lastFail": 1784539560504
+   "failN": 3,
+   "lastFail": 1784542560475
   },
   {
    "domain": "ram-e-shop.com",

@@ -604,8 +604,11 @@ const ACCESSORY = ['طقم', 'عيون', 'عين', 'غطاء', 'غطا', 'رف',
   'شمعه', 'جلبة', 'جلبه', 'مفصلة', 'مفصله', 'درج ', 'ريموت', 'كفر', 'حساس', 'وصلة', 'وصله', 'خرطوم',
   'سلك', 'كابل', 'مروحة تبريد', 'قطع غيار', 'اكسسوار', 'ستاند', 'رفرف', 'صينية', 'صينيه', 'شبكة', 'شبكه',
   'جهاز تحكم', 'تحكم عن بعد',
+  'جراب', 'حافظه', 'واقي', 'واقى',
   'remote', 'cover', 'stand', 'holder', 'bracket', 'filter', 'shelf', 'cable', 'wire', 'hose',
-  'spare', 'parts', 'accessory', 'accessories', 'tray', 'knob', 'hinge', 'gasket', 'sensor'];
+  'spare', 'parts', 'accessory', 'accessories', 'tray', 'knob', 'hinge', 'gasket', 'sensor',
+  // protective goods sold FOR a device — a silicone case is not the power bank
+  'case', 'cases', 'pouch', 'sleeve', 'protector'];
 function normAr(s) {
   return normDigits(String(s).toLowerCase())
     .replace(/[ىي]/g, 'ي').replace(/[ةه]/g, 'ه').replace(/[أإآ]/g, 'ا')

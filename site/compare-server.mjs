@@ -290,14 +290,23 @@ function jsonLdProducts(html, domain) {
   const walk = node => {
     if (!node || typeof node !== 'object') return;
     if (Array.isArray(node)) return node.forEach(walk);
-    const t = String(node['@type'] || '').toLowerCase();
-    if (t === 'product') {
+    // @type may be a plain string, an array (["Product","Thing"]), or a
+    // schema.org URL — match the final path segment of each candidate
+    const isProduct = [].concat(node['@type'] || [])
+      .some(x => String(x).toLowerCase().replace(/^.*\//, '') === 'product');
+    if (isProduct) {
       const offers = [].concat(node.offers || []);
       const price = parsePrice(offers[0]?.price ?? offers[0]?.lowPrice ?? node.price);
       const avail = String(offers[0]?.availability || '');
+      // The canonical URL is not always at the Product level — noon, for one,
+      // leaves node.url undefined and carries it on the Offer. Without this
+      // fallback absUrl() yields the bare domain, isProductOffer correctly
+      // rejects it as navigation, and a real product is silently dropped —
+      // after which the caller's crude price scrape can return a junk number.
+      const href = node.url || node['@id'] || offers[0]?.url || '';
       // skip listings the store itself marks unavailable — dead prices poison the ranking
       if (price && !/OutOfStock|SoldOut|Discontinued/i.test(avail))
-        out.push({ title: decodeEntities(node.name), price, url: absUrl(node.url || node['@id'] || '', domain) });
+        out.push({ title: decodeEntities(node.name), price, url: absUrl(href, domain) });
     }
     if (node.item) walk(node.item);
     if (node.mainEntity) walk(node.mainEntity);          // CollectionPage → ItemList (Jumia)

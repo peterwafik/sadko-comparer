@@ -593,7 +593,11 @@ ADAPTERS['jsonld'] = async function (store, q) {
    Queries and titles freely mix Arabic and English (stores title in Arabic,
    shoppers search in either) — equivalence groups bridge the two. ---- */
 const STOP = new Set(['سعر', 'اسعار', 'شراء', 'افضل', 'جديد', 'اصلى', 'اصلي',
-  'price', 'prices', 'buy', 'best', 'new', 'cheap', 'cheapest', 'offer', 'offers', 'online', 'egypt']);
+  'price', 'prices', 'buy', 'best', 'new', 'cheap', 'cheapest', 'offer', 'offers', 'online', 'egypt',
+  // marketing filler in long copy-pasted titles — raises the effective signal
+  // in the 60% overlap check without weakening size/unit matching
+  'with', 'compatible', 'for', 'and', 'plus', 'include', 'included', 'includes',
+  'pack', 'set', 'pcs', 'ports', 'port', 'x', 'مع', 'متوافق', 'و']);
 // spare parts / accessories — never the "cheapest <appliance>" the user meant
 const ACCESSORY = ['طقم', 'عيون', 'عين', 'غطاء', 'غطا', 'رف', 'رفوف', 'حامل', 'حوامل', 'فلتر', 'شمعة',
   'شمعه', 'جلبة', 'جلبه', 'مفصلة', 'مفصله', 'درج ', 'ريموت', 'كفر', 'حساس', 'وصلة', 'وصله', 'خرطوم',
@@ -608,7 +612,15 @@ function normAr(s) {
 }
 function queryTokens(q) {
   // single characters are noise EXCEPT single digits — "7 كيلو" must keep the 7
-  return normAr(q).split(/[^\p{L}\p{N}]+/u).filter(t => (t.length >= 2 || /^\d$/.test(t)) && !STOP.has(t));
+  return normAr(q).split(/[^\p{L}\p{N}]+/u).filter(t => {
+    if (!(t.length >= 2 || /^\d$/.test(t))) return false;
+    if (STOP.has(t)) return false;
+    // a digit run fused (no separator) to a stop word — "3ports", "1x" — is
+    // still marketing filler, not a spec number; drop the whole token
+    const bare = t.replace(/^\d+/, '');
+    if (bare !== t && STOP.has(bare)) return false;
+    return true;
+  });
 }
 /* EN↔AR equivalence groups: product types, units, features. A query token
    matches a title if ANY variant of its group appears — this is what lets
@@ -669,6 +681,18 @@ function variantInTitle(t, v) {
 const UNIT_TOKENS = new Set(['كيلو', 'كجم', 'kg', 'kilo', 'بوصة', 'inch', 'inches', 'قدم', 'feet',
   'foot', 'ft', 'لتر', 'liter', 'litre', 'liters', 'litres', 'حصان', 'hp', 'horsepower', 'سم', 'cm']
   .map(x => normAr(x)));
+/* a digit-only query token is mandatory (must show up as a standalone number
+   in the title) only when it is a SIZE/CAPACITY — i.e. in the original query
+   text it is immediately followed by a unit word (spaces/hyphens allowed in
+   between). "75 بوصة" gates on 75; "1 x USB-A" is an incidental count inside a
+   feature list and must not gate every listing out. */
+function numberHasUnit(qn, n) {
+  for (const u of UNIT_TOKENS) {
+    const esc = u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp('(^|[^0-9])' + n + '[\\s-]*' + esc).test(qn)) return true;
+  }
+  return false;
+}
 /* full-word check for the accessory blocklist — "stand" must not fire on
    "standard", while Arabic terms keep substring semantics */
 function accessoryIn(text) {
@@ -687,6 +711,15 @@ function accessoryIn(text) {
    buried deep in a long title (e.g. inside a model number well past the
    product name) from accidentally widening the segment we inspect; if no
    boundary shows up in that window, the 50-char window itself is the segment. */
+/* the query's identity clause — everything before its first comma. Distinct
+   from leadingSegment (which caps at 50 chars and also splits on dash/paren,
+   tuned for spotting an accessory word in a TITLE): a model number like
+   "GR-RT468WE-PMN(49)-PRO" legitimately contains dashes/parens and must stay
+   whole here, only an actual comma starts the feature-bullet tail. */
+function coreClause(q) {
+  const i = q.search(/[,،]/);
+  return i < 0 ? q : q.slice(0, i);
+}
 function leadingSegment(t) {
   const LEAD_WINDOW = 50;
   const head = t.slice(0, LEAD_WINDOW);
@@ -706,11 +739,13 @@ function isRelevant(title, q) {
   const qn = normAr(q);
   if (!ACCESSORY.some(accessoryIn(qn)) && ACCESSORY.some(accessoryIn(leadingSegment(t)))) return false;
   // sizes/capacities are non-negotiable: a 75-inch query must not return a
-  // 32-inch TV, a 7-kilo query must not return a 9-kilo washer — every number
-  // in the query must appear as a standalone number in the title (digit
-  // boundaries, so 75 matches "C75F" and "75-inch" but never "175" or "750")
-  for (const n of toks) if (/^\d+$/.test(n) && !new RegExp('(^|\\D)' + n + '(\\D|$)').test(t)) return false;
-  const word = toks.filter(x => !/^\d+$/.test(x));
+  // 32-inch TV, a 7-kilo query must not return a 9-kilo washer — every
+  // UNIT-BEARING number in the query must appear as a standalone number in
+  // the title (digit boundaries, so 75 matches "C75F" and "75-inch" but never
+  // "175" or "750"). A bare digit with no unit attached in the query (e.g. the
+  // "1" in "1 x USB-A") is incidental and is NOT required — see numberHasUnit.
+  for (const n of toks) if (/^\d+$/.test(n) && numberHasUnit(qn, n) && !new RegExp('(^|\\D)' + n + '(\\D|$)').test(t)) return false;
+  const word = [...new Set(toks.filter(x => !/^\d+$/.test(x)))];
   if (!word.length) return true;
   // spec-critical unit words are non-negotiable too (كيلو/بوصة/لتر/قدم/حصان…)
   for (const x of word) if (UNIT_TOKENS.has(x) && !tokenInTitle(t, x)) return false;
@@ -721,7 +756,17 @@ function isRelevant(title, q) {
   for (const names of Object.values(BRANDS))
     if (names.some(n => qn.includes(normAr(n))) && !names.some(n => t.includes(normAr(n)))) return false;
   const hits = word.filter(x => tokenInTitle(t, x)).length;
-  return hits / word.length >= 0.6;
+  // long copy-pasted queries pack many independent comma-separated feature
+  // bullets (GaN, 3 Ports, Compatible with iPhone…) that vary wildly between
+  // listings of the SAME product — the leading clause (before the first
+  // comma) is the product's actual identity declaration and anchors the 60%
+  // threshold; a match anywhere in the query, including the feature-list
+  // tail, still counts toward the numerator, so a shorter but genuine
+  // listing isn't punished for simply not restating every bullet this
+  // particular query happened to list. No-op for single-clause queries.
+  const coreWords = [...new Set(queryTokens(coreClause(q)).filter(x => !/^\d+$/.test(x)))];
+  const denom = coreWords.length || word.length;
+  return hits / denom >= 0.6;
 }
 
 // hard per-store deadline so no single slow/hung store can stall the request

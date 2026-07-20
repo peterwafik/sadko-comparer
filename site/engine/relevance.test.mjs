@@ -64,3 +64,62 @@ test('regression: matching product with extra specs is still kept', () => {
   const t = 'شاشة شارب 75 بوصة 4K سمارت';
   assert.equal(isRelevant(t, q), true);
 });
+
+// ---- number-rule defect: bare counts in a feature list ("1 x USB-A", "3
+// Ports") were being treated as mandatory standalone-number specs, the same
+// way "75 بوصة" or "8 كيلو" are — dropping every plausible listing for a
+// real, long, copy-pasted marketing query. Only a digit immediately followed
+// by a unit word in the query text is mandatory; unit-bearing size/capacity
+// numbers must still gate exactly as before. ----
+const ANKER_Q = 'Anker Zolo Wall Charger 140W PD, GaN, 3Ports x USB-C, 1 x USB-A, Touchscreen, Compatible with iPhone';
+
+test('number-rule fix: near-verbatim long title is kept (incidental "1" and "3" not mandatory)', () => {
+  const t = 'Anker Zolo Wall Charger 140W PD GaN 3 Ports USB-C USB-A Touchscreen';
+  assert.equal(isRelevant(t, ANKER_Q), true);
+});
+
+test('number-rule fix: a shorter genuine listing missing most feature bullets is kept', () => {
+  const t = 'Anker Zolo 140W Wall Charger with Touchscreen';
+  assert.equal(isRelevant(t, ANKER_Q), true);
+});
+
+test('number-rule fix: another shorter genuine listing (different feature subset) is kept', () => {
+  const t = 'Anker 140W GaN Charger 3 Port USB-C';
+  assert.equal(isRelevant(t, ANKER_Q), true);
+});
+
+test('number-rule regression: screen size mismatch (75 vs 65) is still dropped', () => {
+  const q = 'شاشة شارب 75 بوصة 4K';
+  const t = 'شاشة شارب 65 بوصة 4K سمارت';
+  assert.equal(isRelevant(t, q), false);
+});
+
+test('number-rule regression: washing machine capacity mismatch (8 vs 10 كيلو) is still dropped', () => {
+  const q = 'غسالة توشيبا 8 كيلو';
+  const t = 'غسالة توشيبا 10 كيلو اتوماتيك';
+  assert.equal(isRelevant(t, q), false);
+});
+
+test('number-rule regression: fridge capacity mismatch (16 vs 18 قدم) is still dropped', () => {
+  const q = 'ثلاجة كريازى 16 قدم';
+  const t = 'ثلاجة كريازى 18 قدم';
+  assert.equal(isRelevant(t, q), false);
+});
+
+test('number-rule regression: AC horsepower mismatch (2.25 vs 3 حصان) is still dropped', () => {
+  const q = 'تكييف شارب 2.25 حصان';
+  const t = 'تكييف شارب 3 حصان';
+  assert.equal(isRelevant(t, q), false);
+});
+
+test('number-rule regression: fridge water-filter accessory (Arabic) is still dropped', () => {
+  const q = 'ثلاجة توشيبا';
+  const t = 'فلتر مياه لثلاجة توشيبا';
+  assert.equal(isRelevant(t, q), false);
+});
+
+test('number-rule regression: phone back-cover accessory (English) is still dropped', () => {
+  const q = 'Samsung Galaxy S24';
+  const t = 'Back Cover Case for Samsung Galaxy S24';
+  assert.equal(isRelevant(t, q), false);
+});

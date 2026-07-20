@@ -52,6 +52,7 @@ import { renderPage, headlessAvailable } from './headless.mjs';
 import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
 import { openCatalog } from './engine/catalog.mjs';
 import { rankOffers } from './engine/serve.mjs';
+import { createVerifyOffer } from './engine/verify.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8082);
@@ -863,14 +864,12 @@ function catalog() {
   if (CATALOG === null) CATALOG = existsSync(CATALOG_FILE) ? openCatalog(CATALOG_FILE) : false;
   return CATALOG;
 }
-/* live re-check of one offer: refetch its product page and lift JSON-LD */
-async function verifyOffer(o) {
-  try {
-    const html = await fetchPage(o.url, 'text/html', 8000);
-    const items = jsonLdProducts(html, o.domain);
-    return items[0]?.price || null;
-  } catch { return null; }
-}
+/* live re-check of one offer: refetch its product page, but only through
+   engine/verify.mjs's robots-gated, honest-UA, identity-checked fetch — see
+   that module for why (M1 final review findings 2 & 4). Never fall back to
+   fetchPage()/UA here: that Chrome-spoofed UA is reserved for the existing
+   live store-search fan-out, not for this branch's new per-offer traffic. */
+const verifyOffer = createVerifyOffer({ extractProducts: jsonLdProducts });
 const FRESH_MS = 10 * 60e3, USABLE_MS = 24 * 3600e3, MAX_QUERIES = 400;
 let INDEX = null;
 async function loadIndex() {

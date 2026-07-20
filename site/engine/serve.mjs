@@ -77,14 +77,37 @@ export async function rankOffers(catalog, query, opts = {}) {
 
   const rows = catalog.search(query, limit);
   if (!rows.length)
-    return { results: [], cheapest: null, stats: { candidates: 0, verified: 0 }, interpretation };
+    return { results: [], cheapest: null, stats: { candidates: 0, matched: 0, verified: 0 }, interpretation };
 
-  const scored = [];
+  // Pass 1 — identity-filter the FTS candidates, but use the result ONLY to
+  // discover which distinct PRODUCTS the query matches. FTS5's `search()`
+  // truncates by TEXT RELEVANCE before price is ever considered, so a
+  // genuinely cheaper offer of a matched product can rank low on relevance
+  // and be silently dropped if we ranked over `rows` directly (see CRITICAL 1
+  // in the M1 review: 250 offers at 20,000+ EGP outranked one at 5,000 on
+  // text relevance, and the engine crowned 20,000 as "cheapest").
+  const matchedProductIds = new Set();
   for (const r of rows) {
     const got = identify(r.title_raw);
     const m = sameProduct(want, got);
     // when the query itself is under-specified (no brand/category), fall back to
     // FTS relevance and mark the offer weak rather than discarding everything
+    const confidence = m.same
+      ? queryDirectionalConfidence(want, got, m)
+      : (want.brand || want.category ? null : 'weak');
+    if (confidence) matchedProductIds.add(r.product_id);
+  }
+  if (!matchedProductIds.size)
+    return { results: [], cheapest: null, stats: { candidates: rows.length, matched: 0, verified: 0 }, interpretation };
+
+  // Pass 2 — pull EVERY offer of every matched product, price-ordered. This
+  // is the complete set ranking actually happens over, so a matched
+  // product's cheapest offer can never be lost to FTS's relevance cutoff.
+  const allOffers = catalog.offersForProducts([...matchedProductIds]);
+  const scored = [];
+  for (const r of allOffers) {
+    const got = identify(r.title_raw);
+    const m = sameProduct(want, got);
     const confidence = m.same
       ? queryDirectionalConfidence(want, got, m)
       : (want.brand || want.category ? null : 'weak');
@@ -94,12 +117,22 @@ export async function rankOffers(catalog, query, opts = {}) {
 
   scored.sort((a, b) => a.price - b.price);
 
-  // live re-verify only the cheapest N
+  // live re-verify only the cheapest N. A verified price is trusted only if
+  // it is a PLAUSIBLE correction of the indexed price — live verification
+  // lifts the first JSON-LD Product off the refetched page, and a
+  // related-product carousel or "customers also bought" block can put a
+  // different, cheaper item first. A real price update is a small delta; a
+  // >50% "drop" is almost always a wrong-product parse, not a sale, and must
+  // never be allowed to re-crown a different item (CRITICAL 2 in the M1
+  // review).
   let verified = 0;
   await Promise.all(scored.slice(0, verifyTop).map(async o => {
     try {
       const fresh = await verify(o);
-      if (typeof fresh === 'number' && fresh > 0) { o.price = fresh; o.verifiedFlag = true; verified++; }
+      if (typeof fresh === 'number' && fresh > 0) {
+        const deviation = Math.abs(fresh - o.price) / o.price;
+        if (deviation <= 0.5) { o.price = fresh; o.verifiedFlag = true; verified++; }
+      }
     } catch {}
   }));
   scored.sort((a, b) => a.price - b.price);
@@ -108,6 +141,7 @@ export async function rankOffers(catalog, query, opts = {}) {
     domain: o.domain, url: o.url, title: o.title_raw, price: o.price,
     currency: o.currency || 'EGP', confidence: o.confidence,
     verified: !!o.verifiedFlag, checkedAt: o.last_checked,
+    inStock: !!o.in_stock,
   }));
 
   // Crowning gate: everything reaching `results` already cleared sameProduct's
@@ -118,10 +152,13 @@ export async function rankOffers(catalog, query, opts = {}) {
   // may be crowned. 'weak' offers (the offer is missing an attribute the
   // query asked for) are still shown, price-sorted, but never take a rank —
   // an offer that might not even be the requested size/spec must never be
-  // presented as the winner.
+  // presented as the winner. An out-of-stock offer is excluded from crowning
+  // the same way: still shown and price-sorted (the shopper may still want to
+  // know), but never ranked — an unbuyable offer must never be presented as
+  // the winner (CRITICAL 3 in the M1 review).
   let rank = 0;
   for (const r of results)
-    if (CROWNABLE.has(r.confidence) && rank < 5) r.rank = ++rank;
+    if (CROWNABLE.has(r.confidence) && r.inStock && rank < 5) r.rank = ++rank;
 
   return {
     results,

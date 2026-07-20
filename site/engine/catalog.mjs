@@ -127,6 +127,28 @@ export function openCatalog(file = ':memory:') {
         ORDER BY rank LIMIT ?`).all(fq, limit);
     },
 
+    /* Every offer belonging to the given product ids, price-ascending — the
+       set ranking must actually happen over. FTS5's `search()` truncates by
+       TEXT RELEVANCE before price ever enters the picture, so a genuinely
+       cheaper offer of an already-matched product can rank low on relevance
+       and never reach the caller. Once a product is known to match (some
+       offer of it survived the FTS cut), every one of its offers — cheap or
+       not, well-worded or not — belongs in the priced ranking. Same row
+       shape as search() so callers can treat the two interchangeably. */
+    offersForProducts(productIds) {
+      const ids = [...new Set(productIds || [])];
+      if (!ids.length) return [];
+      const placeholders = ids.map(() => '?').join(',');
+      return db.prepare(`
+        SELECT o.id AS offer_id, o.product_id, o.domain, o.url, o.price, o.currency,
+               o.in_stock, o.title_raw, o.last_checked,
+               p.brand, p.category, p.model_norm
+        FROM offers o
+        JOIN products p ON p.id = o.product_id
+        WHERE o.product_id IN (${placeholders})
+        ORDER BY o.price ASC`).all(...ids);
+    },
+
     priceHistory(offerId) {
       return db.prepare('SELECT price, seen_at FROM price_history WHERE offer_id=? ORDER BY seen_at').all(offerId);
     },

@@ -39,16 +39,23 @@ export function identify(title) {
   for (const u of defining) if (allUnits[u] !== undefined) units[u] = allUnits[u];
   const specs = category ? extractSpecs(title, category) : {};
 
-  // With no model, no brand, and no category, there is nothing identity-bearing
-  // to group by — the b:?|c:?|| form would be IDENTICAL for every such listing,
-  // collapsing unrelated products (e.g. an SSD and a mouse pad) into one row at
-  // scale. Fall back to a key derived from the normalized title: deterministic
-  // (same title -> same key, so re-crawls keep their price history) and unique
-  // per distinct title (so unrelated listings never collide).
+  // A brand alone is not an identity anchor: it is unbounded — every
+  // uncategorised item of that brand (a screen protector, a case, a power
+  // bank, a tablet...) would collapse onto the SAME b:<brand>|c:?|| key.
+  // Likewise a category alone, or neither, has nothing identity-bearing to
+  // group by — the shared key would be IDENTICAL for every such listing,
+  // collapsing unrelated products into one row at scale. Only fall into the
+  // b:|c:|units|specs bucket when BOTH brand and category are known (that
+  // combination is still bounded to one product type, and sameProduct's
+  // confidence tiers keep a bare brand+category match from being crowned).
+  // Otherwise fall back to a key derived from the normalized title:
+  // deterministic (same title -> same key, so re-crawls keep their price
+  // history) and unique per distinct title (so unrelated listings never
+  // collide).
   const key = model
     ? `m:${model}`
-    : (brand || category)
-      ? `b:${brand || '?'}|c:${category || '?'}|` +
+    : (brand && category)
+      ? `b:${brand}|c:${category}|` +
         Object.entries(units).sort().map(([k, v]) => `${k}=${v}`).join(',') + '|' +
         Object.entries(specs).sort().map(([k, v]) => `${k}=${v}`).join(',')
       : `t:${normText(title)}`;

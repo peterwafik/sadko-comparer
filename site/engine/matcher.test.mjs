@@ -189,3 +189,35 @@ test('a listing with a model still keys on the model, even with no brand', () =>
   assert.equal(a.model, 'RF40FTVBK');
   assert.equal(a.key, 'm:RF40FTVBK');
 });
+
+/* CRITICAL (identity defect): a KNOWN brand with NO category is still an
+   unbounded bucket — b:samsung|c:?|| would be identical for a screen
+   protector, a phone case, a power bank, and a tablet, collapsing four
+   unrelated products into one catalog row. Real titles pulled from the
+   live crawl (jumia.com.eg, 2b.com.eg, btech.com, egypt.sharafdg.com) that
+   all mention "Samsung" but carry no detectable category. */
+test('brand known but category unknown gets a title-derived key, not a shared brand bucket', () => {
+  const screenProtector = id('Full Cover Tempered Glass for Samsung Galaxy A55');
+  const tablet = id('Samsung Galaxy Tab S10 Lite Tablet WiFi 5G');
+  assert.equal(screenProtector.brand, 'samsung');
+  assert.equal(tablet.brand, 'samsung');
+  assert.notEqual(screenProtector.key, tablet.key);
+  assert.ok(!screenProtector.key.startsWith('b:'), 'must not use the shared brand-bucket form');
+  assert.ok(!tablet.key.startsWith('b:'), 'must not use the shared brand-bucket form');
+});
+
+test('brand AND category both known still share the grouping key when units/specs agree', () => {
+  const a = id('غسالة توشيبا 8 كيلو اتوماتيك فتحة علوية');
+  const b = id('Toshiba washing machine 8 kg automatic top load');
+  assert.equal(a.brand, 'toshiba');
+  assert.equal(a.category, 'washer');
+  assert.equal(a.key, b.key);
+  assert.ok(a.key.startsWith('b:'), 'brand+category grouping must still use the shared bucket form');
+});
+
+test('a model match still keys on the model regardless of missing brand/category', () => {
+  const a = id('RF-40FTV-BK');
+  const b = id('some totally unrelated prose RF-40FTV-BK more prose');
+  assert.equal(a.key, 'm:RF40FTVBK');
+  assert.equal(a.key, b.key);
+});

@@ -137,6 +137,29 @@ test('unidentifiable listings with different titles get distinct product ids, an
   c.close();
 });
 
+// CRITICAL (identity defect): these four real crawled titles all mention
+// "Samsung" but none carries a detectable category. Under the old key form
+// (b:samsung|c:?||) they all collapsed onto ONE product row — a screen
+// protector, a phone case, a power bank, and a tablet treated as the same
+// product, so a shopper searching for the tablet could be shown the 124 EGP
+// screen protector as the "cheapest" match. Each must now get its own
+// product.
+test('brand-known/category-unknown Samsung accessories from the live catalog get four distinct products', () => {
+  const c = openCatalog();
+  const titles = [
+    'Full Cover Tempered Glass for Samsung Galaxy',
+    'Back Cover Clear Fusion Magsafe Case Samsung',
+    'باور بانك سلكي سامسونج ، سعة 10000 مللي امبير',
+    'Samsung Galaxy Tab S10 Lite Tablet – WiFi+5G',
+  ];
+  const ids = titles.map((title, i) => c.upsertOffer({
+    domain: `store${i}.example.com`, url: `https://store${i}.example.com/p/${i}`,
+    title, price: [124, 199, 999, 22999][i], inStock: true,
+  }).productId);
+  assert.equal(new Set(ids).size, 4, `expected 4 distinct product ids, got ${new Set(ids).size}`);
+  c.close();
+});
+
 test('a mid-sequence failure during upsert rolls back all writes, including the FTS delete', () => {
   const c = openCatalog();
   const { offerId } = c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p3',

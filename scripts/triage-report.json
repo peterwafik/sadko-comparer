@@ -1,0 +1,492 @@
+{
+ "at": "2026-07-20T11:31:02.006Z",
+ "results": [
+  {
+   "domain": "games2egypt.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 403,
+   "bytes": 5666
+  },
+  {
+   "domain": "raneen.com",
+   "tier": 1,
+   "platform": "gql",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1745214
+  },
+  {
+   "domain": "fresh.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 133670
+  },
+  {
+   "domain": "amanstores.com",
+   "tier": 1,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 196470
+  },
+  {
+   "domain": "mobileshop.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 3139
+  },
+  {
+   "domain": "rayashop.com",
+   "tier": 1,
+   "platform": "gql",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1729701
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "tier": 1,
+   "platform": "carrefour",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 709159
+  },
+  {
+   "domain": "hyperone.com.eg",
+   "tier": 1,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 336435
+  },
+  {
+   "domain": "sigma-computer.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 702151
+  },
+  {
+   "domain": "aghezty.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 215365,
+   "bot": true
+  },
+  {
+   "domain": "alsheikhstores.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "ALIVE_FIX",
+   "code": 503,
+   "bytes": 11010
+  },
+  {
+   "domain": "airo-shop.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 103747
+  },
+  {
+   "domain": "homzmart.com",
+   "tier": 2,
+   "platform": "render",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 833327
+  },
+  {
+   "domain": "azmyco.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 176505,
+   "bot": true
+  },
+  {
+   "domain": "computershopegypt.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 612
+  },
+  {
+   "domain": "audiomisr.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 399741,
+   "bot": true
+  },
+  {
+   "domain": "dubaiphone.net",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 573493
+  },
+  {
+   "domain": "appliance.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 456471
+  },
+  {
+   "domain": "unionaire.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 555764
+  },
+  {
+   "domain": "drmobilestore.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 267764
+  },
+  {
+   "domain": "elwaha.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 57025,
+   "bot": true
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 513924
+  },
+  {
+   "domain": "elnekhelytechnology.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 2577941
+  },
+  {
+   "domain": "smeg.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 271852
+  },
+  {
+   "domain": "dubaiforshopping.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1175507
+  },
+  {
+   "domain": "elbadrgroupeg.store",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1369284
+  },
+  {
+   "domain": "ennap.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "ALIVE_FIX",
+   "code": 503,
+   "bytes": 11010
+  },
+  {
+   "domain": "ehabcenter.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1419723
+  },
+  {
+   "domain": "eshop.vodafone.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 6441
+  },
+  {
+   "domain": "hankerz.com.eg",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 190795
+  },
+  {
+   "domain": "hans.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 235111
+  },
+  {
+   "domain": "gamerzlounge.me",
+   "tier": 3,
+   "platform": "jsonld:/?s=",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 443087
+  },
+  {
+   "domain": "jacoob1.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 552006
+  },
+  {
+   "domain": "iq-mobiles.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 1166801,
+   "bot": true
+  },
+  {
+   "domain": "eratablet.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 201599
+  },
+  {
+   "domain": "magicduino.com",
+   "tier": 3,
+   "platform": "jsonld:/index.php?route=product/search&search=",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 48098
+  },
+  {
+   "domain": "kareemstores.com",
+   "tier": 3,
+   "platform": "jsonld:/products?q=",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1358089
+  },
+  {
+   "domain": "mahgoub.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 587190,
+   "bot": true
+  },
+  {
+   "domain": "makerselectronics.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 526906
+  },
+  {
+   "domain": "ram-e-shop.com",
+   "tier": 3,
+   "platform": "jsonld:/ar/website/search?search=",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 45952
+  },
+  {
+   "domain": "sevencameras.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 106753
+  },
+  {
+   "domain": "brico-eg.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1480475
+  },
+  {
+   "domain": "miamicenters.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 923823
+  },
+  {
+   "domain": "moreshopping.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1141024
+  },
+  {
+   "domain": "maximumhardware.store",
+   "tier": 3,
+   "platform": "jsonld:/index.php?route=product/search&search=",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1920033
+  },
+  {
+   "domain": "najm.store",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 151545
+  },
+  {
+   "domain": "sharpegy.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "BLOCKED",
+   "code": 200,
+   "bytes": 53707,
+   "bot": true
+  },
+  {
+   "domain": "shuttershopegypt.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 813316
+  },
+  {
+   "domain": "sharp-egypt.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 291785
+  },
+  {
+   "domain": "smartkoshk.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 2704754
+  },
+  {
+   "domain": "store.fut-electronics.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "ALIVE_FIX",
+   "code": 503,
+   "bytes": 11010
+  },
+  {
+   "domain": "tal2aa.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 1521
+  },
+  {
+   "domain": "switchpluseg.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 3990
+  },
+  {
+   "domain": "shams-stores.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 567393
+  },
+  {
+   "domain": "shaarp.net",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 287735
+  },
+  {
+   "domain": "moreelectronicss.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 461837
+  },
+  {
+   "domain": "uptodate.store",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 492093
+  },
+  {
+   "domain": "wdestores.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 114985
+  },
+  {
+   "domain": "smarttechnology-eg.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 613689
+  },
+  {
+   "domain": "souqcairo.net",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "ALIVE_FIX",
+   "code": 200,
+   "bytes": 541623
+  }
+ ]
+}

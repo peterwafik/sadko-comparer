@@ -30,8 +30,8 @@
    "t": 1,
    "platform": "gql",
    "lastOk": 1784530615782,
-   "failN": 0,
-   "lastFail": 1784526904404
+   "failN": 1,
+   "lastFail": 1784537265148
   },
   {
    "domain": "elarabygroup.com",
@@ -50,8 +50,8 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "failN": 1,
-   "lastFail": 1784529325135
+   "failN": 2,
+   "lastFail": 1784537265150
   },
   {
    "domain": "jumia.com.eg",
@@ -62,7 +62,7 @@
    "platform": "jumia",
    "failN": 0,
    "lastFail": 1784530548007,
-   "lastOk": 1784530614708
+   "lastOk": 1784537258433
   },
   {
    "domain": "noon.com",
@@ -71,7 +71,7 @@
    "type": "mega",
    "t": 1,
    "platform": "noon",
-   "lastOk": 1784530613143,
+   "lastOk": 1784537258312,
    "failN": 0
   },
   {
@@ -93,7 +93,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1784530614637,
+   "lastOk": 1784537258967,
    "failN": 0
   },
   {
@@ -119,7 +119,9 @@
    "nameEn": "Hyper One",
    "type": "mega",
    "t": 1,
-   "platform": "auto"
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784537271153
   },
   {
    "domain": "amanstores.com",
@@ -128,8 +130,8 @@
    "type": "mega",
    "t": 1,
    "platform": "auto",
-   "failN": 1,
-   "lastFail": 1784470228465
+   "failN": 2,
+   "lastFail": 1784537271247
   },
   {
    "domain": "kenzz.com",
@@ -292,7 +294,8 @@
    "t": 3,
    "platform": "jsonld:/catalogsearch/result/?q=",
    "lastOk": 1784529334533,
-   "failN": 0
+   "failN": 1,
+   "lastFail": 1784537276430
   },
   {
    "domain": "riz.shop",
@@ -300,7 +303,9 @@
    "nameEn": "Rizkalla",
    "type": "local",
    "t": 3,
-   "platform": "jsonld:/search/?q="
+   "platform": "jsonld:/search/?q=",
+   "failN": 1,
+   "lastFail": 1784537295175
   },
   {
    "domain": "ehabcenter.com",
@@ -328,7 +333,9 @@
    "nameEn": "Makka Store",
    "type": "local",
    "t": 3,
-   "platform": "auto"
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784537301186
   },
   {
    "domain": "wazen.eg",
@@ -337,9 +344,9 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 1,
+   "failN": 0,
    "lastFail": 1784529336678,
-   "lastOk": 1784526936600
+   "lastOk": 1784537273700
   },
   {
    "domain": "aghezty.com",
@@ -424,8 +431,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 2,
-   "lastFail": 1784526952648
+   "failN": 3,
+   "lastFail": 1784537295190
   },
   {
    "domain": "azmyco.com",
@@ -515,7 +522,9 @@
    "nameEn": "Appliance Egypt",
    "type": "local",
    "t": 3,
-   "platform": "auto"
+   "platform": "auto",
+   "failN": 1,
+   "lastFail": 1784537310185
   },
   {
    "domain": "dubaiphone.net",
@@ -772,8 +781,8 @@
    "platform": "auto",
    "addedBy": "discovery",
    "lastOk": 1784453452899,
-   "failN": 1,
-   "lastFail": 1784526928630
+   "failN": 2,
+   "lastFail": 1784537286169
   },
   {
    "domain": "shaarp.net",
@@ -792,8 +801,8 @@
    "platform": "woo",
    "addedBy": "discovery",
    "lastOk": 1784453459843,
-   "failN": 2,
-   "lastFail": 1784529340562
+   "failN": 3,
+   "lastFail": 1784537280253
   },
   {
    "domain": "eshop.vodafone.com.eg",

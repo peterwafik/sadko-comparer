@@ -162,3 +162,78 @@ test('unit-mismatch fix: a title stating NO wattage is kept — absence is not a
   const t = 'Anker Zolo Wall Charger GaN 3 Ports USB-C Touchscreen';
   assert.equal(isRelevant(t, ANKER_Q), true);
 });
+
+// ---- AI-distilled relevance (isRelevant's optional 3rd `attrs` parameter) ----
+// Reported case: a shopper pastes a full Amazon title mentioning "Samsung" only
+// as a compatibility target ("...for iPhone 16/15, MacBook, Samsung and
+// More..."). Without AI, the raw-string brand rule reads "Samsung" as the
+// product's own brand and rejects every genuine Anker listing. With AI, the
+// distilled attrs (brand:"Anker", compatible_brands:["Samsung"]) fix this:
+// attrs.brand is the only brand enforced, and the 60% overlap check runs
+// against the AI's short canonical query_en/query_ar instead of the raw,
+// marketing-copy-laden pasted title. These attrs are hand-written here — no
+// network call — exactly matching what a live understandQuery() would return.
+const POWERBANK_Q = 'Anker Laptop Power Bank (25,000 mAh, 165W, Built-In and Retractable Cables), ' +
+  'Effortless Multi-Device Fast Charging, for iPhone 16/15, MacBook, Samsung and More, Space Black - 18 Months Warranty';
+const POWERBANK_AI = {
+  category_en: 'Power Bank', category_ar: 'باور بانك', brand: 'Anker', model_number: null,
+  size_value: 25000, size_unit: 'mAh', resolution: null, wants_used: false,
+  query_en: 'Anker power bank 25000mAh 165W',
+  query_ar: 'باور بانك انكر 25000 مللي امبير 165 وات',
+  compatible_brands: ['Samsung'],
+};
+
+test('AI attrs: compatibility-brand mention no longer required — long marketing title, near-verbatim listing', () => {
+  const t = 'Anker Laptop Power Bank 25000mAh 165W Built-In Retractable Cables Space Black';
+  assert.equal(isRelevant(t, POWERBANK_Q, POWERBANK_AI), true);
+});
+
+test('AI attrs: compatibility-brand mention no longer required — shorter genuine listing, different model line', () => {
+  const t = 'Anker 737 Power Bank 25000mAh 165W PowerCore';
+  assert.equal(isRelevant(t, POWERBANK_Q, POWERBANK_AI), true);
+});
+
+test('AI attrs: compatibility-brand mention no longer required — Arabic-titled listing', () => {
+  const t = 'باور بانك انكر 25000 مللي امبير 165 وات اسود';
+  assert.equal(isRelevant(t, POWERBANK_Q, POWERBANK_AI), true);
+});
+
+test('AI attrs: a compatibility brand is still NOT a free pass — wrong product entirely is dropped', () => {
+  const t = 'Samsung 25W Travel Adapter';
+  assert.equal(isRelevant(t, POWERBANK_Q, POWERBANK_AI), false);
+});
+
+test('AI attrs: wrong capacity/wattage still drops even with AI on — unit mismatch rule is not weakened', () => {
+  const t = 'Anker Power Bank 10000mAh 22.5W';
+  assert.equal(isRelevant(t, POWERBANK_Q, POWERBANK_AI), false);
+});
+
+test('AI attrs omitted: reproduces today\'s behavior exactly — same genuine Anker listing is still dropped', () => {
+  // No 3rd argument at all: this must behave byte-identically to the
+  // pre-AI engine, including the compatibility-brand bug being reported —
+  // the raw-string rule still misreads "Samsung" as a required brand.
+  const t = 'Anker Laptop Power Bank 25000mAh 165W Built-In Retractable Cables Space Black';
+  assert.equal(isRelevant(t, POWERBANK_Q), false);
+});
+
+test('AI attrs explicitly null: also reproduces today\'s behavior exactly', () => {
+  const t = 'Anker Laptop Power Bank 25000mAh 165W Built-In Retractable Cables Space Black';
+  assert.equal(isRelevant(t, POWERBANK_Q, null), false);
+});
+
+test('AI attrs malformed (not an object): fails soft to today\'s rule-based behavior', () => {
+  const t = 'Anker Laptop Power Bank 25000mAh 165W Built-In Retractable Cables Space Black';
+  assert.equal(isRelevant(t, POWERBANK_Q, 'not-an-object'), false);
+});
+
+test('AI attrs malformed (empty object, no usable fields): fails soft to today\'s rule-based behavior', () => {
+  const t = 'Anker Laptop Power Bank 25000mAh 165W Built-In Retractable Cables Space Black';
+  assert.equal(isRelevant(t, POWERBANK_Q, {}), false);
+});
+
+test('AI attrs: existing regression guards are unaffected when attrs is supplied for an unrelated query', () => {
+  const q = 'شاشة شارب 75 بوصة 4K';
+  const t = 'شاشة شارب 65 بوصة 4K سمارت';
+  const attrs = { brand: 'Sharp', query_en: 'Sharp TV 75 inch 4K', query_ar: 'شاشة شارب 75 بوصة 4K', compatible_brands: [] };
+  assert.equal(isRelevant(t, q, attrs), false);
+});

@@ -735,7 +735,29 @@ function tokenInTitle(t, tok) {
   const g = SYN_BY_TOKEN.get(tok);
   return g ? g.some(v => variantInTitle(t, v)) : variantInTitle(t, tok);
 }
-function isRelevant(title, q) {
+/* unit-string → engine/units.mjs canonical key, for the optional AI
+   size_value/size_unit reinforcement in isRelevant() below (additive only —
+   it can only ADD a disqualification, never weaken the extractUnits rule) */
+const SIZE_UNIT_ALIAS = {
+  w: 'watt', watt: 'watt', watts: 'watt',
+  kg: 'kg', kgs: 'kg', kilo: 'kg', kilogram: 'kg', kilograms: 'kg',
+  inch: 'inch', inches: 'inch', in: 'inch',
+  liter: 'liter', litre: 'liter', liters: 'liter', litres: 'liter', l: 'liter', ltr: 'liter',
+  feet: 'feet', foot: 'feet', ft: 'feet',
+  hp: 'hp', horsepower: 'hp',
+  cm: 'cm', gb: 'gb', tb: 'tb', rpm: 'rpm',
+};
+/* isRelevant(title, q, attrs?) — attrs is the optional AI-distilled query
+   understanding from understandQuery() (undefined/null/malformed whenever the
+   AI layer is off, failed, or returned garbage — behaviour is then BYTE-
+   IDENTICAL to the rule-based path below, unconditionally). When attrs is a
+   usable object it corrects two failure modes raw-string matching cannot:
+   (1) a brand named only as a COMPATIBILITY mention ("...for iPhone,
+   Samsung and More...") is no longer read as the product's own brand —
+   attrs.brand becomes the only authoritative brand; (2) the 60% word-overlap
+   check is judged against attrs' short canonical query_en/query_ar instead
+   of the raw, marketing-copy-laden pasted title. */
+function isRelevant(title, q, attrs) {
   const toks = queryTokens(q);
   if (!toks.length) return true;
   const t = normAr(title);
@@ -760,10 +782,17 @@ function isRelevant(title, q) {
   // this is a different product (a 20W charger is not a 140W charger) — the
   // same contradiction-disqualifies/silence-is-unknown asymmetry
   // engine/matcher.mjs's sameProduct() already uses for the catalog path.
+  // This rule is UNCHANGED by attrs — attrs.size_value/size_unit below may
+  // only ADD a reinforcing check, never weaken this one.
   const qUnitValues = extractUnits(q);
   const tUnitValues = extractUnits(title);
   for (const [unit, qv] of Object.entries(qUnitValues))
     if (tUnitValues[unit] !== undefined && tUnitValues[unit] !== qv) return false;
+  const ai = attrs && typeof attrs === 'object' && !Array.isArray(attrs) ? attrs : null;
+  if (ai && typeof ai.size_value === 'number' && typeof ai.size_unit === 'string') {
+    const key = SIZE_UNIT_ALIAS[ai.size_unit.trim().toLowerCase()];
+    if (key && tUnitValues[key] !== undefined && tUnitValues[key] !== ai.size_value) return false;
+  }
   const word = [...new Set(toks.filter(x => !/^\d+$/.test(x)))];
   if (!word.length) return true;
   // spec-critical unit words are non-negotiable too (كيلو/بوصة/لتر/قدم/حصان…)
@@ -772,9 +801,19 @@ function isRelevant(title, q) {
   // (in any language); known brand tokens are non-negotiable too; then ≥60%.
   const lead = word.find(x => !BRAND_TOKENS.has(x));
   if (lead && !tokenInTitle(t, lead)) return false;
-  for (const names of Object.values(BRANDS))
-    if (names.some(n => qn.includes(normAr(n))) && !names.some(n => t.includes(normAr(n)))) return false;
-  const hits = word.filter(x => tokenInTitle(t, x)).length;
+  // brand: WITHOUT a usable attrs.brand, any brand named ANYWHERE in the
+  // query (today's rule, unchanged) is required in the title — this is what
+  // misreads a COMPATIBILITY mention ("for iPhone, Samsung and More") as the
+  // product's own brand. WITH a usable attrs.brand, that is corrected:
+  // attrs.brand is the ONLY brand enforced, so a compatibility-only brand
+  // elsewhere in the query text is no longer required in the title.
+  if (ai && typeof ai.brand === 'string' && ai.brand.trim()) {
+    const req = normAr(ai.brand.trim());
+    if (req && !tokenInTitle(t, req) && !t.includes(req)) return false;
+  } else {
+    for (const names of Object.values(BRANDS))
+      if (names.some(n => qn.includes(normAr(n))) && !names.some(n => t.includes(normAr(n)))) return false;
+  }
   // long copy-pasted queries pack many independent comma-separated feature
   // bullets (GaN, 3 Ports, Compatible with iPhone…) that vary wildly between
   // listings of the SAME product — the leading clause (before the first
@@ -783,6 +822,28 @@ function isRelevant(title, q) {
   // tail, still counts toward the numerator, so a shorter but genuine
   // listing isn't punished for simply not restating every bullet this
   // particular query happened to list. No-op for single-clause queries.
+  // WITH a usable attrs.query_en/query_ar, the 60% overlap is judged against
+  // THAT short canonical string instead — the raw pasted title's marketing
+  // copy (colour prose, warranty text, compatibility lists) never dilutes
+  // the ratio. Both languages the AI returned are tried; passing against
+  // EITHER is enough, since a listing may be titled in either script
+  // regardless of which script the shopper's pasted query happened to use.
+  const distilled = [];
+  if (ai) {
+    if (typeof ai.query_en === 'string' && ai.query_en.trim().length > 3) distilled.push(ai.query_en.trim());
+    if (typeof ai.query_ar === 'string' && ai.query_ar.trim().length > 3) distilled.push(ai.query_ar.trim());
+  }
+  if (distilled.length) {
+    return distilled.some(cand => {
+      const cw = [...new Set(queryTokens(cand).filter(x => !/^\d+$/.test(x)))];
+      if (!cw.length) return false;
+      const core = [...new Set(queryTokens(coreClause(cand)).filter(x => !/^\d+$/.test(x)))];
+      const denom = core.length || cw.length;
+      const hits = cw.filter(x => tokenInTitle(t, x)).length;
+      return hits / denom >= 0.6;
+    });
+  }
+  const hits = word.filter(x => tokenInTitle(t, x)).length;
   const coreWords = [...new Set(queryTokens(coreClause(q)).filter(x => !/^\d+$/.test(x)))];
   const denom = coreWords.length || word.length;
   return hits / denom >= 0.6;
@@ -792,7 +853,7 @@ function isRelevant(title, q) {
 function withTimeout(promise, ms, onTimeout) {
   return Promise.race([promise, new Promise(res => setTimeout(() => res(onTimeout), ms))]);
 }
-async function searchStore(store, q, variants) {
+async function searchStore(store, q, variants, attrs) {
   const key = String(store.platform || 'auto').split(':')[0];
   const fn = ADAPTERS[key] || ADAPTERS.auto;
   // attempt ladder: AI/canonical variants when available, else the raw query,
@@ -808,7 +869,7 @@ async function searchStore(store, q, variants) {
   const work = (async () => {
     for (const attempt of attempts) {
       const raw = (await fn(store, attempt)) || [];
-      const items = raw.filter(it => it.price && isRelevant(it.title, q));
+      const items = raw.filter(it => it.price && isRelevant(it.title, q, attrs));
       if (items.length) {
         store.lastOk = Date.now(); store.failN = 0; saveRegistrySoon();
         return { store, status: 'ok', items: items.slice(0, 12) };
@@ -903,11 +964,24 @@ async function understandQuery(q) {
   if (!NVIDIA_KEY) return null;
   if (AI_Q_CACHE.has(q)) return AI_Q_CACHE.get(q);
   const attrs = aiJson(await aiChat(
-    'You normalize Egyptian product-search queries (Arabic, English or mixed). Query: "' + q.replace(/"/g, ' ') + '"\n' +
+    'You normalize Egyptian product-search queries (Arabic, English or mixed). Shoppers often paste an ' +
+    'entire marketplace listing title, packed with marketing copy, compatibility lists, and warranty text. ' +
+    'Query: "' + q.replace(/"/g, ' ') + '"\n' +
     'Reply with ONLY minified JSON, no prose: {"category_en":string,"category_ar":string,"brand":string|null,' +
     '"model_number":string|null,"size_value":number|null,"size_unit":string|null,"resolution":string|null,' +
-    '"wants_used":boolean,"query_en":string,"query_ar":string} — query_en/query_ar are the cleanest short ' +
-    'search strings for Egyptian store search boxes.', 400, 9000).catch(() => ''));
+    '"wants_used":boolean,"query_en":string,"query_ar":string,"compatible_brands":string[]}\n' +
+    '"query_en" and "query_ar" MUST each be a SHORT canonical search string — brand + product type + ' +
+    'defining specs ONLY, AT MOST 8 WORDS. Strip all marketing copy: compatibility/"works with"/"for ' +
+    'iPhone 16" lists, bundle contents, warranty text, and colour prose. Do NOT echo the full pasted title ' +
+    'back — collapse it.\n' +
+    'Worked example — the pasted title "Anker Laptop Power Bank (25,000 mAh, 165W, Built-In and Retractable ' +
+    'Cables), Effortless Multi-Device Fast Charging, for iPhone 16/15, MacBook, Samsung and More, Space ' +
+    'Black - 18 Months Warranty" collapses to query_en:"Anker power bank 25000mAh 165W" (brand + product ' +
+    'type + capacity + wattage only — 5 words). "brand" is "Anker" (the maker of THIS product), never a ' +
+    'name mentioned only as compatibility.\n' +
+    '"compatible_brands" lists brands named ONLY as compatibility/"works with" targets, never the product\'s ' +
+    'own brand — for the example above that is ["Samsung"] (Samsung is a device this power bank charges, ' +
+    'not who makes it).', 450, 9000).catch(() => ''));
   AI_Q_CACHE.set(q, attrs);
   if (AI_Q_CACHE.size > 500) AI_Q_CACHE.delete(AI_Q_CACHE.keys().next().value);
   return attrs;
@@ -1032,11 +1106,11 @@ async function runJob(job, discover) {
   };
 
   const discP = discover ? discoveryWave(job, reg, collect) : Promise.resolve();
-  await pool(live, 12, s => searchStore(s, job.q, variants).then(collect));
+  await pool(live, 12, s => searchStore(s, job.q, variants, job.ai).then(collect));
 
   // wave 2 + discovery + AI audit continue after the response goes out
   job.bg = (async () => {
-    await pool(rest, 6, s => searchStore(s, job.q, variants).then(collect));
+    await pool(rest, 6, s => searchStore(s, job.q, variants, job.ai).then(collect));
     await discP;
     await auditOffers(job).catch(() => {});
   })().finally(() => finishJob(job));
@@ -1307,7 +1381,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
 /* diagnostics harness hook: importing this module with SADKO_NO_SERVE=1 gives a
    test script the adapters without binding the port */
-export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest };
+export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest, understandQuery };
 
 if (!process.env.SADKO_NO_SERVE)
 http.createServer(async (req, res) => {

@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صادكو جروب — بيتك بالكامل</title>
-<meta name="description" content="اتجوّل جوه بيت صادكو — كل فئات الأجهزة الكهربائية فى ثلاث أوض، وأوضة العيلة بتعرض أحدث العروض. اضغط على أى جهاز وتسوّق من فئته مباشرة.">
+<meta name="description" content="اتجوّل جوه بيت صادكو — كل فئات الأجهزة الكهربائية فى ثلاث أوض، وأوضة العروض بتعرض أحدث العروض. اضغط على أى جهاز وتسوّق من فئته مباشرة.">
 <link rel="icon" href="assets/img/sadko-logo-white.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g2" defer></script>
+<script src="assets/js/scrub-engine.js?v=g3" defer></script>
 <script src="assets/js/nav.js?v=g9" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="assets/js/hotspots.js?v=g4" defer></script>
+<script src="assets/js/hotspots.js?v=g6" defer></script>
 <script src="assets/js/posters.js?v=g3" defer></script>
 <script src="assets/js/guide.js?v=g3" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g7">
@@ -96,24 +96,23 @@ window.addEventListener('DOMContentLoaded', () => {
       ],
     },
     {
-      id: 'family', label: 'أوضة العيلة',
+      id: 'family', label: 'أوضة العروض',
       still: 'assets/img/still_4.jpg',
       clip: 'assets/vid/leg_4.mp4', clipMobile: 'assets/vid/leg_4-m.mp4',
       accent: '#8a6242',
       scroll: 2.0, linger: 0.55,
       eyebrow: 'حكاية عيلة من 1961',
-      title: 'أوضة العيلة… وعروضنا على الحيطة',
+      title: 'أوضة العروض… على الحيطة',
       showcase: 0.88,   // the gallery-wall hold
       showcaseLabel: 'شوف العروض',
+      // The markers sit ON the three rotating ad panels (mountPosters slots
+      // below) — each panel already shows that collection, so its marker is a
+      // direct shortcut. Coords = each poster slot's top-centre.
       hotspots: [
-        { fx: 0.313, fy: 0.136, at: 0.85, span: 0.35, label: 'عروض صادكو', href: C('173607281') },
-        { fx: 0.680, fy: 0.660, at: 0.85, span: 0.35, label: 'الأكثر مبيعاً', href: C('195273251') },
-        { fx: 0.086, fy: 0.375, at: 0.85, span: 0.35, label: 'حرف يدوية ومنتجات عضوية', href: C('167433056') },
+        { fx: 0.332, fy: 0.300, at: 0.88, span: 0.34, label: 'عروض صادكو', href: C('173607281') },
+        { fx: 0.501, fy: 0.300, at: 0.88, span: 0.34, label: 'الأكثر مبيعاً', href: C('195273251') },
+        { fx: 0.676, fy: 0.300, at: 0.88, span: 0.34, label: 'خصم خاص', href: C('173607281') },
       ],
-      cta: {
-        primary:   { label: 'تسوّق عروض صادكو', href: C('173607281') },
-        secondary: { label: 'الأكثر مبيعاً', href: C('195273251') },
-      },
     },
   ];
 
@@ -131,10 +130,9 @@ window.addEventListener('DOMContentLoaded', () => {
         spots: ['Microwaves', 'Blenders', 'Kettles & coffee machines', 'Air fryers', 'Small appliances', 'Dough mixers', 'Food processors', 'Juicers', 'Grills & toasters', 'Dishwashers', 'Ovens & cookers', 'Hoods', 'Refrigerators', 'Electric pots & choppers', 'Freezers'] },
       laundry: { label: 'Laundry Room', eyebrow: 'Laundry & care corner', title: 'Washing, drying, cleaning… and everything with it',
         spots: ['Washing machines', 'Clothes dryers', 'Gas water heaters', 'Electric water heaters', 'Irons', 'Steam irons & steamers', 'Vacuum cleaners', 'Robot & stick vacuums', 'Sewing machines', 'Personal care'] },
-      family: { label: 'Family Room', eyebrow: 'A family story since 1961', title: 'The family room… with our offers on the wall',
+      family: { label: 'Offers Room', eyebrow: 'A family story since 1961', title: 'The offers room… on our wall',
         showcaseLabel: 'See the offers',
-        spots: ['SADKO offers', 'Best sellers', 'Handicrafts & organic'],
-        cta: { primary: 'Shop SADKO offers', secondary: 'Best sellers' } },
+        spots: ['SADKO offers', 'Best sellers', 'Special discount'] },
     };
     for (const s of SECTIONS) {
       const e = L[s.id]; if (!e) continue;

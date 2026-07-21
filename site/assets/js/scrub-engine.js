@@ -245,7 +245,14 @@ function mountScrollWorld(container, config) {
       else cop = (before || after) ? 0 : smooth(1 - Math.abs(pr - 0.5) / 0.5);
       const c = copies[i];
       c.style.opacity = cop;
-      c.style.transform = reduce ? 'none' : `translateY(${(0.5 - pr) * 4}vh)`;
+      // Desktop copy is vertically centred (top:50%); the parallax shift must
+      // COMPOSE with the -50% self-centering, or the panel hangs below the
+      // middle and collides with lower appliances. Mobile copy is bottom-
+      // anchored (no -50%), so it only gets the shift.
+      const shift = reduce ? '0vh' : `${(0.5 - pr) * 4}vh`;
+      c.style.transform = window.innerWidth > 860
+        ? `translateY(calc(-50% + ${shift}))`
+        : `translateY(${shift})`;
       c.style.pointerEvents = cop > 0.5 ? 'auto' : 'none';
     }
 

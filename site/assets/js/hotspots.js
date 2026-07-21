@@ -35,6 +35,11 @@ function mountHotspots(container, api, sections) {
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const smooth = x => { x = clamp(x); return x * x * (3 - 2 * x); };
   const debug = new URLSearchParams(location.search).has('spots');
+  // Flight visibility is capped to a tight half-band around each marker's anchor
+  // so a marker fades out the instant scrolling drifts it off its appliance, and
+  // only pops back when the appliance is framed again. (Scene spans stay wider
+  // for the label/showcase timing; this only governs the dot's on-screen life.)
+  const VIS_HALF = 0.15;
 
   injectHotspotCSS();
 
@@ -113,20 +118,31 @@ function mountHotspots(container, api, sections) {
     place();
   }
 
-  // Showcase buttons live inside the engine's per-section copy panels.
   const copies = container.querySelectorAll('.sw-copy');
-  sections.forEach((s, i) => {
-    if (s.showcase == null || !s.hotspots || !s.hotspots.length || !copies[i]) return;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'hs-scbtn';
-    b.innerHTML = `<i class="hs-scbtn__dot"></i><span>${esch(s.showcaseLabel || (HS_EN ? 'See the appliances here' : 'شوف الأجهزة اللى هنا'))}</span><em>${s.hotspots.length}</em>`;
-    b.setAttribute('aria-label', HS_EN
-      ? `Show all shoppable appliance categories in ${s.label || 'this room'}`
-      : `اعرض كل فئات الأجهزة القابلة للتسوّق فى ${s.label || 'هذه الغرفة'}`);
-    b.addEventListener('click', () => enterShowcase(i));
-    copies[i].appendChild(b);
-  });
+
+  // A small, always-on-screen eye toggle to show/hide the marker TITLES across
+  // every scene. Off by default (dots stay uncluttered, titles on hover); when
+  // on, every currently-framed marker shows its label. It never forces a hidden
+  // marker open — a spot faded out by the flight band stays hidden.
+  let forceLabels = false;
+  const EYE_ON = `<svg class="hs-eye__ic" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const EYE_OFF = `<svg class="hs-eye__ic" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.1A9.6 9.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3 3.6M6.2 6.2A16.7 16.7 0 0 0 2 12s3.6 7 10 7a9.5 9.5 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m3 3 18 18"/></svg>`;
+  const eyeBtn = document.createElement('button');
+  eyeBtn.type = 'button';
+  eyeBtn.className = 'hs-eye';
+  function paintEye() {
+    eyeBtn.classList.toggle('is-on', forceLabels);
+    eyeBtn.innerHTML = forceLabels ? EYE_ON : EYE_OFF;
+    const t = forceLabels
+      ? (HS_EN ? 'Hide appliance titles' : 'إخفاء أسماء الأجهزة')
+      : (HS_EN ? 'Show appliance titles' : 'إظهار أسماء الأجهزة');
+    eyeBtn.setAttribute('aria-label', t); eyeBtn.title = t;
+    eyeBtn.setAttribute('aria-pressed', forceLabels ? 'true' : 'false');
+    layer.classList.toggle('hs-layer--labels', forceLabels);
+  }
+  eyeBtn.addEventListener('click', () => { forceLabels = !forceLabels; paintEye(); dismissCoach(); });
+  container.appendChild(eyeBtn);
+  paintEye();
 
   // ---- one-time coach toast ----------------------------------------------
   const COACH_KEY = 'sadko-hs-coach-v1';
@@ -145,12 +161,8 @@ function mountHotspots(container, api, sections) {
     coach.setAttribute('role', 'status');
     const small = window.matchMedia('(max-width: 600px)').matches;
     const msg = HS_EN
-      ? (small
-        ? 'Tap the pulsing markers on the appliances to open their category — the <b>“See the appliances”</b> button shows them all at once.'
-        : 'The pulsing markers over the appliances are shop categories — click any marker to open a page with all its products, or hit <b>“See the appliances here”</b> to light up every category in the room at once.')
-      : (small
-        ? 'اضغط على العلامات النابضة فوق الأجهزة تفتح فئتها — وزرار <b>«شوف الأجهزة»</b> يوريك كلها مرة واحدة.'
-        : 'العلامات النابضة فوق الأجهزة فئات تسوّق — اضغط على أى علامة تفتح صفحة كل منتجاتها، أو دوس زرار <b>«شوف الأجهزة اللى هنا»</b> يوريك كل فئات الأوضة مرة واحدة.');
+      ? 'The pulsing markers over the appliances are shop categories — click any marker to open a page with all its products. Use the <b>eye button</b> to show or hide their titles.'
+      : 'العلامات النابضة فوق الأجهزة فئات تسوّق — اضغط على أى علامة تفتح صفحة كل منتجاتها. واستخدم <b>زرار العين</b> عشان تظهر أو تخفى أسماء الأجهزة.';
     coach.innerHTML =
       `<i class="hs-coach__dot"></i><p>${msg}</p>` +
       `<button type="button" class="hs-coach__x" aria-label="${HS_EN ? 'Close' : 'إغلاق'}">&times;</button>`;
@@ -255,9 +267,10 @@ function mountHotspots(container, api, sections) {
         }
       }
       // Flight mode: each marker peaks at its own anchor `at`, appearing
-      // exactly when its appliance is framed.
+      // exactly when its appliance is framed and vanishing once it drifts off.
       gr.items.forEach(it => {
-        const op = smooth(1 - Math.abs(pr - it.at) / it.span);
+        const half = Math.min(it.span, VIS_HALF);
+        const op = smooth(1 - Math.abs(pr - it.at) / half);
         it.el.style.opacity = op;
         it.el.style.pointerEvents = op > 0.5 ? 'auto' : 'none';
       });
@@ -367,6 +380,19 @@ function injectHotspotCSS() {
   .hs-scbtn em{font-style:normal;font-size:.78rem;font-weight:800;background:color-mix(in srgb,#fff 22%,transparent);
     border-radius:999px;padding:3px 9px;}
   @media (prefers-reduced-motion:reduce){ .hs-scbtn__dot::after{animation:none;display:none;} }
+
+  /* ---- fixed eye toggle: show/hide marker titles across every scene ---- */
+  .hs-eye{position:fixed;z-index:42;bottom:calc(20px + env(safe-area-inset-bottom));right:clamp(14px,3vw,28px);
+    width:46px;height:46px;border-radius:50%;cursor:pointer;pointer-events:auto;display:grid;place-items:center;
+    color:var(--sw-ink,#14343a);background:color-mix(in srgb,#fff 82%,transparent);backdrop-filter:blur(10px);
+    border:1px solid color-mix(in srgb,var(--sw-accent,#2e7e88) 40%,transparent);
+    box-shadow:0 6px 20px rgba(20,52,58,.16);transition:background .2s,color .2s,transform .2s,box-shadow .2s;}
+  .hs-eye:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(20,52,58,.22);}
+  .hs-eye.is-on{background:var(--sw-accent,#2e7e88);color:#fff;border-color:var(--sw-accent,#2e7e88);}
+  .hs-eye__ic{display:block;}
+  /* forced-labels mode reveals the label of every currently-framed marker
+     (hidden markers keep opacity 0, so their labels stay hidden too) */
+  .hs-layer--labels .hs-spot__label{opacity:1;transform:translate(0,-50%);}
 
   /* ---- one-time coach toast ---- */
   .hs-coach{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,16px);

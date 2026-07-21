@@ -45,16 +45,22 @@ export function identify(title) {
   // Likewise a category alone, or neither, has nothing identity-bearing to
   // group by — the shared key would be IDENTICAL for every such listing,
   // collapsing unrelated products into one row at scale. Only fall into the
-  // b:|c:|units|specs bucket when BOTH brand and category are known (that
-  // combination is still bounded to one product type, and sameProduct's
-  // confidence tiers keep a bare brand+category match from being crowned).
-  // Otherwise fall back to a key derived from the normalized title:
-  // deterministic (same title -> same key, so re-crawls keep their price
-  // history) and unique per distinct title (so unrelated listings never
-  // collide).
+  // b:|c:|units|specs bucket when BOTH brand and category are known AND at
+  // least one defining unit or spec value was extracted — that combination
+  // is still bounded to one product type/configuration, and sameProduct's
+  // confidence tiers keep a bare brand+category match from being crowned.
+  // A brand+category pair with ZERO units and ZERO specs carries no more
+  // identity than brand-alone: five different Fresh vacuums and a
+  // mis-categorised Fresh thermal jug would all collapse onto the identical
+  // bucket b:fresh|c:vacuum||, merging distinct products with wildly
+  // different prices. That case — and the fully-unknown case — both fall
+  // back to a key derived from the normalized title: deterministic (same
+  // title -> same key, so re-crawls keep their price history) and unique
+  // per distinct title (so unrelated listings never collide).
+  const hasDefiningAttr = Object.keys(units).length > 0 || Object.keys(specs).length > 0;
   const key = model
     ? `m:${model}`
-    : (brand && category)
+    : (brand && category && hasDefiningAttr)
       ? `b:${brand}|c:${category}|` +
         Object.entries(units).sort().map(([k, v]) => `${k}=${v}`).join(',') + '|' +
         Object.entries(specs).sort().map(([k, v]) => `${k}=${v}`).join(',')

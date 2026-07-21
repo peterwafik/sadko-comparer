@@ -160,6 +160,42 @@ test('brand-known/category-unknown Samsung accessories from the live catalog get
   c.close();
 });
 
+// CRITICAL (identity defect): these are the real crawled titles that
+// exposed the over-merge — five different Fresh vacuum cleaners plus a
+// mis-categorised "Thermal Jug" all shared the bare bucket key
+// b:fresh|c:vacuum||, so they collapsed onto ONE product spanning prices
+// from 855 to 5,699 EGP. Brand+category with no distinguishing unit/spec
+// must fall back to a title-derived key so each stays its own product.
+test('real Fresh vacuum and mis-categorized thermal jug titles produce distinct product ids', () => {
+  const c = openCatalog();
+  const vacuum = c.upsertOffer({ domain: 'btech.com',
+    url: 'https://btech.com/ar/p/fresh-spider-vacuum-cleaner-1500w-black',
+    title: 'مكنسة كهربائية فريش سبايدر ، اسود', price: 3899, inStock: true });
+  const jug = c.upsertOffer({ domain: 'jumia.com.eg',
+    url: 'https://www.jumia.com.eg/slp/1-liter-insulated-jug',
+    title: 'Thermal Jug - 1 liter jug with a wooden handle double-walled vacuum insulation inner glass core temperature indicator keeps drinks hot or cold and fresh for 24 hours black',
+    price: 855, inStock: true });
+  assert.notEqual(vacuum.productId, jug.productId);
+  c.close();
+});
+
+// The genuine cross-store match must survive the fix: two listings for the
+// same LG 43LM6370PVA TV, in different languages/phrasing, still share one
+// product because the model number is present on both.
+test('two 43-inch LG TVs with the same model still yield one product', () => {
+  const c = openCatalog();
+  const a = c.upsertOffer({ domain: 'hyper-techno.com',
+    url: 'https://hyper-techno.com/product/43lm6370pva-1-shash-alg-43bos-smart-rsyfr-dakhl',
+    title: '43LM6370PVA-افضل سعر تقسيط وكاش شاشة الجى 43بوصة سمارت رسيفر داخلى',
+    price: 16499, inStock: true });
+  const b = c.upsertOffer({ domain: 'elghazawy.com',
+    url: 'https://elghazawy.com/ar/product/12533352909010/shash-al-jy-43-bos-smart-hdr-full-hd-brsyfr-dakhly-mdmj-43lm6370pva',
+    title: 'شاشة ال جي 43 بوصة سمارت Full HD LED 43LM6370PVA - رسيفر داخلي',
+    price: 14900, inStock: true });
+  assert.equal(a.productId, b.productId);
+  c.close();
+});
+
 test('a mid-sequence failure during upsert rolls back all writes, including the FTS delete', () => {
   const c = openCatalog();
   const { offerId } = c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p3',

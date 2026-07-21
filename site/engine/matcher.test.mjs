@@ -221,3 +221,27 @@ test('a model match still keys on the model regardless of missing brand/category
   assert.equal(a.key, 'm:RF40FTVBK');
   assert.equal(a.key, b.key);
 });
+
+/* CRITICAL (identity defect): brand+category with NO distinguishing unit or
+   spec is not enough identity to GROUP different products — it is the same
+   situation as the fully-unknown case. Real crawl case: five different
+   Fresh vacuum cleaners and a mis-categorised Fresh thermal jug all shared
+   the key b:fresh|c:vacuum||, merging six different products (855–5,699
+   EGP) into one catalog row. */
+test('same brand+category but different titles with no units/specs get DIFFERENT keys', () => {
+  const a = id('مكنسة كهربائية فريش سبايدر');
+  const b = id('مكنسة فريش تربو');
+  assert.equal(a.brand, 'fresh');
+  assert.equal(b.brand, 'fresh');
+  assert.equal(a.category, b.category);
+  assert.notEqual(a.key, b.key);
+  assert.ok(!a.key.startsWith('b:'), 'must not use the shared brand-bucket form with no defining attr');
+  assert.ok(!b.key.startsWith('b:'), 'must not use the shared brand-bucket form with no defining attr');
+});
+
+test('brand+category+unit still gets the SAME key when units/specs agree (regression)', () => {
+  const a = id('غسالة توشيبا 8 كيلو اتوماتيك فتحة علوية');
+  const b = id('Toshiba washing machine 8 kg automatic top load');
+  assert.equal(a.key, b.key);
+  assert.ok(a.key.startsWith('b:'), 'brand+category+unit grouping must still use the shared bucket form');
+});

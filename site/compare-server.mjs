@@ -1384,7 +1384,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
 /* diagnostics harness hook: importing this module with SADKO_NO_SERVE=1 gives a
    test script the adapters without binding the port */
-export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest, understandQuery };
+export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest, understandQuery, extractPrices };
 
 if (!process.env.SADKO_NO_SERVE)
 http.createServer(async (req, res) => {

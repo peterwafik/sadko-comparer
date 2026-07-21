@@ -1,0 +1,148 @@
+{
+ "at": "2026-07-20T15:15:46.742Z",
+ "results": [
+  {
+   "domain": "raneen.com",
+   "urls": 4,
+   "fetched": 1,
+   "extracted": {
+    "title": "ثلاجة نوفروست ميكانيكال يونيون اير، 350 لتر، 2 باب، URN-420L",
+    "price": 15999,
+    "url": "https://www.raneen.com/ar/appliances/large-appliances/refrigerators-and-freezers/refrigerators"
+   },
+   "verdict": "RECOVERABLE"
+  },
+  {
+   "domain": "games2egypt.com",
+   "urls": 4,
+   "fetched": 1,
+   "extracted": {
+    "title": "فانكو بوب! تلفزيون: سترينجر ثينجز - ديموجورجون",
+    "price": 799,
+    "url": "https://www.games2egypt.com/ar/Product/36241/%D9%81%D8%A7%D9%86%D9%83%D9%88-%D8%A8%D9%88%D8%A8-%D8%AA%D9%84%D9%81%D8%B2%D9%8A%D9%88%D9%86-%D8%B3%D8%AA%D8%B1%D9%8A%D9%86%D8%AC%D8%B1-%D8%AB%D9%8A%D9%86%D8%AC%D8%B2-%D8%AF%D9%8A%D9%85%D9%88%D8%AC%D9%88%D8%B1%D8%AC%D9%88%D9%86"
+   },
+   "verdict": "RECOVERABLE",
+   "lastErr": "HTTP 403"
+  },
+  {
+   "domain": "aghezty.com",
+   "urls": 4,
+   "fetched": 2,
+   "extracted": null,
+   "verdict": "FETCHABLE_NO_DATA",
+   "noExtract": 2,
+   "lastErr": "HTTP 503"
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "urls": 4,
+   "fetched": 4,
+   "extracted": null,
+   "verdict": "FETCHABLE_NO_DATA",
+   "noExtract": 4
+  },
+  {
+   "domain": "hyperone.com.eg",
+   "urls": 4,
+   "fetched": 4,
+   "extracted": null,
+   "verdict": "FETCHABLE_NO_DATA",
+   "noExtract": 4
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "urls": 4,
+   "fetched": 1,
+   "extracted": {
+    "title": "Dell Inspiron 3593 Intel Core i5-1035G1-8GB RAM-1TB-VGA Nvid",
+    "price": 12999,
+    "url": "https://compuscience.com.eg/ar/-/510-dell-inspiron-3593-intel-core-i5-1035g1-8gb-ram-1tb-vga-nvidia-mx230-2gb-156-fhd-dos-black.html"
+   },
+   "verdict": "RECOVERABLE"
+  },
+  {
+   "domain": "hans.com.eg",
+   "urls": 0,
+   "fetched": 0,
+   "extracted": null,
+   "verdict": "NO_URLS_FOUND"
+  },
+  {
+   "domain": "elwaha.com.eg",
+   "urls": 4,
+   "fetched": 4,
+   "extracted": null,
+   "verdict": "FETCHABLE_NO_DATA",
+   "noExtract": 4
+  },
+  {
+   "domain": "iq-mobiles.com",
+   "urls": 4,
+   "fetched": 1,
+   "extracted": {
+    "title": "Realme 15 Pro , 256GB Storage, 12GB RAM, 5G Connectivity - V",
+    "price": 28400,
+    "url": "https://iq-mobiles.com/en/realme-15-pro-256gb-12gb-5g.html"
+   },
+   "verdict": "RECOVERABLE"
+  },
+  {
+   "domain": "najm.store",
+   "urls": 4,
+   "fetched": 1,
+   "extracted": {
+    "title": "بيسك ثلاجة عرض باب واحد زجاج 4.4 قدم مكعب - 126 لتر - أسود -",
+    "price": 806,
+    "url": "https://najm.store/%D8%AB%D9%84%D8%A7%D8%AC%D8%A9-%D8%B9%D8%B1%D8%B6-%D8%A8%D8%A7%D8%A8-%D9%88%D8%A7%D8%AD%D8%AF-%D8%A8%D9%8A%D8%B3%D9%83-4-4-%D9%82%D8%AF%D9%85/p296094962"
+   },
+   "verdict": "RECOVERABLE"
+  },
+  {
+   "domain": "mahgoub.com",
+   "urls": 4,
+   "fetched": 2,
+   "extracted": {
+    "title": "محبس غسالة كومباكت",
+    "price": 549,
+    "url": "https://www.mahgoub.com/ar/%D9%85%D8%B3%D8%AA%D9%84%D8%B2%D9%85%D8%A7%D8%AA/%D9%84%D9%88%D8%A7%D8%B2%D9%85-%D8%B3%D8%A8%D8%A7%D9%83%D8%A9/%D8%AC%D9%88%D8%A7%D8%AF/%D9%85%D8%AD%D8%A8%D8%B3-%D8%BA%D8%B3%D8%A7%D9%84%D8%A9-%D9%83%D9%88%D9%85%D8%A8%D8%A7%D9%83%D8%AA-1710000303.html"
+   },
+   "verdict": "RECOVERABLE",
+   "noExtract": 1
+  },
+  {
+   "domain": "audiomisr.com",
+   "urls": 4,
+   "fetched": 4,
+   "extracted": null,
+   "verdict": "FETCHABLE_NO_DATA",
+   "noExtract": 4
+  },
+  {
+   "domain": "tal2aa.com",
+   "urls": 0,
+   "fetched": 0,
+   "extracted": null,
+   "verdict": "NO_URLS_FOUND"
+  },
+  {
+   "domain": "sharpegy.com",
+   "urls": 2,
+   "fetched": 2,
+   "extracted": {
+    "title": "تكييف شارب 1.5 حصان بارد تبريد سريع أبيض AH-A12ZSE",
+    "price": 26600,
+    "url": "https://sharpegy.com/category/sharp"
+   },
+   "verdict": "RECOVERABLE",
+   "noExtract": 1
+  },
+  {
+   "domain": "store.fut-electronics.com",
+   "urls": 4,
+   "fetched": 4,
+   "extracted": null,
+   "verdict": "FETCHABLE_NO_DATA",
+   "noExtract": 4
+  }
+ ]
+}

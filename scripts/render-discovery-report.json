@@ -1,0 +1,535 @@
+{
+ "at": "2026-07-20T12:44:01.763Z",
+ "results": [
+  {
+   "domain": "fresh.com.eg",
+   "tier": 2,
+   "candidates": [
+    "https://www.fresh.com.eg/search?q={q}",
+    "https://www.fresh.com.eg/ar/search?q={q}",
+    "https://www.fresh.com.eg/en/search?q={q}",
+    "https://www.fresh.com.eg/catalogsearch/result/?q={q}",
+    "https://www.fresh.com.eg/ar/catalogsearch/result/?q={q}",
+    "https://www.fresh.com.eg/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.fresh.com.eg",
+   "verdict": "IGNORES_QUERY",
+   "tpl": "https://www.fresh.com.eg/search?q={q}",
+   "ms": 30474
+  },
+  {
+   "domain": "amanstores.com",
+   "tier": 1,
+   "candidates": [
+    "https://www.amanstores.com/search?q={q}",
+    "https://www.amanstores.com/ar/search?q={q}",
+    "https://www.amanstores.com/en/search?q={q}",
+    "https://www.amanstores.com/catalogsearch/result/?q={q}",
+    "https://www.amanstores.com/ar/catalogsearch/result/?q={q}",
+    "https://www.amanstores.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.amanstores.com",
+   "verdict": "UNRESOLVED",
+   "ms": 83172
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "tier": 1,
+   "candidates": [],
+   "origin": "https://www.carrefouregypt.com",
+   "verdict": "BLOCKED",
+   "ms": 6960
+  },
+  {
+   "domain": "raneen.com",
+   "tier": 1,
+   "candidates": [
+    "https://www.raneen.com/ar/catalogsearch/result/?q={q}",
+    "https://www.raneen.com/search?q={q}",
+    "https://www.raneen.com/ar/search?q={q}",
+    "https://www.raneen.com/en/search?q={q}",
+    "https://www.raneen.com/catalogsearch/result/?q={q}",
+    "https://www.raneen.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.raneen.com",
+   "verdict": "BLOCKED",
+   "ms": 10435
+  },
+  {
+   "domain": "mobileshop.com.eg",
+   "tier": 2,
+   "candidates": [
+    "https://www.mobileshop.com.eg/search?q={q}",
+    "https://www.mobileshop.com.eg/ar/search?q={q}",
+    "https://www.mobileshop.com.eg/en/search?q={q}",
+    "https://www.mobileshop.com.eg/catalogsearch/result/?q={q}",
+    "https://www.mobileshop.com.eg/ar/catalogsearch/result/?q={q}",
+    "https://www.mobileshop.com.eg/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.mobileshop.com.eg",
+   "verdict": "UNRESOLVED",
+   "ms": 84658
+  },
+  {
+   "domain": "airo-shop.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.airo-shop.com/search?q={q}",
+    "https://www.airo-shop.com/ar/search?q={q}",
+    "https://www.airo-shop.com/en/search?q={q}",
+    "https://www.airo-shop.com/catalogsearch/result/?q={q}",
+    "https://www.airo-shop.com/ar/catalogsearch/result/?q={q}",
+    "https://www.airo-shop.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.airo-shop.com",
+   "verdict": "UNRESOLVED",
+   "ms": 80922
+  },
+  {
+   "domain": "sigma-computer.com",
+   "tier": 2,
+   "candidates": [
+    "https://www.sigma-computer.com/search?q={q}",
+    "https://www.sigma-computer.com/ar/search?q={q}",
+    "https://www.sigma-computer.com/en/search?q={q}",
+    "https://www.sigma-computer.com/catalogsearch/result/?q={q}",
+    "https://www.sigma-computer.com/ar/catalogsearch/result/?q={q}",
+    "https://www.sigma-computer.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.sigma-computer.com",
+   "verdict": "UNRESOLVED",
+   "ms": 80007
+  },
+  {
+   "domain": "homzmart.com",
+   "tier": 2,
+   "candidates": [
+    "https://homzmart.com/search?q={q}",
+    "https://homzmart.com/ar/search?q={q}",
+    "https://homzmart.com/en/search?q={q}",
+    "https://homzmart.com/catalogsearch/result/?q={q}",
+    "https://homzmart.com/ar/catalogsearch/result/?q={q}",
+    "https://homzmart.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://homzmart.com",
+   "verdict": "UNRESOLVED",
+   "ms": 81894
+  },
+  {
+   "domain": "dubaiphone.net",
+   "tier": 3,
+   "candidates": [
+    "https://www.dubaiphone.net/search?q={q}",
+    "https://www.dubaiphone.net/ar/search?q={q}",
+    "https://www.dubaiphone.net/en/search?q={q}",
+    "https://www.dubaiphone.net/catalogsearch/result/?q={q}",
+    "https://www.dubaiphone.net/ar/catalogsearch/result/?q={q}",
+    "https://www.dubaiphone.net/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.dubaiphone.net",
+   "verdict": "UNRESOLVED",
+   "ms": 81024
+  },
+  {
+   "domain": "computershopegypt.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.computershopegypt.com/search?q={q}",
+    "https://www.computershopegypt.com/ar/search?q={q}",
+    "https://www.computershopegypt.com/en/search?q={q}",
+    "https://www.computershopegypt.com/catalogsearch/result/?q={q}",
+    "https://www.computershopegypt.com/ar/catalogsearch/result/?q={q}",
+    "https://www.computershopegypt.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.computershopegypt.com",
+   "verdict": "UNRESOLVED",
+   "ms": 80002
+  },
+  {
+   "domain": "drmobilestore.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.drmobilestore.com/search?q={q}",
+    "https://www.drmobilestore.com/ar/search?q={q}",
+    "https://www.drmobilestore.com/en/search?q={q}",
+    "https://www.drmobilestore.com/catalogsearch/result/?q={q}",
+    "https://www.drmobilestore.com/ar/catalogsearch/result/?q={q}",
+    "https://www.drmobilestore.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.drmobilestore.com",
+   "verdict": "UNRESOLVED",
+   "ms": 79981
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "tier": 3,
+   "candidates": [],
+   "origin": "https://www.compuscience.com.eg",
+   "verdict": "BLOCKED",
+   "ms": 8333
+  },
+  {
+   "domain": "unionaire.com",
+   "tier": 2,
+   "candidates": [
+    "https://www.unionaire.com/search?q={q}",
+    "https://www.unionaire.com/ar/search?q={q}",
+    "https://www.unionaire.com/en/search?q={q}",
+    "https://www.unionaire.com/catalogsearch/result/?q={q}",
+    "https://www.unionaire.com/ar/catalogsearch/result/?q={q}",
+    "https://www.unionaire.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.unionaire.com",
+   "verdict": "IGNORES_QUERY",
+   "tpl": "https://www.unionaire.com/search?q={q}",
+   "ms": 35681
+  },
+  {
+   "domain": "appliance.com.eg",
+   "tier": 3,
+   "candidates": [
+    "https://www.appliance.com.eg/?s={q}",
+    "https://www.appliance.com.eg/search?q={q}",
+    "https://www.appliance.com.eg/ar/search?q={q}",
+    "https://www.appliance.com.eg/en/search?q={q}",
+    "https://www.appliance.com.eg/catalogsearch/result/?q={q}",
+    "https://www.appliance.com.eg/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.appliance.com.eg",
+   "verdict": "UNRESOLVED",
+   "ms": 77783
+  },
+  {
+   "domain": "eshop.vodafone.com.eg",
+   "tier": 3,
+   "candidates": [
+    "https://eshop.vodafone.com.eg/search?q={q}",
+    "https://eshop.vodafone.com.eg/ar/search?q={q}",
+    "https://eshop.vodafone.com.eg/en/search?q={q}",
+    "https://eshop.vodafone.com.eg/catalogsearch/result/?q={q}",
+    "https://eshop.vodafone.com.eg/ar/catalogsearch/result/?q={q}",
+    "https://eshop.vodafone.com.eg/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://eshop.vodafone.com.eg",
+   "verdict": "UNRESOLVED",
+   "ms": 51056
+  },
+  {
+   "domain": "dubaiforshopping.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.dubaiforshopping.com/?s={q}",
+    "https://www.dubaiforshopping.com/search?q={q}",
+    "https://www.dubaiforshopping.com/ar/search?q={q}",
+    "https://www.dubaiforshopping.com/en/search?q={q}",
+    "https://www.dubaiforshopping.com/catalogsearch/result/?q={q}",
+    "https://www.dubaiforshopping.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.dubaiforshopping.com",
+   "verdict": "UNRESOLVED",
+   "ms": 80153
+  },
+  {
+   "domain": "hankerz.com.eg",
+   "tier": 3,
+   "candidates": [
+    "https://www.hankerz.com.eg/search?q={q}",
+    "https://www.hankerz.com.eg/ar/search?q={q}",
+    "https://www.hankerz.com.eg/en/search?q={q}",
+    "https://www.hankerz.com.eg/catalogsearch/result/?q={q}",
+    "https://www.hankerz.com.eg/ar/catalogsearch/result/?q={q}",
+    "https://www.hankerz.com.eg/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.hankerz.com.eg",
+   "verdict": "UNRESOLVED",
+   "ms": 84961
+  },
+  {
+   "domain": "smeg.com.eg",
+   "tier": 2,
+   "candidates": [
+    "https://www.smeg.com.eg/?s={q}",
+    "https://www.smeg.com.eg/search?q={q}",
+    "https://www.smeg.com.eg/ar/search?q={q}",
+    "https://www.smeg.com.eg/en/search?q={q}",
+    "https://www.smeg.com.eg/catalogsearch/result/?q={q}",
+    "https://www.smeg.com.eg/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.smeg.com.eg",
+   "verdict": "UNRESOLVED",
+   "ms": 82863
+  },
+  {
+   "domain": "ram-e-shop.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.ram-e-shop.com/website/search?search={q}",
+    "https://www.ram-e-shop.com/search?q={q}",
+    "https://www.ram-e-shop.com/ar/search?q={q}",
+    "https://www.ram-e-shop.com/en/search?q={q}",
+    "https://www.ram-e-shop.com/catalogsearch/result/?q={q}",
+    "https://www.ram-e-shop.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.ram-e-shop.com",
+   "verdict": "UNRESOLVED",
+   "ms": 72605
+  },
+  {
+   "domain": "eratablet.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.eratablet.com/?s={q}",
+    "https://www.eratablet.com/search?q={q}",
+    "https://www.eratablet.com/ar/search?q={q}",
+    "https://www.eratablet.com/en/search?q={q}",
+    "https://www.eratablet.com/catalogsearch/result/?q={q}",
+    "https://www.eratablet.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.eratablet.com",
+   "verdict": "UNRESOLVED",
+   "ms": 78962
+  },
+  {
+   "domain": "kareemstores.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.kareemstores.com/search?q={q}",
+    "https://www.kareemstores.com/ar/search?q={q}",
+    "https://www.kareemstores.com/en/search?q={q}",
+    "https://www.kareemstores.com/catalogsearch/result/?q={q}",
+    "https://www.kareemstores.com/ar/catalogsearch/result/?q={q}",
+    "https://www.kareemstores.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.kareemstores.com",
+   "verdict": "UNRESOLVED",
+   "ms": 84979
+  },
+  {
+   "domain": "miamicenters.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.miamicenters.com/?s={q}",
+    "https://www.miamicenters.com/search?q={q}",
+    "https://www.miamicenters.com/ar/search?q={q}",
+    "https://www.miamicenters.com/en/search?q={q}",
+    "https://www.miamicenters.com/catalogsearch/result/?q={q}",
+    "https://www.miamicenters.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.miamicenters.com",
+   "verdict": "UNRESOLVED",
+   "ms": 73295
+  },
+  {
+   "domain": "najm.store",
+   "tier": 3,
+   "candidates": [
+    "https://www.najm.store/search?q={q}",
+    "https://www.najm.store/ar/search?q={q}",
+    "https://www.najm.store/en/search?q={q}",
+    "https://www.najm.store/catalogsearch/result/?q={q}",
+    "https://www.najm.store/ar/catalogsearch/result/?q={q}",
+    "https://www.najm.store/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.najm.store",
+   "verdict": "BLOCKED",
+   "ms": 54901
+  },
+  {
+   "domain": "brico-eg.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.brico-eg.com/?s={q}",
+    "https://www.brico-eg.com/search?q={q}",
+    "https://www.brico-eg.com/ar/search?q={q}",
+    "https://www.brico-eg.com/en/search?q={q}",
+    "https://www.brico-eg.com/catalogsearch/result/?q={q}",
+    "https://www.brico-eg.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.brico-eg.com",
+   "verdict": "UNRESOLVED",
+   "ms": 79614
+  },
+  {
+   "domain": "tal2aa.com",
+   "tier": 3,
+   "candidates": [],
+   "origin": "https://www.tal2aa.com",
+   "verdict": "BLOCKED",
+   "ms": 6733
+  },
+  {
+   "domain": "sevencameras.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.sevencameras.com/?s={q}",
+    "https://www.sevencameras.com/search?q={q}",
+    "https://www.sevencameras.com/ar/search?q={q}",
+    "https://www.sevencameras.com/en/search?q={q}",
+    "https://www.sevencameras.com/catalogsearch/result/?q={q}",
+    "https://www.sevencameras.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.sevencameras.com",
+   "verdict": "UNRESOLVED",
+   "ms": 72071
+  },
+  {
+   "domain": "switchpluseg.com",
+   "tier": 3,
+   "candidates": [],
+   "origin": "https://www.switchpluseg.com",
+   "verdict": "BLOCKED",
+   "ms": 8041
+  },
+  {
+   "domain": "makerselectronics.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.makerselectronics.com/?s={q}",
+    "https://www.makerselectronics.com/search?q={q}",
+    "https://www.makerselectronics.com/ar/search?q={q}",
+    "https://www.makerselectronics.com/en/search?q={q}",
+    "https://www.makerselectronics.com/catalogsearch/result/?q={q}",
+    "https://www.makerselectronics.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.makerselectronics.com",
+   "verdict": "UNRESOLVED",
+   "ms": 77073
+  },
+  {
+   "domain": "sharp-egypt.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.sharp-egypt.com/?s={q}",
+    "https://www.sharp-egypt.com/search?q={q}",
+    "https://www.sharp-egypt.com/ar/search?q={q}",
+    "https://www.sharp-egypt.com/en/search?q={q}",
+    "https://www.sharp-egypt.com/catalogsearch/result/?q={q}",
+    "https://www.sharp-egypt.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.sharp-egypt.com",
+   "verdict": "IGNORES_QUERY",
+   "tpl": "https://www.sharp-egypt.com/search?q={q}",
+   "ms": 40594
+  },
+  {
+   "domain": "shuttershopegypt.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.shuttershopegypt.com/search?q={q}",
+    "https://www.shuttershopegypt.com/ar/search?q={q}",
+    "https://www.shuttershopegypt.com/en/search?q={q}",
+    "https://www.shuttershopegypt.com/catalogsearch/result/?q={q}",
+    "https://www.shuttershopegypt.com/ar/catalogsearch/result/?q={q}",
+    "https://www.shuttershopegypt.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.shuttershopegypt.com",
+   "verdict": "UNRESOLVED",
+   "ms": 81827
+  },
+  {
+   "domain": "uptodate.store",
+   "tier": 3,
+   "candidates": [
+    "https://www.uptodate.store/search?q={q}",
+    "https://www.uptodate.store/ar/search?q={q}",
+    "https://www.uptodate.store/en/search?q={q}",
+    "https://www.uptodate.store/catalogsearch/result/?q={q}",
+    "https://www.uptodate.store/ar/catalogsearch/result/?q={q}",
+    "https://www.uptodate.store/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.uptodate.store",
+   "verdict": "UNRESOLVED",
+   "ms": 80636
+  },
+  {
+   "domain": "shams-stores.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.shams-stores.com/?s={q}",
+    "https://www.shams-stores.com/search?q={q}",
+    "https://www.shams-stores.com/ar/search?q={q}",
+    "https://www.shams-stores.com/en/search?q={q}",
+    "https://www.shams-stores.com/catalogsearch/result/?q={q}",
+    "https://www.shams-stores.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.shams-stores.com",
+   "verdict": "UNRESOLVED",
+   "ms": 79895
+  },
+  {
+   "domain": "wdestores.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.wdestores.com/search?q={q}",
+    "https://www.wdestores.com/ar/search?q={q}",
+    "https://www.wdestores.com/en/search?q={q}",
+    "https://www.wdestores.com/catalogsearch/result/?q={q}",
+    "https://www.wdestores.com/ar/catalogsearch/result/?q={q}",
+    "https://www.wdestores.com/en/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.wdestores.com",
+   "verdict": "BLOCKED",
+   "ms": 58950
+  },
+  {
+   "domain": "shaarp.net",
+   "tier": 3,
+   "candidates": [
+    "https://www.shaarp.net/?s={q}",
+    "https://www.shaarp.net/search?q={q}",
+    "https://www.shaarp.net/ar/search?q={q}",
+    "https://www.shaarp.net/en/search?q={q}",
+    "https://www.shaarp.net/catalogsearch/result/?q={q}",
+    "https://www.shaarp.net/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.shaarp.net",
+   "verdict": "UNRESOLVED",
+   "ms": 80754
+  },
+  {
+   "domain": "smarttechnology-eg.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.smarttechnology-eg.com/?s={q}",
+    "https://www.smarttechnology-eg.com/search?q={q}",
+    "https://www.smarttechnology-eg.com/ar/search?q={q}",
+    "https://www.smarttechnology-eg.com/en/search?q={q}",
+    "https://www.smarttechnology-eg.com/catalogsearch/result/?q={q}",
+    "https://www.smarttechnology-eg.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.smarttechnology-eg.com",
+   "verdict": "UNRESOLVED",
+   "ms": 72465
+  },
+  {
+   "domain": "moreelectronicss.com",
+   "tier": 3,
+   "candidates": [
+    "https://www.moreelectronicss.com/?s={q}",
+    "https://www.moreelectronicss.com/search?q={q}",
+    "https://www.moreelectronicss.com/ar/search?q={q}",
+    "https://www.moreelectronicss.com/en/search?q={q}",
+    "https://www.moreelectronicss.com/catalogsearch/result/?q={q}",
+    "https://www.moreelectronicss.com/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.moreelectronicss.com",
+   "verdict": "UNRESOLVED",
+   "ms": 78034
+  },
+  {
+   "domain": "souqcairo.net",
+   "tier": 3,
+   "candidates": [
+    "https://www.souqcairo.net/?s={q}",
+    "https://www.souqcairo.net/search?q={q}",
+    "https://www.souqcairo.net/ar/search?q={q}",
+    "https://www.souqcairo.net/en/search?q={q}",
+    "https://www.souqcairo.net/catalogsearch/result/?q={q}",
+    "https://www.souqcairo.net/ar/catalogsearch/result/?q={q}"
+   ],
+   "origin": "https://www.souqcairo.net",
+   "verdict": "BLOCKED",
+   "ms": 15570
+  }
+ ]
+}

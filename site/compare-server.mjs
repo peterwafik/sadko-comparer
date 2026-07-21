@@ -53,6 +53,8 @@ import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from '.
 import { extractUnits } from './engine/units.mjs';
 import { openCatalog } from './engine/catalog.mjs';
 import { rankOffers } from './engine/serve.mjs';
+import { extractProduct } from './engine/extract.mjs';
+import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -1115,6 +1117,12 @@ async function runJob(job, discover) {
   job.bg = (async () => {
     await pool(rest, 6, s => searchStore(s, job.q, variants, job.ai).then(collect));
     await discP;
+    // Tavily fallback fires only when the whole registry sweep came up thin —
+    // few relevant offers from few stores. It reaches beyond the registry, so
+    // it is the last resort, not a per-query default: a well-answered search
+    // never triggers it and never pays its latency or quota.
+    const relevantStores = new Set(job.offers.map(o => o.domain)).size;
+    if (relevantStores < 3) await tavilyWave(job, reg, collect).catch(() => {});
     await auditOffers(job).catch(() => {});
   })().finally(() => finishJob(job));
 }
@@ -1157,6 +1165,32 @@ async function discoveryWave(job, reg, collect) {
     }
   }
   if (job.stats.discovered.length) saveRegistrySoon();
+}
+
+/* ---- Tavily discovery wave (URL discovery ONLY) ------------------------------
+   Reaches stores the engine cannot: those that block their own search path but
+   serve product pages (raneen, sharpegy), and stores absent from the registry.
+   Tavily returns product-PAGE URLs; every price and identity below comes from
+   OUR extractor and OUR relevance filter — never from Tavily's snippets, which
+   are unreliable. Fails soft: no key or any error contributes nothing. Runs
+   only when the cheaper paths have already come up short (see runTavilyFallback
+   gate), so a normal answered query never pays its cost. */
+async function tavilyWave(job, reg, collect) {
+  if (!tavilyEnabled()) return;
+  const found = await discoverProductUrls(job.q, { maxResults: 8, timeoutMs: 9000 }).catch(() => []);
+  if (!found.length) return;
+  job.stats.tavily = found.length;
+  await pool(found, 4, ({ url, domain }) => withTimeout((async () => {
+    let html;
+    try { html = await fetchPage(url, 'text/html', 12000); } catch { return; }
+    const p = extractProduct(html, url);
+    if (!p || !p.price || !isRelevant(p.title, job.q, job.ai)) return;
+    const known = reg.stores.find(s => domain === s.domain || domain.endsWith('.' + s.domain));
+    const store = known || { domain, name: domain.split('.')[0], type: 'local', t: 4,
+      platform: 'auto', addedBy: 'tavily', lastOk: Date.now() };
+    if (!known) { reg.stores.push(store); job.stats.discovered.push(domain); saveRegistrySoon(); }
+    collect({ store, status: 'ok', items: [{ title: p.title, price: p.price, url }] });
+  })(), 14000, null));
 }
 function finishJob(job) {
   if (job.done) return;

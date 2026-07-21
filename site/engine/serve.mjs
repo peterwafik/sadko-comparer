@@ -1,10 +1,10 @@
 /* Catalog search -> identity grouping -> live verification -> ranking.
    Ranking is DETERMINISTIC: price decides, identity confidence gates who may be
    crowned. Only 'exact'/'strong' offers can take rank 1. */
-import { identify, sameProduct } from './matcher.mjs';
+import { identify, sameProduct, BRANDS } from './matcher.mjs';
 import { CATEGORIES } from './categories.mjs';
 import { normText } from './normalize.mjs';
-import { hasDistinctiveOverlap } from './catalog.mjs';
+import { hasDistinctiveOverlap, distinctiveTokens } from './catalog.mjs';
 
 const CROWNABLE = new Set(['exact', 'strong']);
 /* shown as a starting menu when the query names no recognisable category at
@@ -76,6 +76,148 @@ function browseContradicts(want, got, def) {
   return false;
 }
 
+/* Accessory blocklist for the catalog path — the same idea as
+   compare-server.mjs's isRelevant()/ACCESSORY, reimplemented as a small pure
+   helper here rather than imported (compare-server.mjs starts an HTTP server
+   at module load; importing it anywhere is unsafe). A minimal stem list:
+   screen protectors, cases/covers, stands/mounts and similar goods sold FOR
+   a device are never the device itself. Only the LEADING product-type
+   segment of the title is inspected (capped at 50 chars, split on the first
+   comma/dash/pipe/paren) — feature bullets deep in a real product's title
+   routinely mention "stand" or "cover" without the product BEING one. */
+const ACCESSORY_WORDS = [
+  'حمايه', 'حماية', 'جراب', 'كفر', 'كاڤر', 'حافظه', 'غطاء', 'حامل', 'واقي', 'ستاند', 'فريم',
+  'protector', 'case', 'cover', 'pouch', 'sleeve', 'holder', 'stand', 'mount', 'guard', 'skin',
+  'screen protector',
+];
+
+/* Real catalog titles from this crawl are routinely "SKU-CODE-Arabic
+   description" ("2T-C32DG6EX-شاشة شارب 32 بوصة أندرويد ريسيفر داخلي") — the
+   hyphen sits INSIDE the leading SKU, not between a product-type clause and
+   a feature-bullet tail. Splitting on hyphen/dash/paren (as
+   compare-server.mjs's leadingSegment does) would truncate the window
+   before the product-type word is ever reached, on both genuine listings
+   (a real TV wrongly excluded) and accessory ones (an accessory word missed
+   because it now falls just past the cut). Only a comma/Arabic-comma/pipe —
+   which in this catalog really does separate "what the product is" from its
+   feature-bullet tail — is treated as a boundary here. */
+function leadingSegment(text, window = 60) {
+  const head = text.slice(0, window);
+  const m = head.match(/[,،|]/);
+  return m ? head.slice(0, m.index) : head;
+}
+
+/* Does the query's resolved category's own name actually appear in the
+   offer's LEADING segment? detectCategory() scans the WHOLE title for the
+   EARLIEST category-name occurrence, so a tablet or smartwatch whose specs
+   merely mention "touchscreen" deep in a comma-separated feature list gets
+   mis-tagged as category 'tv' even though its own leading clause names a
+   completely different (unregistered) product type ("تابلت...", "ساعة...").
+   This does not touch detectCategory itself — it's an additional, narrower
+   recheck applied only to ranking/filtering decisions here: trust a
+   category match only when the category's name is where a leading-noun
+   scan would actually find it. */
+function categoryNameInLeading(category, title) {
+  const def = CATEGORIES[category];
+  if (!def) return false;
+  const lead = normText(leadingSegment(title));
+  return def.names.some(n => lead.includes(normText(n)));
+}
+
+/* full-word match for Latin stems ("stand" must not fire inside "standard"),
+   plain substring for Arabic (consistent with the rest of the engine). */
+function wordIn(normalizedText, word) {
+  const nw = normText(word);
+  return /^[a-z]+$/.test(nw)
+    ? new RegExp('(^|[^a-z0-9])' + nw + '([^a-z0-9]|$)').test(normalizedText)
+    : normalizedText.includes(nw);
+}
+
+// A narrower window than categoryNameInLeading's: a real product's title
+// routinely mentions an accessory WORD as an ordinary feature/color spec
+// further in ("...الشكل الجديد غطاء اسود..." — "new shape, BLACK LID" on a
+// genuine washer) without the product BEING that accessory. Real
+// product-type declarations are short — capping tighter here keeps that
+// washer in a bare "غسالة" browse while still catching genuine accessory
+// listings, whose product-type word (accessory or not) is always among the
+// first few words, SKU prefix included.
+const ACCESSORY_WINDOW = 30;
+
+/* An offer is rejected as an accessory UNLESS the query itself asked for
+   that accessory (a query for "حماية شاشة" must still find screen
+   protectors). */
+function isAccessoryOffer(query, title) {
+  const qn = normText(query);
+  if (ACCESSORY_WORDS.some(w => wordIn(qn, w))) return false;
+  const lead = normText(leadingSegment(title, ACCESSORY_WINDOW));
+  return ACCESSORY_WORDS.some(w => wordIn(lead, w));
+}
+
+/* Category enforcement for the catalog path: a query that resolved to a
+   category must not surface offers of a DIFFERENT known category (already
+   caught upstream by sameProduct's category-mismatch rule) OR offers that
+   are simply uncategorized but happen to share the query's brand token —
+   that's exactly the "شاشة سامسونج" bug (a Samsung phone/power bank/earbud
+   listing carries no category signal at all, but shares "samsung" with the
+   query and slipped through as if compatible). An uncategorized offer is
+   only kept if it shares a query token that ISN'T merely the brand name —
+   real evidence the listing is actually about the requested category, not
+   just the same brand. */
+function categoryOk(want, got, query) {
+  if (!want.category) return true;
+  if (got.category)
+    return got.category === want.category && categoryNameInLeading(want.category, got.title || '');
+  // Brand names can be multi-word ("ال جي" for LG), but distinctiveTokens()
+  // splits on whitespace — comparing whole-string brand names against
+  // single-word query tokens would never actually strip "ال"/"جي" out, and
+  // "ال" (Arabic "the/al-") is common enough to spuriously overlap almost
+  // any Arabic title, letting an unrelated same-brand product (a Bluetooth
+  // speaker) pass a "تلفزيون ال جي" query. Split each brand-name variant
+  // into its own words so every one of them is excluded individually.
+  const brandNames = (want.brand && BRANDS[want.brand]) || [];
+  const brandWords = new Set(brandNames.flatMap(n => normText(n).split(/\s+/)));
+  const qTokens = distinctiveTokens(query).filter(tok => !brandWords.has(tok));
+  if (!qTokens.length) return false;
+  const nt = normText(got.title || '');
+  return qTokens.some(tok => nt.includes(tok));
+}
+
+/* Brand enforcement: a DIFFERENT known brand disqualifies (mirrors — and is
+   largely already covered by — sameProduct's own brand-mismatch rule, but
+   the bare-category browse branch never calls sameProduct at all, so this
+   stands on its own there too). Absence of a detected brand on the offer is
+   not a contradiction. */
+function brandOk(want, got) {
+  if (!want.brand || !got.brand) return true;
+  return got.brand === want.brand;
+}
+
+/* Single gate applied on both the bare-category browse branch and the
+   identity-matched branch: category, brand, accessory. */
+function offerAllowed(want, got, query, title) {
+  return categoryOk(want, got, query) && brandOk(want, got) && !isAccessoryOffer(query, title);
+}
+
+/* sameProduct()'s blanket 'insufficient identity' verdict fires whenever
+   EITHER side is missing a brand or category to compare against — it makes
+   no distinction between "the offer's brand is undetected" (not a
+   contradiction — see brandOk above) and "the query itself named no brand
+   at all". That collapses a real, same-category, brand-undetected offer
+   into 'none' alongside genuinely unrelated listings. Recover the former
+   case here as a 'weak' match — shown, price-sorted, but per the crowning
+   gate below never crowned over a genuinely branded/verified offer — without
+   touching sameProduct itself (its symmetric identity rules are relied on
+   elsewhere and are out of scope for this fix). */
+function directedConfidence(want, got, query) {
+  const m = sameProduct(want, got);
+  if (m.same) return queryDirectionalConfidence(want, got, m);
+  if (m.reason === 'insufficient identity' && want.brand && !got.brand &&
+      want.category && got.category === want.category) {
+    return 'weak';
+  }
+  return want.brand || want.category ? null : 'weak';
+}
+
 export async function rankOffers(catalog, query, opts = {}) {
   const { verify = async () => null, verifyTop = 10, limit = 200, override = {} } = opts;
 
@@ -114,6 +256,7 @@ export async function rankOffers(catalog, query, opts = {}) {
     for (const r of catOffers) {
       const got = identify(r.title_raw);
       if (def && browseContradicts(want, got, def)) continue;
+      if (!offerAllowed(want, got, query, r.title_raw)) continue;
       results.push({
         domain: r.domain, url: r.url, title: r.title_raw, price: r.price,
         currency: r.currency || 'EGP', confidence: 'weak',
@@ -160,13 +303,10 @@ export async function rankOffers(catalog, query, opts = {}) {
   const matchedProductIds = new Set();
   for (const r of rows) {
     const got = identify(r.title_raw);
-    const m = sameProduct(want, got);
     // when the query itself is under-specified (no brand/category), fall back to
     // FTS relevance and mark the offer weak rather than discarding everything
-    const confidence = m.same
-      ? queryDirectionalConfidence(want, got, m)
-      : (want.brand || want.category ? null : 'weak');
-    if (confidence) matchedProductIds.add(r.product_id);
+    const confidence = directedConfidence(want, got, query);
+    if (confidence && offerAllowed(want, got, query, r.title_raw)) matchedProductIds.add(r.product_id);
   }
   if (!matchedProductIds.size)
     return {
@@ -182,11 +322,9 @@ export async function rankOffers(catalog, query, opts = {}) {
   const scored = [];
   for (const r of allOffers) {
     const got = identify(r.title_raw);
-    const m = sameProduct(want, got);
-    const confidence = m.same
-      ? queryDirectionalConfidence(want, got, m)
-      : (want.brand || want.category ? null : 'weak');
+    const confidence = directedConfidence(want, got, query);
     if (!confidence) continue;
+    if (!offerAllowed(want, got, query, r.title_raw)) continue;
     scored.push({ ...r, confidence });
   }
 

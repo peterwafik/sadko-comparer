@@ -377,6 +377,82 @@ test('regression: LG and Sharp TV queries still crown despite the new distinctiv
   c.close();
 });
 
+// ===== Browse/category fix (شاشة سامسونج bug: a screen protector, a phone,
+// a power bank and earbuds all outranked real Samsung TVs because a query
+// that resolved to both a brand AND a category was letting UNCATEGORIZED
+// same-brand offers slip through, and an accessory got miscategorised as
+// the target category by detectCategory's leading-noun scan) =====
+
+test('a category query returns only offers of that category; a different-category offer is excluded', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'tv.com', url: 'https://tv.com/1',
+    title: 'شاشة سامسونج 55 بوصة سمارت', price: 15000 });
+  c.upsertOffer({ domain: 'washer.com', url: 'https://washer.com/2',
+    title: 'غسالة سامسونج 9 كيلو', price: 15000 }); // different KNOWN category
+  const r = await rankOffers(c, 'شاشة سامسونج', { verify: async () => null });
+  assert.ok(r.results.every(x => x.domain !== 'washer.com'),
+    'the washer must be excluded from a screen/TV query even though it shares the brand');
+  assert.ok(r.results.some(x => x.domain === 'tv.com'), 'the actual Samsung TV must still be returned');
+  c.close();
+});
+
+test('a brand+category query excludes a different-brand offer but keeps a no-brand offer matching the category', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'samsung-tv.com', url: 'https://samsung-tv.com/1',
+    title: 'شاشة سامسونج 55 بوصة سمارت', price: 15000 });
+  c.upsertOffer({ domain: 'lg-tv.com', url: 'https://lg-tv.com/2',
+    title: 'شاشة ال جي 55 بوصة سمارت', price: 14000 }); // different KNOWN brand
+  c.upsertOffer({ domain: 'nobrand-tv.com', url: 'https://nobrand-tv.com/3',
+    title: 'شاشة 55 بوصة سمارت بدون ماركة', price: 13000 }); // category matches, no brand detected
+  // and the bug's actual regression targets: uncategorized same-brand junk
+  c.upsertOffer({ domain: 'phone.com', url: 'https://phone.com/4',
+    title: 'سامسونج جالاكسي A14 128 جيجا', price: 5000 });
+  c.upsertOffer({ domain: 'powerbank.com', url: 'https://powerbank.com/5',
+    title: 'باور بانك سلكي سامسونج 10000', price: 999 });
+  const r = await rankOffers(c, 'شاشة سامسونج', { verify: async () => null });
+  const domains = r.results.map(x => x.domain);
+  assert.ok(!domains.includes('lg-tv.com'), 'a different known brand must be excluded');
+  assert.ok(!domains.includes('phone.com'), 'an uncategorized same-brand phone must be excluded');
+  assert.ok(!domains.includes('powerbank.com'), 'an uncategorized same-brand power bank must be excluded');
+  assert.ok(domains.includes('samsung-tv.com'), 'the genuine Samsung TV must be kept');
+  assert.ok(domains.includes('nobrand-tv.com'), 'a no-brand offer matching the category must be kept');
+  c.close();
+});
+
+test('an accessory is excluded from the device query but included when the query itself asks for it', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'tv.com', url: 'https://tv.com/1',
+    title: 'شاشة سامسونج 55 بوصة سمارت', price: 15000 });
+  c.upsertOffer({ domain: 'protector.com', url: 'https://protector.com/2',
+    title: 'حماية شاشة سامسونج', price: 119 });
+  const deviceQuery = await rankOffers(c, 'شاشة سامسونج', { verify: async () => null });
+  assert.ok(!deviceQuery.results.some(x => x.domain === 'protector.com'),
+    'the screen protector must not be returned for a TV query');
+
+  const accessoryQuery = await rankOffers(c, 'حماية شاشة', { verify: async () => null });
+  assert.ok(accessoryQuery.results.some(x => x.domain === 'protector.com'),
+    'a query that itself asks for the accessory must still find it');
+  c.close();
+});
+
+test('regression: bare category browse and model-bearing crown are unaffected by the accessory/category/brand gate', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 8 كيلو اتوماتيك', price: 12000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة بوش 7 كيلو فتحة علوية', price: 9000 });
+  c.upsertOffer({ domain: 'c.com', url: 'https://c.com/3', title: 'غسالة سامسونج 9 كيلو', price: 15000 });
+  const washers = await rankOffers(c, 'غسالة', { verify: async () => null });
+  assert.equal(washers.results.length, 3, 'a bare category browse must still return all washers');
+  assert.equal(washers.cheapest, null, 'a browse still crowns nothing');
+
+  const c2 = openCatalog();
+  c2.upsertOffer({ domain: 'lg.com', url: 'https://lg.com/1',
+    title: 'شاشة ال جي 43 بوصة سمارت فل اتش دي 43LM6370PVA', price: 14900 });
+  const modelQuery = await rankOffers(c2, '43LM6370PVA', { verify: async () => null });
+  assert.equal(modelQuery.cheapest && modelQuery.cheapest.price, 14900,
+    'a model-bearing query must still crown via exact model match');
+  c.close(); c2.close();
+});
+
 test('removing a unit override widens the result set', async () => {
   const c = openCatalog();
   c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });

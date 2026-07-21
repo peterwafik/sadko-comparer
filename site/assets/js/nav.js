@@ -35,10 +35,10 @@
   };
   const N = {
     ar: { home: 'الرئيسية', shop: 'المتجر', all: 'كل المنتجات', allPrefix: 'كل ', compare: 'قارن الأسعار',
-      orders: 'الطلبات', showrooms: 'المعارض', call: 'اتصل 19140', cartAria: 'سلة التسوق',
+      orders: 'الطلبات', showrooms: 'المعارض', experience: 'تجربة البيت', call: 'اتصل 19140', cartAria: 'سلة التسوق',
       pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ اتضافت', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
-      orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
+      orders: 'Orders', showrooms: 'Showrooms', experience: 'Home Experience', call: 'Call 19140', cartAria: 'Shopping cart',
       pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
   }[LANG];
   const CAT_EN = {
@@ -119,6 +119,7 @@
       here === 'compare.html' ? 'compare' :
       here === 'orders.html' ? 'orders' :
       here === 'showrooms.html' ? 'showrooms' :
+      here === 'experience.html' ? 'experience' :
       here === 'cart.html' ? 'cart' :
       ROOT ? 'shop' : '';
 
@@ -150,6 +151,7 @@
         `<a class="sk-link${active === 'compare' ? ' is-active' : ''}" href="${P('compare.html')}">${N.compare}</a>` +
         `<a class="sk-link${active === 'orders' ? ' is-active' : ''}" href="${P('orders.html')}">${N.orders}</a>` +
         `<a class="sk-link${active === 'showrooms' ? ' is-active' : ''}" href="${P('showrooms.html')}">${N.showrooms}</a>` +
+        `<a class="sk-link${active === 'experience' ? ' is-active' : ''}" href="${P('experience.html')}">${N.experience}</a>` +
       `</nav>` +
       `<span class="sk-nav__side">` +
         `<button type="button" class="sk-lang sk-glass" title="${N.langTitle}" aria-label="${N.langTitle}">${N.langBtn}</button>` +

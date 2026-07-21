@@ -55,6 +55,7 @@ import { openCatalog } from './engine/catalog.mjs';
 import { rankOffers } from './engine/serve.mjs';
 import { extractProduct } from './engine/extract.mjs';
 import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
+import { openBookings } from './engine/bookings.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -1411,6 +1412,16 @@ function storeLinks(q, lang) {
   ];
 }
 
+/* ================= Home Experience bookings ================= */
+let BOOKINGS = null;
+function bookings() {
+  if (BOOKINGS === null) {
+    try { BOOKINGS = openBookings(path.join(ROOT, 'data', 'bookings.json'), path.join(ROOT, 'data', 'branches.json')); }
+    catch { BOOKINGS = false; }
+  }
+  return BOOKINGS;
+}
+
 /* ================= http ================= */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
@@ -1455,6 +1466,29 @@ http.createServer(async (req, res) => {
       reg.stores.push(store); await saveRegistry();
       return json(200, { ok: true, store });
     } catch (e) { return json(500, { error: String(e.message || e) }); }
+  }
+
+  /* ---- Home Experience: slot availability + booking ---- */
+  if (u.pathname === '/api/experience/slots' && req.method === 'GET') {
+    const bk = bookings();
+    if (!bk) return json(500, { error: 'bookings unavailable' });
+    const branch = u.searchParams.get('branch') || '';
+    const date = u.searchParams.get('date') || '';
+    const r = bk.slotsFor(branch, date);
+    return json(r.error ? 400 : 200, r);
+  }
+  if (u.pathname === '/api/experience/book' && req.method === 'POST') {
+    const bk = bookings();
+    if (!bk) return json(500, { error: 'bookings unavailable' });
+    let body = ''; for await (const c of req) { body += c; if (body.length > 20000) return json(413, { error: 'too-large' }); }
+    let rec; try { rec = JSON.parse(body || '{}'); } catch { return json(400, { error: 'bad-json' }); }
+    const r = bk.create(rec);
+    return json(r.error ? 400 : 200, r.error ? { error: r.error } : { ok: true, ref: r.ref });
+  }
+  if (u.pathname === '/api/experience/branches' && req.method === 'GET') {
+    const bk = bookings();
+    if (!bk) return json(500, { error: 'bookings unavailable' });
+    return json(200, { branches: bk.branches, slotTimes: bk.slotTimes });
   }
 
   let p = decodeURIComponent(u.pathname); if (p === '/') p = '/index.html';

@@ -49,6 +49,13 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage, headlessAvailable } from './headless.mjs';
+import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
+import { extractUnits } from './engine/units.mjs';
+import { openCatalog } from './engine/catalog.mjs';
+import { rankOffers } from './engine/serve.mjs';
+import { extractProduct } from './engine/extract.mjs';
+import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
+import { createVerifyOffer } from './engine/verify.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8082);
@@ -204,22 +211,12 @@ function normDigits(s) {
   return String(s).replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0)).replace(/[٬٫]/g, ',');
 }
-function parsePrice(x) {
-  if (typeof x === 'number') return x >= 100 && x <= 2e6 ? Math.round(x) : 0;
-  const t = normDigits(String(x || '')).replace(/[\s,]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '');
-  const v = parseFloat(t.replace(/[^\d.]/g, ''));
-  return v >= 100 && v <= 2e6 ? Math.round(v) : 0;
-}
 function extractPrices(text) {
   const t = normDigits(String(text || ''));
   const out = [];
   const re = /(?:EGP|LE|E£|ج\.?\s?م|جنيه)\s*[:\s]?([\d][\d.,\s]{1,12})|([\d][\d.,\s]{1,12})\s*(?:EGP|LE|E£|ج\.?\s?م|جنيه)/gi;
   let m; while ((m = re.exec(t))) { const v = parsePrice(m[1] || m[2]); if (v) out.push(v); }
   return out;
-}
-function decodeEntities(s) {
-  return String(s || '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d)).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 /* headless tier: a small concurrency gate so we never open too many tabs */
 const BTECH_SCRIPT = `(async()=>{
@@ -288,26 +285,6 @@ function absUrl(u, domain) {
   try { return new URL(u, 'https://' + domain).href; } catch { return 'https://' + domain; }
 }
 
-/* ---- offer sanity gate ----------------------------------------------------
-   A harvested "item" is only an OFFER if it points at a real product page and
-   isn't storefront chrome. Without this the harvesters return "add to cart"
-   anchors (?add-to-cart=3991), nav labels whose href is "#", and cart/wishlist
-   links — all of which then get priced and ranked. Every adapter output funnels
-   through here. */
-const UI_TITLE = /^(?:إضافة إلى السلة|أضف إلى السلة|اضف للسلة|أضف للسلة|اضف الى السلة|اشتر(?:ى|ي) الآن|عرض المنتج|عرض التفاصيل|اقرأ المزيد|اقرا المزيد|التفاصيل|قارن|المفضلة|السلة|add to cart|add to basket|buy now|read more|view (?:product|details|more)|compare|wishlist|quick view|select options|show details)\s*$/i;
-const BAD_URL = /[?&](?:add-to-cart|add_to_cart|remove_item|s)=|\/(?:cart|checkout|wishlist|compare|my-account|account|login|register)(?:\/|$|\?)/i;
-function isProductOffer(o) {
-  if (!o || !o.price || !o.url) return false;
-  const title = String(o.title || '').trim();
-  if (title.length < 8 || UI_TITLE.test(title)) return false;
-  let u; try { u = new URL(o.url); } catch { return false; }
-  // href="#" and bare-domain links resolve to the site root — navigation, not a
-  // product; an offer the customer cannot click is worse than no offer
-  if (!u.pathname || u.pathname === '/') return false;
-  if (BAD_URL.test(u.href)) return false;
-  return true;
-}
-
 /* JSON-LD: schema.org Product / ItemList on any page */
 function jsonLdProducts(html, domain) {
   const out = [];
@@ -316,14 +293,23 @@ function jsonLdProducts(html, domain) {
   const walk = node => {
     if (!node || typeof node !== 'object') return;
     if (Array.isArray(node)) return node.forEach(walk);
-    const t = String(node['@type'] || '').toLowerCase();
-    if (t === 'product') {
+    // @type may be a plain string, an array (["Product","Thing"]), or a
+    // schema.org URL — match the final path segment of each candidate
+    const isProduct = [].concat(node['@type'] || [])
+      .some(x => String(x).toLowerCase().replace(/^.*\//, '') === 'product');
+    if (isProduct) {
       const offers = [].concat(node.offers || []);
       const price = parsePrice(offers[0]?.price ?? offers[0]?.lowPrice ?? node.price);
       const avail = String(offers[0]?.availability || '');
+      // The canonical URL is not always at the Product level — noon, for one,
+      // leaves node.url undefined and carries it on the Offer. Without this
+      // fallback absUrl() yields the bare domain, isProductOffer correctly
+      // rejects it as navigation, and a real product is silently dropped —
+      // after which the caller's crude price scrape can return a junk number.
+      const href = node.url || node['@id'] || offers[0]?.url || '';
       // skip listings the store itself marks unavailable — dead prices poison the ranking
       if (price && !/OutOfStock|SoldOut|Discontinued/i.test(avail))
-        out.push({ title: decodeEntities(node.name), price, url: absUrl(node.url || node['@id'] || '', domain) });
+        out.push({ title: decodeEntities(node.name), price, url: absUrl(href, domain) });
     }
     if (node.item) walk(node.item);
     if (node.mainEntity) walk(node.mainEntity);          // CollectionPage → ItemList (Jumia)
@@ -610,14 +596,21 @@ ADAPTERS['jsonld'] = async function (store, q) {
    Queries and titles freely mix Arabic and English (stores title in Arabic,
    shoppers search in either) — equivalence groups bridge the two. ---- */
 const STOP = new Set(['سعر', 'اسعار', 'شراء', 'افضل', 'جديد', 'اصلى', 'اصلي',
-  'price', 'prices', 'buy', 'best', 'new', 'cheap', 'cheapest', 'offer', 'offers', 'online', 'egypt']);
+  'price', 'prices', 'buy', 'best', 'new', 'cheap', 'cheapest', 'offer', 'offers', 'online', 'egypt',
+  // marketing filler in long copy-pasted titles — raises the effective signal
+  // in the 60% overlap check without weakening size/unit matching
+  'with', 'compatible', 'for', 'and', 'plus', 'include', 'included', 'includes',
+  'pack', 'set', 'pcs', 'ports', 'port', 'x', 'مع', 'متوافق', 'و']);
 // spare parts / accessories — never the "cheapest <appliance>" the user meant
 const ACCESSORY = ['طقم', 'عيون', 'عين', 'غطاء', 'غطا', 'رف', 'رفوف', 'حامل', 'حوامل', 'فلتر', 'شمعة',
   'شمعه', 'جلبة', 'جلبه', 'مفصلة', 'مفصله', 'درج ', 'ريموت', 'كفر', 'حساس', 'وصلة', 'وصله', 'خرطوم',
   'سلك', 'كابل', 'مروحة تبريد', 'قطع غيار', 'اكسسوار', 'ستاند', 'رفرف', 'صينية', 'صينيه', 'شبكة', 'شبكه',
   'جهاز تحكم', 'تحكم عن بعد',
+  'جراب', 'حافظه', 'واقي', 'واقى',
   'remote', 'cover', 'stand', 'holder', 'bracket', 'filter', 'shelf', 'cable', 'wire', 'hose',
-  'spare', 'parts', 'accessory', 'accessories', 'tray', 'knob', 'hinge', 'gasket', 'sensor'];
+  'spare', 'parts', 'accessory', 'accessories', 'tray', 'knob', 'hinge', 'gasket', 'sensor',
+  // protective goods sold FOR a device — a silicone case is not the power bank
+  'case', 'cases', 'pouch', 'sleeve', 'protector'];
 function normAr(s) {
   return normDigits(String(s).toLowerCase())
     .replace(/[ىي]/g, 'ي').replace(/[ةه]/g, 'ه').replace(/[أإآ]/g, 'ا')
@@ -625,7 +618,15 @@ function normAr(s) {
 }
 function queryTokens(q) {
   // single characters are noise EXCEPT single digits — "7 كيلو" must keep the 7
-  return normAr(q).split(/[^\p{L}\p{N}]+/u).filter(t => (t.length >= 2 || /^\d$/.test(t)) && !STOP.has(t));
+  return normAr(q).split(/[^\p{L}\p{N}]+/u).filter(t => {
+    if (!(t.length >= 2 || /^\d$/.test(t))) return false;
+    if (STOP.has(t)) return false;
+    // a digit run fused (no separator) to a stop word — "3ports", "1x" — is
+    // still marketing filler, not a spec number; drop the whole token
+    const bare = t.replace(/^\d+/, '');
+    if (bare !== t && STOP.has(bare)) return false;
+    return true;
+  });
 }
 /* EN↔AR equivalence groups: product types, units, features. A query token
    matches a title if ANY variant of its group appears — this is what lets
@@ -668,6 +669,10 @@ const SYN_RAW = [
   ['سيلفر', 'فضي', 'silver'],
   ['ستانلس', 'استانلس', 'stainless'],
   ['ريسيفر', 'رسيفر', 'receiver'],
+  ['شاحن', 'charger'],
+  ['حائط', 'wall'],
+  ['زولو', 'zolo'],
+  ['انكر', 'anker'],
 ];
 const SYN = [...SYN_RAW, ...Object.values(BRANDS)].map(g => g.map(normAr));
 const SYN_BY_TOKEN = new Map();
@@ -686,6 +691,18 @@ function variantInTitle(t, v) {
 const UNIT_TOKENS = new Set(['كيلو', 'كجم', 'kg', 'kilo', 'بوصة', 'inch', 'inches', 'قدم', 'feet',
   'foot', 'ft', 'لتر', 'liter', 'litre', 'liters', 'litres', 'حصان', 'hp', 'horsepower', 'سم', 'cm']
   .map(x => normAr(x)));
+/* a digit-only query token is mandatory (must show up as a standalone number
+   in the title) only when it is a SIZE/CAPACITY — i.e. in the original query
+   text it is immediately followed by a unit word (spaces/hyphens allowed in
+   between). "75 بوصة" gates on 75; "1 x USB-A" is an incidental count inside a
+   feature list and must not gate every listing out. */
+function numberHasUnit(qn, n) {
+  for (const u of UNIT_TOKENS) {
+    const esc = u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp('(^|[^0-9])' + n + '[\\s-]*' + esc).test(qn)) return true;
+  }
+  return false;
+}
 /* full-word check for the accessory blocklist — "stand" must not fire on
    "standard", while Arabic terms keep substring semantics */
 function accessoryIn(text) {
@@ -693,23 +710,95 @@ function accessoryIn(text) {
     ? new RegExp('(^|[^a-z0-9])' + a + '([^a-z0-9]|$)').test(text)
     : text.includes(normAr(a));
 }
+/* the accessory blocklist must only inspect the LEADING segment of a title —
+   the part that states what the product IS. Real titles put the product
+   type first and push feature lists (which routinely mention "filter",
+   "cover", "tray", "sensor"...) after the first comma/dash/paren; an actual
+   accessory listing ("Water Filter for TOSHIBA Refrigerator...") has the
+   accessory word itself in that leading segment, so it's still caught.
+   Search for the boundary only within the first ~50 chars — real product-type
+   declarations are short, and capping the window stops a delimiter that's
+   buried deep in a long title (e.g. inside a model number well past the
+   product name) from accidentally widening the segment we inspect; if no
+   boundary shows up in that window, the 50-char window itself is the segment. */
+/* the query's identity clause — everything before its first comma. Distinct
+   from leadingSegment (which caps at 50 chars and also splits on dash/paren,
+   tuned for spotting an accessory word in a TITLE): a model number like
+   "GR-RT468WE-PMN(49)-PRO" legitimately contains dashes/parens and must stay
+   whole here, only an actual comma starts the feature-bullet tail. */
+function coreClause(q) {
+  const i = q.search(/[,،]/);
+  return i < 0 ? q : q.slice(0, i);
+}
+function leadingSegment(t) {
+  const LEAD_WINDOW = 50;
+  const head = t.slice(0, LEAD_WINDOW);
+  const m = head.match(/[,،\-–—|(]/);
+  return m ? head.slice(0, m.index) : head;
+}
 function tokenInTitle(t, tok) {
   const g = SYN_BY_TOKEN.get(tok);
   return g ? g.some(v => variantInTitle(t, v)) : variantInTitle(t, tok);
 }
-function isRelevant(title, q) {
+/* unit-string → engine/units.mjs canonical key, for the optional AI
+   size_value/size_unit reinforcement in isRelevant() below (additive only —
+   it can only ADD a disqualification, never weaken the extractUnits rule) */
+const SIZE_UNIT_ALIAS = {
+  w: 'watt', watt: 'watt', watts: 'watt',
+  kg: 'kg', kgs: 'kg', kilo: 'kg', kilogram: 'kg', kilograms: 'kg',
+  inch: 'inch', inches: 'inch', in: 'inch',
+  liter: 'liter', litre: 'liter', liters: 'liter', litres: 'liter', l: 'liter', ltr: 'liter',
+  feet: 'feet', foot: 'feet', ft: 'feet',
+  hp: 'hp', horsepower: 'hp',
+  cm: 'cm', gb: 'gb', tb: 'tb', rpm: 'rpm',
+};
+/* isRelevant(title, q, attrs?) — attrs is the optional AI-distilled query
+   understanding from understandQuery() (undefined/null/malformed whenever the
+   AI layer is off, failed, or returned garbage — behaviour is then BYTE-
+   IDENTICAL to the rule-based path below, unconditionally). When attrs is a
+   usable object it corrects two failure modes raw-string matching cannot:
+   (1) a brand named only as a COMPATIBILITY mention ("...for iPhone,
+   Samsung and More...") is no longer read as the product's own brand —
+   attrs.brand becomes the only authoritative brand; (2) the 60% word-overlap
+   check is judged against attrs' short canonical query_en/query_ar instead
+   of the raw, marketing-copy-laden pasted title. */
+function isRelevant(title, q, attrs) {
   const toks = queryTokens(q);
   if (!toks.length) return true;
   const t = normAr(title);
-  // reject spare parts / accessories unless the query itself asked for one
+  // reject spare parts / accessories unless the query itself asked for one —
+  // only the leading product-type segment is checked (see leadingSegment)
   const qn = normAr(q);
-  if (!ACCESSORY.some(accessoryIn(qn)) && ACCESSORY.some(accessoryIn(t))) return false;
+  if (!ACCESSORY.some(accessoryIn(qn)) && ACCESSORY.some(accessoryIn(leadingSegment(t)))) return false;
   // sizes/capacities are non-negotiable: a 75-inch query must not return a
-  // 32-inch TV, a 7-kilo query must not return a 9-kilo washer — every number
-  // in the query must appear as a standalone number in the title (digit
-  // boundaries, so 75 matches "C75F" and "75-inch" but never "175" or "750")
-  for (const n of toks) if (/^\d+$/.test(n) && !new RegExp('(^|\\D)' + n + '(\\D|$)').test(t)) return false;
-  const word = toks.filter(x => !/^\d+$/.test(x));
+  // 32-inch TV, a 7-kilo query must not return a 9-kilo washer — every
+  // UNIT-BEARING number in the query must appear as a standalone number in
+  // the title (digit boundaries, so 75 matches "C75F" and "75-inch" but never
+  // "175" or "750"). A bare digit with no unit attached in the query (e.g. the
+  // "1" in "1 x USB-A") is incidental and is NOT required — see numberHasUnit.
+  for (const n of toks) if (/^\d+$/.test(n) && numberHasUnit(qn, n) && !new RegExp('(^|\\D)' + n + '(\\D|$)').test(t)) return false;
+  // a stated unit VALUE must match even when the number and unit are fused
+  // with no separator ("140W") — queryTokens turns that into the single WORD
+  // token "140w", so it never reaches the digit-token rule above and never
+  // hits UNIT_TOKENS (which only knows the bare unit word "watt"). extractUnits
+  // (engine/units.mjs) parses "140W", "20 W", "75 بوصة" etc. uniformly, so use
+  // it directly on the raw title/query text: for every unit the QUERY states a
+  // value for, if the TITLE also states a value for that unit and it differs,
+  // this is a different product (a 20W charger is not a 140W charger) — the
+  // same contradiction-disqualifies/silence-is-unknown asymmetry
+  // engine/matcher.mjs's sameProduct() already uses for the catalog path.
+  // This rule is UNCHANGED by attrs — attrs.size_value/size_unit below may
+  // only ADD a reinforcing check, never weaken this one.
+  const qUnitValues = extractUnits(q);
+  const tUnitValues = extractUnits(title);
+  for (const [unit, qv] of Object.entries(qUnitValues))
+    if (tUnitValues[unit] !== undefined && tUnitValues[unit] !== qv) return false;
+  const ai = attrs && typeof attrs === 'object' && !Array.isArray(attrs) ? attrs : null;
+  if (ai && typeof ai.size_value === 'number' && typeof ai.size_unit === 'string') {
+    const key = SIZE_UNIT_ALIAS[ai.size_unit.trim().toLowerCase()];
+    if (key && tUnitValues[key] !== undefined && tUnitValues[key] !== ai.size_value) return false;
+  }
+  const word = [...new Set(toks.filter(x => !/^\d+$/.test(x)))];
   if (!word.length) return true;
   // spec-critical unit words are non-negotiable too (كيلو/بوصة/لتر/قدم/حصان…)
   for (const x of word) if (UNIT_TOKENS.has(x) && !tokenInTitle(t, x)) return false;
@@ -717,17 +806,59 @@ function isRelevant(title, q) {
   // (in any language); known brand tokens are non-negotiable too; then ≥60%.
   const lead = word.find(x => !BRAND_TOKENS.has(x));
   if (lead && !tokenInTitle(t, lead)) return false;
-  for (const names of Object.values(BRANDS))
-    if (names.some(n => qn.includes(normAr(n))) && !names.some(n => t.includes(normAr(n)))) return false;
+  // brand: WITHOUT a usable attrs.brand, any brand named ANYWHERE in the
+  // query (today's rule, unchanged) is required in the title — this is what
+  // misreads a COMPATIBILITY mention ("for iPhone, Samsung and More") as the
+  // product's own brand. WITH a usable attrs.brand, that is corrected:
+  // attrs.brand is the ONLY brand enforced, so a compatibility-only brand
+  // elsewhere in the query text is no longer required in the title.
+  if (ai && typeof ai.brand === 'string' && ai.brand.trim()) {
+    const req = normAr(ai.brand.trim());
+    if (req && !tokenInTitle(t, req) && !t.includes(req)) return false;
+  } else {
+    for (const names of Object.values(BRANDS))
+      if (names.some(n => qn.includes(normAr(n))) && !names.some(n => t.includes(normAr(n)))) return false;
+  }
+  // long copy-pasted queries pack many independent comma-separated feature
+  // bullets (GaN, 3 Ports, Compatible with iPhone…) that vary wildly between
+  // listings of the SAME product — the leading clause (before the first
+  // comma) is the product's actual identity declaration and anchors the 60%
+  // threshold; a match anywhere in the query, including the feature-list
+  // tail, still counts toward the numerator, so a shorter but genuine
+  // listing isn't punished for simply not restating every bullet this
+  // particular query happened to list. No-op for single-clause queries.
+  // WITH a usable attrs.query_en/query_ar, the 60% overlap is judged against
+  // THAT short canonical string instead — the raw pasted title's marketing
+  // copy (colour prose, warranty text, compatibility lists) never dilutes
+  // the ratio. Both languages the AI returned are tried; passing against
+  // EITHER is enough, since a listing may be titled in either script
+  // regardless of which script the shopper's pasted query happened to use.
+  const distilled = [];
+  if (ai) {
+    if (typeof ai.query_en === 'string' && ai.query_en.trim().length > 3) distilled.push(ai.query_en.trim());
+    if (typeof ai.query_ar === 'string' && ai.query_ar.trim().length > 3) distilled.push(ai.query_ar.trim());
+  }
+  if (distilled.length) {
+    return distilled.some(cand => {
+      const cw = [...new Set(queryTokens(cand).filter(x => !/^\d+$/.test(x)))];
+      if (!cw.length) return false;
+      const core = [...new Set(queryTokens(coreClause(cand)).filter(x => !/^\d+$/.test(x)))];
+      const denom = core.length || cw.length;
+      const hits = cw.filter(x => tokenInTitle(t, x)).length;
+      return hits / denom >= 0.6;
+    });
+  }
   const hits = word.filter(x => tokenInTitle(t, x)).length;
-  return hits / word.length >= 0.6;
+  const coreWords = [...new Set(queryTokens(coreClause(q)).filter(x => !/^\d+$/.test(x)))];
+  const denom = coreWords.length || word.length;
+  return hits / denom >= 0.6;
 }
 
 // hard per-store deadline so no single slow/hung store can stall the request
 function withTimeout(promise, ms, onTimeout) {
   return Promise.race([promise, new Promise(res => setTimeout(() => res(onTimeout), ms))]);
 }
-async function searchStore(store, q, variants) {
+async function searchStore(store, q, variants, attrs) {
   const key = String(store.platform || 'auto').split(':')[0];
   const fn = ADAPTERS[key] || ADAPTERS.auto;
   // attempt ladder: AI/canonical variants when available, else the raw query,
@@ -743,7 +874,7 @@ async function searchStore(store, q, variants) {
   const work = (async () => {
     for (const attempt of attempts) {
       const raw = (await fn(store, attempt)) || [];
-      const items = raw.filter(it => it.price && isRelevant(it.title, q));
+      const items = raw.filter(it => it.price && isRelevant(it.title, q, attrs));
       if (items.length) {
         store.lastOk = Date.now(); store.failN = 0; saveRegistrySoon();
         return { store, status: 'ok', items: items.slice(0, 12) };
@@ -838,11 +969,24 @@ async function understandQuery(q) {
   if (!NVIDIA_KEY) return null;
   if (AI_Q_CACHE.has(q)) return AI_Q_CACHE.get(q);
   const attrs = aiJson(await aiChat(
-    'You normalize Egyptian product-search queries (Arabic, English or mixed). Query: "' + q.replace(/"/g, ' ') + '"\n' +
+    'You normalize Egyptian product-search queries (Arabic, English or mixed). Shoppers often paste an ' +
+    'entire marketplace listing title, packed with marketing copy, compatibility lists, and warranty text. ' +
+    'Query: "' + q.replace(/"/g, ' ') + '"\n' +
     'Reply with ONLY minified JSON, no prose: {"category_en":string,"category_ar":string,"brand":string|null,' +
     '"model_number":string|null,"size_value":number|null,"size_unit":string|null,"resolution":string|null,' +
-    '"wants_used":boolean,"query_en":string,"query_ar":string} — query_en/query_ar are the cleanest short ' +
-    'search strings for Egyptian store search boxes.', 400, 9000).catch(() => ''));
+    '"wants_used":boolean,"query_en":string,"query_ar":string,"compatible_brands":string[]}\n' +
+    '"query_en" and "query_ar" MUST each be a SHORT canonical search string — brand + product type + ' +
+    'defining specs ONLY, AT MOST 8 WORDS. Strip all marketing copy: compatibility/"works with"/"for ' +
+    'iPhone 16" lists, bundle contents, warranty text, and colour prose. Do NOT echo the full pasted title ' +
+    'back — collapse it.\n' +
+    'Worked example — the pasted title "Anker Laptop Power Bank (25,000 mAh, 165W, Built-In and Retractable ' +
+    'Cables), Effortless Multi-Device Fast Charging, for iPhone 16/15, MacBook, Samsung and More, Space ' +
+    'Black - 18 Months Warranty" collapses to query_en:"Anker power bank 25000mAh 165W" (brand + product ' +
+    'type + capacity + wattage only — 5 words). "brand" is "Anker" (the maker of THIS product), never a ' +
+    'name mentioned only as compatibility.\n' +
+    '"compatible_brands" lists brands named ONLY as compatibility/"works with" targets, never the product\'s ' +
+    'own brand — for the example above that is ["Samsung"] (Samsung is a device this power bank charges, ' +
+    'not who makes it).', 450, 9000).catch(() => ''));
   AI_Q_CACHE.set(q, attrs);
   if (AI_Q_CACHE.size > 500) AI_Q_CACHE.delete(AI_Q_CACHE.keys().next().value);
   return attrs;
@@ -882,6 +1026,20 @@ async function auditOffers(job) {
    proven stores). Unproven tier 3–4 stores are swept in the background and
    merged in while the client polls. Price history rides along per offer. */
 const INDEX_FILE = path.join(ROOT, 'data', 'price-index.json');
+/* Catalog path: when site/data/catalog.db exists we answer from the crawled
+   catalog and fall back to live fan-out only when it returns nothing. */
+const CATALOG_FILE = path.join(ROOT, 'data', 'catalog.db');
+let CATALOG = null;
+function catalog() {
+  if (CATALOG === null) CATALOG = existsSync(CATALOG_FILE) ? openCatalog(CATALOG_FILE) : false;
+  return CATALOG;
+}
+/* live re-check of one offer: refetch its product page, but only through
+   engine/verify.mjs's robots-gated, honest-UA, identity-checked fetch — see
+   that module for why (M1 final review findings 2 & 4). Never fall back to
+   fetchPage()/UA here: that Chrome-spoofed UA is reserved for the existing
+   live store-search fan-out, not for this branch's new per-offer traffic. */
+const verifyOffer = createVerifyOffer({ extractProducts: jsonLdProducts });
 const FRESH_MS = 10 * 60e3, USABLE_MS = 24 * 3600e3, MAX_QUERIES = 400;
 let INDEX = null;
 async function loadIndex() {
@@ -953,12 +1111,18 @@ async function runJob(job, discover) {
   };
 
   const discP = discover ? discoveryWave(job, reg, collect) : Promise.resolve();
-  await pool(live, 12, s => searchStore(s, job.q, variants).then(collect));
+  await pool(live, 12, s => searchStore(s, job.q, variants, job.ai).then(collect));
 
   // wave 2 + discovery + AI audit continue after the response goes out
   job.bg = (async () => {
-    await pool(rest, 6, s => searchStore(s, job.q, variants).then(collect));
+    await pool(rest, 6, s => searchStore(s, job.q, variants, job.ai).then(collect));
     await discP;
+    // Tavily fallback fires only when the whole registry sweep came up thin —
+    // few relevant offers from few stores. It reaches beyond the registry, so
+    // it is the last resort, not a per-query default: a well-answered search
+    // never triggers it and never pays its latency or quota.
+    const relevantStores = new Set(job.offers.map(o => o.domain)).size;
+    if (relevantStores < 3) await tavilyWave(job, reg, collect).catch(() => {});
     await auditOffers(job).catch(() => {});
   })().finally(() => finishJob(job));
 }
@@ -1001,6 +1165,32 @@ async function discoveryWave(job, reg, collect) {
     }
   }
   if (job.stats.discovered.length) saveRegistrySoon();
+}
+
+/* ---- Tavily discovery wave (URL discovery ONLY) ------------------------------
+   Reaches stores the engine cannot: those that block their own search path but
+   serve product pages (raneen, sharpegy), and stores absent from the registry.
+   Tavily returns product-PAGE URLs; every price and identity below comes from
+   OUR extractor and OUR relevance filter — never from Tavily's snippets, which
+   are unreliable. Fails soft: no key or any error contributes nothing. Runs
+   only when the cheaper paths have already come up short (see runTavilyFallback
+   gate), so a normal answered query never pays its cost. */
+async function tavilyWave(job, reg, collect) {
+  if (!tavilyEnabled()) return;
+  const found = await discoverProductUrls(job.q, { maxResults: 8, timeoutMs: 9000 }).catch(() => []);
+  if (!found.length) return;
+  job.stats.tavily = found.length;
+  await pool(found, 4, ({ url, domain }) => withTimeout((async () => {
+    let html;
+    try { html = await fetchPage(url, 'text/html', 12000); } catch { return; }
+    const p = extractProduct(html, url);
+    if (!p || !p.price || !isRelevant(p.title, job.q, job.ai)) return;
+    const known = reg.stores.find(s => domain === s.domain || domain.endsWith('.' + s.domain));
+    const store = known || { domain, name: domain.split('.')[0], type: 'local', t: 4,
+      platform: 'auto', addedBy: 'tavily', lastOk: Date.now() };
+    if (!known) { reg.stores.push(store); job.stats.discovered.push(domain); saveRegistrySoon(); }
+    collect({ store, status: 'ok', items: [{ title: p.title, price: p.price, url }] });
+  })(), 14000, null));
 }
 function finishJob(job) {
   if (job.done) return;
@@ -1100,7 +1290,75 @@ function buildResponse(q, offers, stats, ai, min, max, lang, refreshing, src, ag
   };
 }
 
-async function compare(q, min, max, discover, lang) {
+/* Reads the interpretation-bar overrides out of the query string:
+     cat=<category>          confirms/replaces the detected category
+     u_<unit>=<value>        confirms/replaces one parsed unit (e.g. u_kg=7)
+     s_<spec>=<value>        confirms/replaces one parsed spec (e.g. s_smart=true)
+   An explicitly EMPTY param (u_kg=) means that attribute was removed by the
+   shopper — it still marks the whole field (units/specs) as "present" in the
+   override so rankOffers treats it as a hard filter, it just omits that one
+   key, which is exactly how a removed chip widens the result set. */
+function parseOverride(sp) {
+  const override = {};
+  if (sp.has('cat')) override.category = sp.get('cat') || null;
+  let units = null, specs = null;
+  for (const [k, v] of sp) {
+    if (k.startsWith('u_')) {
+      units = units || {};
+      if (v !== '') units[k.slice(2)] = /^-?\d+(\.\d+)?$/.test(v) ? parseFloat(v) : v;
+    } else if (k.startsWith('s_')) {
+      specs = specs || {};
+      if (v !== '') specs[k.slice(2)] = v === 'true' ? true : v === 'false' ? false : v;
+    }
+  }
+  if (units) override.units = units;
+  if (specs) override.specs = specs;
+  return override;
+}
+
+async function compare(q, min, max, discover, lang, override) {
+  const cat = catalog();
+  if (cat) {
+    const r = await rankOffers(cat, q, { verify: verifyOffer, verifyTop: 10, override });
+    // Only answer from the catalog when it produced something genuinely
+    // useful: a real identity match (r.confident — at least one exact/strong
+    // crowned result) or a legitimate category browse (r.browse). ANY other
+    // non-empty result set is just weak/noise matches (e.g. "Arion 43-Inch
+    // Full HD Smart" matching a screen protector and a printer on shared
+    // words like "Full"/"Smart"/"HD") and must fall through to the live
+    // fan-out below, exactly as when the catalog is empty (CRITICAL 1,
+    // garbage-match review).
+    if (r.results.length && (r.browse || r.confident)) {
+      const filtered = r.results.filter(x => (!min || x.price >= min) && (!max || x.price <= max));
+      const results = filtered.map(x => ({
+        store: x.domain, domain: x.domain, type: 'local', title: x.title,
+        price: x.price, effectivePrice: x.price, currency: x.currency, url: x.url,
+        checkedAt: x.checkedAt, flags: x.confidence === 'weak' ? ['variant'] : [],
+        rank: x.rank, verified: x.verified,
+      }));
+      // derive cheapest from the MAPPED and price-FILTERED rows: rankOffers'
+      // own `cheapest` carries `domain` but not `store`, and predates the
+      // min/max filter, so using it directly would render an undefined store
+      // name and could crown a row the shopper's price filter excluded
+      const cheapest = results.find(x => x.rank === 1) || null;
+      const sadko = results.find(x => x.domain === 'sadko-group.com');
+      return {
+        mode: 'catalog', query: q,
+        results,
+        cheapest,
+        concierge: cheapest ? {
+          cheapestStore: cheapest.store, cheapestPrice: cheapest.price,
+          sadkoHasIt: !!sadko, sadkoPrice: sadko ? sadko.price : null,
+          pitch: 'validation+shipping+maintenance', hotline: '19140',
+        } : null,
+        refreshing: false,
+        stats: { ...r.stats, src: 'catalog', headless: headlessAvailable(), ai: !!NVIDIA_KEY },
+        links: storeLinks(q, lang),
+        interpretation: r.interpretation,
+      };
+    }
+  }
+
   await loadIndex(); await loadRegistry();
   const qk = qkey(q);
   let job = JOBS.get(qk);
@@ -1160,7 +1418,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
 /* diagnostics harness hook: importing this module with SADKO_NO_SERVE=1 gives a
    test script the adapters without binding the port */
-export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest };
+export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest, understandQuery, extractPrices };
 
 if (!process.env.SADKO_NO_SERVE)
 http.createServer(async (req, res) => {
@@ -1175,7 +1433,8 @@ http.createServer(async (req, res) => {
     if (q.length < 2) return json(200, { error: lang === 'en' ? 'Type a product name first' : 'اكتب اسم الجهاز الأول' });
     try {
       return json(200, await compare(q, +u.searchParams.get('min') || 0,
-        +u.searchParams.get('max') || 0, u.searchParams.get('discover') !== '0', lang));
+        +u.searchParams.get('max') || 0, u.searchParams.get('discover') !== '0', lang,
+        parseOverride(u.searchParams)));
     } catch (e) {
       return json(500, { error: lang === 'en' ? 'The engine hit a problem — try again' : 'المحرك وقع فى مشكلة — جرّب تانى',
         detail: String(e.message || e) });

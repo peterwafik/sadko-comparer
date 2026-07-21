@@ -26,6 +26,22 @@
 .filters input[type=number]{width:110px;font:700 .85rem 'Cairo',sans-serif;padding:8px 10px;
   border-radius:10px;border:1.5px solid rgba(46,126,136,.25);}
 .filters .hint{font:600 .74rem 'Cairo',sans-serif;color:#8a979a;}
+.interp{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:14px;padding-top:14px;
+  border-top:1.5px dashed rgba(46,126,136,.18);}
+.interp__label{font:700 .82rem 'Cairo',sans-serif;color:#3f5457;flex:0 0 auto;}
+.interp.interp--ask .interp__label{color:#8a5b12;}
+.interp__cat{font:700 .82rem 'Cairo',sans-serif;color:#14343a;background:#f2f6f6;
+  border:1.5px solid rgba(46,126,136,.25);border-radius:999px;padding:6px 12px;cursor:pointer;}
+.interp.interp--ask .interp__cat{border-color:#c97b12;background:#fff3dd;}
+.interp__chips{display:flex;flex-wrap:wrap;gap:8px;}
+.interp__chip{display:inline-flex;align-items:center;gap:6px;font:700 .78rem 'Cairo',sans-serif;
+  color:#2e7e88;background:rgba(46,126,136,.1);border:1.5px solid rgba(46,126,136,.25);
+  border-radius:999px;padding:5px 6px 5px 12px;}
+html[dir=ltr] .interp__chip{padding:5px 12px 5px 6px;}
+.interp__chip button{all:unset;cursor:pointer;width:18px;height:18px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(46,126,136,.18);color:#2e7e88;font-size:.7rem;line-height:1;}
+.interp__chip button:hover{background:#2e7e88;color:#fff;}
+@media (max-width:520px){ .interp{gap:6px 8px;} .interp__label{flex:1 1 100%;} }
 .modebar{border-radius:14px;padding:12px 16px;font:600 .82rem 'Cairo',sans-serif;line-height:1.7;margin-bottom:18px;}
 .modebar.live{background:#e7f5ee;color:#14532d;border:1px solid #bbe3cd;}
 .modebar.demo{background:#fdf6ea;color:#6b5636;border:1px solid rgba(201,123,18,.3);}
@@ -104,6 +120,11 @@ html[dir=ltr] .offer .buy{text-align:right;}
       <label><input type="checkbox" class="tf" value="local" checked> <span data-i18n="fLocal">متاجر محلية</span></label>
       <label><input type="checkbox" class="tf" value="official" checked> <span data-i18n="fOfficial">متجر البراند الرسمى</span></label>
       <span class="hint" data-i18n="fHint">الفلاتر اختيارية — من غيرها بنعرض كل النتايج</span>
+    </div>
+    <div class="interp" id="interp" style="display:none">
+      <span class="interp__label" id="interpLabel" data-i18n="interpLabel">بندوّر على:</span>
+      <select id="interpCat" class="interp__cat"></select>
+      <span id="interpChips" class="interp__chips"></span>
     </div>
   </div>
 

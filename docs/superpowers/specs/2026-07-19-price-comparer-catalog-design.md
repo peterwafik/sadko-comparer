@@ -31,7 +31,11 @@ it.
 
 A sitemap probe across the registry (`scripts/probe-sitemaps.mjs`):
 
-- **33 of 84 stores expose a usable sitemap**, totalling **~104,792 product URLs**.
+- **33 of 84 stores expose a usable sitemap**, totalling **~104,792 URLs**.
+  CORRECTION (found during Task 7): that probe counted every `<loc>` entry, and
+  some are navigation rather than products — rayashop's sitemap.xml is a
+  CATEGORY sitemap, so its 22,076 is not 22,076 products. Treat the figure as an
+  upper bound on reachable URLs. Task 10 measures real per-store product yield.
 - Large catalogs are routine: rayashop 22,076 · hyper-techno 17,333 ·
   jumia 10,000 · 2B 7,611 · B.TECH 7,205 · ElAraby 6,369 · egyptlaptop 6,193 ·
   ElGhazawy 6,179 · amanstores 4,885.

@@ -1,0 +1,558 @@
+{
+ "at": "2026-07-20T12:02:51.558Z",
+ "results": [
+  {
+   "domain": "amanstores.com",
+   "tier": 1,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 196483
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "fresh.com.eg",
+   "tier": 2,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 133670
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "mobileshop.com.eg",
+   "tier": 2,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 3139
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "hyperone.com.eg",
+   "tier": 1,
+   "tried": 5,
+   "verdict": "BLOCKED_SEARCH",
+   "code": 200,
+   "tpl": "/ar/catalogsearch/result/?q="
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "tier": 1,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 709158
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "raneen.com",
+   "tier": 1,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 1745218
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "alsheikhstores.com",
+   "tier": 3,
+   "tried": 14,
+   "lastOk": {
+    "tpl": "/ar/search?q=",
+    "code": 200,
+    "bytes": 351624
+   },
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 5
+  },
+  {
+   "domain": "airo-shop.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 102630
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "rayashop.com",
+   "tier": 1,
+   "tried": 13,
+   "lastOk": {
+    "tpl": "/en/search?q=",
+    "code": 200,
+    "bytes": 1166796
+   },
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 10
+  },
+  {
+   "domain": "sigma-computer.com",
+   "tier": 2,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 702575
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "homzmart.com",
+   "tier": 2,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 35912
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "dubaiphone.net",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 472678
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "computershopegypt.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 612
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "drmobilestore.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 267764
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "elnekhelytechnology.com",
+   "tier": 3,
+   "tried": 13,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 3
+  },
+  {
+   "domain": "appliance.com.eg",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 152287
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 514854
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "unionaire.com",
+   "tier": 2,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 327748
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "ennap.com",
+   "tier": 3,
+   "tried": 1,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/search?q=",
+   "items": 7
+  },
+  {
+   "domain": "elbadrgroupeg.store",
+   "tier": 3,
+   "tried": 13,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 4
+  },
+  {
+   "domain": "ehabcenter.com",
+   "tier": 3,
+   "tried": 1,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/search?q=",
+   "items": 5
+  },
+  {
+   "domain": "dubaiforshopping.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 252475
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "eshop.vodafone.com.eg",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 6365
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "hans.com.eg",
+   "tier": 3,
+   "tried": 15,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 235111
+   },
+   "verdict": "BLOCKED_SEARCH",
+   "code": 200,
+   "tpl": "/index.php?route=product/search&search="
+  },
+  {
+   "domain": "gamerzlounge.me",
+   "tier": 3,
+   "tried": 13,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 12
+  },
+  {
+   "domain": "jacoob1.com",
+   "tier": 3,
+   "tried": 1,
+   "verdict": "BLOCKED_SEARCH",
+   "code": 200,
+   "tpl": "/search?q="
+  },
+  {
+   "domain": "magicduino.com",
+   "tier": 3,
+   "tried": 13,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 2
+  },
+  {
+   "domain": "hankerz.com.eg",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 185660
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "smeg.com.eg",
+   "tier": 2,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 168603
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "ram-e-shop.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 45952
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "eratablet.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 142201
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "kareemstores.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 1358091
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "miamicenters.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 374352
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "brico-eg.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 159941
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "moreshopping.com",
+   "tier": 3,
+   "tried": 1,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/search?q=",
+   "items": 2
+  },
+  {
+   "domain": "maximumhardware.store",
+   "tier": 3,
+   "tried": 13,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/?s=",
+   "items": 6
+  },
+  {
+   "domain": "najm.store",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 151726
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "sevencameras.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 228763
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "smartkoshk.com",
+   "tier": 3,
+   "tried": 1,
+   "verdict": "HAS_PRODUCTS",
+   "code": 200,
+   "tpl": "/search?q=",
+   "items": 4
+  },
+  {
+   "domain": "store.fut-electronics.com",
+   "tier": 3,
+   "tried": 2,
+   "verdict": "BLOCKED_SEARCH",
+   "code": 200,
+   "tpl": "/search?q="
+  },
+  {
+   "domain": "tal2aa.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/?s=",
+    "code": 200,
+    "bytes": 1521
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "makerselectronics.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 204837
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "switchpluseg.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 3990
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "shuttershopegypt.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 206196
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "sharp-egypt.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 122325
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "uptodate.store",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 197958
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "shams-stores.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 438629
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "shaarp.net",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 163367
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "wdestores.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 115117
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "smarttechnology-eg.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 212592
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "moreelectronicss.com",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 204684
+   },
+   "verdict": "NO_PRODUCTS"
+  },
+  {
+   "domain": "souqcairo.net",
+   "tier": 3,
+   "tried": 16,
+   "lastOk": {
+    "tpl": "/index.php?route=product/search&search=",
+    "code": 200,
+    "bytes": 230053
+   },
+   "verdict": "NO_PRODUCTS"
+  }
+ ]
+}

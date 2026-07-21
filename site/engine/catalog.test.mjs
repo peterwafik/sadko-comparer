@@ -1,0 +1,216 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { openCatalog } from './catalog.mjs';
+
+const seed = c => {
+  c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/1',
+    title: 'شاشة شارب 75 بوصة 4K سمارت 4T-C75FN6EX', price: 41000, inStock: true });
+  c.upsertOffer({ domain: 'elarabygroup.com', url: 'https://elarabygroup.com/p/2',
+    title: 'شاشة شارب 4K سمارت بدون فريم 75 بوصة 4T-C75FN6EX', price: 39699, inStock: true });
+  c.upsertOffer({ domain: 'btech.com', url: 'https://btech.com/p/3',
+    title: 'غسالة توشيبا 8 كيلو اتوماتيك AEW-8460SUP', price: 12079, inStock: true });
+};
+
+test('upsert then search finds Arabic titles', () => {
+  const c = openCatalog();
+  seed(c);
+  const r = c.search('شارب 75');
+  assert.ok(r.length >= 2, `expected >=2 got ${r.length}`);
+  c.close();
+});
+
+test('search matches an exact model number', () => {
+  const c = openCatalog();
+  seed(c);
+  const r = c.search('4T-C75FN6EX');
+  assert.equal(r.length, 2);
+  c.close();
+});
+
+test('offers sharing a model number share one product_id', () => {
+  const c = openCatalog();
+  seed(c);
+  const r = c.search('4T-C75FN6EX');
+  assert.equal(r[0].product_id, r[1].product_id);
+  c.close();
+});
+
+test('re-upserting the same URL updates price and records history', () => {
+  const c = openCatalog();
+  const { offerId } = c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p',
+    title: 'ثلاجة تورنيدو 395 لتر RF-51FTV', price: 29179, inStock: true });
+  c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p',
+    title: 'ثلاجة تورنيدو 395 لتر RF-51FTV', price: 27999, inStock: true });
+  const hist = c.priceHistory(offerId);
+  assert.equal(hist.length, 2);
+  assert.equal(hist[0].price, 29179);
+  assert.equal(hist[1].price, 27999);
+  const rows = c.search('تورنيدو');
+  assert.equal(rows.length, 1, 'URL is unique — no duplicate offer row');
+  assert.equal(rows[0].price, 27999);
+  c.close();
+});
+
+test('search does not throw on hyphenated or quote-bearing input', () => {
+  const c = openCatalog();
+  seed(c);
+  assert.doesNotThrow(() => c.search('RF-40FTV-BK'));
+  assert.doesNotThrow(() => c.search('75" شاشة'));
+  assert.doesNotThrow(() => c.search(''));
+  c.close();
+});
+
+// Finding 1 (CRITICAL): contentless FTS5 'delete' must be given the
+// ORIGINAL indexed values, not NULLs, or the old tokens are orphaned in the
+// index forever. This pins the regression: a title change must make the old
+// token unsearchable, not just add the new one.
+test('re-upserting a URL with a changed title removes the OLD token from search and adds the NEW one', () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p1',
+    title: 'ثلاجة UNIQUEWORDONE 355 لتر', price: 29179, inStock: true });
+  c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p1',
+    title: 'ثلاجة UNIQUEWORDTWO 355 لتر', price: 27999, inStock: true });
+
+  const fresh = c.search('UNIQUEWORDTWO');
+  assert.equal(fresh.length, 1, 'new token must be searchable');
+
+  const stale = c.search('UNIQUEWORDONE');
+  assert.equal(stale.length, 0, 'old token must NOT still be searchable — stale FTS posting leaked');
+  c.close();
+});
+
+// Finding 1 extended: the FTS delete must reconstruct not just title_raw but
+// also the brand/model_norm columns that were actually indexed, or a brand
+// or model-number change leaks the old brand/model token forever even
+// though the title_raw token itself was cleaned up correctly.
+test('title change also updates the searchable brand and model_norm FTS columns, not just title_raw', () => {
+  const c = openCatalog();
+  const { offerId } = c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p2',
+    title: 'غسالة توشيبا 8 كيلو اتوماتيك AEW-8460SUP', price: 12079, inStock: true });
+
+  const brandBefore = c.db.prepare("SELECT rowid FROM offers_fts WHERE offers_fts MATCH 'brand:toshiba'").all();
+  assert.equal(brandBefore.length, 1, 'sanity: brand column indexed on first insert');
+  const modelBefore = c.db.prepare("SELECT rowid FROM offers_fts WHERE offers_fts MATCH 'model_norm:AEW8460SUP'").all();
+  assert.equal(modelBefore.length, 1, 'sanity: model_norm column indexed on first insert');
+
+  c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p2',
+    title: 'غسالة بوش 9 كيلو اتوماتيك WAJ2018FC', price: 13500, inStock: true });
+
+  const staleBrand = c.db.prepare("SELECT rowid FROM offers_fts WHERE offers_fts MATCH 'brand:toshiba'").all();
+  assert.equal(staleBrand.length, 0, 'old brand token must not linger in the brand column');
+  const staleModel = c.db.prepare("SELECT rowid FROM offers_fts WHERE offers_fts MATCH 'model_norm:AEW8460SUP'").all();
+  assert.equal(staleModel.length, 0, 'old model_norm token must not linger in the model_norm column');
+
+  const freshBrand = c.db.prepare("SELECT rowid FROM offers_fts WHERE offers_fts MATCH 'brand:bosch'").all();
+  assert.equal(freshBrand.length, 1, 'new brand token must be indexed');
+  assert.equal(freshBrand[0].rowid, offerId);
+  const freshModel = c.db.prepare("SELECT rowid FROM offers_fts WHERE offers_fts MATCH 'model_norm:WAJ2018FC'").all();
+  assert.equal(freshModel.length, 1, 'new model_norm token must be indexed');
+  c.close();
+});
+
+// Finding 2 (Important): the multi-statement write in upsertOffer must be
+// transactional. Force a real mid-sequence failure — price_history.price is
+// NOT NULL, and passing price=null lets the offer UPDATE succeed (offers.price
+// has no NOT NULL constraint) while the subsequent price_history INSERT
+// throws — and assert the whole upsert is rolled back: no changed offer row,
+// no stray history row, and (critically) no orphaned FTS delete either.
+// CRITICAL: listings with no model/brand/category used to all collapse onto
+// the identical key 'b:?|c:?||', merging unrelated products (an SSD and a
+// mouse pad) into a single catalog row. Each unidentifiable listing must get
+// its own product, and re-crawling the same URL must not fork it into a new
+// one.
+test('unidentifiable listings with different titles get distinct product ids, and re-crawls keep the same one', () => {
+  const c = openCatalog();
+  const ssd = c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/1',
+    title: 'Patriot P300 512GB SSD M2 NVMe', price: 2299, inStock: true });
+  const mousePad = c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/2',
+    title: 'Redragon P012 Large Gaming Mouse Pad - Black', price: 259, inStock: true });
+
+  assert.notEqual(ssd.productId, mousePad.productId, 'SSD and mouse pad must not share a product');
+  assert.equal(c.db.prepare('SELECT COUNT(*) n FROM products').get().n, 2);
+
+  const reCrawl = c.upsertOffer({ domain: '2b.com.eg', url: 'https://2b.com.eg/p/1',
+    title: 'Patriot P300 512GB SSD M2 NVMe', price: 2199, inStock: true });
+  assert.equal(reCrawl.productId, ssd.productId, 're-crawl of the same listing must keep the same product');
+  assert.equal(c.db.prepare('SELECT COUNT(*) n FROM products').get().n, 2, 're-crawl must not create a new product');
+  c.close();
+});
+
+// CRITICAL (identity defect): these four real crawled titles all mention
+// "Samsung" but none carries a detectable category. Under the old key form
+// (b:samsung|c:?||) they all collapsed onto ONE product row — a screen
+// protector, a phone case, a power bank, and a tablet treated as the same
+// product, so a shopper searching for the tablet could be shown the 124 EGP
+// screen protector as the "cheapest" match. Each must now get its own
+// product.
+test('brand-known/category-unknown Samsung accessories from the live catalog get four distinct products', () => {
+  const c = openCatalog();
+  const titles = [
+    'Full Cover Tempered Glass for Samsung Galaxy',
+    'Back Cover Clear Fusion Magsafe Case Samsung',
+    'باور بانك سلكي سامسونج ، سعة 10000 مللي امبير',
+    'Samsung Galaxy Tab S10 Lite Tablet – WiFi+5G',
+  ];
+  const ids = titles.map((title, i) => c.upsertOffer({
+    domain: `store${i}.example.com`, url: `https://store${i}.example.com/p/${i}`,
+    title, price: [124, 199, 999, 22999][i], inStock: true,
+  }).productId);
+  assert.equal(new Set(ids).size, 4, `expected 4 distinct product ids, got ${new Set(ids).size}`);
+  c.close();
+});
+
+// CRITICAL (identity defect): these are the real crawled titles that
+// exposed the over-merge — five different Fresh vacuum cleaners plus a
+// mis-categorised "Thermal Jug" all shared the bare bucket key
+// b:fresh|c:vacuum||, so they collapsed onto ONE product spanning prices
+// from 855 to 5,699 EGP. Brand+category with no distinguishing unit/spec
+// must fall back to a title-derived key so each stays its own product.
+test('real Fresh vacuum and mis-categorized thermal jug titles produce distinct product ids', () => {
+  const c = openCatalog();
+  const vacuum = c.upsertOffer({ domain: 'btech.com',
+    url: 'https://btech.com/ar/p/fresh-spider-vacuum-cleaner-1500w-black',
+    title: 'مكنسة كهربائية فريش سبايدر ، اسود', price: 3899, inStock: true });
+  const jug = c.upsertOffer({ domain: 'jumia.com.eg',
+    url: 'https://www.jumia.com.eg/slp/1-liter-insulated-jug',
+    title: 'Thermal Jug - 1 liter jug with a wooden handle double-walled vacuum insulation inner glass core temperature indicator keeps drinks hot or cold and fresh for 24 hours black',
+    price: 855, inStock: true });
+  assert.notEqual(vacuum.productId, jug.productId);
+  c.close();
+});
+
+// The genuine cross-store match must survive the fix: two listings for the
+// same LG 43LM6370PVA TV, in different languages/phrasing, still share one
+// product because the model number is present on both.
+test('two 43-inch LG TVs with the same model still yield one product', () => {
+  const c = openCatalog();
+  const a = c.upsertOffer({ domain: 'hyper-techno.com',
+    url: 'https://hyper-techno.com/product/43lm6370pva-1-shash-alg-43bos-smart-rsyfr-dakhl',
+    title: '43LM6370PVA-افضل سعر تقسيط وكاش شاشة الجى 43بوصة سمارت رسيفر داخلى',
+    price: 16499, inStock: true });
+  const b = c.upsertOffer({ domain: 'elghazawy.com',
+    url: 'https://elghazawy.com/ar/product/12533352909010/shash-al-jy-43-bos-smart-hdr-full-hd-brsyfr-dakhly-mdmj-43lm6370pva',
+    title: 'شاشة ال جي 43 بوصة سمارت Full HD LED 43LM6370PVA - رسيفر داخلي',
+    price: 14900, inStock: true });
+  assert.equal(a.productId, b.productId);
+  c.close();
+});
+
+test('a mid-sequence failure during upsert rolls back all writes, including the FTS delete', () => {
+  const c = openCatalog();
+  const { offerId } = c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p3',
+    title: 'ثلاجة UNIQUEWORDTHREE 355 لتر', price: 29179, inStock: true });
+
+  assert.throws(() => {
+    c.upsertOffer({ domain: 'x.com', url: 'https://x.com/p3',
+      title: 'ثلاجة UNIQUEWORDTHREE 355 لتر', price: null, inStock: true });
+  }, /NOT NULL constraint failed: price_history\.price/);
+
+  assert.equal(c.db.prepare('SELECT COUNT(*) n FROM offers').get().n, 1, 'no orphan offer row');
+  assert.equal(c.db.prepare('SELECT price FROM offers WHERE id=?').get(offerId).price, 29179,
+    'offer price update must have been rolled back');
+  assert.equal(c.priceHistory(offerId).length, 1, 'no stray price_history row');
+  assert.equal(c.search('UNIQUEWORDTHREE').length, 1,
+    'the FTS delete issued mid-transaction must be rolled back too — old token must still be searchable');
+  c.close();
+});

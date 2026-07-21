@@ -13,11 +13,41 @@
 - **Zero runtime dependencies.** No npm packages. `node:sqlite`, `node:test`, `node:fs`, `node:http` only. This is an existing, deliberate property of the codebase (see the no-deps note in `site/headless.mjs`).
 - **Node ≥ 22.5** for `node:sqlite`. Verified working on v24.16.0.
 - **All new engine modules live in `site/engine/`.** Tests in `site/engine/*.test.mjs` beside their module.
-- **Run tests with:** `node --test site/engine/` from repo root `D:\SADKO`.
+- **Run tests with:** `node --test site/engine/*.test.mjs` from repo root `D:\SADKO`.
+  Note the glob — on this Node 24 / Windows setup, passing the *directory*
+  (`node --test site/engine/*.test.mjs`) fails with `Cannot find module 'D:\SADKO\site\engine'`.
+  Single file: `node --test site/engine/<name>.test.mjs`.
 - **Never commit `site/.env`.** It holds a live NVIDIA API key and is gitignored by `*.env`.
 - **Crawler must honour `robots.txt`**, including `Crawl-delay`, and send UA `Mozilla/5.0 (compatible; SADKO-price-comparer/1.0; +https://sadko-group.com/bot)`.
 - **Arabic text is first-class.** Every normalization must handle Arabic-Indic digits (`٠-٩`), alef/ya/ta-marbuta variants, and tatweel.
 - **Commit after every task** using the exact commands given.
+- **Catalog verification is mandatory before declaring any task done.** Unit
+  tests passing is necessary but has proven insufficient: in Tasks 1-3 every
+  module passed its own tests and then failed against real data (a model
+  extractor that fused SKU+model on 30 titles; a unit guard that silently
+  blocked Arabic after Latin; category names that matched a food dish, a sports
+  racket, and a headset). After the unit tests pass, run your module across all
+  471 real products in `site/data/products.json`, report the output
+  distribution, and eyeball it for absurdities. Each task below names the
+  specific command. **Report the numbers honestly — never tune code to hit a
+  target number, and never weaken an assertion to make a test green.**
+
+  The generic form, when a task does not specify its own:
+
+  ```bash
+  node --input-type=module -e "
+  const M = await import('./site/engine/<module>.mjs');
+  const { createRequire } = await import('node:module');
+  const p = createRequire(import.meta.url)('./site/data/products.json').products;
+  const dec = s => s.replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+  const tally = {}; let none = 0;
+  for (const x of p) { const r = M.<fn>(dec(x.title));
+    if (r == null || (typeof r === 'object' && !Object.keys(r).length)) none++;
+    else tally[JSON.stringify(r).slice(0,40)] = (tally[JSON.stringify(r).slice(0,40)]||0)+1; }
+  console.log('produced a result:', p.length - none, 'of', p.length);
+  console.log(Object.entries(tally).sort((a,b)=>b[1]-a[1]).slice(0,15));
+  "
+  ```
 
 ---
 
@@ -32,7 +62,8 @@
 | `site/engine/catalog.mjs` | SQLite schema, upsert, FTS search, price history |
 | `site/engine/robots.mjs` | robots.txt fetch + parse — `Disallow`, `Crawl-delay`, `Sitemap` |
 | `site/engine/sitemap.mjs` | sitemap/sitemap-index parsing → product URLs |
-| `site/engine/extract.mjs` | product page → `{title, price, brand, in_stock}` via JSON-LD |
+| `site/engine/offer-gate.mjs` | shared offer-sanity gate — imported by extract.mjs AND compare-server.mjs |
+| `site/engine/extract.mjs` | product page → `{title, price, currency, inStock}` via JSON-LD |
 | `site/engine/crawler.mjs` | orchestration: robots → sitemap → pages → catalog, resumable |
 | `site/engine/stores-m1.mjs` | the 13 Milestone-1 stores |
 | `site/compare-server.mjs` | MODIFIED: catalog-first search path + live top-10 verification |
@@ -928,7 +959,17 @@ export function openCatalog(file = ':memory:') {
       let offerId;
       if (existing) {
         offerId = existing.id;
-        delFts.run(offerId, null, null, null);
+        // CRITICAL: a contentless FTS5 table needs the row's ORIGINAL indexed values
+
+        // to locate and remove its postings. Passing null deletes NOTHING and leaks
+
+        // stale tokens permanently — search then matches text no listing contains.
+
+        const prev = db.prepare(`SELECT o.title_raw, p.brand, p.model_norm FROM offers o
+
+          JOIN products p ON p.id = o.product_id WHERE o.id = ?`).get(offerId);
+
+        if (prev) delFts.run(offerId, prev.title_raw, prev.brand, prev.model_norm);
         updOffer.run(price, inStock ? 1 : 0, title, now, productId, offerId);
         if (existing.price !== price) insHist.run(offerId, price, now);
       } else {
@@ -1206,6 +1247,151 @@ git commit -m "feat(engine): sitemap and sitemap-index parsing"
 
 ---
 
+## Task 8a: Shared offer-sanity gate
+
+**Files:**
+- Create: `site/engine/offer-gate.mjs`
+- Modify: `site/compare-server.mjs` — delete its private copies, import from the new module
+- Test: `site/engine/offer-gate.test.mjs`
+
+**Interfaces:**
+- Consumes: nothing
+- Produces:
+  - `UI_TITLE: RegExp`, `BAD_URL: RegExp`
+  - `parsePrice(x: string|number) => number` — 0 when outside 100..2,000,000
+  - `decodeEntities(s: string) => string`
+  - `isProductOffer({title, price, url}) => boolean`
+
+**Why this task exists:** these regexes were fixed earlier in this project after
+they let "add to cart" anchors and `href="#"` nav links be priced and ranked as
+products. Two copies would drift and silently reintroduce that bug. The
+dependency points one way only — `compare-server.mjs` → `engine/` — so there is
+no cycle. Do **not** import from `compare-server.mjs`: it starts an HTTP server
+at module load unless `SADKO_NO_SERVE` is set.
+
+- [ ] **Step 1: Write the failing test**
+
+```js
+// site/engine/offer-gate.test.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { parsePrice, decodeEntities, isProductOffer } from './offer-gate.mjs';
+
+test('parsePrice accepts plausible EGP and rejects the rest', () => {
+  assert.equal(parsePrice('39,699'), 39699);
+  assert.equal(parsePrice('٣٩٦٩٩'), 39699);
+  assert.equal(parsePrice(41000), 41000);
+  assert.equal(parsePrice('99'), 0);          // below floor
+  assert.equal(parsePrice('9999999'), 0);     // above ceiling
+  assert.equal(parsePrice('abc'), 0);
+});
+
+test('decodeEntities unwraps html entities and strips tags', () => {
+  assert.equal(decodeEntities('Cooling&nbsp;&amp;&nbsp;Heating'), 'Cooling & Heating');
+  assert.equal(decodeEntities('<b>شارب</b> 75'), 'شارب 75');
+});
+
+test('isProductOffer rejects UI chrome and non-product URLs', () => {
+  const ok = { title: 'شاشة شارب 75 بوصة 4K', price: 39699, url: 'https://s.com/product/1' };
+  assert.equal(isProductOffer(ok), true);
+  assert.equal(isProductOffer({ ...ok, title: 'إضافة إلى السلة' }), false);
+  assert.equal(isProductOffer({ ...ok, title: 'Add to cart' }), false);
+  assert.equal(isProductOffer({ ...ok, url: 'https://s.com/?add-to-cart=3991' }), false);
+  assert.equal(isProductOffer({ ...ok, url: 'https://s.com/cart' }), false);
+  assert.equal(isProductOffer({ ...ok, url: 'https://s.com/' }), false);   // bare root = nav
+  assert.equal(isProductOffer({ ...ok, price: 0 }), false);
+  assert.equal(isProductOffer({ ...ok, title: 'short' }), false);
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `node --test site/engine/offer-gate.test.mjs`
+Expected: FAIL — `Cannot find module './offer-gate.mjs'`
+
+- [ ] **Step 3: Write minimal implementation**
+
+```js
+// site/engine/offer-gate.mjs
+/* Offer-sanity gate, shared by the crawler's extractor and the live adapters in
+   compare-server.mjs. A harvested "item" is only an OFFER if it points at a real
+   product page and is not storefront chrome. */
+
+export const UI_TITLE = /^(?:إضافة إلى السلة|أضف إلى السلة|اضف للسلة|أضف للسلة|اضف الى السلة|اشتر(?:ى|ي) الآن|عرض المنتج|عرض التفاصيل|اقرأ المزيد|اقرا المزيد|التفاصيل|قارن|المفضلة|السلة|add to cart|add to basket|buy now|read more|view (?:product|details|more)|compare|wishlist|quick view|select options|show details)\s*$/i;
+
+export const BAD_URL = /[?&](?:add-to-cart|add_to_cart|remove_item|s)=|\/(?:cart|checkout|wishlist|compare|my-account|account|login|register)(?:\/|$|\?)/i;
+
+export function parsePrice(x) {
+  if (typeof x === 'number') return x >= 100 && x <= 2e6 ? Math.round(x) : 0;
+  const t = String(x ?? '')
+    .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06F0))
+    .replace(/[\s,]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '');
+  const v = parseFloat(t.replace(/[^\d.]/g, ''));
+  return v >= 100 && v <= 2e6 ? Math.round(v) : 0;
+}
+
+export function decodeEntities(s) {
+  return String(s ?? '')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
+    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function isProductOffer(o) {
+  if (!o || !o.price || !o.url) return false;
+  const title = String(o.title || '').trim();
+  if (title.length < 8 || UI_TITLE.test(title)) return false;
+  let u; try { u = new URL(o.url); } catch { return false; }
+  // href="#" and bare-domain links resolve to the site root — navigation, not a
+  // product; an offer the customer cannot click is worse than no offer
+  if (!u.pathname || u.pathname === '/') return false;
+  if (BAD_URL.test(u.href)) return false;
+  return true;
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `node --test site/engine/offer-gate.test.mjs`
+Expected: PASS — 3 tests
+
+- [ ] **Step 5: Rewire `compare-server.mjs` to the shared module**
+
+Add to the imports in `site/compare-server.mjs`:
+
+```js
+import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
+```
+
+Then **delete** these now-duplicated definitions from `compare-server.mjs`:
+`const UI_TITLE = …`, `const BAD_URL = …`, `function parsePrice(x) {…}`,
+`function decodeEntities(s) {…}`, and `function isProductOffer(o) {…}`.
+
+Leave every *call site* unchanged — the imported names are identical.
+
+Note `compare-server.mjs` also has a `normDigits` used by `parsePrice`; keep
+`normDigits` where it is, since other code in that file still calls it.
+
+- [ ] **Step 6: Verify the rewire did not break the server**
+
+```bash
+node --test site/engine/*.test.mjs
+SADKO_NO_SERVE=1 node -e "import('./site/compare-server.mjs').then(()=>console.log('compare-server parses OK')).catch(e=>{console.error('BROKEN:',e.message);process.exit(1)})"
+```
+
+Expected: all engine tests pass, and `compare-server parses OK`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add site/engine/offer-gate.mjs site/engine/offer-gate.test.mjs site/compare-server.mjs
+git commit -m "refactor(engine): extract shared offer-sanity gate"
+```
+
+---
+
 ## Task 8: Product page extraction
 
 **Files:**
@@ -1213,10 +1399,10 @@ git commit -m "feat(engine): sitemap and sitemap-index parsing"
 - Test: `site/engine/extract.test.mjs`
 
 **Interfaces:**
-- Consumes: nothing
+- Consumes: `parsePrice`, `decodeEntities`, `UI_TITLE`, `BAD_URL` from `./offer-gate.mjs` (Task 8a)
 - Produces: `extractProduct(html: string, url: string) => {title, price, currency, inStock} | null`
 
-**Context:** Reuse the JSON-LD walking approach already proven in `compare-server.mjs`, plus the `isProductOffer` sanity gate rules added this session (reject `href="#"`, `add-to-cart` URLs, UI-chrome titles).
+**Context:** Reuse the JSON-LD walking approach already proven in `compare-server.mjs`. The sanity-gate rules live in `offer-gate.mjs` — import them, do **not** redefine them here.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1276,25 +1462,9 @@ Expected: FAIL — `Cannot find module './extract.mjs'`
 ```js
 // site/engine/extract.mjs
 /* Product page -> normalized record, via schema.org JSON-LD.
-   The UI_TITLE / BAD_URL gate mirrors isProductOffer() in compare-server.mjs:
-   without it, "add to cart" anchors and cart URLs get priced as products. */
-
-const UI_TITLE = /^(?:إضافة إلى السلة|أضف إلى السلة|اضف للسلة|اشتر(?:ى|ي) الآن|عرض المنتج|اقرأ المزيد|قارن|السلة|add to cart|buy now|read more|view (?:product|details)|compare|wishlist|quick view)\s*$/i;
-const BAD_URL = /[?&](?:add-to-cart|add_to_cart)=|\/(?:cart|checkout|wishlist|compare|my-account|login|register)(?:\/|$|\?)/i;
-
-function parsePrice(x) {
-  if (typeof x === 'number') return x >= 100 && x <= 2e6 ? Math.round(x) : 0;
-  const t = String(x ?? '').replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[\s,]/g, '');
-  const v = parseFloat(t.replace(/[^\d.]/g, ''));
-  return v >= 100 && v <= 2e6 ? Math.round(v) : 0;
-}
-
-function decode(s) {
-  return String(s ?? '').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"').replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
-    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
+   The sanity gate is shared with the live adapters — see ./offer-gate.mjs.
+   Without it, "add to cart" anchors and cart URLs get priced as products. */
+import { UI_TITLE, BAD_URL, parsePrice, decodeEntities as decode } from './offer-gate.mjs';
 
 export function extractProduct(html, url) {
   if (BAD_URL.test(url)) return null;
@@ -1425,6 +1595,44 @@ test('M1_STORES holds the 13 planned stores including SADKO', () => {
   assert.ok(M1_STORES.some(s => s.domain === 'rayashop.com'));
 });
 
+/* Several real stores publish product URLs with no /product/ marker
+   (elarabygroup uses a bare slug, egyptlaptop a category path). Filtering on
+   URL shape alone would silently crawl NOTHING from them, so the crawler must
+   fall back to plain sitemap URLs and let extractProduct arbitrate. */
+test('a sitemap with no product-shaped URLs falls back instead of crawling nothing', async () => {
+  const c = openCatalog();
+  const fetchImpl = fakeFetch({
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap.xml',
+    // bare-slug product URLs, exactly like elarabygroup's real sitemap
+    'sitemap.xml': '<urlset>' +
+      '<url><loc>https://t.com/ar/tornado-electric-water-heater-30-l-teee-30d1w</loc></url>' +
+      '<url><loc>https://t.com/ar/tornado-electric-water-heater-40-l-teee-40d1w</loc></url></urlset>',
+    '/ar/tornado-electric-water-heater-30-l': LD('سخان تورنيدو 30 لتر ديجيتال TEEE-30D1W', 4999),
+    '/ar/tornado-electric-water-heater-40-l': LD('سخان تورنيدو 40 لتر ديجيتال TEEE-40D1W', 5499),
+  });
+  const r = await crawlStore(c, { domain: 't.com', name: 'T' }, { maxPages: 10, fetchImpl, delayMs: 0 });
+  assert.equal(r.usedFallback, true, 'must report that it fell back');
+  assert.equal(r.stored, 2, 'both bare-slug products must be stored');
+  c.close();
+});
+
+test('store.productUrl overrides the generic URL heuristic', async () => {
+  const c = openCatalog();
+  const fetchImpl = fakeFetch({
+    'robots.txt': 'User-agent: *\nDisallow:\nSitemap: https://t.com/sitemap.xml',
+    'sitemap.xml': '<urlset>' +
+      '<url><loc>https://t.com/catalog/sku-123</loc></url>' +
+      '<url><loc>https://t.com/about</loc></url></urlset>',
+    '/catalog/sku-123': LD('شاشة شارب 75 بوصة 4K سمارت 4T-C75FN6EX', 39699),
+    '/about': '<html>no product</html>',
+  });
+  const store = { domain: 't.com', name: 'T', productUrl: /\/catalog\/sku-/ };
+  const r = await crawlStore(c, store, { maxPages: 10, fetchImpl, delayMs: 0 });
+  assert.equal(r.shapedUrls, 1, 'only the catalog URL matches the override');
+  assert.equal(r.stored, 1);
+  c.close();
+});
+
 test('an interrupted crawl resumes from its cursor instead of restarting', async () => {
   const c = openCatalog();
   const pages = {
@@ -1467,20 +1675,35 @@ Expected: FAIL — `Cannot find module './stores-m1.mjs'`
    rayashop / amanstores / egyptlaptop / awadserag are included DELIBERATELY —
    their live search is broken, so indexing rescuing them is the proof the
    architecture works. */
+/* The URL counts below come from scripts/probe-sitemaps.mjs, which counted ALL
+   <loc> entries. Spot-checking the real sitemaps showed some of those are
+   navigation, not products — rayashop's sitemap.xml is a CATEGORY sitemap
+   (/en/electronics, /en/laptops/laptops-pcs), so its 22,076 is not 22,076
+   products. Treat these as an upper bound on reachable URLs, not a product
+   count. Task 10 measures the real yield per store.
+
+   sitemapHint  — substring selecting the right child of a sitemap index
+   productUrl   — RegExp replacing the generic isProductUrl heuristic         */
 export const M1_STORES = [
   { domain: 'sadko-group.com', name: 'صادكو جروب', nameEn: 'SADKO Group', tier: 1, local: true },
-  { domain: 'rayashop.com',    name: 'راية شوب',   nameEn: 'Raya Shop',   tier: 1 },  // 22,076
-  { domain: 'hyper-techno.com',name: 'هايبر تكنو', nameEn: 'Hyper Techno',tier: 3 },  // 17,333
+  { domain: 'hyper-techno.com',name: 'هايبر تكنو', nameEn: 'Hyper Techno',tier: 3 },  // 17,333 · /product/ ✓
   { domain: 'jumia.com.eg',    name: 'جوميا',      nameEn: 'Jumia',       tier: 1 },  // 10,000
   { domain: '2b.com.eg',       name: '2B مصر',     nameEn: '2B Egypt',    tier: 1 },  //  7,611
-  { domain: 'btech.com',       name: 'بى تك',      nameEn: 'B.TECH',      tier: 1 },  //  7,205
+  { domain: 'btech.com',       name: 'بى تك',      nameEn: 'B.TECH',      tier: 1 },  //  7,205 · /ar/p/ ✓
+  // bare-slug product URLs — no marker; relies on the fallback path
   { domain: 'elarabygroup.com',name: 'العربى جروب',nameEn: 'ElAraby',     tier: 1 },  //  6,369
-  { domain: 'egyptlaptop.com', name: 'إيجيبت لابتوب', nameEn: 'Egypt Laptop', tier: 2 }, // 6,193
-  { domain: 'elghazawy.com',   name: 'الغزاوى',    nameEn: 'ElGhazawy',   tier: 2 },  //  6,179
-  { domain: 'amanstores.com',  name: 'أمان',       nameEn: 'Aman Stores', tier: 1 },  //  4,885
+  // sitemap index exposes products1.xml; URLs are category-path style
+  { domain: 'egyptlaptop.com', name: 'إيجيبت لابتوب', nameEn: 'Egypt Laptop', tier: 2,
+    sitemapHint: 'products' },                                                        //  6,193
+  { domain: 'elghazawy.com',   name: 'الغزاوى',    nameEn: 'ElGhazawy',   tier: 2 },  //  6,179 · /ar/product/ ✓
+  { domain: 'amanstores.com',  name: 'أمان',       nameEn: 'Aman Stores', tier: 1 },  //  4,885 · /product/view/ ✓
   { domain: 'awadserag.com',   name: 'عوض سراج',   nameEn: 'Awad Serag',  tier: 3 },  //  2,675
   { domain: 'kenzz.com',       name: 'كنز',        nameEn: 'Kenzz',       tier: 2 },  //  2,064
-  { domain: 'egypt.sharafdg.com', name: 'شرف دى جى', nameEn: 'Sharaf DG', tier: 1 },  //  1,892
+  { domain: 'egypt.sharafdg.com', name: 'شرف دى جى', nameEn: 'Sharaf DG', tier: 1 },  //  1,892 · /product/ ✓
+  // sitemap.xml here lists CATEGORIES, not products. Kept in the set so Task 10
+  // measures it honestly; if it yields no products, it needs category-pagination
+  // crawling, which is Milestone 2.
+  { domain: 'rayashop.com',    name: 'راية شوب',   nameEn: 'Raya Shop',   tier: 1 },
 ];
 ```
 
@@ -1521,24 +1744,54 @@ export async function crawlStore(catalog, store, opts = {}) {
     : Math.max((robots.crawlDelay || 0) * 1000, DEFAULT_DELAY);
 
   // 2. sitemaps
+  //
+  // URL SHAPE IS A HINT, NOT A GATE. Measured against the real Milestone-1
+  // stores, several publish product URLs with no conventional marker:
+  //   elarabygroup  /ar/tornado-electric-water-heater-30-l-...-teee-30d1w
+  //   egyptlaptop   /point-of-sale/barcode-scanners/datalogic-qw2100-...
+  // Filtering on `isProductUrl` alone would discard those stores entirely.
+  // So: prefer product-shaped URLs when a sitemap has them, but when a sitemap
+  // yields NONE, fall back to its plain URLs and let extractProduct decide —
+  // JSON-LD presence is a far better product signal than URL shape.
+  //
+  // A store may override discovery via `store.sitemapHint` (a substring that
+  // selects the right child of a sitemap index, e.g. 'products') and
+  // `store.productUrl` (a RegExp replacing the generic heuristic).
   const smUrls = robots.sitemaps.length ? robots.sitemaps
     : [`https://${domain}/sitemap.xml`, `https://www.${domain}/sitemap.xml`];
-  const productUrls = [];
+  const isProduct = store.productUrl ? (u => store.productUrl.test(u)) : isProductUrl;
+  const shaped = [], plain = [];
   const queue = [...smUrls];
   const seenSm = new Set();
-  while (queue.length && productUrls.length < sitemapMax) {
+  while (queue.length && shaped.length < sitemapMax) {
     const sm = queue.shift();
     if (seenSm.has(sm)) continue;
     seenSm.add(sm);
     let parsed;
     try { parsed = parseSitemap(await get(sm)); } catch { res.errors++; continue; }
-    if (parsed.isIndex) queue.push(...parsed.urls.slice(0, 20));
-    else for (const u of parsed.urls) {
-      if (productUrls.length >= sitemapMax) break;
-      if (isProductUrl(u)) productUrls.push(u);
+    if (parsed.isIndex) {
+      // follow product-looking children first; store.sitemapHint wins if set
+      const hint = store.sitemapHint;
+      const children = parsed.urls.slice().sort((a, b) => {
+        const score = u => (hint && u.includes(hint) ? 2 : /product|item|shop/i.test(u) ? 1 : 0);
+        return score(b) - score(a);
+      });
+      queue.push(...children.slice(0, 20));
+    } else {
+      for (const u of parsed.urls) {
+        if (shaped.length >= sitemapMax) break;
+        if (isProduct(u)) shaped.push(u);
+        else if (plain.length < sitemapMax) plain.push(u);
+      }
     }
   }
+  // fall back to unshaped URLs rather than crawling nothing
+  const productUrls = shaped.length ? shaped : plain;
   res.found = productUrls.length;
+  res.shapedUrls = shaped.length;
+  res.usedFallback = !shaped.length && plain.length > 0;
+  if (res.usedFallback)
+    onProgress({ ...res, note: `${domain}: no product-shaped URLs; falling back to ${plain.length} plain URLs` });
 
   // 3. product pages — resume from the stored cursor so an interrupted run
   //    continues instead of refetching everything. Sitemap order is stable.
@@ -1576,7 +1829,7 @@ Expected: PASS — 4 tests
 
 - [ ] **Step 5: Run the whole engine suite**
 
-Run: `node --test site/engine/`
+Run: `node --test site/engine/*.test.mjs`
 Expected: PASS — all tests from Tasks 1-9
 
 - [ ] **Step 6: Commit**
@@ -1876,6 +2129,192 @@ git commit -m "feat(engine): catalog-backed search with live top-10 verification
 
 ---
 
+## Task 11a: Query-interpretation UI ("did we understand you?")
+
+**Files:**
+- Modify: `site/engine/serve.mjs` — return the parsed interpretation and accept overrides
+- Modify: `site/compare-server.mjs` — pass `cat`/`spec` query params through, expose `interpretation` in the response
+- Modify: `site/compare.html` — add the interpretation bar markup
+- Modify: `site/assets/js/compare.js` — render chips, handle edits, re-run
+- Test: `site/engine/serve.test.mjs` (extend)
+
+**Interfaces:**
+- Consumes: `identify` from `./matcher.mjs`; `CATEGORIES` from `./categories.mjs`
+- Produces (extends `rankOffers`'s return): `interpretation: {category, brand, model, units, specs, ambiguous, alternatives}`
+- `rankOffers(catalog, query, {verify, verifyTop, limit, override})` — `override` is `{category?, units?, specs?}`; any field present REPLACES the parsed value and is treated as a hard filter.
+
+**Why:** the engine already parses every query into category + units + specs via
+`identify()`. Today that reasoning is invisible: the shopper types «غسالة ٧ كيلو»
+and gets results with no indication of what the engine actually searched for.
+Surfacing it turns a silent guess into a confirmable one — and because a
+confirmed category selects which attributes are *identity-defining*, a single
+correction measurably improves match precision. It also rescues the ~11% of
+titles `detectCategory` cannot classify: the shopper simply tells us.
+
+**UX shape** — a bar directly beneath the search row, before results:
+
+```
+بندوّر على:  [ غسالة ▾ ]  [ 7 كيلو ✕ ]  [ توشيبا ✕ ]  [ + مواصفة ]
+             ^ dropdown     ^ removable chips relax the filter
+```
+
+- Each parsed attribute renders as a removable chip. Removing one relaxes it
+  from a hard filter to unknown, widening results.
+- Category renders as a `<select>` populated from `CATEGORIES`, so a wrong or
+  missing detection is one click to fix.
+- When `ambiguous` is true (no category detected, or the leading token matched
+  two categories within 3 characters of each other), show the bar in a prompting
+  state with `alternatives` offered, rather than silently guessing.
+- Any change re-runs the search with overrides in the query string.
+- Must respect the page's existing i18n: strings go through the `T` table in
+  `compare.js` with `data-i18n` attributes, Arabic default, English when
+  `lang=en`.
+
+- [ ] **Step 1: Write the failing test**
+
+```js
+// append to site/engine/serve.test.mjs
+import { CATEGORIES } from './categories.mjs';
+
+test('rankOffers reports how it interpreted the query', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'غسالة توشيبا 7 كيلو اتوماتيك فتحة علوية', price: 11000 });
+  const r = await rankOffers(c, 'غسالة توشيبا 7 كيلو', { verify: async () => null });
+  assert.equal(r.interpretation.category, 'washer');
+  assert.equal(r.interpretation.brand, 'toshiba');
+  assert.equal(r.interpretation.units.kg, 7);
+  assert.equal(r.interpretation.ambiguous, false);
+  c.close();
+});
+
+test('an unrecognised category is reported ambiguous with alternatives', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'كبة فريش 400 وات 1.5 لتر', price: 2200 });
+  const r = await rankOffers(c, 'كبة فريش 400 وات', { verify: async () => null });
+  assert.equal(r.interpretation.ambiguous, true);
+  assert.ok(Array.isArray(r.interpretation.alternatives));
+  c.close();
+});
+
+test('a category override is applied as a hard filter', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1',
+    title: 'غسالة توشيبا 7 كيلو اتوماتيك', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2',
+    title: 'غسالة اطباق بوش 12 فرد', price: 18000 });
+  const r = await rankOffers(c, 'غسالة', {
+    verify: async () => null, override: { category: 'dishwasher' } });
+  assert.equal(r.interpretation.category, 'dishwasher');
+  assert.ok(r.results.every(x => !x.title.includes('7 كيلو')),
+    'washer offers must be filtered out when the shopper says dishwasher');
+  c.close();
+});
+
+test('removing a unit override widens the result set', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة توشيبا 9 كيلو', price: 13000 });
+  const narrow = await rankOffers(c, 'غسالة توشيبا 7 كيلو', { verify: async () => null });
+  const wide = await rankOffers(c, 'غسالة توشيبا 7 كيلو', {
+    verify: async () => null, override: { units: {} } });
+  assert.ok(wide.results.length > narrow.results.length,
+    'clearing the kg filter must return both capacities');
+  c.close();
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `node --test site/engine/serve.test.mjs`
+Expected: FAIL — `r.interpretation is undefined`
+
+- [ ] **Step 3: Extend `rankOffers` in `site/engine/serve.mjs`**
+
+Add `override` support and an `interpretation` block. Build the effective
+identity by starting from `identify(query)` and replacing any field present in
+`override`. Compute `ambiguous` as `!effective.category`. Compute
+`alternatives` as the category keys whose names appear anywhere in the
+normalized query, or — when none do — the 6 most common categories
+(`fridge`, `washer`, `tv`, `ac`, `microwave`, `cooker`) as a starting menu.
+Return:
+
+```js
+interpretation: {
+  category: effective.category,
+  brand: effective.brand,
+  model: effective.model,
+  units: effective.units,
+  specs: effective.specs,
+  ambiguous,
+  alternatives,
+}
+```
+
+Keep every existing return field unchanged — `results`, `cheapest`, `stats`.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `node --test site/engine/serve.test.mjs`
+Expected: PASS
+
+- [ ] **Step 5: Thread overrides through the HTTP layer**
+
+In `site/compare-server.mjs`, in the catalog branch of `compare()`, read
+`cat` and any `u_<unit>` / `s_<spec>` query params into an `override` object and
+pass it to `rankOffers`. Include `interpretation` in the JSON response.
+An explicitly empty param (`u_kg=`) means "cleared", not "absent".
+
+- [ ] **Step 6: Add the interpretation bar to the page**
+
+In `site/compare.html`, directly after the `.filters` div inside `.search-card`:
+
+```html
+<div class="interp" id="interp" style="display:none">
+  <span class="interp__label" data-i18n="interpLabel">بندوّر على:</span>
+  <select id="interpCat" class="interp__cat"></select>
+  <span id="interpChips" class="interp__chips"></span>
+</div>
+```
+
+In `site/assets/js/compare.js`:
+- add `interpLabel`, `interpAsk`, and category display names to BOTH the Arabic
+  and English `T` tables — follow the existing table's shape exactly
+- after a successful response, populate `#interpCat` from
+  `data.interpretation.alternatives` (or the full category list) and render one
+  removable chip per unit and spec
+- when `data.interpretation.ambiguous` is true, add an `interp--ask` class and
+  show the `interpAsk` prompt instead of the plain label
+- changing the select or removing a chip re-runs `run()` with the override
+  params appended
+- style the bar in `site/assets/css/site.css`, matching the existing
+  `.search-card` / `.filters` visual language — reuse existing custom properties
+  and spacing rather than introducing a new palette
+
+- [ ] **Step 7: Verify in the real page**
+
+```bash
+PORT=8095 node --env-file-if-exists=site/.env site/compare-server.mjs &
+sleep 8
+curl -s "http://localhost:8095/api/compare?q=$(node -e "process.stdout.write(encodeURIComponent('غسالة توشيبا 7 كيلو'))")&discover=0" \
+  | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('interpretation:',JSON.stringify(j.interpretation))})"
+```
+
+Expected: an `interpretation` object naming category `washer`, brand `toshiba`,
+and `units.kg` 7. Then load `http://localhost:8095/compare.html` in a browser,
+search the same phrase, and confirm the bar renders, the category dropdown
+changes results, and removing the `7 كيلو` chip widens them.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add site/engine/serve.mjs site/engine/serve.test.mjs site/compare-server.mjs \
+        site/compare.html site/assets/js/compare.js site/assets/css/site.css
+git commit -m "feat(ui): confirmable query interpretation on the compare page"
+```
+
+---
+
 ## Task 12: Benchmark against the live-fanout baseline
 
 **Files:**
@@ -1954,7 +2393,7 @@ git commit -m "feat(scripts): catalog vs live-fanout benchmark"
 
 ## Definition of Done
 
-- [ ] `node --test site/engine/` passes — all tasks 1-11
+- [ ] `node --test site/engine/*.test.mjs` passes — all tasks 1-11
 - [ ] `node scripts/crawl-m1.mjs --max 50` populates `site/data/catalog.db` for ≥2 stores
 - [ ] `node scripts/bench-catalog.mjs` prints a real, reported ratio
 - [ ] Server responds with `mode: catalog`

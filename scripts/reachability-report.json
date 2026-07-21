@@ -1,0 +1,842 @@
+{
+ "at": "2026-07-20T11:23:31.483Z",
+ "results": [
+  {
+   "domain": "2b.com.eg",
+   "tier": 1,
+   "platform": "gql",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "سامسونج تليفزيون 58 بوصة LED 4K UHD سمارت مع ريسيفر بلت ان - UA58U8000F",
+    "price": 22999,
+    "url": "https://2b.com.eg/samsung-tv-58-inch-led-4k-uhd-smart-built-in-receiver-ua58u8000f.html"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 1781
+  },
+  {
+   "domain": "amanstores.com",
+   "tier": 1,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 36097
+  },
+  {
+   "domain": "amazon.eg",
+   "tier": 1,
+   "platform": "amazon",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "تلفزيون LED قياسي HD مقاس 32 بوصة من سكاي لاين، اسود -32-22A",
+    "price": 4299,
+    "url": "https://www.amazon.eg/dp/B08X65T4CR?language=ar_AE"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 3,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 5614
+  },
+  {
+   "domain": "btech.com",
+   "tier": 1,
+   "platform": "btech",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "شاشة تلفزيون سمارت ال جي ، مقاس 50 بوصة نانو 4K UHD ، بريسيفر داخلي",
+    "price": 18999,
+    "url": "https://btech.com/ar/p/57e22857-6074-4caa-9867-a21b1f7ebbd2"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 13121
+  },
+  {
+   "domain": "carrefouregypt.com",
+   "tier": 1,
+   "platform": "carrefour",
+   "verdict": "NO_HARVEST",
+   "ms": 41093
+  },
+  {
+   "domain": "egypt.sharafdg.com",
+   "tier": 1,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 5806
+  },
+  {
+   "domain": "elarabygroup.com",
+   "tier": 1,
+   "platform": "gql",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "ستاند تلفزيون هاما أرضي مستقل بتتصميم (Easel) قابل لتعديل الارتفاع مقاس 75 بوصة يتحمل حتى 40 كجم",
+    "price": 6499,
+    "url": "https://elarabygroup.com/hama-tv-stand-free-standing-easel-height-adjustable-191-cm-75-up-to-40-kg"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 411
+  },
+  {
+   "domain": "hyperone.com.eg",
+   "tier": 1,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 28389
+  },
+  {
+   "domain": "jumia.com.eg",
+   "tier": 1,
+   "platform": "jumia",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "حامل راوتر قابل للتثبيت لسهولة الوصول وتحسين الأداء",
+    "price": 170,
+    "url": "https://www.jumia.com.eg/ar/generic-mountable-router-stand-for-easy-access-and-improved-performance-130890483.html"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 6451
+  },
+  {
+   "domain": "noon.com",
+   "tier": 1,
+   "platform": "noon",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "تلفاز ذكي 32 بوصة HD H5000F (2025) - H5000FUXEG",
+    "price": 8975,
+    "url": "https://www.noon.com/egypt-ar/32-hd-smart-tv-hyper-real-engine-hdr-ots-lite-tizen-os-2025-black-ua32h5000fuxeg-ua32h5000fuxeg-black/N70199666V/p/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 1302
+  },
+  {
+   "domain": "raneen.com",
+   "tier": 1,
+   "platform": "gql",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "تلفزيون سمارت فريش، 50 بوصة، QLED، بدون أطار، ريموت يدعم خاصيه الاوامر الصوتيه، حامل حائط هديه، 50MFQ433G - اسود",
+    "price": 16731,
+    "url": "https://raneen.com/el1145907blk-conf"
+   },
+   "retrieve": {
+    "status": "timeout",
+    "n": 0,
+    "found": false
+   },
+   "verdict": "NOT_RETRIEVABLE",
+   "ms": 14303
+  },
+  {
+   "domain": "rayashop.com",
+   "tier": 1,
+   "platform": "gql",
+   "verdict": "NO_HARVEST",
+   "ms": 15753
+  },
+  {
+   "domain": "sadko-group.com",
+   "tier": 1,
+   "platform": "local",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "مبرد مياه كولدير 2 حنفية بارد / ساخن بالثلاجة شاشة ديجيتال اسود BLACK - LED ( TYPE A ) TYPY AF",
+    "price": 8999,
+    "url": "https://www.sadko-group.com/shop/%D9%85%D8%A8%D8%B1%D8%AF-%D9%85%D9%8A%D8%A7%D9%87-%D9%83%D9%88%D9%84%D8%AF%D9%8A%D8%B1-2-%D8%AD%D9%86%D9%81%D9%8A%D8%A9-%D8%A8%D8%A7%D8%B1%D8%AF-%D8%B3%D8%A7%D8%AE%D9%86-%D8%A8%D8%A7%D9%84%D8%AB%D9%84%D8%A7%D8%AC%D8%A9-%D8%B4%D8%A7%D8%B4%D8%A9-%D8%AF%D9%8A%D8%AC%D9%8A%D8%AA%D8%A7%D9%84-%D8%A7%D8%B3%D9%88%D8%AF-BLACK-LED-TYPE-A-TYPY-AF-p687824308"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 63
+  },
+  {
+   "domain": "camerashop.com.eg",
+   "tier": 2,
+   "platform": "woo",
+   "harvested": {
+    "seed": "samsung",
+    "title": "Recharge Samsung AD-1608",
+    "price": 784,
+    "url": "https://camerashop.com.eg/product/recharge-samsung-ad-1608-orignal/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 14118
+  },
+  {
+   "domain": "compumarts.com",
+   "tier": 2,
+   "platform": "shopify",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "Android 9.0 TV Box 4GB RAM 64GB ROM, Q Plus Android Box H6 Quad-core WiFi 2.4GHz Support 6K H.265 HD 2.0 Ethernet",
+    "price": 995,
+    "url": "https://compumarts.com/products/android-9-0-tv-box-4gb-ram-64gb-rom-q-plus-android-box-h6-quad-core-wifi-2-4ghz-support-6k-h-265-hd-2-0-ethernet?_pos=1&_psq=%D8%AA%D9%84%D9%81%D8%B2%D9%8A%D9%88%D9%86&_psid=415566754&_ss=e&_v=1.0"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 942
+  },
+  {
+   "domain": "dream2000.com",
+   "tier": 2,
+   "platform": "jsonld:/search?q=",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "تلفزيون ال جي سمارت، 4K UHD نانوسيل، رسيفر مدمج - أسود",
+    "price": 21500,
+    "url": "https://dream2000.com/products/lg-smart-tv-4k-uhd-nanocell-built-in-receiver-black"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 2739
+  },
+  {
+   "domain": "egyptlaptop.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 30570
+  },
+  {
+   "domain": "elghazawy.com",
+   "tier": 2,
+   "platform": "render",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "Passap Chest ES341 Deep Freezer Defrost - Silver",
+    "price": 13300,
+    "url": "https://elghazawy.com/en/product/173977/Passap+Chest+ES341+Deep+Freezer+Defrost+-+Silver"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 24447
+  },
+  {
+   "domain": "fresh.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 15877
+  },
+  {
+   "domain": "games2egypt.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 25984
+  },
+  {
+   "domain": "homzmart.com",
+   "tier": 2,
+   "platform": "render",
+   "verdict": "NO_HARVEST",
+   "ms": 85005
+  },
+  {
+   "domain": "imediastores.com",
+   "tier": 2,
+   "platform": "woo",
+   "harvested": {
+    "seed": "laptop",
+    "title": "Trios S3 Triple Laptop Screen Extender 1080P (14 inch)",
+    "price": 16499,
+    "url": "https://www.imediastores.com/product/trios-s3-triple-laptop-screen-extender-1080p-14-inch/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 18287
+  },
+  {
+   "domain": "kaza.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "harvested": {
+    "seed": "samsung",
+    "title": "Mobile Xiaomi 17T - 12GB RAM - 256GB - Black",
+    "price": 50799,
+    "url": "https://kaza.com.eg/en/mobile-xiaomi-17t-12gb-ram-256gb-black.html"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 80409
+  },
+  {
+   "domain": "kenzz.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 29740
+  },
+  {
+   "domain": "mobileshop.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 8861
+  },
+  {
+   "domain": "sigma-computer.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 29753
+  },
+  {
+   "domain": "smeg.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 143577
+  },
+  {
+   "domain": "unionaire.com",
+   "tier": 2,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 149059
+  },
+  {
+   "domain": "zanussi.com.eg",
+   "tier": 2,
+   "platform": "auto",
+   "harvested": {
+    "seed": "ثلاجة",
+    "title": "ثلاجة فريزر زانوسي 437 لتراثنين باب ثلاجة اسود",
+    "price": 8491,
+    "url": "https://www.zanussi.com.eg/ar/zanussi-fridge-freezer-2-door-437l-black.html"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 2,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 13635
+  },
+  {
+   "domain": "abdulaziz-stores.com",
+   "tier": 3,
+   "platform": "jsonld:/catalogsearch/result/?q=",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "شاشة الترا سمارت بدون إطار 43 بوصة LED بدقة FHD أندرويد 14 – UT43SH-V5",
+    "price": 9999,
+    "url": "https://www.abdulaziz-stores.com/ar/ultra-43-inch-frameless-smart-led-tv-fhd-android-14-wi-fi-ut43sh-v5"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 8248
+  },
+  {
+   "domain": "abusolimanstores.com",
+   "tier": 3,
+   "platform": "woo",
+   "harvested": {
+    "seed": "ثلاجة",
+    "title": "ثلاجة هاير 520 لتر 4 باب سلفر انفرتر HRF-550TDPD",
+    "price": 57990,
+    "url": "https://abusolimanstores.com/product/520-4-hrf-550tdpd/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 3546
+  },
+  {
+   "domain": "aghezty.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 72412
+  },
+  {
+   "domain": "airo-shop.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 16922
+  },
+  {
+   "domain": "alsheikhstores.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "NO_HARVEST",
+   "ms": 70
+  },
+  {
+   "domain": "appliance.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 352
+  },
+  {
+   "domain": "audiomisr.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 64
+  },
+  {
+   "domain": "awadserag.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 51275
+  },
+  {
+   "domain": "azmyco.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 235
+  },
+  {
+   "domain": "brico-eg.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 37
+  },
+  {
+   "domain": "compuscience.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 348
+  },
+  {
+   "domain": "computershopegypt.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 348
+  },
+  {
+   "domain": "drmobilestore.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 490
+  },
+  {
+   "domain": "dubaiforshopping.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 56
+  },
+  {
+   "domain": "dubaiphone.net",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 68
+  },
+  {
+   "domain": "ehabcenter.com",
+   "tier": 3,
+   "platform": "woo",
+   "harvested": {
+    "seed": "laptop",
+    "title": "Best-Selling Mophie Wall Adapter USB-C 30W-GaN-EU White | Available Now at EHAB Center Home Appliances",
+    "price": 999,
+    "url": "https://ehabcenter.com/product/mophie-wall-adapter-usb-c-30w-gan-eu-white/#richSnippet"
+   },
+   "retrieve": {
+    "status": "timeout",
+    "n": 0,
+    "found": false
+   },
+   "verdict": "NOT_RETRIEVABLE",
+   "ms": 38115
+  },
+  {
+   "domain": "elbadrgroupeg.store",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 341
+  },
+  {
+   "domain": "elnekhelytechnology.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 347
+  },
+  {
+   "domain": "elwaha.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 299
+  },
+  {
+   "domain": "ennap.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "NO_HARVEST",
+   "ms": 24
+  },
+  {
+   "domain": "eratablet.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 68
+  },
+  {
+   "domain": "eshop.vodafone.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 200
+  },
+  {
+   "domain": "gamerzlounge.me",
+   "tier": 3,
+   "platform": "jsonld:/?s=",
+   "verdict": "NO_HARVEST",
+   "ms": 373
+  },
+  {
+   "domain": "hankerz.com.eg",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 81
+  },
+  {
+   "domain": "hans.com.eg",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 319
+  },
+  {
+   "domain": "hyper-techno.com",
+   "tier": 3,
+   "platform": "jsonld:/search?q=",
+   "verdict": "NO_HARVEST",
+   "ms": 279
+  },
+  {
+   "domain": "iq-mobiles.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 436
+  },
+  {
+   "domain": "jacoob1.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 221
+  },
+  {
+   "domain": "kareemstores.com",
+   "tier": 3,
+   "platform": "jsonld:/products?q=",
+   "verdict": "NO_HARVEST",
+   "ms": 404
+  },
+  {
+   "domain": "magicduino.com",
+   "tier": 3,
+   "platform": "jsonld:/index.php?route=product/search&search=",
+   "verdict": "NO_HARVEST",
+   "ms": 376
+  },
+  {
+   "domain": "mahgoub.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 282
+  },
+  {
+   "domain": "makerselectronics.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 67
+  },
+  {
+   "domain": "makka.store",
+   "tier": 3,
+   "platform": "auto",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "ل جي تلفزيون 4K UHD ذكي 60 بوصة HDR موديل 60UQ79006LD",
+    "price": 20000,
+    "url": "https://makka.store/product/lg-uhd-4k-tv-60-inch-uq7900-series-cinema-screen-design-4k-active-hdr-webos-smart-ai-thinq-60uq79006ld/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 5951
+  },
+  {
+   "domain": "maximumhardware.store",
+   "tier": 3,
+   "platform": "jsonld:/index.php?route=product/search&search=",
+   "verdict": "NO_HARVEST",
+   "ms": 396
+  },
+  {
+   "domain": "miamicenters.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 43
+  },
+  {
+   "domain": "moreelectronicss.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 31
+  },
+  {
+   "domain": "moreshopping.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "NO_HARVEST",
+   "ms": 10
+  },
+  {
+   "domain": "najm.store",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 29106
+  },
+  {
+   "domain": "ram-e-shop.com",
+   "tier": 3,
+   "platform": "jsonld:/ar/website/search?search=",
+   "verdict": "NO_HARVEST",
+   "ms": 355
+  },
+  {
+   "domain": "riz.shop",
+   "tier": 3,
+   "platform": "jsonld:/search/?q=",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "تلفزيون أسترا عالي الدقة 43 بوصة 4360",
+    "price": 630,
+    "url": "https://riz.shop/products/astra-4360-tv-43-inch-black?_pos=1&_sid=bb326d764&_ss=r"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 2158
+  },
+  {
+   "domain": "sevencameras.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 295
+  },
+  {
+   "domain": "shaarp.net",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 100
+  },
+  {
+   "domain": "shams-stores.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 326
+  },
+  {
+   "domain": "sharp-egypt.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 103
+  },
+  {
+   "domain": "sharpegy.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 292
+  },
+  {
+   "domain": "shuttershopegypt.com",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 66
+  },
+  {
+   "domain": "smartkoshk.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "NO_HARVEST",
+   "ms": 23
+  },
+  {
+   "domain": "smarttechnology-eg.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 320
+  },
+  {
+   "domain": "souqcairo.net",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 244
+  },
+  {
+   "domain": "store.fut-electronics.com",
+   "tier": 3,
+   "platform": "shopify",
+   "verdict": "NO_HARVEST",
+   "ms": 18
+  },
+  {
+   "domain": "switchpluseg.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 496
+  },
+  {
+   "domain": "tal2aa.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 305
+  },
+  {
+   "domain": "uptodate.store",
+   "tier": 3,
+   "platform": "woo",
+   "verdict": "NO_HARVEST",
+   "ms": 81
+  },
+  {
+   "domain": "ustoreseg.com",
+   "tier": 3,
+   "platform": "woo",
+   "harvested": {
+    "seed": "laptop",
+    "title": "Dell G15-5511 Gaming LapTop – 11th Intel Core i5-11260H 6-Cores, 8GB RAM, 512GB SSD",
+    "price": 50999,
+    "url": "https://ustoreseg.com/product/dell-g15-5511-gaming-laptop-intel-core-i5-15inch/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 22953
+  },
+  {
+   "domain": "wazen.eg",
+   "tier": 3,
+   "platform": "woo",
+   "harvested": {
+    "seed": "تلفزيون",
+    "title": "LG TV UR78 Series 65 Inches UHD 4K 65UR78006LL",
+    "price": 32340,
+    "url": "https://wazen.eg/product/lg-tv-65-inches-4k-with-magic-remote-65ur78006ll/"
+   },
+   "retrieve": {
+    "status": "ok",
+    "n": 1,
+    "found": true
+   },
+   "verdict": "REACHABLE",
+   "ms": 7788
+  },
+  {
+   "domain": "wdestores.com",
+   "tier": 3,
+   "platform": "auto",
+   "verdict": "NO_HARVEST",
+   "ms": 193
+  }
+ ]
+}

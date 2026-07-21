@@ -1,0 +1,67 @@
+// site/engine/units.test.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { extractUnits } from './units.mjs';
+
+test('extracts Arabic units with and without spaces', () => {
+  assert.equal(extractUnits('ثلاجة تورنيدو 395 لتر').liter, 395);
+  assert.equal(extractUnits('قلاية هوائية بيكو اسود4.7لتر سعة سلة3.9لتر1500وات').liter, 4.7);
+  assert.equal(extractUnits('قلاية هوائية بيكو اسود4.7لتر 1500وات').watt, 1500);
+  assert.equal(extractUnits('غسالة توشيبا 8 كيلو اتوماتيك').kg, 8);
+  assert.equal(extractUnits('غسالة زانوسى 7 ك ديجيتال 1200 لفة').kg, 7);
+  assert.equal(extractUnits('غسالة زانوسى 7 ك ديجيتال 1200 لفة').rpm, 1200);
+});
+
+test('extracts English units and bilingual run-together titles', () => {
+  assert.equal(extractUnits('Sharp 75 inch 4K Smart TV').inch, 75);
+  assert.equal(extractUnits('Kiriazi Refrigerator E280 - 2 Doors 10 Feetثلاجة كريازى 10 قدم').feet, 10);
+  assert.equal(extractUnits('Kiriazi KAC 18 CH Split Air Conditioner – 2.25 HP').hp, 2.25);
+  assert.equal(extractUnits('تكييف شارب اسبليت 2.25 حصان بارد').hp, 2.25);
+});
+
+test('handles Arabic-Indic digits', () => {
+  assert.equal(extractUnits('شاشة شارب ٧٥ بوصة').inch, 75);
+});
+
+test('does not invent units that are absent', () => {
+  const u = extractUnits('تلفزيون سامسونج سمارت');
+  assert.equal(Object.keys(u).length, 0);
+});
+
+test('dimension pairs do not produce a bogus single value', () => {
+  // "90 × 60 سم" is a size pair, not one cm measurement
+  assert.equal(extractUnits('بوتاجاز فري ستاند 90 × 60 سم 5 شعلة').cm, undefined);
+});
+
+test('a standalone cm reading is still found alongside an unrelated dimension pair', () => {
+  assert.equal(extractUnits('بوتجاز لاجيرمانيا 90 سم 5 شعلة غاز MODERNA بريمو – مروحة- حوامل زهر - استيل').cm, 90);
+  // dimension pair present elsewhere in the title should not suppress a genuine standalone cm
+  assert.equal(extractUnits('غسالة 90 × 60 سم قابلة للطي طول 45 سم').cm, 45);
+});
+
+test('multi-character Latin unit abbreviations require a trailing word boundary', () => {
+  assert.equal(extractUnits('شاشة 12 gbps').gb, undefined);
+});
+
+test('Latin unit boundary must not block Arabic script running on with no space', () => {
+  // No "قدم" fallback anywhere in this title: if the Latin "Feet" match is
+  // wrongly suppressed because Arabic script follows it directly, this must
+  // fail rather than silently pass via a redundant Arabic spelling.
+  assert.equal(extractUnits('Kiriazi Refrigerator E280 - 2 Doors 10 Feetثلاجة كريازى').feet, 10);
+});
+
+// IMPORTANT 3 (garbage-match review): a hyphen between the number and the
+// unit was not accepted at all — only "43 inch" and "43inch" worked, not the
+// hyphenated form Amazon-style English titles use constantly.
+test('IMPORTANT 3: a hyphen between the number and unit is parsed, same as space or no space', () => {
+  assert.equal(extractUnits('Arion 43-Inch Full HD Smart').inch, 43, 'hyphenated form must parse');
+  assert.equal(extractUnits('Toshiba 8-kg washer').kg, 8, 'hyphenated form must parse');
+  assert.equal(extractUnits('LG 55-inch').inch, 55, 'hyphenated form must parse');
+  // regression: the pre-existing space/no-space forms must still work
+  assert.equal(extractUnits('LG 43 inch').inch, 43, 'spaced form must still parse');
+  assert.equal(extractUnits('LG 43inch').inch, 43, 'no-space form must still parse');
+  assert.equal(extractUnits('شاشة شارب ٧٥ بوصة').inch, 75, 'Arabic-Indic digit form must still parse');
+  // regression: the dimension-pair guard must still suppress a bogus cm reading
+  assert.equal(extractUnits('بوتاجاز فري ستاند 90 × 60 سم 5 شعلة').cm, undefined,
+    'dimension pair must still yield no cm');
+});

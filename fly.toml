@@ -1,0 +1,36 @@
+# Fly.io deployment for the SADKO comparer engine.
+# Fly runs the container as a real, always-on process with a persistent volume —
+# which is what this stateful engine needs. Rename the app before `fly launch`.
+
+app = "sadko-comparer"
+primary_region = "cdg"          # Paris — closest low-latency Fly region to Egypt
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"   # scale to zero when idle (free-tier friendly)
+  auto_start_machines = true    # wake on the next request
+  min_machines_running = 0
+
+# NOTE ON PERSISTENCE — read before running the crawler in production.
+# The 6,918-offer catalog is baked into the image, so a fresh deploy works
+# immediately and survives machine stop/start. It is REVERTED to the baked
+# copy on every `fly deploy`. To keep continuous crawl progress across
+# deploys, add a persistent volume and a one-time seed step:
+#   1. fly volumes create sadko_data --size 1
+#   2. uncomment the [[mounts]] block below
+#   3. seed it once:  fly ssh console -C "cp -n /app/site/data.seed/* /app/site/data/"
+# (data.seed is a baked copy the entrypoint leaves untouched.)
+# [[mounts]]
+#   source = "sadko_data"
+#   destination = "/app/site/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"              # 256mb is too tight; 512mb runs comfortably

@@ -1,0 +1,18 @@
+# keep the image lean and never ship secrets or scratch
+**/.env
+**/*.env
+!**/*.env.example
+site/data/catalog.db-shm
+site/data/catalog.db-wal
+site/server.out.log
+site/server.err.log
+site/.playwright-mcp
+.playwright-mcp
+generation/out
+extraction/raw
+.superpowers
+scripts
+docs
+.git
+.gitignore
+node_modules

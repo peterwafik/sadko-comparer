@@ -19,7 +19,7 @@
    "t": 1,
    "platform": "gql",
    "gqlHost": "2b.com.eg",
-   "lastOk": 1784580040459,
+   "lastOk": 1784607184845,
    "failN": 0
   },
   {
@@ -29,9 +29,9 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1784592075877,
-   "failN": 1,
-   "lastFail": 1784606292103
+   "lastOk": 1784608427769,
+   "failN": 0,
+   "lastFail": 1784607192106
   },
   {
    "domain": "elarabygroup.com",
@@ -60,8 +60,8 @@
    "type": "mega",
    "t": 1,
    "platform": "jumia",
-   "failN": 3,
-   "lastFail": 1784555457605,
+   "failN": 4,
+   "lastFail": 1784607192107,
    "lastOk": 1784537258433
   },
   {
@@ -71,7 +71,7 @@
    "type": "mega",
    "t": 1,
    "platform": "noon",
-   "lastOk": 1784592069418,
+   "lastOk": 1784607995704,
    "failN": 0
   },
   {
@@ -82,8 +82,8 @@
    "t": 1,
    "platform": "btech",
    "needsHeadless": true,
-   "lastOk": 1784530585001,
-   "failN": 2,
+   "lastOk": 1784608014344,
+   "failN": 0,
    "lastFail": 1784605383070
   },
   {
@@ -94,7 +94,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1784606285926,
+   "lastOk": 1784608428246,
    "failN": 0
   },
   {
@@ -142,7 +142,7 @@
    "nameEn": "Kenzz",
    "type": "mega",
    "t": 2,
-   "platform": "auto"
+   "platform": "jsonld:/?s="
   },
   {
    "domain": "elghazawy.com",
@@ -184,7 +184,7 @@
    "type": "mega",
    "t": 2,
    "platform": "jsonld:/search?q=",
-   "lastOk": 1784592072929,
+   "lastOk": 1784607995733,
    "failN": 0,
    "lastFail": 1784529327677
   },
@@ -240,7 +240,9 @@
    "nameEn": "Games 2 Egypt",
    "type": "local",
    "t": 2,
-   "platform": "auto"
+   "platform": "jsonld:/?s=",
+   "failN": 2,
+   "lastFail": 1784608437914
   },
   {
    "domain": "camerashop.com.eg",
@@ -348,8 +350,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 2,
-   "lastFail": 1784544337172,
+   "failN": 3,
+   "lastFail": 1784607198704,
    "lastOk": 1784537273700
   },
   {
@@ -446,7 +448,7 @@
    "nameEn": "Azmy Co",
    "type": "local",
    "t": 3,
-   "platform": "auto"
+   "platform": "jsonld:/catalogsearch/result/?q="
   },
   {
    "domain": "jacoob1.com",
@@ -485,7 +487,7 @@
    "type": "local",
    "t": 3,
    "platform": "shopify",
-   "lastOk": 1784580046108,
+   "lastOk": 1784607192765,
    "failN": 0
   },
   {
@@ -495,8 +497,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 5,
-   "lastFail": 1784578302704
+   "failN": 6,
+   "lastFail": 1784607215511
   },
   {
    "domain": "mahgoub.com",
@@ -697,8 +699,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 2,
-   "lastFail": 1784606374012
+   "failN": 3,
+   "lastFail": 1784607225078
   },
   {
    "domain": "smarttechnology-eg.com",
@@ -821,6 +823,28 @@
    "platform": "auto",
    "addedBy": "discovery",
    "lastOk": 1784454990466
+  },
+  {
+   "domain": "ts3era.com",
+   "name": "ts3era",
+   "type": "local",
+   "t": 4,
+   "platform": "auto",
+   "addedBy": "discovery",
+   "lastOk": 1784607644665,
+   "failN": 2,
+   "lastFail": 1784608445887
+  },
+  {
+   "domain": "almorshedymarts.net",
+   "name": "almorshedymarts",
+   "type": "local",
+   "t": 4,
+   "platform": "auto",
+   "addedBy": "discovery",
+   "lastOk": 1784607997309,
+   "failN": 1,
+   "lastFail": 1784608448834
   }
  ]
 }

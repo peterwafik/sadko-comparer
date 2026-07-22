@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>تواصل معانا — صادكو جروب</title>
+<meta name="description" content="الخط الساخن 19140، إيميل خدمة العملاء، وعناوين وتليفونات معارض صادكو السبعة — ورسالة جاهزة تبعتها من بريدك.">
+<link rel="icon" href="assets/img/sadko-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css?v=a4">
+<style>
+/* contact page — layout only, built on the app.css tokens */
+.ct-sec { margin-top: clamp(24px,4vw,40px); }
+.ct-h { font-size: clamp(1.18rem,2.6vw,1.5rem); font-weight: 900; margin: 0 0 6px; line-height: 1.35; }
+.ct-sub { color: var(--ink-soft); font-weight: 700; line-height: 1.85; margin: 0 0 16px; max-width: 72ch; }
+
+/* the two fast lanes: phone + e-mail */
+.lanes { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%,250px), 1fr)); }
+.lane { display: flex; flex-direction: column; gap: 5px; text-decoration: none; color: inherit;
+  background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  box-shadow: var(--shadow); transition: transform .15s, border-color .15s; }
+.lane:hover { transform: translateY(-2px); border-color: var(--accent); }
+.lane .k { font: 800 .78rem 'Cairo', sans-serif; color: var(--ink-soft); letter-spacing: .03em; }
+.lane b { font-size: clamp(1.1rem,2.6vw,1.35rem); font-weight: 900; color: var(--accent);
+  overflow-wrap: anywhere; line-height: 1.4; }
+.lane .d { font-size: .84rem; font-weight: 600; color: var(--ink-soft); line-height: 1.75; }
+
+/* "what do you need?" router */
+.rts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%,260px), 1fr)); }
+.rt { display: block; height: 100%; text-decoration: none; color: inherit; background: #fff;
+  border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow);
+  transition: transform .15s, border-color .15s; }
+.rt:hover { transform: translateY(-2px); border-color: var(--accent); }
+.rt h3 { margin: 0 0 6px; font-size: .98rem; font-weight: 900; line-height: 1.45; }
+.rt p { margin: 0; font-size: .85rem; font-weight: 600; line-height: 1.8; color: var(--ink-soft); }
+.rt .go { display: inline-block; margin-top: 9px; font: 800 .8rem 'Cairo', sans-serif; color: var(--accent); }
+
+/* branches */
+.brs { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%,262px), 1fr)); }
+.br { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
+.br h3 { margin: 8px 0 4px; font-size: 1.02rem; font-weight: 900; }
+.br address { display: block; font-style: normal; font-size: .86rem; font-weight: 600;
+  color: var(--ink-soft); line-height: 1.8; margin-bottom: 12px; overflow-wrap: anywhere; }
+.br .tels { display: flex; flex-wrap: wrap; gap: 7px; }
+.br .tels a { font: 700 .8rem 'Cairo', sans-serif; color: #fff; background: var(--accent);
+  text-decoration: none; border-radius: 999px; padding: 7px 13px; direction: ltr; unicode-bidi: isolate; }
+.br .tels a:hover { filter: brightness(1.08); }
+
+.ct-out .textarea { min-height: 220px; }
+.wrap :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<section class="phero">
+  <div class="phero__inner">
+    <p class="phero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ← <span data-i18n="crumb-here">تواصل معانا</span></p>
+    <h1 class="phero__title" data-i18n="title">تواصل معانا</h1>
+    <p class="phero__sub" data-i18n="sub">الخط الساخن، الإيميل، وسبع معارض بعناوينها وتليفوناتها. ولو مش عارف تبدأ منين،
+      تحت هتلاقى «محتاج إيه؟» بيوديك على طول للمكان الصح.</p>
+  </div>
+</section>
+
+<main class="wrap" id="contact-root">
+  <div class="empty" data-i18n="loading">جارى التحميل…</div>
+</main>
+
+<footer data-footer></footer>
+
+<script src="assets/js/nav.js?v=g15" defer></script>
+<script src="assets/js/appshell.js?v=a4" defer></script>
+<script src="assets/js/contact.js?v=a4" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const T = {
+    'crumb-home': 'Home', 'crumb-here': 'Contact us',
+    'title': 'Contact us',
+    'sub': 'The hotline, the e-mail address, and seven showrooms with their addresses and phone numbers. If you are not sure where to start, the "What do you need?" section below sends you straight to the right place.',
+    'loading': 'Loading…',
+  };
+  if (window.skLang && window.skLang.get() === 'en') {
+    document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+    document.title = 'Contact us — SADKO Group';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
+    });
+  }
+  skApp.footer();
+  mountContact(document.getElementById('contact-root'));
+});
+</script>
+</body>
+</html>

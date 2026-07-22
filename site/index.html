@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صادكو جروب — بيتك بالكامل</title>
 <meta name="description" content="اتجوّل جوه بيت صادكو — كل فئات الأجهزة الكهربائية فى ثلاث أوض، وأوضة العروض بتعرض أحدث العروض. اضغط على أى جهاز وتسوّق من فئته مباشرة.">
-<link rel="icon" href="assets/img/sadko-logo-white.png">
+<link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g3" defer></script>
-<script src="assets/js/nav.js?v=g9" defer></script>
+<script src="assets/js/scrub-engine.js?v=g7" defer></script>
+<script src="assets/js/nav.js?v=g15" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="assets/js/hotspots.js?v=g6" defer></script>
+<script src="assets/js/hotspots.js?v=g20" defer></script>
 <script src="assets/js/posters.js?v=g3" defer></script>
 <script src="assets/js/guide.js?v=g3" defer></script>
-<link rel="stylesheet" href="assets/css/site.css?v=g7">
+<link rel="stylesheet" href="assets/css/site.css?v=g11">
 </head>
 <body>
 <div id="world"></div>
@@ -33,6 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
       clip: 'assets/vid/leg_1.mp4', clipMobile: 'assets/vid/leg_1-m.mp4',
       accent: '#2e7e88',
       scroll: 1.9, linger: 0.5,
+      copyY: 0.46,      // mid-height: clears the top-right AC and the bottom heaters
       eyebrow: 'بيتك بالكامل من صادكو',
       title: 'أهلاً بيك فى بيت صادكو',
       showcase: 0.03,   // the landing frame — the whole entertainment + climate room
@@ -52,6 +53,10 @@ window.addEventListener('DOMContentLoaded', () => {
       clip: 'assets/vid/leg_2.mp4', clipMobile: 'assets/vid/leg_2-m.mp4',
       accent: '#c97b12',
       scroll: 2.1, linger: 0.5,
+      copyY: 0.24,      // top: every marker (fridges right, counter left) sits lower-half
+      copyAt: 0.92,     // peak the copy ON the settle frame (= showcase), not mid-flight:
+                        // this room settles late, so a mid-section peak had the title
+                        // shouting on the way in and faded out by the view it describes
       eyebrow: 'قلب البيت',
       title: 'مطبخ فيه كل حاجة… حرفيًا',
       showcase: 0.92,   // the settle: full counter line-up + cooker wall + cold corner
@@ -79,20 +84,28 @@ window.addEventListener('DOMContentLoaded', () => {
       clip: 'assets/vid/leg_3.mp4', clipMobile: 'assets/vid/leg_3-m.mp4',
       accent: '#3d7f9e',
       scroll: 1.8, linger: 0.45,
+      // Both side walls of this room are packed (ironing corner left, washer bay +
+      // heaters + shelving right), so the copy goes on the one big bare patch:
+      // the wall above the washer/dryer counter. Same spot in both languages.
+      copyX: 0.55, copyY: 0.22,
       eyebrow: 'ركن الغسيل والعناية',
       title: 'غسيل وتجفيف ونضافة… وكل حاجة معاها',
       showcase: 0.50,   // the full-room view: fabric care, cleaning trio, heaters, shelves
+      // Coords read off the actual showcase frame (leg_3.mp4 @ 4.02s, 1920×1080).
       hotspots: [
-        { fx: 0.654, fy: 0.712, at: 0.50, span: 0.28, label: 'غسالات ملابس', href: C('38003963') },
-        { fx: 0.549, fy: 0.712, at: 0.50, span: 0.28, label: 'مجففات ملابس', href: C('38005652') },
-        { fx: 0.763, fy: 0.255, at: 0.50, span: 0.28, label: 'سخانات غاز', href: C('48143206') },
-        { fx: 0.833, fy: 0.185, at: 0.50, span: 0.28, label: 'سخانات كهرباء', href: C('48149056') },
-        { fx: 0.257, fy: 0.583, at: 0.50, span: 0.28, label: 'مكاوى', href: C('81167227') },
-        { fx: 0.327, fy: 0.375, at: 0.50, span: 0.28, label: 'مكاوى بخار وستيمر', href: C('81167227') },
-        { fx: 0.372, fy: 0.712, at: 0.50, span: 0.28, label: 'مكانس', href: C('81170222') },
-        { fx: 0.461, fy: 0.606, at: 0.50, span: 0.28, label: 'مكانس روبوت وعمودية', href: C('81170222') },
-        { fx: 0.255, fy: 0.556, at: 0.86, span: 0.20, sfx: 0.945, sfy: 0.550, label: 'ماكينات خياطة', href: OFFERS },
-        { fx: 0.344, fy: 0.580, at: 0.86, span: 0.20, sfx: 0.945, sfy: 0.645, label: 'عناية شخصية', href: C('112439376') },
+        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, label: 'غسالات ملابس', href: C('38003963') },
+        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, label: 'مجففات ملابس', href: C('38005652') },
+        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, label: 'سخانات غاز', href: C('48143206') },
+        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, label: 'سخانات كهرباء', href: C('48149056') },
+        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, label: 'مكاوى', href: C('81167227') },
+        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, label: 'مكاوى بخار وستيمر', href: C('81167227') },
+        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, label: 'مكانس', href: C('81170222') },
+        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, label: 'مكانس روبوت وعمودية', href: C('81170222') },
+        // Were parked on the ironing board / bare wall; both are really on the
+        // right-hand shelving — the sewing machine on its middle shelf, the
+        // toiletries on the counter beside the washers.
+        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, label: 'ماكينات خياطة', href: OFFERS },
+        { fx: 0.747, fy: 0.546, at: 0.50, span: 0.28, label: 'عناية شخصية', href: C('112439376') },
       ],
     },
     {
@@ -101,6 +114,7 @@ window.addEventListener('DOMContentLoaded', () => {
       clip: 'assets/vid/leg_4.mp4', clipMobile: 'assets/vid/leg_4-m.mp4',
       accent: '#8a6242',
       scroll: 2.0, linger: 0.55,
+      copyY: 0.64,      // low: the three offer-panel markers sit in the upper third
       eyebrow: 'حكاية عيلة من 1961',
       title: 'أوضة العروض… على الحيطة',
       showcase: 0.88,   // the gallery-wall hold
@@ -129,6 +143,8 @@ window.addEventListener('DOMContentLoaded', () => {
       kitchen: { label: 'Kitchen', eyebrow: 'The heart of the home', title: 'A kitchen with everything… literally',
         spots: ['Microwaves', 'Blenders', 'Kettles & coffee machines', 'Air fryers', 'Small appliances', 'Dough mixers', 'Food processors', 'Juicers', 'Grills & toasters', 'Dishwashers', 'Ovens & cookers', 'Hoods', 'Refrigerators', 'Electric pots & choppers', 'Freezers'] },
       laundry: { label: 'Laundry Room', eyebrow: 'Laundry & care corner', title: 'Washing, drying, cleaning… and everything with it',
+        // no anchor override: this room's copy sits on the bare centre wall in
+        // both languages (copyX/copyY above), since both side walls are packed
         spots: ['Washing machines', 'Clothes dryers', 'Gas water heaters', 'Electric water heaters', 'Irons', 'Steam irons & steamers', 'Vacuum cleaners', 'Robot & stick vacuums', 'Sewing machines', 'Personal care'] },
       family: { label: 'Offers Room', eyebrow: 'A family story since 1961', title: 'The offers room… on our wall',
         showcaseLabel: 'See the offers',
@@ -137,6 +153,7 @@ window.addEventListener('DOMContentLoaded', () => {
     for (const s of SECTIONS) {
       const e = L[s.id]; if (!e) continue;
       s.label = e.label; s.eyebrow = e.eyebrow; s.title = e.title;
+      if (e.copyY != null) s.copyY = e.copyY;   // English copy sits on the left; some rooms need a different anchor
       if (e.showcaseLabel) s.showcaseLabel = e.showcaseLabel;
       (s.hotspots || []).forEach((h, i) => { if (e.spots[i]) h.label = e.spots[i]; });
       if (s.cta && e.cta) { s.cta.primary.label = e.cta.primary; s.cta.secondary.label = e.cta.secondary; }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الضمان والاسترجاع — صادكو جروب</title>
+<meta name="description" content="الضمان بيغطى إيه وبيستثنى إيه، الفرق بين ضمان المصنّع والتزامات البائع، وإزاى تبدأ طلب صيانة — والفرق المهم بين منتج من صادكو ومنتج من متجر تانى فى مقارنة الأسعار.">
+<link rel="icon" href="assets/img/sadko-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css?v=a4">
+</head>
+<body>
+
+<section class="phero">
+  <div class="phero__inner">
+    <p class="phero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ← <span data-i18n="crumb-here">الضمان والاسترجاع</span></p>
+    <h1 class="phero__title" data-i18n="title">الضمان والاسترجاع</h1>
+    <p class="phero__sub" data-i18n="sub">الضمان بيغطى إيه فعلاً، وإيه اللى بيسقطه، وإزاى تبدأ طلب صيانة من غير ما تضيّع مكالمة.
+      وأهم حاجة هنا: <strong>الضمان بيقدمه البائع المكتوب فى الفاتورة</strong> — منتجات صادكو عليها خدمة ما بعد البيع بتاعة صادكو،
+      والمنتجات اللى بتلاقيها فى مقارنة الأسعار بيبيعها متجر تانى وضمانه هو اللى بيسرى.</p>
+  </div>
+</section>
+
+<main class="wrap" id="info-root">
+  <div class="empty" data-i18n="loading">جارى التحميل…</div>
+</main>
+
+<footer data-footer></footer>
+
+<script src="assets/js/nav.js?v=g15" defer></script>
+<script src="assets/js/appshell.js?v=a4" defer></script>
+<script src="assets/js/info.js?v=a4" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const T = {
+    'crumb-home': 'Home', 'crumb-here': 'Warranty & returns',
+    'title': 'Warranty & returns',
+    'sub': 'What a warranty really covers, what voids it, and how to start a service claim without wasting a phone call. The key point: <strong>the warranty is provided by the seller named on the invoice</strong> — products bought from SADKO carry SADKO after-sales service, while products you find through price comparison are sold by another store, whose warranty applies instead.',
+    'loading': 'Loading…',
+  };
+  if (window.skLang && window.skLang.get() === 'en') {
+    document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+    document.title = 'Warranty & returns — SADKO Group';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
+    });
+  }
+  skApp.footer();
+  mountInfo(document.getElementById('info-root'), 'warranty');
+});
+</script>
+</body>
+</html>

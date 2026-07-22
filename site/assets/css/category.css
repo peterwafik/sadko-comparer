@@ -14,8 +14,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, transparent); }
-.top__logo img { height: 36px; display: block; background: var(--teal-deep);
-  border-radius: 10px; padding: 6px 12px; }
+.top__logo img { height: 50px; width: auto; display: block; }
 .top__nav { display: flex; gap: 6px; margin-inline-end: auto; }
 .top__nav a { text-decoration: none; color: var(--ink); font-weight: 700; font-size: .92rem;
   padding: 8px 16px; border-radius: 999px; }
@@ -69,7 +68,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
 /* ---------- footer ---------- */
 .foot { background: #14343a; color: #cfe3e6; }
 .foot__inner { max-width: 1440px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 48px); text-align: center; }
-.foot__logo { height: 40px; margin-bottom: 14px; }
+.foot__logo { height: 56px; margin-bottom: 14px; }
 .foot p { margin: 6px 0; font-size: .92rem; }
 .foot a { color: var(--teal); text-decoration: none; font-weight: 700; }
 .foot__copy { opacity: .55; font-size: .8rem !important; margin-top: 16px !important; }

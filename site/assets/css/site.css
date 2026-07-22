@@ -30,31 +30,72 @@
 /* keep engine's object-position in sync with the variable */
 .sw-scene__video, .sw-scene__still { object-position: center var(--sw-objy, 42%); }
 
-/* ---------- RTL flips (page is dir="rtl") ---------- */
-/* copy panel: right side */
-.sw-copy {
-  left: auto;
-  right: clamp(18px, 5vw, 64px);
-  text-align: right;
+/* ---------- Language-aware sides & alignment ---------- */
+/* The copy panel always sits on the READING-START side and its text is aligned
+   the same way: right for Arabic (RTL), left for English (LTR). scrub-engine
+   also sets left/right inline on desktop; these cover mobile + first paint.
+   Everything else (tags, CTA row, list flow) inherits the document direction,
+   so it mirrors itself — no hardcoded flex-end, which pinned English chips to
+   the wrong edge. */
+html[dir=rtl] .sw-copy { left: auto;  right: clamp(18px, 5vw, 64px); text-align: right; }
+html[dir=ltr] .sw-copy { right: auto; left:  clamp(18px, 5vw, 64px); text-align: left;  }
+
+/* ---------- Scene fog hugs the copy, not the whole column ----------
+   The engine's default scrim is a full-viewport-height gradient panel down one
+   side of the screen. In a room full of shoppable appliances that buried every
+   product (and its marker) that happened to stand in that column. Instead each
+   copy panel carries its own frosted card, sized to the text box and following
+   the per-scene copyY anchor wherever it goes — so only the area around the
+   words is veiled and the rest of the room stays clear.
+
+   It is a rounded rectangle rather than a soft halo on purpose: a feathered
+   ellipse leaves its corners and edges almost bare, which is why the kitchen
+   headline (anchored high, over a sunlit window) washed out while the same
+   text read fine in the darker rooms. A panel of even opacity gives every
+   scene the identical backdrop, so legibility no longer depends on what
+   happens to be behind that corner of the frame. */
+.sw-copylayer::before { display: none !important; }
+.sw-copy::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: -34px -46px;
+  border-radius: 30px;
+  /* Fog, not a card. Legibility comes mostly from the heavy BACKDROP blur —
+     the room behind is smeared into a soft field — so the fill itself can stay
+     largely transparent. Two off-centre radial washes over the base tint keep
+     the density uneven, the way real haze is, instead of one flat shade. */
+  background:
+    radial-gradient(130% 105% at 22% 16%, color-mix(in srgb, #fff 46%, transparent) 0%, transparent 62%),
+    radial-gradient(115% 95% at 84% 90%, color-mix(in srgb, var(--sw-bg) 48%, transparent) 0%, transparent 70%),
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--sw-bg) 62%, transparent),
+      color-mix(in srgb, var(--sw-bg) 46%, transparent));
+  -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  backdrop-filter: blur(20px) saturate(1.12);
+  /* Feather all four edges so the fog dissolves into the scene rather than
+     ending on a drawn border. Two crossed gradients intersected: the corners
+     fall off in both axes at once, which rounds them off softly. */
+  -webkit-mask-image:
+    linear-gradient(to right,  transparent 0, #000 11%, #000 89%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 13%, #000 87%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right,  transparent 0, #000 11%, #000 89%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 13%, #000 87%, transparent 100%);
+  mask-composite: intersect;
 }
-.sw-copylayer::before {
-  left: auto; right: 0;
-  background: linear-gradient(270deg, var(--sw-bg) 0%,
-    color-mix(in srgb, var(--sw-bg) 82%, transparent) 34%,
-    color-mix(in srgb, var(--sw-bg) 40%, transparent) 62%, transparent 100%);
+@media (max-width: 860px) {
+  .sw-copy::before { inset: -26px -22px -30px; border-radius: 24px; }
 }
-/* route rail: left side */
-.sw-route { right: auto; left: clamp(14px, 2.4vw, 30px); }
-.sw-route__label {
+
+/* route rail: opposite the copy — left for Arabic, engine default (right) for
+   English, so the rail never crowds the panel it shares an edge with. */
+html[dir=rtl] .sw-route { right: auto; left: clamp(14px, 2.4vw, 30px); }
+html[dir=rtl] .sw-route__label {
   right: auto; left: 24px;
   transform: translateY(-50%) translateX(-6px);
 }
-.sw-route__dot:hover .sw-route__label,
-.sw-route__dot.is-active .sw-route__label { transform: translateY(-50%) translateX(0); }
-
-/* tags flow right */
-.sw-copy__tags { justify-content: flex-end; }
-.sw-copy__cta  { justify-content: flex-end; }
+html[dir=rtl] .sw-route__dot:hover .sw-route__label,
+html[dir=rtl] .sw-route__dot.is-active .sw-route__label { transform: translateY(-50%) translateX(0); }
 
 /* keep the "01 / 05" counter latin-ordered inside RTL text */
 .sw-copy__num { direction: ltr; unicode-bidi: isolate; display: inline-block; }
@@ -67,22 +108,17 @@
 @media (max-width:860px){ .sw-copy { width: auto; } }
 
 @media (max-width:860px){
-  .sw-copy { left: clamp(18px,5vw,64px); right: clamp(18px,5vw,64px); }
-  .sw-copylayer::before{
-    background: linear-gradient(0deg, var(--sw-bg) 8%,
-      color-mix(in srgb, var(--sw-bg) 70%, transparent) 46%, transparent 100%);
-    width:100%;
-  }
-  .sw-route { left: 6px; }
+  /* Phones: the panel spans the width at the bottom in both languages — but the
+     dir-scoped desktop rules above out-specify a bare `.sw-copy`, so repeat the
+     side pinning at the same specificity. */
+  html[dir] .sw-copy { left: clamp(18px,5vw,64px); right: clamp(18px,5vw,64px); }
+  html[dir=rtl] .sw-route { left: 6px; }
 }
 
 /* ---------- SADKO brand chrome ---------- */
 .sw-brand__mark { display:none; }
 .sw-brand img {
-  height: 34px; width: auto; display: block;
-  background: var(--sadko-teal-deep);
-  border-radius: 10px; padding: 6px 12px;
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--sadko-teal-deep) 35%, transparent);
+  height: 50px; width: auto; display: block;
 }
 .sw-topcta { background: var(--sadko-amber); color: #241a05; font-weight: 800; }
 .sw-btn--primary { background: var(--sadko-amber); color: #241a05; }

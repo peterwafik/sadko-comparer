@@ -242,17 +242,49 @@ function mountScrollWorld(container, config) {
       let cop;
       if (i === 0) cop = after ? 0 : smooth(1 - pr / 0.62);            // greets on landing
       else if (i === N - 1) cop = before ? 0 : smooth(pr / 0.4);       // holds CTA at the end
-      else cop = (before || after) ? 0 : smooth(1 - Math.abs(pr - 0.5) / 0.5);
+      else if (before || after) cop = 0;
+      else {
+        // The copy peaks at `copyAt` — the scroll progress where this room is
+        // actually FRAMED (normally its `showcase` frame, i.e. the view the room
+        // dock lands on), not blindly at mid-section. A room whose settle frame
+        // sits late in its scroll would otherwise shout on the way in and be
+        // gone by the time the reader arrives at the view it describes.
+        // Rise/fall are whatever room is left on each side, so the curve is
+        // identical to the old symmetric one when copyAt is the default 0.5.
+        const at = SECTIONS[i].copyAt != null ? SECTIONS[i].copyAt : 0.5;
+        const rise = Math.min(0.5, at), fall = Math.min(0.5, 1 - at);
+        cop = pr < at ? (rise ? smooth((pr - at + rise) / rise) : 1)
+                      : (fall ? smooth((at + fall - pr) / fall) : 1);
+      }
       const c = copies[i];
       c.style.opacity = cop;
-      // Desktop copy is vertically centred (top:50%); the parallax shift must
-      // COMPOSE with the -50% self-centering, or the panel hangs below the
-      // middle and collides with lower appliances. Mobile copy is bottom-
-      // anchored (no -50%), so it only gets the shift.
+      // Desktop: the copy sits at a per-scene vertical anchor (copyY, a fraction
+      // of viewport height — default centred) chosen so it never overlaps that
+      // room's markers. Its box is centred on copyY, and the parallax shift
+      // composes with the -50%. Mobile stays bottom-anchored (CSS), shift only.
       const shift = reduce ? '0vh' : `${(0.5 - pr) * 4}vh`;
-      c.style.transform = window.innerWidth > 860
-        ? `translateY(calc(-50% + ${shift}))`
-        : `translateY(${shift})`;
+      if (window.innerWidth > 860) {
+        const cy = SECTIONS[i].copyY != null ? SECTIONS[i].copyY : 0.5;
+        const cx = SECTIONS[i].copyX;
+        c.style.top = (cy * 100).toFixed(1) + '%';
+        if (cx != null) {
+          // A room whose reading-start edge is crowded with appliances can pin
+          // its copy to a clear patch instead (copyX, a fraction of viewport
+          // width, box centred on it). Text ALIGNMENT still follows the
+          // language — only the panel's position moves.
+          c.style.left = (cx * 100).toFixed(1) + '%'; c.style.right = 'auto';
+          c.style.transform = `translate(-50%, calc(-50% + ${shift}))`;
+        } else {
+          c.style.transform = `translateY(calc(-50% + ${shift}))`;
+          // Horizontal side is language-driven — right for Arabic (RTL), left for
+          // English (LTR). Set inline so it always wins the cascade.
+          if (document.documentElement.dir === 'rtl') { c.style.right = 'clamp(18px,5vw,64px)'; c.style.left = 'auto'; }
+          else { c.style.left = 'clamp(18px,5vw,64px)'; c.style.right = 'auto'; }
+        }
+      } else {
+        c.style.top = ''; c.style.left = ''; c.style.right = '';
+        c.style.transform = `translateY(${shift})`;
+      }
       c.style.pointerEvents = cop > 0.5 ? 'auto' : 'none';
     }
 
@@ -394,7 +426,13 @@ function injectCSS() {
   .sw-scene__still{will-change:transform;} .sw-scene.has-clip .sw-scene__still{opacity:0;} .sw-scene__video{z-index:1;}
   .sw-copylayer{position:fixed;inset:0;z-index:20;pointer-events:none;}
   .sw-copylayer::before{content:"";position:absolute;inset:0;width:min(58vw,780px);background:linear-gradient(90deg,var(--sw-bg) 0%,color-mix(in srgb,var(--sw-bg) 82%,transparent) 34%,color-mix(in srgb,var(--sw-bg) 40%,transparent) 62%,transparent 100%);}
+  /* RTL (Arabic): the over-constrained scrim auto-anchors to the right edge; only
+     its gradient needs flipping so the opaque side sits behind the right-hand copy. */
+  [dir=rtl] .sw-copylayer::before{background:linear-gradient(270deg,var(--sw-bg) 0%,color-mix(in srgb,var(--sw-bg) 82%,transparent) 34%,color-mix(in srgb,var(--sw-bg) 40%,transparent) 62%,transparent 100%);}
+  /* English (LTR) copy sits on the left; the vertical anchor (top) is set per scene
+     by JS. Arabic flips it to the right on desktop (below) — the reading-start side. */
   .sw-copy{position:absolute;left:clamp(18px,5vw,64px);top:50%;transform:translateY(-50%);width:min(42vw,460px);opacity:0;will-change:opacity,transform;}
+  @media (min-width:861px){ html[dir=rtl] .sw-copy{left:auto;right:clamp(18px,5vw,64px);} }
   .sw-copy__num{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;letter-spacing:.12em;color:var(--sw-ink-soft);}
   .sw-copy__eyebrow{display:block;margin-top:18px;font-family:var(--sw-font-display);font-weight:700;font-size:.8rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sw-accent);}
   .sw-copy__title{font-family:var(--sw-font-display);font-weight:700;color:var(--sw-ink);font-size:clamp(2rem,4.4vw,3.5rem);line-height:1.03;margin:12px 0 0;letter-spacing:-.01em;text-shadow:0 2px 20px color-mix(in srgb,var(--sw-bg) 70%,transparent);}

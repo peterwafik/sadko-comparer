@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>سلة التسوق — صادكو جروب</title>
-<link rel="icon" href="assets/img/sadko-logo-white.png">
+<link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/category.css">
+<link rel="stylesheet" href="assets/css/category.css?v=c2">
 <style>
 :root{--accent:#2e7e88;}
 .cart-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px;align-items:start;}
@@ -32,7 +32,8 @@
 .summary .row.total b{color:#2e7e88;direction:ltr;}
 .act{display:block;width:100%;text-align:center;font:800 .92rem 'Cairo',sans-serif;text-decoration:none;
   border-radius:999px;padding:13px 10px;margin-top:10px;cursor:pointer;border:0;}
-.act--call{background:#fe9800;color:#241a05;}
+.act--checkout{background:#fe9800;color:#241a05;font-size:1rem;padding:15px 10px;}
+.act--call{background:#fff;color:#14343a;border:1.5px solid rgba(20,52,58,.25);}
 .act--mail{background:#2e7e88;color:#fff;}
 .act--save{background:#fff;color:#14343a;border:1.5px solid rgba(20,52,58,.25);}
 .act--clear{background:none;color:#b3423a;text-decoration:underline;padding:6px;}
@@ -55,11 +56,12 @@
       <h3>ملخص الطلب</h3>
       <div class="row"><span>عدد القطع</span><b id="sCount">0</b></div>
       <div class="row total"><span>الإجمالى</span><b id="sTotal">0 جنيه</b></div>
-      <a class="act act--call" href="tel:19140">اطلب دلوقتى — اتصل 19140</a>
+      <a class="act act--checkout" href="checkout.html">كمّل الطلب</a>
+      <a class="act act--call" href="tel:19140">أو اطلب بالتليفون — 19140</a>
       <a class="act act--mail" id="mailBtn" href="#">ابعت الطلب بالإيميل</a>
       <button class="act act--save" id="saveBtn" type="button">احفظ الطلب فى «الطلبات»</button>
       <button class="act act--clear" id="clearBtn" type="button">فضّى السلة</button>
-      <p class="note">الدفع عند الاستلام أو بالبطاقة · توصيل مجانى داخل القاهرة والجيزة والإسكندرية · للتقسيط اسأل خدمة العملاء على 19140.</p>
+      <p class="note">الدفع عند الاستلام أو تحويل بنكى أو فى المعرض — الدفع بالبطاقة أونلاين لسه مش متاح. رسوم التوصيل والتركيب بتتأكد معاك بالتليفون. للتقسيط اسأل خدمة العملاء على 19140.</p>
     </aside>
   </div>
   <p class="empty" id="empty" hidden>سلتك فاضية — <a href="shop.html">اتفضل على المتجر</a> أو اتفسّح فى <a href="index.html">بيت صادكو</a> ودوس على أى جهاز يعجبك.</p>
@@ -67,13 +69,13 @@
 
 <footer class="foot">
   <div class="foot__inner">
-    <img src="assets/img/sadko-logo-white.png" alt="صادكو جروب" class="foot__logo">
+    <img src="assets/img/sadko-logo.png" alt="صادكو جروب" class="foot__logo">
     <p>الخط الساخن <a href="tel:19140" dir="ltr">19140</a> · <a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></p>
     <p class="foot__copy">© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)</p>
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g9" defer></script>
+<script src="assets/js/nav.js?v=g15" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {
   const fmt = n => n.toLocaleString('en-US');

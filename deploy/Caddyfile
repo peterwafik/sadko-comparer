@@ -1,0 +1,28 @@
+# SADKO reverse proxy with automatic HTTPS.
+# setup-vm.sh substitutes {{DOMAIN}}, {{EMAIL}} and {{PORT}} and writes this to
+# /etc/caddy/Caddyfile. Reload after editing:  sudo systemctl reload caddy
+{
+    email {{EMAIL}}
+}
+
+{{DOMAIN}} {
+    encode zstd gzip
+
+    # Caddy sets X-Forwarded-Proto: https, which compare-server.mjs reads to
+    # decide whether to mark the session cookie Secure and send HSTS. Without a
+    # proxy that sets it, cookies stay non-Secure — which is correct on plain
+    # http and wrong in production, so do not remove this.
+    reverse_proxy 127.0.0.1:{{PORT}} {
+        header_up X-Real-IP {remote_host}
+    }
+
+    # The app already sends CSP and friends; just don't advertise the server.
+    header -Server
+
+    log {
+        output file /var/log/caddy/sadko.log {
+            roll_size 20MiB
+            roll_keep 5
+        }
+    }
+}

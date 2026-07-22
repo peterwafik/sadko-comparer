@@ -55,8 +55,9 @@ import { openCatalog } from './engine/catalog.mjs';
 import { rankOffers } from './engine/serve.mjs';
 import { extractProduct } from './engine/extract.mjs';
 import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
-import { openBookings } from './engine/bookings.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
+import { openAccounts } from './engine/accounts.mjs';
+import { verifyIdToken, enabledProviders } from './engine/oidc.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8082);
@@ -1412,15 +1413,146 @@ function storeLinks(q, lang) {
   ];
 }
 
-/* ================= Home Experience bookings ================= */
-let BOOKINGS = null;
-function bookings() {
-  if (BOOKINGS === null) {
-    try { BOOKINGS = openBookings(path.join(ROOT, 'data', 'bookings.json'), path.join(ROOT, 'data', 'branches.json')); }
-    catch { BOOKINGS = false; }
+/* ================= accounts, sign-in and orders ================= */
+/* Real server-side auth (scrypt + HttpOnly session cookies) lives in
+   engine/accounts.mjs. Everything here is transport: cookies, bodies, and
+   turning module errors into messages a customer can act on.
+
+   PAYMENT: this site accepts OFFLINE methods only. No card number, CVV or
+   expiry is ever requested, transmitted or stored anywhere in this codebase.
+   Taking card payments requires a PCI-compliant gateway (in Egypt typically
+   Paymob or Fawry) redirecting to the provider's own hosted page — that
+   integration does not exist yet, so offering a card form here would be
+   collecting payment details under false pretences. */
+const PAYMENT_METHODS = ['cod', 'bank', 'showroom'];
+
+let ACCOUNTS = null;
+function accounts() {
+  if (ACCOUNTS === null) {
+    try { ACCOUNTS = openAccounts(path.join(ROOT, 'data', 'accounts.json')); }
+    catch (e) { console.error('[accounts] unavailable:', e.message); ACCOUNTS = false; }
   }
-  return BOOKINGS;
+  return ACCOUNTS;
 }
+
+const SESSION_COOKIE = 'sadko_session';
+
+/* ---- production hardening -------------------------------------------------
+   Small, dependency-free versions of the things a public server needs. */
+
+// Sent on every response. CSP is deliberately explicit about the few external
+// origins this site really uses (Google Fonts, the CDN the catalogue images sit
+// on, and the Google sign-in SDK) so anything else injected into a page cannot
+// phone home.
+const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'SAMEORIGIN',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'geolocation=(), microphone=(), camera=(), payment=()',
+  'content-security-policy': [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'self'",
+    "form-action 'self'",
+    // inline handlers/styles are used throughout the static pages
+    "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https:",
+    "connect-src 'self' https://accounts.google.com",
+    "frame-src https://accounts.google.com",
+  ].join('; '),
+};
+function applySecurityHeaders(res, secure) {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
+  // Only meaningful over TLS, and harmful if set while still on plain http.
+  if (secure) res.setHeader('strict-transport-security', 'max-age=15552000; includeSubDomains');
+}
+
+/* Cross-site request forgery: SameSite=Lax already blocks the classic form
+   post, and a JSON content-type forces a CORS preflight. This is the belt to
+   that braces — a state-changing request must come from our own origin. */
+function sameOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;                       // curl / same-origin fetch without Origin
+  try {
+    const o = new URL(origin);
+    const host = String(req.headers.host || '');
+    return o.host === host;
+  } catch { return false; }
+}
+
+/* A crude per-IP request budget, so one client cannot drown the box. */
+const RATE = { windowMs: 60000, max: 240, hits: new Map() };
+function rateLimited(ip) {
+  const now = Date.now();
+  const rec = RATE.hits.get(ip);
+  if (!rec || now - rec.at > RATE.windowMs) { RATE.hits.set(ip, { at: now, n: 1 }); return false; }
+  rec.n++;
+  return rec.n > RATE.max;
+}
+setInterval(() => {
+  const cutoff = Date.now() - RATE.windowMs;
+  for (const [k, v] of RATE.hits) if (v.at < cutoff) RATE.hits.delete(k);
+}, RATE.windowMs).unref?.();
+
+const clientIp = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+  || req.socket.remoteAddress || '';
+function readCookie(req, name) {
+  const raw = req.headers.cookie || '';
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return null;
+}
+function isSecure(req) {
+  return (req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+}
+function setSessionCookie(res, req, raw, expires) {
+  const bits = [`${SESSION_COOKIE}=${encodeURIComponent(raw)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax',
+                `Expires=${new Date(expires).toUTCString()}`];
+  if (isSecure(req)) bits.push('Secure');
+  res.setHeader('Set-Cookie', bits.join('; '));
+}
+function clearSessionCookie(res, req) {
+  const bits = [`${SESSION_COOKIE}=`, 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'];
+  if (isSecure(req)) bits.push('Secure');
+  res.setHeader('Set-Cookie', bits.join('; '));
+}
+function currentUser(req) {
+  const db = accounts();
+  if (!db) return null;
+  try { return db.userForToken(readCookie(req, SESSION_COOKIE)); } catch { return null; }
+}
+async function readJson(req, limit = 40000) {
+  let body = '';
+  for await (const c of req) { body += c; if (body.length > limit) throw new Error('too-large'); }
+  try { return JSON.parse(body || '{}'); } catch { throw new Error('bad-json'); }
+}
+/* Error codes -> bilingual, non-leaky messages. */
+const AUTH_MSG = {
+  'bad-email':      ['اكتب إيميل صحيح.', 'Enter a valid email address.'],
+  'password-short': ['كلمة السر لازم تكون ٨ حروف على الأقل.', 'Password must be at least 8 characters.'],
+  'password-weak':  ['كلمة السر لازم تحتوى على حروف وأرقام.', 'Password must contain both letters and numbers.'],
+  'bad-name':       ['اكتب اسمك.', 'Please enter your name.'],
+  'bad-phone':      ['رقم الموبايل مش مظبوط.', 'That mobile number does not look right.'],
+  'email-taken':    ['الإيميل ده مسجّل قبل كده — سجّل دخولك.', 'That email is already registered — sign in instead.'],
+  'bad-credentials':['الإيميل أو كلمة السر غلط.', 'Wrong email or password.'],
+  'too-many':       ['محاولات كتير. استنى شوية وجرّب تانى.', 'Too many attempts. Please wait a few minutes and try again.'],
+  'empty-cart':     ['السلة فاضية.', 'Your cart is empty.'],
+  'too-many-items': ['عدد الأصناف كبير جداً.', 'Too many items in one order.'],
+  'no-user':        ['لازم تسجّل دخولك الأول.', 'Please sign in first.'],
+  'no-home':        ['المكان ده مش موجود.', 'That place was not found.'],
+  'too-many-homes': ['وصلت للحد الأقصى من الأماكن.', 'You have reached the maximum number of places.'],
+  'no-password':    ['الحساب ده بيدخل عن طريق جوجل — مفيش كلمة سر تتغيّر.', 'This account signs in with a provider — there is no password to change.'],
+  'bad-identity':   ['بيانات الدخول ناقصة.', 'Incomplete sign-in details.'],
+  'bad-json':       ['طلب غير صالح.', 'Malformed request.'],
+  'too-large':      ['حجم الطلب كبير جداً.', 'Request too large.'],
+  'unavailable':    ['خدمة الحسابات مش متاحة على النسخة دى.', 'Accounts are not available on this deployment.'],
+};
+const authErr = (code, lang) => ({ error: code, message: (AUTH_MSG[code] || AUTH_MSG['bad-json'])[lang === 'en' ? 1 : 0] });
 
 /* ================= http ================= */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -1431,12 +1563,39 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
    test script the adapters without binding the port */
 export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest, understandQuery, extractPrices };
 
-if (!process.env.SADKO_NO_SERVE)
-http.createServer(async (req, res) => {
+const HTTP_SERVER = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
+  const secure = isSecure(req);
+  applySecurityHeaders(res, secure);
+
   const json = (code, obj) => { res.statusCode = code;
     res.setHeader('content-type', 'application/json; charset=utf-8');
-    res.setHeader('access-control-allow-origin', '*'); res.end(JSON.stringify(obj)); };
+    // The comparison endpoints are public data and stay open; anything that
+    // touches an account must NOT be readable cross-origin, so no ACAO there.
+    if (!u.pathname.startsWith('/api/auth') && u.pathname !== '/api/orders')
+      res.setHeader('access-control-allow-origin', '*');
+    res.end(JSON.stringify(obj)); };
+
+  /* Liveness/readiness for the host's health checks and for uptime pings. */
+  if (u.pathname === '/healthz') {
+    let acc = null;
+    try { const db = accounts(); acc = db ? db.stats() : null; } catch (e) { acc = { error: true }; }
+    return json(acc && !acc.error ? 200 : 503, {
+      ok: !!(acc && !acc.error), uptimeSec: Math.round(process.uptime()),
+      node: process.versions.node, accounts: acc,
+      providers: enabledProviders().map(p => p.id),
+    });
+  }
+
+  if (rateLimited(clientIp(req))) {
+    res.statusCode = 429;
+    res.setHeader('retry-after', '60');
+    return json(429, { error: 'rate-limited', message: 'طلبات كتير أوى — استنى دقيقة. / Too many requests — please wait a minute.' });
+  }
+
+  // State-changing requests must originate from this site.
+  if (req.method !== 'GET' && req.method !== 'HEAD' && !sameOrigin(req))
+    return json(403, { error: 'bad-origin', message: 'طلب من مصدر غير معروف. / Request from an unrecognised origin.' });
 
   if (u.pathname === '/api/compare') {
     const q = (u.searchParams.get('q') || '').trim();
@@ -1468,27 +1627,155 @@ http.createServer(async (req, res) => {
     } catch (e) { return json(500, { error: String(e.message || e) }); }
   }
 
-  /* ---- Home Experience: slot availability + booking ---- */
-  if (u.pathname === '/api/experience/slots' && req.method === 'GET') {
-    const bk = bookings();
-    if (!bk) return json(500, { error: 'bookings unavailable' });
-    const branch = u.searchParams.get('branch') || '';
-    const date = u.searchParams.get('date') || '';
-    const r = bk.slotsFor(branch, date);
-    return json(r.error ? 400 : 200, r);
-  }
-  if (u.pathname === '/api/experience/book' && req.method === 'POST') {
-    const bk = bookings();
-    if (!bk) return json(500, { error: 'bookings unavailable' });
-    let body = ''; for await (const c of req) { body += c; if (body.length > 20000) return json(413, { error: 'too-large' }); }
-    let rec; try { rec = JSON.parse(body || '{}'); } catch { return json(400, { error: 'bad-json' }); }
-    const r = bk.create(rec);
-    return json(r.error ? 400 : 200, r.error ? { error: r.error } : { ok: true, ref: r.ref });
-  }
-  if (u.pathname === '/api/experience/branches' && req.method === 'GET') {
-    const bk = bookings();
-    if (!bk) return json(500, { error: 'bookings unavailable' });
-    return json(200, { branches: bk.branches, slotTimes: bk.slotTimes });
+  /* ---- accounts ---- */
+  if (u.pathname.startsWith('/api/auth/') || u.pathname === '/api/orders') {
+    const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+    const db = accounts();
+    if (!db) return json(503, authErr('unavailable', lang));
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+
+    try {
+      if (u.pathname === '/api/auth/me' && req.method === 'GET')
+        return json(200, { user: currentUser(req) });
+
+      /* Which social buttons this deployment can actually show. With no
+         *_CLIENT_ID configured this returns [], and the UI says so rather
+         than rendering a button that cannot work. */
+      if (u.pathname === '/api/auth/config' && req.method === 'GET')
+        return json(200, { providers: enabledProviders(), passwordAuth: true });
+
+      /* Social sign-in. The browser sends the provider's ID token; it is only
+         trusted after engine/oidc.mjs checks signature, issuer, audience and
+         expiry against the provider's published keys. */
+      if (u.pathname === '/api/auth/oauth' && req.method === 'POST') {
+        const b = await readJson(req);
+        const v = await verifyIdToken(String(b.provider || ''), String(b.credential || ''), { nonce: b.nonce || null });
+        if (!v.ok) {
+          console.warn('[auth] oauth rejected:', v.error);
+          return json(401, { error: v.error, message: lang === 'en'
+            ? 'We could not verify that sign-in. Please try again.'
+            : 'مقدرناش نتأكد من تسجيل الدخول ده. جرّب تانى.' });
+        }
+        const r = db.signInWithIdentity(v.identity);
+        if (r.error === 'email-unverified') return json(409, { error: r.error, message: lang === 'en'
+          ? 'That email already has a SADKO account, and your provider has not verified the address. Sign in with your password instead.'
+          : 'الإيميل ده عليه حساب صادكو بالفعل، ومزوّد الخدمة ما أكّدش ملكيتك ليه. سجّل دخولك بكلمة السر.' });
+        if (r.error) return json(400, authErr(r.error, lang));
+        setSessionCookie(res, req, r.session.raw, r.session.expires);
+        return json(200, { ok: true, user: r.user, created: r.created });
+      }
+
+      if (u.pathname === '/api/auth/register' && req.method === 'POST') {
+        const b = await readJson(req);
+        const r = db.register(b);
+        if (r.error) return json(400, authErr(r.error, lang));
+        setSessionCookie(res, req, r.session.raw, r.session.expires);
+        return json(200, { ok: true, user: r.user });
+      }
+
+      if (u.pathname === '/api/auth/login' && req.method === 'POST') {
+        const b = await readJson(req);
+        const r = db.login({ email: b.email, password: b.password, ip });
+        if (r.error) return json(r.error === 'too-many' ? 429 : 401, authErr(r.error, lang));
+        setSessionCookie(res, req, r.session.raw, r.session.expires);
+        return json(200, { ok: true, user: r.user });
+      }
+
+      if (u.pathname === '/api/auth/logout' && req.method === 'POST') {
+        db.logout(readCookie(req, SESSION_COOKIE));
+        clearSessionCookie(res, req);
+        return json(200, { ok: true });
+      }
+
+      // Everything below needs a signed-in user.
+      const me = currentUser(req);
+      if (!me) return json(401, authErr('no-user', lang));
+
+      if (u.pathname === '/api/auth/profile' && (req.method === 'POST' || req.method === 'PATCH')) {
+        const b = await readJson(req);
+        const r = db.updateProfile(me.id, b);
+        if (r.error) return json(400, authErr(r.error, lang));
+        return json(200, { ok: true, user: r.user });
+      }
+
+      if (u.pathname === '/api/auth/password' && req.method === 'POST') {
+        const b = await readJson(req);
+        const r = db.changePassword(me.id, b.current, b.next);
+        if (r.error) return json(400, authErr(r.error, lang));
+        clearSessionCookie(res, req);      // every device is signed out, including this one
+        return json(200, { ok: true, signedOut: true });
+      }
+
+      /* ---- house / room profiles ---- */
+      if (u.pathname === '/api/auth/homes' && req.method === 'GET')
+        return json(200, { homes: db.listHomes(me.id) });
+
+      if (u.pathname === '/api/auth/homes' && req.method === 'POST') {
+        const b = await readJson(req);
+        const r = db.addHome(me.id, b);
+        if (r.error) return json(400, r.error === 'too-many-homes'
+          ? { error: r.error, message: lang === 'en' ? 'You can keep up to 8 places.' : 'تقدر تحتفظ بحد أقصى ٨ أماكن.' }
+          : authErr(r.error, lang));
+        return json(200, { ok: true, home: r.home, user: r.user });
+      }
+      if (u.pathname === '/api/auth/homes' && (req.method === 'PATCH' || req.method === 'PUT')) {
+        const b = await readJson(req);
+        const r = db.updateHome(me.id, String(b.id || ''), b.patch || b);
+        if (r.error) return json(400, authErr(r.error, lang));
+        return json(200, { ok: true, home: r.home, user: r.user });
+      }
+      if (u.pathname === '/api/auth/homes' && req.method === 'DELETE') {
+        const b = await readJson(req);
+        const r = db.removeHome(me.id, String(b.id || ''));
+        if (r.error) return json(400, authErr(r.error, lang));
+        return json(200, { ok: true, user: r.user });
+      }
+      if (u.pathname === '/api/auth/homes/active' && req.method === 'POST') {
+        const b = await readJson(req);
+        const r = db.setActiveHome(me.id, b.id ? String(b.id) : null);
+        if (r.error) return json(400, authErr(r.error, lang));
+        return json(200, { ok: true, user: r.user });
+      }
+
+      /* ---- the customer's own data ----
+         The privacy page promises people can get a copy and can have the
+         account erased. These make that self-serve rather than an email
+         someone has to action by hand. */
+      if (u.pathname === '/api/auth/export' && req.method === 'GET') {
+        const data = db.exportUser(me.id);
+        res.setHeader('content-disposition', 'attachment; filename="sadko-my-data.json"');
+        return json(200, data || {});
+      }
+      if (u.pathname === '/api/auth/delete' && req.method === 'POST') {
+        const b = await readJson(req);
+        // Deliberately destructive, so require the account's own email typed back.
+        if (String(b.confirmEmail || '').trim().toLowerCase() !== me.email)
+          return json(400, { error: 'confirm-mismatch', message: lang === 'en'
+            ? 'Type your account email exactly to confirm deletion.'
+            : 'اكتب إيميل حسابك بالظبط عشان نأكّد المسح.' });
+        const r = db.deleteUser(me.id);
+        if (r.error) return json(400, authErr(r.error, lang));
+        clearSessionCookie(res, req);
+        return json(200, { ok: true });
+      }
+
+      if (u.pathname === '/api/orders' && req.method === 'GET')
+        return json(200, { orders: db.ordersFor(me.id) });
+
+      if (u.pathname === '/api/orders' && req.method === 'POST') {
+        const b = await readJson(req);
+        if (b.payment && !PAYMENT_METHODS.includes(b.payment))
+          return json(400, { error: 'bad-payment', message: lang === 'en'
+            ? 'Unsupported payment method.' : 'طريقة دفع غير مدعومة.' });
+        const r = db.createOrder(me.id, b);
+        if (r.error) return json(400, authErr(r.error, lang));
+        return json(200, { ok: true, order: r.order });
+      }
+      return json(404, { error: 'not-found' });
+    } catch (e) {
+      const code = (e && e.message === 'too-large') ? 'too-large' : 'bad-json';
+      return json(400, authErr(code, lang));
+    }
   }
 
   let p = decodeURIComponent(u.pathname); if (p === '/') p = '/index.html';
@@ -1496,7 +1783,27 @@ http.createServer(async (req, res) => {
   if (!f.startsWith(ROOT) || !existsSync(f) || !statSync(f).isFile()) { res.statusCode = 404; res.end('not found'); return; }
   res.setHeader('content-type', MIME[path.extname(f).toLowerCase()] || 'application/octet-stream');
   createReadStream(f).pipe(res);
-}).listen(PORT, () => {
+});
+
+/* Hosts stop a container by sending SIGTERM and then killing it. Close the
+   listener, let in-flight requests finish, and check the databases point
+   cleanly so a redeploy never leaves a half-written WAL behind. */
+let SERVER = null;
+function shutdown(signal) {
+  console.log(`[server] ${signal} — shutting down`);
+  const done = () => {
+    try { ACCOUNTS && ACCOUNTS.close && ACCOUNTS.close(); } catch (e) {}
+    process.exit(0);
+  };
+  try { SERVER.close(done); } catch (e) { done(); }
+  setTimeout(done, 8000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('unhandledRejection', e => console.error('[server] unhandled rejection:', e && e.message || e));
+
+if (!process.env.SADKO_NO_SERVE)
+SERVER = HTTP_SERVER.listen(PORT, () => {
   console.log(`SADKO self-owned comparer engine on http://localhost:${PORT}`);
   console.log(NVIDIA_KEY
     ? `AI layer ON — ${AI_MODEL}`

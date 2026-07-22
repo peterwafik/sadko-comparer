@@ -1,7 +1,22 @@
 # local secrets — never commit
+# private keys of any kind (SSH, TLS) — never publish these
+*.key
+*.pem
+*.ppk
+id_rsa*
+id_ed25519*
+*.pub
 .env
 *.env
 !*.env.example
+
+# customer accounts, sessions and orders — personal data, never commit
+site/data/accounts.json
+site/data/accounts.json.tmp
+site/data/accounts.json.migrated
+# the SQLite account store and its write-ahead log — same personal data
+site/data/accounts.db
+site/data/accounts.db-*
 
 # engine runtime state
 site/data/price-index.json

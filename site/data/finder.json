@@ -1,0 +1,256 @@
+{
+  "_note": "Question sets for the guided product finder. One record per category family; the finder is generic and reads this file, so adding an appliance means adding a set here — never a new page. Each answer either sets a HARD filter (excludes products that cannot work) or contributes WEIGHTED points. Weights per set must total 100.",
+  "_schema": {
+    "ask": "id, label{ar,en}, hint{ar,en}, type: choice|number|multi, options[{value,label,hint}], spec: which derived spec it tests, role: filter|score, weight",
+    "reasonKeys": "each rule emits a reason key so the result can explain itself in plain words instead of a percentage"
+  },
+
+  "families": {
+    "fridge": {
+      "label": { "ar": "ثلاجات", "en": "Refrigerators" },
+      "unit": { "ar": "لتر", "en": "L" },
+      "weights": { "capacity": 30, "budget": 25, "energy": 20, "features": 15, "brand": 10 },
+      "questions": [
+        { "id": "people", "type": "choice", "role": "score", "spec": "capacity",
+          "label": { "ar": "كام فرد فى البيت؟", "en": "How many people in the household?" },
+          "hint": { "ar": "بنستخدمها نقترح مدى السعة المناسب — مش شرط تتقيد بيه.", "en": "Used to suggest a capacity range — not a hard rule." },
+          "options": [
+            { "value": 2, "label": { "ar": "فرد أو اتنين", "en": "1–2 people" } },
+            { "value": 4, "label": { "ar": "٣ أو ٤ أفراد", "en": "3–4 people" } },
+            { "value": 6, "label": { "ar": "٥ أو ٦ أفراد", "en": "5–6 people" } },
+            { "value": 8, "label": { "ar": "أكتر من ٦", "en": "More than 6" } }
+          ] },
+        { "id": "space", "type": "space", "role": "filter", "spec": "dims",
+          "label": { "ar": "المساحة المتاحة للجهاز", "en": "Space available for the appliance" },
+          "hint": { "ar": "قيس المكان وسيب ٥ سم على الأقل من كل ناحية للتهوية. سيب الخانة فاضية لو مش عارف.", "en": "Measure the gap and leave at least 5 cm around it for ventilation. Leave blank if you're unsure." } },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" },
+          "hint": { "ar": "هنستبعد اللى فوق الحد ده. لو الفرق بسيط هنقولك.", "en": "Anything above this is excluded — we'll tell you if something just misses it." } },
+        { "id": "energy", "type": "choice", "role": "score", "spec": "energy",
+          "label": { "ar": "توفير الكهرباء مهم قد إيه؟", "en": "How important is energy saving?" },
+          "options": [
+            { "value": "high", "label": { "ar": "أولوية كبيرة", "en": "Top priority" } },
+            { "value": "mid", "label": { "ar": "مهم بس مش الأهم", "en": "Matters, but not first" } },
+            { "value": "low", "label": { "ar": "مش فارق كتير", "en": "Not a big deal" } }
+          ] },
+        { "id": "freezer", "type": "choice", "role": "score", "spec": "features",
+          "label": { "ar": "الفريزر الكبير مهم؟", "en": "Is a large freezer important?" },
+          "options": [
+            { "value": "yes", "label": { "ar": "أيوه، بنجمّد كتير", "en": "Yes, we freeze a lot" }, "prefer": ["doors2", "noFrost"] },
+            { "value": "no", "label": { "ar": "عادى", "en": "Not really" } }
+          ] },
+        { "id": "color", "type": "choice", "role": "score", "spec": "color",
+          "label": { "ar": "فيه لون تفضله؟", "en": "Any preferred finish?" },
+          "options": [
+            { "value": "any", "label": { "ar": "أى لون", "en": "Any" } },
+            { "value": "silver", "label": { "ar": "سيلفر / ستانلس", "en": "Silver / stainless" } },
+            { "value": "black", "label": { "ar": "أسود", "en": "Black" } },
+            { "value": "white", "label": { "ar": "أبيض", "en": "White" } }
+          ] },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "freezer": {
+      "label": { "ar": "فريزرات", "en": "Freezers" },
+      "unit": { "ar": "لتر", "en": "L" },
+      "weights": { "capacity": 30, "budget": 30, "energy": 20, "features": 10, "brand": 10 },
+      "questions": [
+        { "id": "people", "type": "choice", "role": "score", "spec": "capacity",
+          "label": { "ar": "كام فرد فى البيت؟", "en": "How many people in the household?" },
+          "options": [
+            { "value": 2, "label": { "ar": "فرد أو اتنين", "en": "1–2" } },
+            { "value": 4, "label": { "ar": "٣ أو ٤", "en": "3–4" } },
+            { "value": 6, "label": { "ar": "٥ أو ٦", "en": "5–6" } },
+            { "value": 8, "label": { "ar": "أكتر من ٦", "en": "More than 6" } }
+          ] },
+        { "id": "space", "type": "space", "role": "filter", "spec": "dims",
+          "label": { "ar": "المساحة المتاحة", "en": "Available space" } },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "energy", "type": "choice", "role": "score", "spec": "energy",
+          "label": { "ar": "توفير الكهرباء مهم قد إيه؟", "en": "How important is energy saving?" },
+          "options": [
+            { "value": "high", "label": { "ar": "أولوية كبيرة", "en": "Top priority" } },
+            { "value": "mid", "label": { "ar": "مهم بس مش الأهم", "en": "Matters, but not first" } },
+            { "value": "low", "label": { "ar": "مش فارق كتير", "en": "Not a big deal" } }
+          ] },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "washer": {
+      "label": { "ar": "غسالات", "en": "Washing machines" },
+      "unit": { "ar": "كجم", "en": "kg" },
+      "weights": { "capacity": 30, "budget": 25, "energy": 20, "features": 15, "brand": 10 },
+      "questions": [
+        { "id": "people", "type": "choice", "role": "score", "spec": "capacity",
+          "label": { "ar": "كام فرد فى البيت؟", "en": "How many people in the household?" },
+          "hint": { "ar": "السعة بالكيلو بتتحدد بعدد الأفراد وعدد الغسلات فى الأسبوع.", "en": "Drum size in kg follows household size and how often you wash." },
+          "options": [
+            { "value": 2, "label": { "ar": "فرد أو اتنين", "en": "1–2" } },
+            { "value": 4, "label": { "ar": "٣ أو ٤", "en": "3–4" } },
+            { "value": 6, "label": { "ar": "٥ أو ٦", "en": "5–6" } },
+            { "value": 8, "label": { "ar": "أكتر من ٦", "en": "More than 6" } }
+          ] },
+        { "id": "space", "type": "space", "role": "filter", "spec": "dims",
+          "label": { "ar": "المساحة المتاحة", "en": "Available space" },
+          "hint": { "ar": "الغسالة محتاجة مساحة للخراطيم ورا الجهاز.", "en": "Leave room behind the machine for hoses." } },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "load", "type": "choice", "role": "score", "spec": "features",
+          "label": { "ar": "تفضل تحميل من قدام ولا من فوق؟", "en": "Front loading or top loading?" },
+          "options": [
+            { "value": "any", "label": { "ar": "مش فارق", "en": "Either" } },
+            { "value": "front", "label": { "ar": "من قدام", "en": "Front" }, "prefer": ["frontLoad"] },
+            { "value": "top", "label": { "ar": "من فوق", "en": "Top" }, "prefer": ["topLoad"] }
+          ] },
+        { "id": "energy", "type": "choice", "role": "score", "spec": "energy",
+          "label": { "ar": "توفير الكهرباء مهم قد إيه؟", "en": "How important is energy saving?" },
+          "options": [
+            { "value": "high", "label": { "ar": "أولوية كبيرة", "en": "Top priority" } },
+            { "value": "mid", "label": { "ar": "مهم بس مش الأهم", "en": "Matters, but not first" } },
+            { "value": "low", "label": { "ar": "مش فارق كتير", "en": "Not a big deal" } }
+          ] },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "tv": {
+      "label": { "ar": "تليفزيونات", "en": "Televisions" },
+      "unit": { "ar": "بوصة", "en": "inch" },
+      "weights": { "capacity": 35, "budget": 30, "features": 25, "brand": 10, "energy": 0 },
+      "questions": [
+        { "id": "distance", "type": "choice", "role": "score", "spec": "capacity",
+          "label": { "ar": "قد إيه المسافة بين الكنبة والشاشة؟", "en": "How far will you sit from the screen?" },
+          "hint": { "ar": "المقاس المناسب بيعتمد على المسافة أكتر من أى حاجة تانية.", "en": "Viewing distance drives screen size more than anything else." },
+          "options": [
+            { "value": 2, "label": { "ar": "أقل من ٢ متر", "en": "Under 2 m" }, "range": [32, 43] },
+            { "value": 3, "label": { "ar": "٢ – ٣ متر", "en": "2–3 m" }, "range": [43, 55] },
+            { "value": 4, "label": { "ar": "٣ – ٤ متر", "en": "3–4 m" }, "range": [50, 65] },
+            { "value": 5, "label": { "ar": "أكتر من ٤ متر", "en": "Over 4 m" }, "range": [58, 100] }
+          ] },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "smart", "type": "choice", "role": "score", "spec": "features",
+          "label": { "ar": "محتاج تطبيقات (نتفليكس، يوتيوب)؟", "en": "Do you need apps (Netflix, YouTube)?" },
+          "options": [
+            { "value": "yes", "label": { "ar": "أيوه، سمارت", "en": "Yes, smart TV" }, "prefer": ["smart"] },
+            { "value": "no", "label": { "ar": "لا، للمشاهدة العادية", "en": "No, normal viewing" } }
+          ] },
+        { "id": "res", "type": "choice", "role": "score", "spec": "features",
+          "label": { "ar": "وضوح الصورة", "en": "Picture resolution" },
+          "options": [
+            { "value": "any", "label": { "ar": "مش فارق", "en": "No preference" } },
+            { "value": "4k", "label": { "ar": "4K لو أمكن", "en": "Prefer 4K" }, "prefer": ["4K"] }
+          ] },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "ac": {
+      "label": { "ar": "تكييفات", "en": "Air conditioners" },
+      "unit": { "ar": "حصان", "en": "HP" },
+      "weights": { "capacity": 35, "budget": 25, "energy": 20, "features": 12, "brand": 8 },
+      "questions": [
+        { "id": "room", "type": "number", "role": "score", "spec": "capacity",
+          "label": { "ar": "مساحة الأوضة بالمتر المربع", "en": "Room area in square metres" },
+          "hint": { "ar": "القاعدة التقريبية: حصان لكل ١٢–١٦ متر مربع. الأوضة اللى عليها شمس كتير محتاجة أكبر.", "en": "Rule of thumb: about 1 HP per 12–16 m². A sun-facing room needs more." },
+          "unitLabel": { "ar": "م²", "en": "m²" } },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "heating", "type": "choice", "role": "score", "spec": "features",
+          "label": { "ar": "محتاج تدفئة فى الشتا؟", "en": "Do you need heating in winter?" },
+          "options": [
+            { "value": "yes", "label": { "ar": "أيوه، بارد وساخن", "en": "Yes — cooling & heating" }, "prefer": ["heating"] },
+            { "value": "no", "label": { "ar": "لا، بارد بس", "en": "No — cooling only" } }
+          ] },
+        { "id": "energy", "type": "choice", "role": "score", "spec": "energy",
+          "label": { "ar": "توفير الكهرباء مهم قد إيه؟", "en": "How important is energy saving?" },
+          "hint": { "ar": "الانفرتر بيوفر فى فاتورة الكهربا لو التكييف بيشتغل ساعات طويلة.", "en": "Inverter units pay off when the AC runs for long hours." },
+          "options": [
+            { "value": "high", "label": { "ar": "أولوية كبيرة", "en": "Top priority" } },
+            { "value": "mid", "label": { "ar": "مهم بس مش الأهم", "en": "Matters, but not first" } },
+            { "value": "low", "label": { "ar": "مش فارق كتير", "en": "Not a big deal" } }
+          ] },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "cooker": {
+      "label": { "ar": "أفران وبوتاجازات", "en": "Cookers & ovens" },
+      "weights": { "capacity": 20, "budget": 35, "energy": 10, "features": 20, "brand": 15 },
+      "questions": [
+        { "id": "space", "type": "space", "role": "filter", "spec": "dims",
+          "label": { "ar": "المساحة المتاحة", "en": "Available space" } },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "waterheater": {
+      "label": { "ar": "سخانات مياه", "en": "Water heaters" },
+      "unit": { "ar": "لتر", "en": "L" },
+      "weights": { "capacity": 30, "budget": 35, "energy": 15, "features": 10, "brand": 10 },
+      "questions": [
+        { "id": "people", "type": "choice", "role": "score", "spec": "capacity",
+          "label": { "ar": "بيستخدمه كام فرد؟", "en": "How many people will use it?" },
+          "options": [
+            { "value": 2, "label": { "ar": "فرد أو اتنين", "en": "1–2" }, "range": [10, 40] },
+            { "value": 4, "label": { "ar": "٣ أو ٤", "en": "3–4" }, "range": [30, 60] },
+            { "value": 6, "label": { "ar": "٥ فأكتر", "en": "5+" }, "range": [50, 120] }
+          ] },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "microwave": {
+      "label": { "ar": "ميكروويف", "en": "Microwaves" },
+      "unit": { "ar": "لتر", "en": "L" },
+      "weights": { "capacity": 25, "budget": 40, "energy": 5, "features": 15, "brand": 15 },
+      "questions": [
+        { "id": "people", "type": "choice", "role": "score", "spec": "capacity",
+          "label": { "ar": "بيستخدمه كام فرد؟", "en": "How many people will use it?" },
+          "options": [
+            { "value": 2, "label": { "ar": "فرد أو اتنين", "en": "1–2" }, "range": [15, 25] },
+            { "value": 4, "label": { "ar": "٣ أو ٤", "en": "3–4" }, "range": [20, 32] },
+            { "value": 6, "label": { "ar": "٥ فأكتر", "en": "5+" }, "range": [25, 60] }
+          ] },
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" } },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    },
+
+    "_default": {
+      "label": { "ar": "الفئة", "en": "Category" },
+      "weights": { "capacity": 15, "budget": 45, "energy": 10, "features": 10, "brand": 20 },
+      "questions": [
+        { "id": "budget", "type": "budget", "role": "filter", "spec": "price",
+          "label": { "ar": "الميزانية", "en": "Budget" },
+          "hint": { "ar": "هنستبعد اللى فوق الحد ده.", "en": "Anything above this is excluded." } },
+        { "id": "color", "type": "choice", "role": "score", "spec": "color",
+          "label": { "ar": "فيه لون تفضله؟", "en": "Any preferred colour?" },
+          "options": [
+            { "value": "any", "label": { "ar": "أى لون", "en": "Any" } },
+            { "value": "silver", "label": { "ar": "سيلفر / ستانلس", "en": "Silver / stainless" } },
+            { "value": "black", "label": { "ar": "أسود", "en": "Black" } },
+            { "value": "white", "label": { "ar": "أبيض", "en": "White" } }
+          ] },
+        { "id": "brand", "type": "brands", "role": "score", "spec": "brand",
+          "label": { "ar": "ماركات تفضلها؟ (اختيارى)", "en": "Preferred brands? (optional)" } }
+      ]
+    }
+  }
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مركز خدمة العملاء — صادكو جروب</title>
+<meta name="description" content="إجابات صريحة عن الضمان والتوصيل والتركيب والاسترجاع، وطلب مساعدة موجّه بيجهّز لك نص الطلب كامل عشان تبعته بالإيميل أو تقراه فى المكالمة على 19140.">
+<link rel="icon" href="assets/img/sadko-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css?v=a4">
+<style>
+/* page-specific: keep the guided form's steps readable as blocks */
+#care-form fieldset { border: 0; padding: 0; margin: 22px 0 0; }
+#care-form fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 18px; }
+#care-form legend { padding: 0; }
+#care-out:focus { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 3px; }
+#care-text { font-family: 'Cairo', monospace; font-size: .86rem; }
+</style>
+</head>
+<body>
+
+<section class="phero">
+  <div class="phero__inner">
+    <p class="phero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ← <span data-i18n="crumb-here">مركز خدمة العملاء</span></p>
+    <h1 class="phero__title" data-i18n="title">مركز خدمة العملاء</h1>
+    <p class="phero__sub" data-i18n="sub">إجابات صريحة عن الضمان والتوصيل والتركيب والاسترجاع، وطلب مساعدة موجّه بيسألك
+      خمس أسئلة ويجهّز لك <strong>نص الطلب كامل</strong> — تبعته بالإيميل أو تقراه فى المكالمة على 19140.
+      الصفحة دى مش بتبعت الطلب عنك، وبنقولها بصراحة قبل ما تبدأ.</p>
+  </div>
+</section>
+
+<main class="wrap" id="care-root">
+  <div class="empty" data-i18n="loading">جارى التحميل…</div>
+</main>
+
+<footer data-footer></footer>
+
+<script src="assets/js/nav.js?v=g15" defer></script>
+<script src="assets/js/appshell.js?v=a4" defer></script>
+<script src="assets/js/specs.js?v=a4" defer></script>
+<script src="assets/js/store.js?v=a4" defer></script>
+<script src="assets/js/auth.js?v=a4" defer></script>
+<script src="assets/js/homes.js?v=a4" defer></script>
+<script src="assets/js/prefs.js?v=a4" defer></script>
+<script src="assets/js/care.js?v=a4" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const T = {
+    'crumb-home': 'Home', 'crumb-here': 'Customer care',
+    'title': 'Customer care',
+    'sub': 'Straight answers about warranty, delivery, installation and returns — plus a guided request that asks five questions and prepares the <strong>full request text</strong> for you to e-mail or read out on 19140. This page does not send the request for you, and we say so before you start.',
+    'loading': 'Loading…',
+  };
+  if (window.skLang && window.skLang.get() === 'en') {
+    document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+    document.title = 'Customer care — SADKO Group';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
+    });
+  }
+  skApp.footer();
+  mountCare(document.getElementById('care-root'));
+});
+</script>
+</body>
+</html>

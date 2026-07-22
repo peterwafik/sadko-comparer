@@ -1,0 +1,748 @@
+{
+  "updated": "2026-07-20",
+  "tags": {
+    "basics":    { "ar": "أساسيات", "en": "Basics" },
+    "fridge":    { "ar": "ثلاجات", "en": "Refrigerators" },
+    "energy":    { "ar": "الطاقة والفاتورة", "en": "Energy & bills" },
+    "space":     { "ar": "المساحة والقياس", "en": "Space & measuring" },
+    "warranty":  { "ar": "الضمان", "en": "Warranty" },
+    "install":   { "ar": "التوصيل والتركيب", "en": "Delivery & installation" },
+    "care":      { "ar": "الصيانة", "en": "Maintenance" },
+    "family":    { "ar": "عيلة كبيرة", "en": "Large family" },
+    "budget":    { "ar": "الميزانية", "en": "Budget" },
+    "mistakes":  { "ar": "أخطاء شائعة", "en": "Common mistakes" }
+  },
+  "articles": [
+    {
+      "id": "g1",
+      "slug": "fridge-size",
+      "minutes": 6,
+      "tags": ["fridge", "space", "basics"],
+      "categoryIds": ["38003882", "38005648"],
+      "title": {
+        "ar": "إزاى تختار مقاس الثلاجة الصح",
+        "en": "How to choose the right fridge size"
+      },
+      "dek": {
+        "ar": "قاعدة تقريبية بتربط عدد أفراد البيت بالسعة باللتر، وإزاى عاداتك فى الطبخ والتسوق بتحرّك الرقم فوق أو تحت.",
+        "en": "A rule of thumb linking household size to capacity in litres, and how your cooking and shopping habits move that number up or down."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "أكتر سؤال بيتسأل فى المعرض: «الثلاجة دى تكفينا؟». الإجابة مش فى شكل الثلاجة ولا عدد الأبواب، لكن فى السعة باللتر مقارنة بعدد الأفراد وطريقة أكلكم. الأرقام اللى تحت قواعد تقريبية بتساعدك تحدد نطاق، مش قانون.",
+          "en": "The most common question in a showroom is: \"will this fridge be enough for us?\". The answer is not in the shape of the fridge or the number of doors — it is in the capacity in litres compared with how many people live in the home and how you eat. The numbers below are rules of thumb that help you pick a range, not a law." },
+
+        { "type": "h", "ar": "ابدأ من عدد الأفراد", "en": "Start from the number of people" },
+        { "type": "p",
+          "ar": "القاعدة التقريبية الأكثر استخداماً: احسب من ١٠٠ إلى ١٥٠ لتر لأول فرد، وزوّد من ٥٠ إلى ٦٠ لتر لكل فرد زيادة. ده بيوصّلك لنطاق مبدئى، وبعدين تعدّله حسب عاداتك.",
+          "en": "The most widely used rule of thumb: allow 100–150 litres for the first person, then add 50–60 litres for each additional person. That gives you a starting range which you then adjust for your habits." },
+        { "type": "table",
+          "head": [
+            { "ar": "أفراد البيت", "en": "People in the home" },
+            { "ar": "سعة تقريبية", "en": "Approximate capacity" },
+            { "ar": "ملاحظة", "en": "Note" }
+          ],
+          "rows": [
+            [ { "ar": "فرد أو اتنين", "en": "1–2" },
+              { "ar": "١٨٠ – ٢٨٠ لتر", "en": "180–280 L" },
+              { "ar": "يكفى لو الطبخ بكميات صغيرة والتسوق أسبوعى", "en": "Enough if you cook small amounts and shop weekly" } ],
+            [ { "ar": "٣ – ٤ أفراد", "en": "3–4" },
+              { "ar": "٣٠٠ – ٤٠٠ لتر", "en": "300–400 L" },
+              { "ar": "النطاق الأكثر شيوعاً فى الشقق المصرية", "en": "The most common range in Egyptian flats" } ],
+            [ { "ar": "٥ – ٦ أفراد", "en": "5–6" },
+              { "ar": "٤٠٠ – ٥٥٠ لتر", "en": "400–550 L" },
+              { "ar": "ابدأ تفكّر فى باب مزدوج لو عرض المكان يسمح", "en": "Start considering a two-door layout if the width allows" } ],
+            [ { "ar": "٧ أفراد أو أكتر", "en": "7 or more" },
+              { "ar": "٥٥٠ لتر أو أكتر", "en": "550 L or more" },
+              { "ar": "أو ثلاجة متوسطة + ديب فريزر منفصل", "en": "Or a mid-size fridge plus a separate chest freezer" } ]
+          ] },
+
+        { "type": "h", "ar": "السعة المكتوبة مش كلها مساحة تخزين", "en": "The stated capacity is not all usable space" },
+        { "type": "p",
+          "ar": "فيه رقمين مختلفين: السعة الإجمالية (gross) وهى حجم الكابينة من جوه من غير حساب الرفوف والأدراج، والسعة الصافية (net) وهى اللى فعلاً بتحط فيها أكل. الفرق بينهم ممكن يبقى ملحوظ. لما تقارن موديلين، اتأكد إنك بتقارن نفس نوع الرقم، ولو مش مكتوب اسأل البائع بدل ما تفترض.",
+          "en": "Two different numbers exist: gross capacity — the volume of the empty cabinet — and net capacity, the space you can actually fill with food once shelves and drawers are in. The gap between them can be noticeable. When comparing two models, make sure you are comparing the same kind of number, and if it is not written, ask the seller instead of assuming." },
+
+        { "type": "h", "ar": "عاداتك بتحرّك الرقم", "en": "Your habits move the number" },
+        { "type": "ul",
+          "ar": [
+            "بتتسوّق مرة كل أسبوعين أو مرة بالشهر؟ خد النطاق الأعلى.",
+            "بتجمّد لحوم وخضار فى الموسم؟ ركّز على حجم الفريزر نفسه، مش السعة الكلية.",
+            "بتطبخ يومياً وتحتفظ بالباقى؟ هتحتاج رفوف أعمق وأدراج أكتر أكتر من لترات زيادة.",
+            "بتستقبل ضيوف كتير أو عندكم عزومات؟ خد النطاق الأعلى.",
+            "الصيف: الزجاجات والعصاير بتاكل رفوف الباب بسرعة — بصّ على تقسيمة الباب مش السعة بس."
+          ],
+          "en": [
+            "Shopping once every two weeks or monthly? Take the upper end of the range.",
+            "Freezing meat and vegetables in season? Focus on the freezer volume itself, not total capacity.",
+            "Cooking daily and keeping leftovers? You need deeper shelves and more drawers more than extra litres.",
+            "Frequent guests or family gatherings? Take the upper end of the range.",
+            "Summer: bottles and juice eat door shelves fast — look at how the door is divided, not just the capacity."
+          ] },
+
+        { "type": "h", "ar": "الفريزر: فوق، تحت، ولا جنب", "en": "Freezer: on top, at the bottom, or side by side" },
+        { "type": "p",
+          "ar": "الفريزر الفوقانى هو الأبسط وبيناسب أغلب البيوت. الفريزر التحتانى بيخلّى الرفوف اللى بتفتحها كل يوم فى مستوى نظرك، وغالباً سعره أعلى فى نفس السعة. النوع الجنبى (side-by-side) بيحتاج عرض أكبر ومساحة فتح أوسع قدامه — قيس الأول قبل ما تحب الشكل.",
+          "en": "A top freezer is the simplest layout and suits most homes. A bottom freezer puts the shelves you open daily at eye level and usually costs more for the same capacity. A side-by-side needs more width and more clearance in front of it — measure first, before you fall in love with the look." },
+
+        { "type": "tip",
+          "ar": "أسهل اختبار: افتح ثلاجتك الحالية دلوقتى. لو الرفوف متكدّسة والباب بيتقفل بالعافية، أو بتحطّ أكل فوق بعضه، انت محتاج نطاق أعلى. ولو نص الرفوف فاضية طول الأسبوع، الأكبر مش هيضيف لك حاجة.",
+          "en": "The easiest test: open your current fridge right now. If shelves are stacked, the door closes with effort, or food sits on top of food, you need a larger range. If half the shelves stay empty all week, bigger will add nothing." },
+        { "type": "warn",
+          "ar": "الثلاجة الأكبر عموماً بتستهلك كهرباء أكتر، والفرق ده بيتدفع كل شهر فى الفاتورة طول عمر الجهاز. اختار السعة اللى محتاجها فعلاً، مش أكبر حاجة تقدر تدفع تمنها.",
+          "en": "A bigger fridge generally uses more electricity, and that difference is paid every month on the bill for the life of the appliance. Choose the capacity you actually need, not the biggest one you can afford." },
+        { "type": "p",
+          "ar": "وقبل ما تقفل الاختيار، اقرا دليل قياس المكان: السعة المناسبة لعيلتك مالهاش لازمة لو الثلاجة أصلاً مش داخلة من باب المطبخ.",
+          "en": "And before you finalise the choice, read the guide on measuring your space: the right capacity for your family is useless if the fridge does not fit through the kitchen door." }
+      ]
+    },
+
+    {
+      "id": "g2",
+      "slug": "energy-labels",
+      "minutes": 7,
+      "tags": ["energy", "budget", "basics"],
+      "categoryIds": ["38032005", "38003882", "38005652"],
+      "title": {
+        "ar": "تفهم درجات كفاءة الطاقة وتقرأ الفاتورة",
+        "en": "Understanding energy ratings and reading your bill"
+      },
+      "dek": {
+        "ar": "يعنى إيه درجة A وB وC، إيه اللى الإنفرتر بيوفّره فعلاً، وإزاى تحسب بنفسك الفرق بالجنيه فى السنة.",
+        "en": "What an A, B or C rating means, what an inverter actually saves, and how to work out the difference in pounds per year yourself."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "ملصق كفاءة الطاقة اللى على الجهاز بيقارن استهلاكه باستهلاك أجهزة تانية من نفس النوع والحجم. الدرجة الأعلى معناها استهلاك أقل لنفس الشغل — مش أداء أحسن ولا تبريد أسرع بالضرورة.",
+          "en": "The energy label on an appliance compares its consumption with other appliances of the same type and size. A higher rating means less electricity for the same job — not necessarily better performance or faster cooling." },
+
+        { "type": "h", "ar": "الدرجة لوحدها مش كفاية — دوّر على الرقم", "en": "The letter alone is not enough — look for the number" },
+        { "type": "p",
+          "ar": "أهم حاجة على الملصق مش الحرف، لكن رقم الاستهلاك السنوى التقديرى بالكيلوواط/ساعة (kWh فى السنة). ده الرقم اللى بتقارن بيه بين موديلين وتحوّله لجنيه. لو الرقم مش مكتوب على الملصق، هتلاقيه فى كتيّب الجهاز أو على صفحة المنتج، ولو مش موجود خالص اسأل البائع.",
+          "en": "The most useful thing on the label is not the letter but the estimated annual consumption in kilowatt-hours (kWh per year). That is the number you compare between two models and convert into pounds. If it is not on the label, look in the manual or the product page — and if it is nowhere, ask the seller." },
+        { "type": "p",
+          "ar": "الحساب بسيط: الاستهلاك السنوى بالكيلوواط/ساعة × سعر الكيلوواط/ساعة عندك = التكلفة السنوية بالجنيه. سعر الكيلوواط بتاعك موجود فى فاتورة الكهرباء نفسها، وبيختلف حسب شريحة الاستهلاك، فاستخدم رقمك انت مش رقم عام.",
+          "en": "The maths is simple: annual kWh × your price per kWh = annual cost in pounds. Your own price per kWh is printed on your electricity bill and depends on your consumption tier, so use your number rather than a general one." },
+
+        { "type": "h", "ar": "الفرق بالجنيه — جدول تحويل", "en": "The difference in pounds — a conversion table" },
+        { "type": "p",
+          "ar": "الجدول ده مجرد ضرب: خد فرق الاستهلاك السنوى بين الموديلين، وشوف بيساوى كام جنيه عند سعر الكيلوواط اللى فى فاتورتك.",
+          "en": "This table is plain multiplication: take the difference in annual consumption between two models and read what it costs at your own price per kWh." },
+        { "type": "table",
+          "head": [
+            { "ar": "فرق الاستهلاك السنوى", "en": "Annual difference" },
+            { "ar": "عند ١ جنيه للكيلوواط", "en": "At EGP 1/kWh" },
+            { "ar": "عند ٢ جنيه", "en": "At EGP 2" },
+            { "ar": "عند ٣ جنيه", "en": "At EGP 3" }
+          ],
+          "rows": [
+            [ { "ar": "١٠٠ ك.و.س", "en": "100 kWh" }, { "ar": "١٠٠ جنيه", "en": "EGP 100" }, { "ar": "٢٠٠ جنيه", "en": "EGP 200" }, { "ar": "٣٠٠ جنيه", "en": "EGP 300" } ],
+            [ { "ar": "٢٠٠ ك.و.س", "en": "200 kWh" }, { "ar": "٢٠٠ جنيه", "en": "EGP 200" }, { "ar": "٤٠٠ جنيه", "en": "EGP 400" }, { "ar": "٦٠٠ جنيه", "en": "EGP 600" } ],
+            [ { "ar": "٣٠٠ ك.و.س", "en": "300 kWh" }, { "ar": "٣٠٠ جنيه", "en": "EGP 300" }, { "ar": "٦٠٠ جنيه", "en": "EGP 600" }, { "ar": "٩٠٠ جنيه", "en": "EGP 900" } ],
+            [ { "ar": "٥٠٠ ك.و.س", "en": "500 kWh" }, { "ar": "٥٠٠ جنيه", "en": "EGP 500" }, { "ar": "١٠٠٠ جنيه", "en": "EGP 1,000" }, { "ar": "١٥٠٠ جنيه", "en": "EGP 1,500" } ]
+          ] },
+        { "type": "p",
+          "ar": "وبعدين اقسم فرق سعر الشراء على التوفير السنوى، تطلع لك السنين اللى الجهاز الأكفأ هيرجّع فيها فرق تمنه. لو الرقم ده أقل من عمر الجهاز المتوقع، الاختيار الأكفأ منطقى مالياً — ولو أطول، انت بتدفع على راحة مش على توفير.",
+          "en": "Then divide the difference in purchase price by the annual saving: that is how many years the more efficient appliance takes to pay back its price premium. If that is shorter than the appliance's expected life, the efficient choice makes financial sense; if it is longer, you are paying for comfort, not for savings." },
+
+        { "type": "h", "ar": "الإنفرتر: بيوفّر إمتى فعلاً؟", "en": "Inverter: when does it actually save?" },
+        { "type": "p",
+          "ar": "الجهاز العادى بيشغّل الكمبروسر بأقصى قدرة وبعدين يفصله ويرجع يشغّله. الإنفرتر بيغيّر سرعة الكمبروسر ويفضل شغّال على قوة أقل بدل ما يفصل ويرجع — والفصل والتشغيل المتكرر هو أكتر لحظة بيتسحب فيها كهرباء.",
+          "en": "A conventional appliance runs its compressor at full power, switches it off, then starts it again. An inverter varies compressor speed and keeps running at reduced power instead of stopping and restarting — and those restarts are the moments of highest current draw." },
+        { "type": "ul",
+          "ar": [
+            "بيفرق أكتر حاجة فى الأجهزة اللى بتشتغل ساعات طويلة: التكييف فى صيف القاهرة والجيزة، والثلاجة اللى شغّالة ٢٤ ساعة.",
+            "بيفرق أقل فى الأجهزة اللى بتشتغل شوية فى الأسبوع.",
+            "ميزة إضافية غير الفاتورة: صوت أقل وتذبذب أقل فى درجة الحرارة.",
+            "التوفير الفعلى بيعتمد على ساعات التشغيل ودرجة الحرارة اللى بتظبّطها والعزل فى بيتك — مفيش نسبة ثابتة تنفع لكل بيت."
+          ],
+          "en": [
+            "It matters most on appliances that run for long hours: an AC through a Cairo or Giza summer, and a fridge running 24 hours a day.",
+            "It matters least on appliances used for a few hours a week.",
+            "A side benefit beyond the bill: less noise and a steadier temperature.",
+            "The real saving depends on running hours, the temperature you set and how well your home is insulated — there is no single percentage that fits every home."
+          ] },
+
+        { "type": "h", "ar": "حاجات صغيرة بتغيّر الفاتورة من غير ما تشترى حاجة", "en": "Small things that change the bill without buying anything" },
+        { "type": "ul",
+          "ar": [
+            "درجة التكييف: كل درجة أقل بتزوّد الاستهلاك. اضبطها على درجة مريحة وسيبها بدل ما تنزّلها للآخر عشان تبرد أسرع — التبريد مش بيسرع بالدرجة.",
+            "فلاتر التكييف المتربة بتخلّى الجهاز يشتغل أطول عشان يوصل لنفس البرودة.",
+            "الثلاجة المفتوحة كتير أو المحطوطة جنب البوتاجاز أو فى شمس مباشرة بتشتغل أكتر.",
+            "غسيل بحمل كامل على برنامج مناسب أوفر من غسلتين نص محمّلين — السخّان بتاع المياه هو أكبر مستهلك فى الغسالة."
+          ],
+          "en": [
+            "AC setpoint: every degree lower increases consumption. Set a comfortable temperature and leave it, instead of dropping it to the minimum to cool faster — cooling does not speed up with a lower setpoint.",
+            "Dusty AC filters make the unit run longer to reach the same temperature.",
+            "A fridge opened constantly, placed next to the cooker or in direct sun works harder.",
+            "One full wash on a suitable programme beats two half loads — the water heater is the biggest consumer inside a washing machine."
+          ] },
+
+        { "type": "warn",
+          "ar": "أرقام الاستهلاك على الملصق متقاسة فى ظروف معملية موحدة، فاستخدمها للمقارنة بين الأجهزة مش كتوقّع دقيق لفاتورتك. استهلاكك الحقيقى بيتأثر بحرارة الجو وعدد مرات الاستخدام وحجم البيت.",
+          "en": "Label figures are measured under standardised laboratory conditions, so use them to compare appliances rather than to predict your exact bill. Real consumption depends on ambient temperature, how often you use the appliance, and the size of your home." }
+      ]
+    },
+
+    {
+      "id": "g3",
+      "slug": "measure-before-you-buy",
+      "minutes": 6,
+      "tags": ["space", "install", "basics"],
+      "categoryIds": ["38003882", "38005652", "38003799"],
+      "title": {
+        "ar": "إزاى تقيس المكان قبل ما تشترى",
+        "en": "How to measure your space before you buy"
+      },
+      "dek": {
+        "ar": "العرض والارتفاع والعمق، ومساحة فتح الباب، وفتحات التهوية، وأهم حاجة: طريق الجهاز من باب العمارة لحد مكانه.",
+        "en": "Width, height and depth, door swing, ventilation gaps — and the thing most people forget: the route from the building entrance to the appliance's final spot."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "أكتر مشكلة بتحصل يوم التوصيل مالهاش علاقة بالجهاز نفسه: الجهاز مظبوط، بس مش داخل. ربع ساعة بشريط قياس قبل الشراء بتوفّر يوم كامل من اللف والرجّاع.",
+          "en": "The most common delivery-day problem has nothing to do with the appliance itself: it is the right appliance that will not go in. Fifteen minutes with a tape measure before you buy saves a whole day of moving it back and forth." },
+
+        { "type": "h", "ar": "القياسات الأربعة اللى بتاخدها", "en": "The four measurements to take" },
+        { "type": "table",
+          "head": [
+            { "ar": "القياس", "en": "Measurement" },
+            { "ar": "إزاى تاخده", "en": "How to take it" },
+            { "ar": "ليه مهم", "en": "Why it matters" }
+          ],
+          "rows": [
+            [ { "ar": "العرض", "en": "Width" },
+              { "ar": "بين الحيطة والدولاب فى أضيق نقطة، مش أوسع نقطة", "en": "Between wall and cabinet at the narrowest point, not the widest" },
+              { "ar": "الحيطان نادراً بتكون مستقيمة تماماً", "en": "Walls are rarely perfectly straight" } ],
+            [ { "ar": "الارتفاع", "en": "Height" },
+              { "ar": "من الأرض لحد أقرب حاجة فوق (رف، دولاب علوى، مواسير)", "en": "From the floor to the lowest thing above (shelf, wall unit, pipes)" },
+              { "ar": "الأرجل القابلة للضبط بتزوّد الارتفاع كام سنتى", "en": "Adjustable feet add a few centimetres" } ],
+            [ { "ar": "العمق", "en": "Depth" },
+              { "ar": "احسب العمق شامل الكبّاس، ولمّا الباب مفتوح ٩٠ درجة كمان", "en": "Include the handle, and also measure with the door open at 90°" },
+              { "ar": "بيحدّد لو الجهاز هيبرز عن خط المطبخ", "en": "Decides whether the appliance juts out past the counter line" } ],
+            [ { "ar": "مساحة الفتح", "en": "Door swing" },
+              { "ar": "قيس المساحة قدام الجهاز والباب مفتوح على الآخر", "en": "Measure the space in front with the door fully open" },
+              { "ar": "لازم تقدر تسحب الأدراج وانت واقف قدامها", "en": "You must be able to pull the drawers out while standing there" } ]
+          ] },
+
+        { "type": "h", "ar": "فتحات التهوية مش اختيارية", "en": "Ventilation gaps are not optional" },
+        { "type": "p",
+          "ar": "الثلاجة والفريزر بيطرحوا حرارة من ورا ومن تحت، ولو المكان مقفول عليهم بيشتغلوا أكتر وبيسخنوا. القاعدة التقريبية الشائعة: سيب حوالى ٥ سم على الجناب، وحوالى ١٠ سم من ورا ومن فوق. الرقم الرسمى بيبقى مكتوب فى كتيّب الموديل نفسه، فخد بيه لو اختلف.",
+          "en": "Fridges and freezers dump heat from the back and underneath; boxed in, they run longer and get hot. The common rule of thumb is roughly 5 cm at the sides and about 10 cm at the back and top. The official figure is in that specific model's manual — follow it if it differs." },
+        { "type": "ul",
+          "ar": [
+            "ابعد عن مصادر الحرارة: البوتاجاز، الفرن، والشمس المباشرة على الشباك.",
+            "التكييف: الوحدة الخارجية محتاجة هوا حواليها ومسافة عن الحيطة — مش محصورة فى منور مقفول.",
+            "الغسالة محتاجة أرضية مستوية وثابتة، وإلا هتترجّ فى العصر.",
+            "زوّد لحد ٢ سم فوق قياسك كهامش أمان لكل جهاز."
+          ],
+          "en": [
+            "Keep away from heat sources: cooker, oven, and direct sun from a window.",
+            "AC: the outdoor unit needs air around it and clearance from the wall — not sealed inside a closed light well.",
+            "A washing machine needs a level, solid floor, otherwise it will walk during the spin.",
+            "Add up to 2 cm on top of your measurement as a safety margin for every appliance."
+          ] },
+
+        { "type": "h", "ar": "الطريق مش أقل أهمية من المكان", "en": "The route matters as much as the spot" },
+        { "type": "p",
+          "ar": "الجهاز بيعدّى من باب العمارة، وبعدين السلم أو الأسانسير، وبعدين باب الشقة، وبعدين باب الأوضة أو المطبخ. أضيق نقطة فى الطريق هى اللى بتحكم — مش المكان النهائى.",
+          "en": "The appliance passes the building entrance, then the stairs or lift, then the flat door, then the room or kitchen door. The narrowest point along the route is what decides — not the final spot." },
+        { "type": "ul",
+          "ar": [
+            "قيس عرض كل باب وهو مفتوح بالكامل (الضلفة نفسها بتاكل من ٣ لـ ٥ سم من الفتحة).",
+            "لو الأسانسير هو الطريق: قيس عرض وعمق وارتفاع الكابينة وعرض بابها.",
+            "لو السلم: خد بالك من لفّة البسطة — دى أصعب من عرض السلم نفسه.",
+            "قيس ارتفاع سقف السلم والمدخل لو الجهاز طويل وهيتشال واقف.",
+            "لو فيه بلكونة أو شباك واسع، ده أحياناً بيكون البديل — بس بيحتاج ترتيب مسبق مع البائع."
+          ],
+          "en": [
+            "Measure every doorway with the door fully open (the leaf itself eats 3–5 cm of the opening).",
+            "If the lift is the route: measure the car's width, depth and height, plus its door width.",
+            "If it is the stairs: watch the landing turn — it is harder than the width of the stairs themselves.",
+            "Measure the ceiling height on the stairs and at the entrance if the appliance is tall and will be carried upright.",
+            "A wide balcony or window is sometimes the alternative — but it must be arranged with the seller in advance."
+          ] },
+
+        { "type": "tip",
+          "ar": "اكتب المقاسات فى ملاحظة على الموبايل — العرض، الارتفاع، العمق، أضيق باب — وخدها معاك للمعرض أو حطّها قدامك وانت بتقارن أونلاين. وصوّر المكان من بعيد ومن قريب.",
+          "en": "Write the numbers in a note on your phone — width, height, depth, narrowest doorway — and take it to the showroom or keep it open while comparing online. Photograph the space from far and near too." },
+        { "type": "warn",
+          "ar": "لو الفرق سنتيمتر أو اتنين بس، متعتمدش على «هتعدّى». فك أبواب الجهاز أو رفعه من الشباك حاجات بتتعمل، بس بتتكلف فلوس زيادة ولازم تتفق عليها قبل يوم التوصيل مش فى نفس اليوم.",
+          "en": "If the gap is only a centimetre or two, do not rely on \"it will squeeze through\". Removing the appliance's doors or hoisting it through a window are real options, but they cost extra and must be agreed before delivery day, not on the day itself." }
+      ]
+    },
+
+    {
+      "id": "g4",
+      "slug": "warranty-explained",
+      "minutes": 6,
+      "tags": ["warranty", "basics"],
+      "categoryIds": ["38003882", "38022381", "38032005"],
+      "title": {
+        "ar": "تقارن الضمانات صح",
+        "en": "How to compare warranties properly"
+      },
+      "dek": {
+        "ar": "الفرق بين ضمان المصنع وضمان البائع، إيه اللى بيلغى الضمان، والأسئلة اللى تسألها قبل ما تدفع.",
+        "en": "The difference between a manufacturer and a seller warranty, what voids cover, and the questions to ask before you pay."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "«ضمان ٥ سنين» جملة مش كافية لوحدها. خمس سنين على إيه بالظبط؟ ومين اللى هيصلّح؟ والقطع والمصنعية داخلين ولا لأ؟ الفروق دى هى اللى بتظهر بعد سنتين مش يوم الشراء.",
+          "en": "\"Five-year warranty\" is not enough information on its own. Five years on what exactly? Who does the repair? Are parts and labour both included? These differences show up two years later, not on the day you buy." },
+
+        { "type": "h", "ar": "تلات أنواع ضمان مختلفة", "en": "Three different kinds of cover" },
+        { "type": "table",
+          "head": [
+            { "ar": "النوع", "en": "Type" },
+            { "ar": "مين المسؤول", "en": "Who is responsible" },
+            { "ar": "تسأل عن إيه", "en": "What to ask" }
+          ],
+          "rows": [
+            [ { "ar": "ضمان المصنع", "en": "Manufacturer warranty" },
+              { "ar": "الشركة المصنّعة أو وكيلها فى مصر", "en": "The manufacturer or its agent in Egypt" },
+              { "ar": "مدة القطع، مدة الكمبروسر أو الموتور، والمصنعية داخلة ولا لأ", "en": "Parts period, compressor/motor period, and whether labour is included" } ],
+            [ { "ar": "ضمان البائع / المتجر", "en": "Seller / store warranty" },
+              { "ar": "المتجر اللى اشتريت منه", "en": "The store you bought from" },
+              { "ar": "بيغطى إيه زيادة عن المصنع، وبيسرى إمتى", "en": "What it adds beyond the manufacturer, and when it applies" } ],
+            [ { "ar": "ضمان ممتد (بفلوس)", "en": "Extended warranty (paid)" },
+              { "ar": "شركة تأمين أو المتجر", "en": "An insurer or the store" },
+              { "ar": "التمن مقابل إيه، وهل بيبدأ بعد ضمان المصنع ولا معاه", "en": "What the price buys, and whether it starts after the manufacturer's cover or runs alongside it" } ]
+          ] },
+        { "type": "p",
+          "ar": "لاحظ إن المدد ممكن تكون متداخلة: ضمان سنة على كل الجهاز + ٥ أو ١٠ سنين على الكمبروسر بس، حاجة شائعة جداً فى الثلاجات والتكييفات. «١٠ سنين» فى الإعلان غالباً بتبقى على القطعة دى لوحدها.",
+          "en": "Note that periods often overlap: one year on the whole appliance plus five or ten years on the compressor only is very common on fridges and air conditioners. The \"10 years\" in the advert is usually on that one component." },
+
+        { "type": "h", "ar": "الحاجات اللى بتلغى الضمان", "en": "What voids a warranty" },
+        { "type": "ul",
+          "ar": [
+            "تصليح عند فنى مش معتمد، أو استخدام قطع غيار مش أصلية — ده أشهر سبب.",
+            "التركيب بواسطة حد غير معتمد، خصوصاً فى التكييف والسخانات والبوتاجاز.",
+            "الضرر المادى: كسر، مياه، حريق، أو حشرات وقوارض جوه الجهاز.",
+            "الاستخدام التجارى لجهاز منزلى (مطعم، محل، مغسلة).",
+            "نزع أو مسح الملصق اللى عليه الرقم المسلسل (السيريال).",
+            "توصيل الجهاز على جهد غير مناسب، أو إهمال شرط منصوص عليه فى الكتيّب زى استخدام منظّم جهد."
+          ],
+          "en": [
+            "Repairs by a non-approved technician, or non-original spare parts — the most common cause by far.",
+            "Installation by someone unapproved, especially for AC units, water heaters and cookers.",
+            "Physical damage: impact, water, fire, or insects and rodents inside the appliance.",
+            "Commercial use of a domestic appliance (restaurant, shop, laundry).",
+            "Removing or defacing the serial-number sticker.",
+            "Running the appliance on an unsuitable supply, or ignoring a stated condition in the manual such as using a voltage stabiliser."
+          ] },
+
+        { "type": "h", "ar": "احتفظ بالورق من أول يوم", "en": "Keep the paperwork from day one" },
+        { "type": "ul",
+          "ar": [
+            "الفاتورة الأصلية هى إثبات تاريخ الشراء — من غيرها الضمان بيبقى نقاش.",
+            "صوّر الفاتورة وكارت الضمان بالموبايل، وابعتهم لنفسك على الإيميل أو خزّنهم على السحابة.",
+            "صوّر لوحة البيانات على ظهر الجهاز (الموديل + السيريال) — هتحتاجها فى كل مكالمة صيانة.",
+            "لو الضمان محتاج تفعيل أو تسجيل خلال مدة معينة، اعمله فى نفس الأسبوع.",
+            "احتفظ بإيصال التركيب كمان: بيثبت إن التركيب اتعمل بالطريقة المعتمدة."
+          ],
+          "en": [
+            "The original invoice proves the purchase date — without it the warranty becomes an argument.",
+            "Photograph the invoice and warranty card, then email them to yourself or store them in the cloud.",
+            "Photograph the data plate on the back of the appliance (model + serial) — you will need it on every service call.",
+            "If cover requires activation or registration within a set period, do it the same week.",
+            "Keep the installation receipt too: it proves the work was done the approved way."
+          ] },
+
+        { "type": "h", "ar": "أسئلة تسألها قبل ما تدفع", "en": "Questions to ask before you pay" },
+        { "type": "ul",
+          "ar": [
+            "الضمان ده على القطع بس ولا القطع والمصنعية؟",
+            "مين بيجى يصلّح: الشركة، الوكيل، ولا المتجر؟",
+            "أقرب مركز خدمة فين، وكام يوم متوقع للزيارة؟",
+            "الصيانة بتتم فى البيت ولا الجهاز بيتشال؟ ومين بيتحمّل النقل؟",
+            "فيه مصاريف انتقال أو كشف حتى وقت الضمان؟",
+            "قطع الغيار متوفرة فى مصر لمدة قد إيه بعد ما الموديل يقف؟"
+          ],
+          "en": [
+            "Is cover parts only, or parts and labour?",
+            "Who actually comes to repair: the manufacturer, the agent, or the store?",
+            "Where is the nearest service centre, and what is the expected wait for a visit?",
+            "Is service done at home or does the appliance get taken away — and who pays the transport?",
+            "Are there call-out or inspection fees even during the warranty period?",
+            "How long are spare parts available in Egypt after the model is discontinued?"
+          ] },
+
+        { "type": "warn",
+          "ar": "الضمان والتركيب والاسترجاع بيقدمهم البائع المذكور فى العرض. لو اشتريت من متجر تانى غير صادكو، الضمان والخدمة بتاعته هو — فاسأله هو عن التفاصيل دى قبل ما تدفع، ومتفترضش إن كل المتاجر بتعامل بنفس الشروط.",
+          "en": "Warranty, installation and returns are provided by the seller named on the offer. If you buy from a store other than SADKO, that seller provides the cover and the service — so ask them these questions before paying, and do not assume every store offers the same terms." }
+      ]
+    },
+
+    {
+      "id": "g5",
+      "slug": "prepare-for-delivery",
+      "minutes": 7,
+      "tags": ["install", "space", "basics"],
+      "categoryIds": ["38005652", "38003799", "38032005"],
+      "title": {
+        "ar": "تجهّز البيت قبل التوصيل والتركيب",
+        "en": "Preparing your home for delivery and installation"
+      },
+      "dek": {
+        "ar": "بريزة وأرضى وصنبور مياه وصرف وتوصيلة غاز — الحاجات اللى لو مش جاهزة، الفنى هيمشى ويرجع تانى يوم.",
+        "en": "Socket, earth, water tap, drain and gas connection — the things that, if not ready, send the technician away to come back another day."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "التوصيل والتركيب مش نفس الحاجة. فريق التوصيل بيوصّل الجهاز لحد باب الشقة أو مكانه، والتركيب المتخصص (تكييف، سخان، بوتاجاز غاز) بيتعمل بواسطة فنى مؤهل وأحياناً فى ميعاد تانى. اسأل عن ده وانت بتشترى، مش يوم التسليم.",
+          "en": "Delivery and installation are not the same thing. The delivery crew brings the appliance to your door or its spot; specialist installation (AC, water heater, gas cooker) is done by a qualified technician and sometimes on a separate appointment. Ask about this while buying, not on delivery day." },
+
+        { "type": "h", "ar": "الكهرباء", "en": "Electrical" },
+        { "type": "ul",
+          "ar": [
+            "التيار فى مصر ٢٢٠ فولت / ٥٠ هرتز. اتأكد إن الجهاز متوافق لو مستورد شخصياً من بره.",
+            "بريزة مستقلة قريبة من مكان الجهاز — الأجهزة اللى بتسحب تيار عالى (تكييف، سخان، فرن، غسالة) مش المفروض تشتغل على وصلة أو مشترك.",
+            "وجود وصلة أرضى مهم للأمان، خصوصاً فى السخانات والغسالات.",
+            "لو الجهد عندك بيتقلّب، منظّم جهد (استابلايزر) حاجة شائعة فى مصر — وأحياناً بيكون شرط مذكور فى الكتيّب.",
+            "التكييف والسخان الكهربائى غالباً بيحتاجوا خط وقاطع مخصص من اللوحة — ده شغل كهربائى بيتعمل قبل التركيب مش وقته."
+          ],
+          "en": [
+            "Mains in Egypt is 220 V / 50 Hz. Confirm compatibility if the appliance was brought in personally from abroad.",
+            "A dedicated socket near the appliance — high-draw appliances (AC, water heater, oven, washing machine) should not run on an extension lead or a multi-way adaptor.",
+            "A proper earth connection matters for safety, particularly for water heaters and washing machines.",
+            "If your voltage fluctuates, a voltage stabiliser is common practice in Egypt — and is sometimes a stated condition in the manual.",
+            "An AC or electric water heater usually needs its own circuit and breaker from the distribution board — electrical work to be done before installation day, not during it."
+          ] },
+
+        { "type": "h", "ar": "الغسالة: مياه وصرف", "en": "Washing machine: water and drain" },
+        { "type": "ul",
+          "ar": [
+            "محبس مياه قريب بخرطوم دخول — اتأكد إنه شغّال ومش مسرّب قبل ميعاد التركيب.",
+            "نقطة صرف تناسب ارتفاع خرطوم الطرد؛ الارتفاع المسموح بيكون مكتوب فى الكتيّب. الخرطوم المرمى فى بلاعة على الأرض بيرجّع ريحة.",
+            "أرضية مستوية وصلبة، والغسالة تتظبط بالميزان من رجليها.",
+            "مسامير النقل (ترانسبورت بولت) فى ضهر الغسالة لازم تتفك قبل أول غسلة — لو اشتغلت وهى مركّبة ممكن تتلف الجهاز، والتلف ده غالباً مش مغطى بالضمان.",
+            "لو المكان ضيّق: خد بالك إن باب الغسالة بيفتح لناحية واحدة، وغالباً مش بيتعكس."
+          ],
+          "en": [
+            "A nearby water tap with an inlet hose — check it works and does not leak before the installation appointment.",
+            "A drain point that suits the outlet hose height; the permitted range is in the manual. A hose thrown into a floor drain lets smells back in.",
+            "A level, solid floor, with the machine levelled on its feet.",
+            "The transit bolts on the back must be removed before the first wash — running with them fitted can damage the machine, and that damage is usually not covered by warranty.",
+            "In a tight spot: the door opens one way only, and on most models it cannot be reversed."
+          ] },
+
+        { "type": "h", "ar": "البوتاجاز والفرن", "en": "Cooker and oven" },
+        { "type": "ul",
+          "ar": [
+            "توصيلة الغاز لازم يعملها فنى مؤهل، بخرطوم ومنظّم سليمين وفى مدة صلاحيتهم.",
+            "غاز طبيعى ولا أنبوبة؟ الاتنين مش نفس الضغط، والبوتاجاز بيحتاج «فوّهات» (منافث) مناسبة للنوع. قول للبائع نوع الغاز عندك قبل التسليم.",
+            "تهوية: المطبخ لازم يكون فيه شباك أو شفاط — الطبخ بالغاز بيستهلك أكسجين.",
+            "الفرن الكهربائى المدمج بيحتاج فتحة نجارة بمقاس محدد وبريزة قريبة منها.",
+            "بعد أى تركيب غاز، اطلب اختبار تسريب بالصابون قدامك."
+          ],
+          "en": [
+            "The gas connection must be made by a qualified technician, with a sound, in-date hose and regulator.",
+            "Natural gas or a cylinder? They are not the same pressure, and the cooker needs the correct injectors for the type. Tell the seller which gas you have before delivery.",
+            "Ventilation: the kitchen needs a window or an extractor — gas cooking consumes oxygen.",
+            "A built-in electric oven needs a joinery cut-out at a specific size and a socket close by.",
+            "After any gas connection, ask for a soap-bubble leak test to be done in front of you."
+          ] },
+
+        { "type": "h", "ar": "التكييف والسخان", "en": "Air conditioner and water heater" },
+        { "type": "ul",
+          "ar": [
+            "التكييف: مكان محدد للوحدة الخارجية عليه هوا، وقاعدة أو حوامل تتحمّل وزنها، ومسار لمواسير النحاس وخرطوم الصرف.",
+            "طول ماسورة النحاس الزيادة عن المتفق عليه بيتحسب إضافى غالباً — اتفق على السعر قبل التركيب.",
+            "خرطوم صرف التكييف لازم يكون له ميل ومكان يصرف فيه، مش على وش عمارة الجيران.",
+            "السخان: مكان تعليق قوى، ومحبس، وصمام أمان — والسخان الغاز محتاج تهوية وتوصيلة معتمدة.",
+            "خرم الحيطة والشنيور شغل بيعمل تراب — غطّ الأثاث واعرف مين هيشيل المخلفات."
+          ],
+          "en": [
+            "AC: a defined spot for the outdoor unit with airflow around it, a base or brackets that carry its weight, and a route for the copper pipes and the drain hose.",
+            "Copper pipe beyond the agreed length is usually charged extra — agree the price before the work starts.",
+            "The AC drain hose needs a fall and somewhere to discharge — not onto the neighbours' facade.",
+            "Water heater: a strong mounting point, an isolating valve and a safety valve — a gas heater also needs ventilation and an approved connection.",
+            "Drilling walls makes dust — cover the furniture and agree who removes the debris."
+          ] },
+
+        { "type": "tip",
+          "ar": "قبل ميعاد التوصيل بيوم: فضّى الممر ومكان الجهاز، شيل السجاجيد اللى ممكن تتقطع، اتأكد إن الأسانسير شغّال، وخد رقم فريق التوصيل. ولو العمارة عندها ميعاد أو رسوم لدخول البضاعة، قول للبائع من دلوقتى.",
+          "en": "The day before delivery: clear the corridor and the appliance's spot, take up rugs that could tear, check the lift is working, and get the delivery crew's number. If your building has restricted hours or a fee for bringing goods in, tell the seller now." },
+        { "type": "warn",
+          "ar": "متشغّلش أى جهاز تبريد (ثلاجة، فريزر، تكييف) فوراً بعد ما يتنقل واقف أو مايل. المتعارف عليه إنك تسيبه واقف من ساعتين لحد ٤ ساعات — وفى بعض الحالات أكتر — والرقم الصح فى كتيّب الموديل نفسه.",
+          "en": "Do not switch on any cooling appliance (fridge, freezer, AC) immediately after it has been moved upright or tilted. The usual advice is to let it stand for two to four hours — sometimes longer — and the correct figure is in that model's manual." }
+      ]
+    },
+
+    {
+      "id": "g6",
+      "slug": "maintenance-basics",
+      "minutes": 7,
+      "tags": ["care", "budget"],
+      "categoryIds": ["38032005", "38003882", "38005652"],
+      "title": {
+        "ar": "صيانة أجهزتك عشان تعيش أطول",
+        "en": "Maintaining your appliances so they last longer"
+      },
+      "dek": {
+        "ar": "فلاتر وملفات وترسيبات: شغل بسيط بتعمله بنفسك، وشغل لازم له فنى — ومواعيد تقريبية لكل واحد.",
+        "en": "Filters, coils and scale: what you can do yourself, what needs a technician, and roughly how often for each."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "أغلب أعطال الأجهزة المنزلية مش بتيجى فجأة. بتيجى من تراب متراكم، فلتر مسدود، أو ترسيبات جيرية. الشغل اللى تحت بياخد دقايق فى الشهر وبيفرق فى استهلاك الكهرباء وفى عمر الجهاز.",
+          "en": "Most household appliance failures do not arrive suddenly. They come from accumulated dust, a blocked filter, or limescale. The work below takes minutes a month and affects both electricity consumption and the life of the appliance." },
+
+        { "type": "h", "ar": "جدول تقريبى للمواعيد", "en": "An approximate schedule" },
+        { "type": "table",
+          "head": [
+            { "ar": "الشغلانة", "en": "Task" },
+            { "ar": "كل قد إيه (تقريبى)", "en": "How often (approximate)" },
+            { "ar": "مين يعملها", "en": "Who does it" }
+          ],
+          "rows": [
+            [ { "ar": "غسيل فلاتر التكييف الداخلية", "en": "Washing the AC's indoor filters" },
+              { "ar": "كل ٢ – ٤ أسابيع فى شهور الصيف", "en": "Every 2–4 weeks through the summer" },
+              { "ar": "انت بنفسك", "en": "You" } ],
+            [ { "ar": "صيانة تكييف شاملة", "en": "Full AC service" },
+              { "ar": "مرة فى السنة، الأفضل قبل الصيف", "en": "Once a year, ideally before summer" },
+              { "ar": "فنى معتمد", "en": "An approved technician" } ],
+            [ { "ar": "تنظيف ملف (كوندنسر) الثلاجة من ورا", "en": "Cleaning the fridge's condenser coil at the back" },
+              { "ar": "كل ٦ – ١٢ شهر", "en": "Every 6–12 months" },
+              { "ar": "انت بنفسك", "en": "You" } ],
+            [ { "ar": "تنظيف فلتر/مصفاة الغسالة", "en": "Cleaning the washing machine's filter trap" },
+              { "ar": "كل ١ – ٣ شهور", "en": "Every 1–3 months" },
+              { "ar": "انت بنفسك", "en": "You" } ],
+            [ { "ar": "إزالة الترسيبات من الكاتيل وماكينة القهوة", "en": "Descaling the kettle and coffee machine" },
+              { "ar": "كل شهر لـ ٣ شهور حسب المياه عندك", "en": "Every 1–3 months depending on your water" },
+              { "ar": "انت بنفسك", "en": "You" } ],
+            [ { "ar": "فحص السخان وصمام الأمان", "en": "Checking the water heater and its safety valve" },
+              { "ar": "مرة فى السنة", "en": "Once a year" },
+              { "ar": "فنى معتمد", "en": "An approved technician" } ]
+          ] },
+        { "type": "p",
+          "ar": "المواعيد دى قواعد تقريبية شائعة. لو بيتك فى منطقة تراب عالى أو بتستخدم الجهاز أكتر من المعتاد، قرّب المدة. والرقم الرسمى لكل موديل موجود فى كتيّبه.",
+          "en": "These intervals are common rules of thumb. If you live in a dusty area or use the appliance more than average, shorten them. The official figure for each model is in its own manual." },
+
+        { "type": "h", "ar": "التكييف", "en": "Air conditioner" },
+        { "type": "ul",
+          "ar": [
+            "الفلاتر بتتسحب من قدام الوحدة الداخلية، تتغسل بمياه فاترة وصابون خفيف، وتتنشّف تماماً قبل ما ترجّعها.",
+            "الفلتر المسدود بيقلّل الهوا الخارج، فالجهاز بيفضل شغّال أطول عشان يوصل لنفس البرودة — ده بيبان فى الفاتورة وفى التبريد الضعيف.",
+            "الوحدة الخارجية: شيل الورق والتراب من حواليها وسيب مسافة هوا. متغطهاش بحاجة مقفولة.",
+            "مياه بتنقّط من الوحدة الداخلية غالباً معناها خرطوم صرف مسدود أو ماشى بميل غلط — دى زيارة فنى."
+          ],
+          "en": [
+            "Filters slide out of the front of the indoor unit, wash in lukewarm water with mild soap, and must be fully dry before refitting.",
+            "A blocked filter cuts airflow, so the unit runs longer to reach the same temperature — visible both on the bill and as weak cooling.",
+            "Outdoor unit: clear leaves and dust around it and leave air space. Never wrap it in a sealed cover.",
+            "Water dripping from the indoor unit usually means a blocked or badly sloped drain hose — that is a technician visit."
+          ] },
+
+        { "type": "h", "ar": "الثلاجة والفريزر", "en": "Fridge and freezer" },
+        { "type": "ul",
+          "ar": [
+            "الملف الأسود ورا الثلاجة أو تحتها بيتترّب؛ نضّفه بفرشة ناعمة أو المكنسة والجهاز مفصول من الكهرباء.",
+            "اختبار الكاوتش: حطّ ورقة بين الباب والجسم واقفل. لو الورقة بتتسحب بسهولة، الكاوتش محتاج تنضيف أو تغيير — وده بيسرّب برودة طول اليوم.",
+            "الفريزر غير النو-فروست بيحتاج تسييح لما التلج يزيد عن حوالى نص سنتيمتر؛ التلج المتراكم بيقلّل السعة ويزوّد الاستهلاك.",
+            "متحطّش أكل سخن جوه، وسيب مسافة بين الأصناف عشان الهوا يلف.",
+            "لو مسافر شهر: فضّى الثلاجة، افصلها، ونضّفها، وسيب الباب مفتوح شوية عشان متعفّنش."
+          ],
+          "en": [
+            "The black coil behind or under the fridge collects dust; clean it with a soft brush or vacuum with the appliance unplugged.",
+            "The seal test: put a sheet of paper between the door and the body and close it. If the paper slides out easily, the gasket needs cleaning or replacing — it is leaking cold all day.",
+            "A non-frost-free freezer needs defrosting once ice passes roughly half a centimetre; built-up ice cuts capacity and raises consumption.",
+            "Do not put hot food inside, and leave space between items so air can circulate.",
+            "Travelling for a month: empty it, unplug it, clean it and leave the door slightly open so it does not grow mould."
+          ] },
+
+        { "type": "h", "ar": "الغسالة والترسيبات", "en": "Washing machine and limescale" },
+        { "type": "ul",
+          "ar": [
+            "مصفاة الطرد (غالباً ورا شبّاك صغير تحت قدام) بتتفتح وتتنضّف من الشعر والفكة والأزرار.",
+            "سيب باب الغسالة ودرج المسحوق مفتوحين شوية بعد الغسيل — ده أسهل حل لريحة الغسالة.",
+            "دورة فاضية بمياه سخنة كل كام شهر بتشيل تراكم المسحوق ومنعّم الأقمشة.",
+            "استخدام مسحوق أكتر من اللازم بيخلّف رغوة وترسيب أكتر، مش نضافة أكتر.",
+            "الكاتيل وماكينة القهوة: ترسيب جيرى أبيض بيتشال بمحلول حامض ستريك أو خل مخفف، وبعده اشطف كويس مرتين."
+          ],
+          "en": [
+            "The pump filter (usually behind a small flap low at the front) opens up and clears hair, coins and buttons.",
+            "Leave the door and the detergent drawer slightly open after a wash — the simplest fix for a smelly machine.",
+            "An empty hot cycle every few months clears detergent and softener build-up.",
+            "Using more detergent than needed leaves foam and residue, not more cleanliness.",
+            "Kettles and coffee machines: white scale comes off with citric acid or diluted vinegar, followed by two thorough rinses."
+          ] },
+
+        { "type": "warn",
+          "ar": "افصل الكهرباء قبل أى تنظيف، ومتستخدمش مياه على أجزاء كهربائية. وأى شغل جوه الجهاز نفسه — غاز التبريد، الكمبروسر، توصيلات الغاز — ده شغل فنى معتمد، ولو عملته بنفسك ممكن يلغى الضمان.",
+          "en": "Disconnect the power before any cleaning, and keep water away from electrical parts. Anything inside the appliance itself — refrigerant, compressor, gas connections — is work for an approved technician, and doing it yourself can void the warranty." }
+      ]
+    },
+
+    {
+      "id": "g7",
+      "slug": "appliances-for-large-family",
+      "minutes": 6,
+      "tags": ["family", "budget", "basics"],
+      "categoryIds": ["38005652", "38003882", "38003799"],
+      "title": {
+        "ar": "اختيار الأجهزة لعيلة كبيرة",
+        "en": "Choosing appliances for a large family"
+      },
+      "dek": {
+        "ar": "السعة، والتحمّل، وتكلفة التشغيل: تلات معايير بتتغيّر لما البيت يبقى ٦ أفراد أو أكتر.",
+        "en": "Capacity, durability and running cost: three criteria that change once a household reaches six people or more."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "البيت الكبير مش محتاج أجهزة «أفخم»، محتاج أجهزة تستحمل تشغيل متكرر. الجهاز اللى بيشتغل مرتين فى اليوم بيشيخ أسرع من اللى بيشتغل مرتين فى الأسبوع، والفرق ده بيظهر فى السعة، وفى جودة التصنيع، وفى الفاتورة.",
+          "en": "A large household does not need fancier appliances; it needs appliances that tolerate frequent use. Something running twice a day ages faster than something running twice a week, and that shows up in capacity, in build quality and on the bill." },
+
+        { "type": "h", "ar": "السعة المقترحة", "en": "Suggested capacities" },
+        { "type": "table",
+          "head": [
+            { "ar": "الجهاز", "en": "Appliance" },
+            { "ar": "نطاق تقريبى لـ ٦ أفراد أو أكتر", "en": "Approximate range for 6+ people" },
+            { "ar": "ليه", "en": "Why" }
+          ],
+          "rows": [
+            [ { "ar": "ثلاجة", "en": "Refrigerator" },
+              { "ar": "٤٥٠ لتر فأكتر، أو ثلاجة + ديب فريزر", "en": "450 L or more, or a fridge plus a chest freezer" },
+              { "ar": "تسوّق أكبر ومرات أقل", "en": "Bigger shops, done less often" } ],
+            [ { "ar": "غسالة", "en": "Washing machine" },
+              { "ar": "٩ – ١٢ كجم", "en": "9–12 kg" },
+              { "ar": "غسلة كبيرة أوفر من غسلتين صغيرين", "en": "One big load beats two small ones" } ],
+            [ { "ar": "بوتاجاز", "en": "Cooker" },
+              { "ar": "٥ شعلات وفرن واسع", "en": "5 burners and a wide oven" },
+              { "ar": "طبخ أكتر من صنف فى نفس الوقت", "en": "Cooking more than one dish at a time" } ],
+            [ { "ar": "سخان مياه", "en": "Water heater" },
+              { "ar": "سعة أكبر أو سخان فورى بمعدل تدفق كافى", "en": "A larger tank, or an instantaneous heater with adequate flow" },
+              { "ar": "استحمام متتالى الصبح", "en": "Back-to-back showers in the morning" } ],
+            [ { "ar": "غسالة أطباق", "en": "Dishwasher" },
+              { "ar": "١٢ فرد خدمة أو أكتر", "en": "12 place settings or more" },
+              { "ar": "بتوفّر وقت ومياه مقارنة بالغسيل باليد المتكرر", "en": "Saves time and water versus repeated hand-washing" } ]
+          ] },
+        { "type": "p",
+          "ar": "الأرقام دى نطاقات إرشادية للبداية. عدّلها حسب عاداتكم: بيت ٦ أفراد بيطبخ يومياً مش زى بيت ٦ أفراد بياكل بره نص الأسبوع.",
+          "en": "These are starting ranges, not prescriptions. Adjust for your habits: a six-person home that cooks daily is not the same as a six-person home that eats out half the week." },
+
+        { "type": "h", "ar": "التحمّل: بصّ على حاجات محددة", "en": "Durability: look at specific things" },
+        { "type": "ul",
+          "ar": [
+            "توفّر مركز خدمة وقطع غيار قريب منك — ده بيفرق مع الاستخدام الكثيف أكتر من أى ميزة فى الكتالوج.",
+            "الأجزاء اللى بتتلمس كل يوم: مفصلات الباب، الأدراج، الكاوتش، مقابض البوتاجاز.",
+            "الغسالة: حلّة استانلس، وضمان أطول على الموتور.",
+            "البوتاجاز: شبكات حديد (كاست) بتستحمل أكتر من الشبك السلك الرفيع.",
+            "البساطة أحياناً أفضل: شاشات ووظايف كتير معناها حاجات أكتر ممكن تعطل."
+          ],
+          "en": [
+            "A service centre and spare parts available near you — with heavy use this matters more than any catalogue feature.",
+            "The parts touched every day: door hinges, drawers, gaskets, cooker knobs.",
+            "Washing machine: a stainless drum and a longer warranty on the motor.",
+            "Cooker: cast-iron pan supports last better than thin wire ones.",
+            "Simpler is sometimes better: more screens and functions means more things that can fail."
+          ] },
+
+        { "type": "h", "ar": "تكلفة التشغيل بتتضاعف مع الاستخدام", "en": "Running cost multiplies with use" },
+        { "type": "p",
+          "ar": "درجة كفاءة الطاقة بتفرق أكتر بكتير فى البيت اللى بيغسل كل يوم أو بيشغّل التكييف طول الصيف. نفس الفرق فى الاستهلاك السنوى بيتحوّل لمبلغ أكبر لما عدد ساعات التشغيل يزيد، فالجهاز الأكفأ بيرجّع فرق تمنه أسرع فى البيوت الكبيرة.",
+          "en": "An energy rating matters far more in a home that washes daily or runs the AC all summer. The same annual consumption gap turns into a bigger amount as running hours rise, so an efficient appliance pays back its price premium faster in a large household." },
+        { "type": "ul",
+          "ar": [
+            "غسالة أكبر بحمل كامل أوفر فى المياه والكهرباء من غسلتين نص فاضيين.",
+            "الثلاجة اللى محطوطة صح ومتهوية كويس بتستهلك أقل بدون ما تدفع مليم.",
+            "برامج «إيكو» فى الغسالات بتاخد وقت أطول بس بتستخدم مياه سخنة أقل — وده بيوفّر فعلاً.",
+            "احسب تكلفة التشغيل على ٥ سنين مش على شهر واحد وانت بتقارن."
+          ],
+          "en": [
+            "A larger machine run full uses less water and electricity than two half-empty loads.",
+            "A well-placed, well-ventilated fridge consumes less without costing you a pound.",
+            "\"Eco\" programmes take longer but use less hot water — and that genuinely saves.",
+            "Compare running cost over five years, not over one month."
+          ] },
+
+        { "type": "tip",
+          "ar": "لو الميزانية مضغوطة، حط فلوسك فى الأجهزة اللى شغّالة كل يوم (الثلاجة والغسالة والتكييف)، ووفّر فى اللى بيتشغّل مرة كل فترة. ده بيخلّى نفس المبلغ يرجّع نفسه أسرع.",
+          "en": "If the budget is tight, put your money into the appliances that run every day (fridge, washing machine, AC) and economise on the ones used occasionally. The same money pays itself back faster that way." },
+        { "type": "warn",
+          "ar": "قبل ما تكبّر أى جهاز، ارجع لدليل القياس. السعة الأكبر بتيجى مع أبعاد أكبر ووزن أكبر، والبوتاجاز أبو ٥ شعلات أعرض من أبو ٤، والغسالة أبو ١٢ كجم أعمق — واللى ينفع فى المعرض مش دايماً بيعدّى من باب المطبخ.",
+          "en": "Before sizing anything up, go back to the measuring guide. More capacity means bigger dimensions and more weight: a 5-burner cooker is wider than a 4-burner, a 12 kg washer is deeper — and what fits in the showroom does not always fit through the kitchen door." }
+      ]
+    },
+
+    {
+      "id": "g8",
+      "slug": "seven-buying-mistakes",
+      "minutes": 8,
+      "tags": ["mistakes", "budget", "basics"],
+      "categoryIds": ["38003882", "38005652", "38032005"],
+      "title": {
+        "ar": "أشهر ٧ أخطاء وقت شراء الأجهزة",
+        "en": "The 7 most common appliance-buying mistakes"
+      },
+      "dek": {
+        "ar": "الأخطاء اللى بتتكرر فى كل معرض وكل موقع — وإزاى تتجنّبها فى دقيقة واحدة قبل ما تدفع.",
+        "en": "The mistakes repeated in every showroom and on every website — and the one-minute check that avoids each of them."
+      },
+      "body": [
+        { "type": "p",
+          "ar": "مفيش حاجة فى القايمة دى معقّدة. كلها حاجات معروفة، بس بتتنسى وقت الحماس أو وقت العرض اللى بيخلص النهاردة. اقراها مرة قبل ما تشترى.",
+          "en": "Nothing on this list is complicated. These are all obvious things — they just get forgotten in the excitement, or when the offer \"ends today\". Read it once before you buy." },
+
+        { "type": "h", "ar": "١) تشترى بالسعر لوحده", "en": "1) Buying on price alone" },
+        { "type": "p",
+          "ar": "أرخص جهاز مش دايماً أرخص جهاز. الفرق بيتدفع بعدين فى الكهرباء، وفى الصيانة، وفى إنك تغيّره بدرى. قارن سعر الشراء + تكلفة التشغيل المتوقعة + سهولة الصيانة، مش رقم الفاتورة بس.",
+          "en": "The cheapest appliance is not always the cheapest appliance. The difference gets paid later in electricity, in repairs, and in replacing it sooner. Compare purchase price plus expected running cost plus ease of service — not just the number on the receipt." },
+
+        { "type": "h", "ar": "٢) تتجاهل الأبعاد", "en": "2) Ignoring the dimensions" },
+        { "type": "p",
+          "ar": "الجهاز ينفع فى المكان، بس مش بيعدّى من الباب أو من لفّة السلم. دايماً قيس العرض والارتفاع والعمق ومساحة فتح الباب، وأضيق نقطة فى طريق الدخول — قبل ما تدفع مش بعدها.",
+          "en": "The appliance fits the space but not through the doorway or round the stairwell turn. Always measure width, height, depth and door swing — plus the narrowest point on the route in — before you pay, not after." },
+
+        { "type": "h", "ar": "٣) سعة غلط: أكبر أو أصغر من اللزوم", "en": "3) The wrong capacity — too big or too small" },
+        { "type": "p",
+          "ar": "الأصغر من اللزوم بيخلّيك تشغّله مرتين وتلاتة، والأكبر من اللزوم بيستهلك أكتر على الفاضى وبياخد مساحة. ابدأ من عدد الأفراد وعاداتك، مش من الموديل اللى شفته عند حد.",
+          "en": "Too small means running it two or three times over; too big consumes more for nothing and takes space. Start from your household size and habits, not from the model you saw at someone's house." },
+
+        { "type": "h", "ar": "٤) تنسى تكلفة التوصيل والتركيب", "en": "4) Forgetting delivery and installation costs" },
+        { "type": "p",
+          "ar": "التوصيل لدور عالى من غير أسانسير، ومواسير النحاس الزيادة فى التكييف، وخرطوم الغاز، والحوامل، والعمالة — دى بنود بتضاف على السعر. اسأل عنها مكتوبة قبل ما تشترى، واسأل تحديداً: التركيب مشمول ولا لأ؟",
+          "en": "Delivery to an upper floor without a lift, extra copper pipe for an AC, the gas hose, brackets and labour — these are added to the price. Ask for them in writing before buying, and ask specifically: is installation included or not?" },
+
+        { "type": "h", "ar": "٥) تعدّى على الضمان بسرعة", "en": "5) Skipping past the warranty" },
+        { "type": "p",
+          "ar": "«عليه ضمان» جملة مش معلومة. ضمان كام سنة، على إيه، من مين، وبيشمل المصنعية ولا القطع بس؟ وأقرب مركز خدمة فين؟ الأسئلة دى بتاخد دقيقة وبتوفّر شهور من اللف بعدين. واحتفظ بالفاتورة.",
+          "en": "\"It has a warranty\" is not information. How many years, on what, from whom, and does it cover labour or parts only? Where is the nearest service centre? These questions take a minute and save months of hassle later. And keep the invoice." },
+
+        { "type": "h", "ar": "٦) تحشر الجهاز من غير تهوية", "en": "6) Boxing the appliance in with no ventilation" },
+        { "type": "p",
+          "ar": "الثلاجة الملزوقة فى الحيطة، والتكييف الخارجى المحصور فى منور مقفول، والفريزر جنب البوتاجاز — كلها بتخلّى الجهاز يشتغل أكتر ويسخن ويعيش أقل. سيب مسافات التهوية اللى فى الكتيّب، وابعد عن مصادر الحرارة.",
+          "en": "A fridge shoved against the wall, an AC outdoor unit trapped in a sealed light well, a freezer next to the cooker — all of them make the appliance work harder, run hotter and live shorter. Leave the clearances the manual asks for, and keep away from heat sources." },
+
+        { "type": "h", "ar": "٧) تشترى بالعاطفة فى وسط عرض", "en": "7) Buying on impulse in the middle of a sale" },
+        { "type": "p",
+          "ar": "العروض حقيقية أحياناً، بس العجلة بتخلّيك تنسى القياس والسعة والضمان. قارن نفس الموديل عند أكتر من بائع، وشوف السعر كان كام قبل العرض، وسيب لنفسك يوم قبل القرار لو المبلغ كبير. العرض اللى بيضغط عليك بالوقت بيمنعك تسأل الأسئلة الصح.",
+          "en": "Sales are sometimes genuine, but hurry makes you skip the measuring, the capacity and the warranty. Compare the same model across sellers, check what the price was before the offer, and give yourself a day before deciding if the amount is large. An offer that pressures you on time is an offer that stops you asking the right questions." },
+
+        { "type": "h", "ar": "تشيك ليست الدقيقة الواحدة", "en": "The one-minute checklist" },
+        { "type": "ul",
+          "ar": [
+            "المقاسات مكتوبة عندى، وأضيق باب فى الطريق معروف.",
+            "السعة مبنية على عدد أفراد بيتى وعاداتنا.",
+            "شفت رقم الاستهلاك السنوى وحوّلته لجنيه بسعر فاتورتى.",
+            "عارف مدة الضمان، وعلى إيه بالظبط، ومين اللى بيصلّح.",
+            "عارف تكلفة التوصيل والتركيب وأى مواد إضافية.",
+            "قارنت نفس الموديل عند أكتر من بائع.",
+            "المكان جاهز: بريزة، تهوية، مياه أو غاز حسب الجهاز."
+          ],
+          "en": [
+            "I have the measurements written down, and I know the narrowest doorway on the route.",
+            "The capacity is based on my household size and our habits.",
+            "I have seen the annual consumption figure and converted it to pounds at my own tariff.",
+            "I know the warranty length, exactly what it covers, and who performs repairs.",
+            "I know the delivery and installation cost, including any extra materials.",
+            "I have compared the same model across more than one seller.",
+            "The spot is ready: socket, ventilation, water or gas as the appliance requires."
+          ] },
+        { "type": "tip",
+          "ar": "لو فيه بند واحد بس مش متأكد منه فى القايمة دى، ده مش سبب تلغى الشراء — ده سبب تسأل سؤال واحد كمان قبل ما تدفع.",
+          "en": "If there is just one item on this list you are unsure about, that is not a reason to cancel the purchase — it is a reason to ask one more question before you pay." }
+      ]
+    }
+  ]
+}

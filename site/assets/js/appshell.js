@@ -1,0 +1,133 @@
+/* ============================================================================
+   SADKO app shell — the handful of things every buying-journey page needs:
+   the catalogue, the category map, money/date formatting in the active
+   language, and the shared footer (which is where the honest disclosures about
+   warranty, delivery and seller coverage live).
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  const EN = () => !!(window.skLang && window.skLang.get() === 'en');
+  const t = (ar, en) => (EN() ? en : ar);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // Paths differ between /page.html and /category/page.html
+  const ROOT = /\/category\//.test(location.pathname);
+  const P = p => (ROOT ? '../' : '') + p;
+
+  const qs = (k, d) => { const v = new URLSearchParams(location.search).get(k); return v == null ? d : v; };
+
+  function money(n) {
+    if (n == null || isNaN(n)) return t('غير متاح', 'n/a');
+    const v = Math.round(Number(n));
+    return EN() ? v.toLocaleString('en-EG') + ' EGP' : v.toLocaleString('ar-EG') + ' جنيه';
+  }
+  function num(n) { return EN() ? Number(n).toLocaleString('en-EG') : Number(n).toLocaleString('ar-EG'); }
+  function date(d) {
+    const x = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(x)) return '—';
+    return x.toLocaleDateString(EN() ? 'en-GB' : 'ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  /* ---------- catalogue ---------- */
+  let _cache = null;
+  function products() {
+    if (_cache) return _cache;
+    _cache = fetch(P('data/products.json')).then(r => r.json()).then(d => d.products || []).catch(() => []);
+    return _cache;
+  }
+  function byId(id) { return products().then(list => list.find(p => String(p.id) === String(id)) || null); }
+  function inCategory(cid) { return products().then(list => list.filter(p => String(p.categoryId) === String(cid))); }
+
+  /* ---------- categories that actually have products ---------- */
+  // Names come from nav.js's CAT_EN map where available; the Arabic label is the
+  // source of truth since the catalogue is Arabic-authored.
+  const CATS = {
+    '38003882':  { ar: 'ثلاجات', en: 'Refrigerators' },
+    '38005652':  { ar: 'غسالات', en: 'Washing machines' },
+    '38005648':  { ar: 'فريزرات', en: 'Freezers' },
+    '38003799':  { ar: 'أفران وبوتاجازات', en: 'Cookers & ovens' },
+    '38032005':  { ar: 'تكييفات هواء', en: 'Air conditioners' },
+    '38022381':  { ar: 'تليفزيونات', en: 'Televisions' },
+    '50318054':  { ar: 'مبردات هواء ومراوح', en: 'Air coolers & fans' },
+    '40507239':  { ar: 'سخانات مياه', en: 'Water heaters' },
+    '102858075': { ar: 'مبردات مياه', en: 'Water dispensers' },
+    '112439376': { ar: 'أجهزة صغيرة', en: 'Small appliances' },
+    '57646037':  { ar: 'ميكروويف', en: 'Microwaves' },
+    '68782006':  { ar: 'خلاطات وعجانات', en: 'Blenders & mixers' },
+    '185355010': { ar: 'كاتيل وماكينات قهوة', en: 'Kettles & coffee machines' },
+    '185364502': { ar: 'قلايات', en: 'Air fryers' },
+    '81167227':  { ar: 'مكاوى', en: 'Irons' },
+    '81170222':  { ar: 'مكانس', en: 'Vacuum cleaners' },
+    '38022354':  { ar: 'غسالات أطباق', en: 'Dishwashers' },
+    '48143206':  { ar: 'سخانات غاز', en: 'Gas water heaters' },
+    '48149056':  { ar: 'سخانات كهرباء', en: 'Electric water heaters' },
+  };
+  const catName = cid => { const c = CATS[String(cid)]; return c ? t(c.ar, c.en) : t('فئة', 'Category'); };
+  const catHref = cid => P('category/' + cid + '.html');
+
+  /* Categories with at least one product, for pickers. */
+  function liveCats() {
+    return products().then(list => {
+      const n = {};
+      list.forEach(p => { n[String(p.categoryId)] = (n[String(p.categoryId)] || 0) + 1; });
+      return Object.keys(n).filter(k => CATS[k]).map(k => ({ id: k, count: n[k], name: catName(k) }))
+        .sort((a, b) => b.count - a.count);
+    });
+  }
+
+  /* ---------- shared footer ---------- */
+  function footer(host) {
+    const el = host || document.querySelector('[data-footer]');
+    if (!el) return;
+    const L = [
+      { h: t('صادكو', 'SADKO'), items: [
+        [t('عن صادكو', 'About SADKO'), P('about.html')],
+        [t('تواصل معنا', 'Contact us'), P('contact.html')],
+        [t('المعارض', 'Showrooms'), P('showrooms.html')],
+        [t('حسابى', 'My account'), P('account.html')],
+      ] },
+      { h: t('قبل ما تشترى', 'Before you buy'), items: [
+        [t('ساعدنى أختار', 'Help me choose'), P('finder.html')],
+        [t('أدلة الشراء', 'Buying guides'), P('guides.html')],
+        [t('قارن الأسعار', 'Compare prices'), P('compare.html')],
+        [t('خطط التجهيز', 'Shopping plans'), P('plan.html')],
+      ] },
+      { h: t('بعد الشراء', 'After you buy'), items: [
+        [t('أجهزتى والضمان', 'My appliances & warranty'), P('appliances.html')],
+        [t('مركز خدمة العملاء', 'Customer care'), P('care.html')],
+        [t('طلباتى', 'My orders'), P('orders.html')],
+        [t('التوصيل والتركيب', 'Delivery & installation'), P('delivery.html')],
+      ] },
+      { h: t('معلومات', 'Information'), items: [
+        [t('الضمان والاسترجاع', 'Warranty & returns'), P('warranty.html')],
+        [t('الخصوصية', 'Privacy'), P('privacy.html')],
+        [t('شروط الاستخدام', 'Terms of use'), P('terms.html')],
+      ] },
+    ];
+    el.className = 'foot';
+    el.innerHTML =
+      '<div class="foot__inner"><div class="foot__cols">' +
+      L.map(c => '<div><h4>' + esc(c.h) + '</h4><ul>' +
+        c.items.map(i => '<li><a href="' + i[1] + '">' + esc(i[0]) + '</a></li>').join('') +
+        '</ul></div>').join('') +
+      '<div><h4>' + t('كلّمنا', 'Talk to us') + '</h4><ul>' +
+        '<li><a href="tel:19140" dir="ltr">19140</a></li>' +
+        '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li>' +
+      '</ul>' +
+      '<p style="margin:14px 0 0;font-size:.82rem;opacity:.8;line-height:1.8">' +
+        t('مجموعة صادكو — من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group — since 1986, sole distributor of Kiriazi.') + '</p></div>' +
+      '</div><p class="foot__legal">' +
+      t('الأسعار والمواصفات المعروضة مأخوذة من صفحات المنتجات وقت آخر تحديث، وممكن تتغير — الرجاء التأكد قبل الشراء. مقارنة الأسعار بتغطى متاجر مدعومة محددة، مش كل المتاجر فى مصر. الضمان والتركيب والاسترجاع بيقدمهم البائع المذكور فى العرض: لو اشتريت من متجر تانى غير صادكو، الضمان والخدمة بتاعته هو مش بتاع صادكو.',
+        'Prices and specifications shown are taken from product pages at the time of the last update and may change — please confirm before buying. Price comparison covers a specific list of supported stores, not every store in Egypt. Warranty, installation and returns are provided by the seller named on each offer: if you buy from a store other than SADKO, that seller — not SADKO — provides the warranty and service.') +
+      '<br>© ' + t('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
+  }
+
+  /* Small helper: render an "empty state" block. */
+  function empty(msg, ctaLabel, ctaHref) {
+    return '<div class="empty"><p>' + esc(msg) + '</p>' +
+      (ctaLabel ? '<a class="btn btn--teal" href="' + ctaHref + '">' + esc(ctaLabel) + '</a>' : '') + '</div>';
+  }
+
+  window.skApp = { EN, t, esc, P, qs, money, num, date, products, byId, inCategory,
+                   CATS, catName, catHref, liveCats, footer, empty };
+})();

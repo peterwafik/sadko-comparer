@@ -1,0 +1,46 @@
+# SADKO site + price-comparer engine.
+# Install: sudo cp deploy/sadko.service /etc/systemd/system/ && sudo systemctl daemon-reload
+[Unit]
+Description=SADKO site and price-comparer engine
+Documentation=https://github.com/your-org/sadko/blob/main/LAUNCH.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sadko
+Group=sadko
+WorkingDirectory=/opt/sadko/repo/site
+EnvironmentFile=/etc/sadko.env
+ExecStart=/usr/bin/node compare-server.mjs
+
+# compare-server.mjs handles SIGTERM: it stops accepting connections, lets
+# in-flight requests finish and closes the SQLite databases cleanly, so a
+# restart never leaves a half-written WAL behind.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+Restart=always
+RestartSec=3
+
+# Chrome plus Node on a 4 GB box: cap the service so a runaway search cannot
+# take the whole VM (and SSH) down with it.
+MemoryMax=3200M
+
+# Hardening. ProtectSystem=full makes /usr and /etc read-only; the data
+# directory is the only thing the service may write.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/opt/sadko/repo/site/data /var/backups/sadko
+
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sadko
+
+[Install]
+WantedBy=multi-user.target

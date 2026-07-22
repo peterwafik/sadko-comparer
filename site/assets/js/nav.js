@@ -35,10 +35,20 @@
   };
   const N = {
     ar: { home: 'الرئيسية', shop: 'المتجر', all: 'كل المنتجات', allPrefix: 'كل ', compare: 'قارن الأسعار',
-      orders: 'الطلبات', showrooms: 'المعارض', experience: 'تجربة البيت', call: 'اتصل 19140', cartAria: 'سلة التسوق',
+      orders: 'الطلبات', showrooms: 'المعارض', call: 'اتصل 19140', cartAria: 'سلة التسوق',
+      finder: 'ساعدنى أختار', plan: 'خطط التجهيز', guides: 'أدلة الشراء', care: 'خدمة العملاء',
+      savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
+      finderCtaH: 'مش عارف تختار إيه؟',
+      finderCtaP: 'جاوب على كام سؤال عن بيتك واستخدامك، ونرشّح لك ٣ أجهزة من الفئة دى مع سبب واضح لكل ترشيح.',
+      finderCtaB: 'ساعدنى أختار',
       pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ اتضافت', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
-      orders: 'Orders', showrooms: 'Showrooms', experience: 'Home Experience', call: 'Call 19140', cartAria: 'Shopping cart',
+      orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
+      finder: 'Help me choose', plan: 'Shopping plans', guides: 'Buying guides', care: 'Customer care',
+      savedAria: 'Saved products', acctAria: 'My account', details: 'Details & size',
+      finderCtaH: 'Not sure which one to pick?',
+      finderCtaP: 'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category — each with a clear reason.',
+      finderCtaB: 'Help me choose',
       pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
   }[LANG];
   const CAT_EN = {
@@ -119,14 +129,20 @@
       here === 'compare.html' ? 'compare' :
       here === 'orders.html' ? 'orders' :
       here === 'showrooms.html' ? 'showrooms' :
-      here === 'experience.html' ? 'experience' :
       here === 'cart.html' ? 'cart' :
+      here === 'finder.html' ? 'finder' :
+      here === 'plan.html' ? 'plan' :
+      here === 'guides.html' ? 'guides' :
+      here === 'care.html' ? 'care' :
+      here === 'saved.html' ? 'saved' :
+      here === 'account.html' || here === 'checkout.html' ? 'account' :
+      here === 'appliances.html' ? 'care' :
       ROOT ? 'shop' : '';
 
     const header = document.createElement('header');
     header.className = 'sk-nav' + (overlay ? ' sk-nav--overlay' : ' sk-nav--solid') + (LANG === 'en' ? ' sk-nav--en' : '');
     header.innerHTML =
-      `<a class="sk-nav__logo" href="${P('index.html')}"><img src="${P('assets/img/sadko-logo-white.png')}" alt="صادكو جروب"></a>` +
+      `<a class="sk-nav__logo" href="${P('index.html')}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
       `<nav class="sk-nav__links sk-glass" aria-label="${N.pagesAria}">` +
         `<a class="sk-link${active === 'home' ? ' is-active' : ''}" href="${P('index.html')}">${N.home}</a>` +
         `<div class="sk-shop">` +
@@ -148,14 +164,25 @@
             ).join('') +
           `</div>` +
         `</div>` +
+        `<a class="sk-link sk-link--cta${active === 'finder' ? ' is-active' : ''}" href="${P('finder.html')}">${N.finder}</a>` +
         `<a class="sk-link${active === 'compare' ? ' is-active' : ''}" href="${P('compare.html')}">${N.compare}</a>` +
+        `<a class="sk-link${active === 'plan' ? ' is-active' : ''}" href="${P('plan.html')}">${N.plan}</a>` +
+        `<a class="sk-link${active === 'guides' ? ' is-active' : ''}" href="${P('guides.html')}">${N.guides}</a>` +
         `<a class="sk-link${active === 'orders' ? ' is-active' : ''}" href="${P('orders.html')}">${N.orders}</a>` +
         `<a class="sk-link${active === 'showrooms' ? ' is-active' : ''}" href="${P('showrooms.html')}">${N.showrooms}</a>` +
-        `<a class="sk-link${active === 'experience' ? ' is-active' : ''}" href="${P('experience.html')}">${N.experience}</a>` +
+        `<a class="sk-link${active === 'care' ? ' is-active' : ''}" href="${P('care.html')}">${N.care}</a>` +
       `</nav>` +
       `<span class="sk-nav__side">` +
         `<button type="button" class="sk-lang sk-glass" title="${N.langTitle}" aria-label="${N.langTitle}">${N.langBtn}</button>` +
         `<a class="sk-hotline" href="tel:19140" dir="ltr">${N.call}</a>` +
+        `<a class="sk-cart sk-glass sk-acct${active === 'account' ? ' is-active' : ''}" href="${P('account.html')}" aria-label="${N.acctAria}" title="${N.acctAria}">` +
+          `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.2a7.8 7.8 0 0 1 15 0"/></svg>` +
+          `<em class="sk-acct__dot" hidden></em>` +
+        `</a>` +
+        `<a class="sk-cart sk-glass${active === 'saved' ? ' is-active' : ''}" href="${P('saved.html')}" aria-label="${N.savedAria}" title="${N.savedAria}">` +
+          `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>` +
+          `<em class="sk-saved__badge" hidden>0</em>` +
+        `</a>` +
         `<a class="sk-cart sk-glass${active === 'cart' ? ' is-active' : ''}" href="${P('cart.html')}" aria-label="${N.cartAria}">` +
           `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.5 12h10.2l2.2-8.5H6.2"/></svg>` +
           `<em class="sk-cart__badge" hidden>0</em>` +
@@ -203,7 +230,26 @@
     window.addEventListener('storage', e => { if (e.key === CART_KEY) paint(); });
     paint();
 
+    /* saved-products badge — reads the same store the app pages write to */
+    const sBadge = header.querySelector('.sk-saved__badge');
+    const paintSaved = () => {
+      if (!sBadge) return;
+      let n = 0;
+      try { n = (JSON.parse(localStorage.getItem('sadko-saved-v1')) || []).length; } catch (e) {}
+      sBadge.hidden = n === 0;
+      sBadge.textContent = n > 99 ? '99+' : String(n);
+    };
+    /* a quiet dot on the account icon once a real session is confirmed */
+    const acctDot = header.querySelector('.sk-acct__dot');
+    const paintAcct = u => { if (acctDot) acctDot.hidden = !u; };
+    if (window.skAuth) { window.skAuth.onChange(paintAcct); paintAcct(window.skAuth.current()); }
+
+    document.addEventListener('sk-store-change', paintSaved);
+    window.addEventListener('storage', e => { if (e.key === 'sadko-saved-v1') paintSaved(); });
+    paintSaved();
+
     if (ROOT && document.querySelector('article.card')) enhanceCategoryCards();
+    if (ROOT) injectFinderCta();
     if (ROOT && LANG === 'en') translateCategoryPage();
   }
 
@@ -252,6 +298,23 @@
   }
 
   /* ---- add-to-cart buttons on the static category pages ---- */
+  /* The brief asks for the guided finder at the top of every category page.
+     Injecting it here means the 30 pre-built category pages stay untouched. */
+  function injectFinderCta() {
+    const cid = (location.pathname.split('/').pop() || '').replace('.html', '');
+    if (!/^\d+$/.test(cid)) return;
+    const hero = document.querySelector('.hero');
+    const host = document.querySelector('.wrap') || document.querySelector('main');
+    if (!hero && !host) return;
+    const box = document.createElement('aside');
+    box.className = 'sk-fcta';
+    box.innerHTML =
+      `<div><b>${esc(N.finderCtaH)}</b><p>${esc(N.finderCtaP)}</p></div>` +
+      `<a class="sk-fcta__btn" href="${P('finder.html')}?cat=${encodeURIComponent(cid)}">${esc(N.finderCtaB)}</a>`;
+    if (hero) hero.insertAdjacentElement('afterend', box);
+    else host.prepend(box);
+  }
+
   function enhanceCategoryCards() {
     fetch(P('data/products.json')).then(r => r.json()).then(d => {
       const byPath = {};
@@ -264,7 +327,15 @@
         let prod = null;
         try { prod = byPath[decodeURIComponent(new URL(link.href).pathname)]; } catch (e) {}
         if (!prod) return;
+        card.__skProduct = prod;      // lets the preference filter reason about this card
         const row = card.querySelector('.card__row') || card.querySelector('.card__body') || card;
+        // Internal product page: the catalogue card links straight out to the
+        // shop, which skips the suitability / space / running-cost guidance.
+        const det = document.createElement('a');
+        det.className = 'sk-detbtn';
+        det.href = P('product.html') + '?id=' + encodeURIComponent(prod.id);
+        det.textContent = N.details;
+        row.appendChild(det);
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'sk-addbtn';
@@ -277,7 +348,39 @@
         });
         row.appendChild(b);
       });
+      mountPrefsBar();
     }).catch(() => {});
+  }
+
+  /* ---- preference filtering on any page that has a product grid ----
+     The 30 prebuilt category pages only load nav.js, so the modules the filter
+     needs are pulled in here on demand rather than by editing every page. */
+  function loadOnce(src) {
+    return new Promise(resolve => {
+      const url = P(src);
+      if (document.querySelector('script[data-sk="' + src + '"]')) return resolve();
+      const s = document.createElement('script');
+      s.src = url + '?v=a4'; s.defer = false; s.setAttribute('data-sk', src);
+      s.onload = resolve; s.onerror = resolve;
+      document.head.appendChild(s);
+    });
+  }
+  async function mountPrefsBar() {
+    if (!document.querySelector('article.card')) return;
+    await loadOnce('assets/js/specs.js');
+    await loadOnce('assets/js/store.js');
+    await loadOnce('assets/js/auth.js');
+    await loadOnce('assets/js/homes.js');
+    await loadOnce('assets/js/prefs.js');
+    if (!window.skPrefs) return;
+    const grid = document.querySelector('.grid');
+    if (!grid) return;
+    const bar = document.createElement('div');
+    grid.parentElement.insertBefore(bar, grid);
+    const api = window.skPrefs.mountBar(bar, { onChange: () => { window.skPrefs.applyToCards(document); api && api.redraw(); window.skPrefs.applyToCards(document); } });
+    window.skPrefs.applyToCards(document);
+    // the profile may arrive after the session resolves
+    window.skAuth && window.skAuth.onChange(() => { api && api.redraw(); window.skPrefs.applyToCards(document); });
   }
 
   /* ================= CSS — iOS "frosted glass" material ================= */
@@ -295,8 +398,7 @@
       pointer-events:none;}
     .sk-nav>*{pointer-events:auto;}
     .sk-nav--solid{position:sticky;}
-    .sk-nav__logo img{height:36px;width:auto;display:block;background:#2e7e88;
-      border-radius:11px;padding:6px 12px;box-shadow:0 6px 16px rgba(46,126,136,.35);}
+    .sk-nav__logo img{height:52px;width:auto;display:block;}
     /* the links pill sits dead-centre of the viewport, like an iOS nav */
     .sk-nav__links{position:absolute;left:50%;top:10px;transform:translateX(-50%);
       display:flex;align-items:center;gap:2px;padding:5px;border-radius:999px;}
@@ -343,6 +445,16 @@
     .sk-cart__badge{position:absolute;top:-5px;left:-5px;min-width:19px;height:19px;border-radius:999px;
       background:#fe9800;color:#241a05;font:800 .68rem/19px 'Cairo',sans-serif;text-align:center;
       padding:0 4px;font-style:normal;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+    .sk-saved__badge{position:absolute;top:-5px;left:-5px;min-width:19px;height:19px;border-radius:999px;
+      background:#2e7e88;color:#fff;font:800 .68rem/19px 'Cairo',sans-serif;text-align:center;
+      padding:0 4px;font-style:normal;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+    html[dir=ltr] .sk-saved__badge{left:auto;right:-5px;}
+    .sk-acct__dot{position:absolute;top:-2px;left:-2px;width:11px;height:11px;border-radius:50%;
+      background:#17795a;border:2px solid #fff;font-style:normal;}
+    html[dir=ltr] .sk-acct__dot{left:auto;right:-2px;}
+    /* the finder is the entry point to the whole buying journey — give it weight */
+    .sk-link--cta{background:#fdecd0;color:#8a5b12;}
+    .sk-link--cta:hover,.sk-link--cta.is-active{background:#fe9800;color:#241a05;}
     .sk-lang{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;cursor:pointer;
       font:800 .82rem 'Cairo',sans-serif;color:#28464b;transition:color .2s,background .2s;padding:0;}
     .sk-lang:hover{color:#fff;background:#2e7e88;}
@@ -355,16 +467,34 @@
       padding:8px 14px;border-radius:999px;transition:background .2s,transform .15s;}
     .sk-addbtn:hover{background:#1f5b63;transform:translateY(-1px);}
     .sk-addbtn.is-done{background:#1d7a3f;}
+    .sk-detbtn{font:700 .78rem 'Cairo',sans-serif;color:#2e7e88;background:#eaf3f4;text-decoration:none;
+      border:1px solid rgba(46,126,136,.28);padding:7px 13px;border-radius:999px;transition:.18s;}
+    .sk-detbtn:hover{background:#2e7e88;color:#fff;}
+    /* guided-finder call-out injected at the top of every category page */
+    .sk-fcta{max-width:1440px;margin:18px auto 0;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+      justify-content:space-between;padding:18px clamp(16px,4vw,26px);border-radius:18px;
+      background:linear-gradient(120deg,#eaf3f4,#fdf3e2);border:1px solid rgba(46,126,136,.22);
+      width:calc(100% - 2*clamp(16px,4vw,48px));}
+    .sk-fcta b{display:block;font-size:1.02rem;color:#14343a;}
+    .sk-fcta p{margin:5px 0 0;font-size:.86rem;color:#5b6b6e;line-height:1.65;max-width:62ch;}
+    .sk-fcta__btn{flex:0 0 auto;font:800 .88rem 'Cairo',sans-serif;color:#241a05;background:#fe9800;
+      text-decoration:none;padding:11px 22px;border-radius:999px;white-space:nowrap;}
+    .sk-fcta__btn:hover{filter:brightness(1.06);}
     /* keep page content clear of the sticky glass bar on sub-pages */
     .sk-nav--solid+*{margin-top:6px;}
-    @media (max-width:920px){
+    /* The strap now carries the whole buying journey (finder, compare, plans,
+       guides, care), so the centred pill needs to drop to its own row well
+       before the old 920px point or it collides with the logo and the side
+       controls on ordinary laptop widths. */
+    @media (max-width:1280px){
       .sk-nav{flex-wrap:wrap;row-gap:8px;position:sticky;}
       .sk-nav--overlay{position:fixed;}
       .sk-nav__links{position:static;transform:none;order:5;flex-basis:100%;justify-content:center;flex-wrap:wrap;margin:0 auto;}
       .sk-menu{position:fixed;inset:auto 7vw auto 7vw;top:112px;right:auto;transform:translateY(-8px);width:auto;}
       .sk-shop.is-open .sk-menu{transform:none;}
-      .sk-nav__logo img{height:30px;}
     }
+    @media (max-width:920px){ .sk-nav__logo img{height:42px;} }
+    @media (max-width:760px){ .sk-link{padding:7px 11px;font-size:.83rem;} }
     @media (max-width:560px){ .sk-hotline{padding:8px 12px;font-size:.78rem;} }
     `;
     const style = document.createElement('style');

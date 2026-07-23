@@ -67,6 +67,9 @@ function mountScrollWorld(container, config) {
   const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   const smallMQ = window.matchMedia('(max-width: 860px)');
   const isMobile = () => coarse || smallMQ.matches;
+  // Portrait phones show each scene FITTED whole (letterboxed), so the ken-burns
+  // push/zoom is dropped there — it would zoom-crop the very thing we're fitting.
+  const portraitMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
   const SECTIONS = config.sections || [];
   const CONNECTORS = config.connectors || [];
   const CONNECTORS_M = config.connectorsMobile || [];
@@ -133,9 +136,15 @@ function mountScrollWorld(container, config) {
   // segment scenes
   SEGMENTS.forEach(s => {
     const scene = el('div', 'sw-scene'); scene.style.setProperty('--sw-accent', s.accent || '');
+    // Ambient backdrop: a blurred, cover-scaled copy of the same frame. Only shown
+    // on portrait phones, where the scene itself is fitted whole (letterboxed) —
+    // it fills the letterbox with the room's own colours, fading to white at the
+    // far edges. Invisible/idle on desktop.
+    const bg = el('img', 'sw-scene__bg'); bg.alt = ''; bg.decoding = 'async'; bg.loading = 'lazy';
+    if (s.still) bg.src = s.still;
     const img = el('img', 'sw-scene__still'); img.alt = ''; img.decoding = 'async'; img.loading = 'lazy';
     if (s.still) img.src = s.still;
-    scene.appendChild(img); stage.appendChild(scene);
+    scene.appendChild(bg); scene.appendChild(img); stage.appendChild(scene);
     s.el = scene; s.img = img; s.video = null; s.hasClip = false;
     s.loading = false; s.ready = false; s.cur = 0; s.target = 0; s.visible = false;
   });
@@ -230,8 +239,9 @@ function mountScrollWorld(container, config) {
       s.el.style.opacity = op; s.visible = op > 0.001;
       s.el.style.zIndex = (i === ci) ? '120' : String(100 + Math.round(op * 10));
       if (!s.hasClip || !s.ready) {
-        const sc = reduce ? 1 : 1.03 + local * 0.14;
-        s.img.style.transform = `translateX(${stageX - 2}vw) scale(${sc.toFixed(3)})`;
+        if (portraitMQ.matches) { s.img.style.transform = 'none'; }
+        else { const sc = reduce ? 1 : 1.03 + local * 0.14;
+          s.img.style.transform = `translateX(${stageX - 2}vw) scale(${sc.toFixed(3)})`; }
       }
     }
 
@@ -422,8 +432,9 @@ function injectCSS() {
   .sw-topcta{text-decoration:none;font-weight:600;font-size:.9rem;color:#fff;background:var(--sw-ink);padding:10px 20px;border-radius:999px;white-space:nowrap;}
   .sw-stage{position:fixed;inset:0;z-index:10;pointer-events:none;}
   .sw-scene{position:absolute;inset:0;opacity:0;overflow:hidden;will-change:opacity;}
-  .sw-scene__video,.sw-scene__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;}
-  .sw-scene__still{will-change:transform;} .sw-scene.has-clip .sw-scene__still{opacity:0;} .sw-scene__video{z-index:1;}
+  .sw-scene__video,.sw-scene__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;z-index:1;}
+  .sw-scene__still{will-change:transform;} .sw-scene.has-clip .sw-scene__still{opacity:0;}
+  .sw-scene__bg{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
   .sw-copylayer{position:fixed;inset:0;z-index:20;pointer-events:none;}
   .sw-copylayer::before{content:"";position:absolute;inset:0;width:min(58vw,780px);background:linear-gradient(90deg,var(--sw-bg) 0%,color-mix(in srgb,var(--sw-bg) 82%,transparent) 34%,color-mix(in srgb,var(--sw-bg) 40%,transparent) 62%,transparent 100%);}
   /* RTL (Arabic): the over-constrained scrim auto-anchors to the right edge; only
@@ -468,10 +479,16 @@ function injectCSS() {
     .sw-hint{bottom:calc(20px + env(safe-area-inset-bottom));}
     .sw-route{gap:16px;right:6px;} .sw-route__label{display:none;}
   }
-  /* Portrait phones crop a 16:9 clip hard; keep the framing centred so the focal
-     subject (which the camera dives toward) stays in view. */
+  /* Portrait phones: a 16:9 scene cropped to fill would lose most of the room, so
+     instead FIT the whole scene (letterboxed) and centre it. The letterbox above
+     and below is filled by a blurred, cover-scaled copy of the same frame — the
+     room's own colours — which a white gradient fades out toward the top and
+     bottom edges, so the room sits centred and the far areas melt into white. */
   @media (max-width:860px) and (orientation:portrait){
-    .sw-scene__video,.sw-scene__still{object-position:center 44%;}
+    .sw-scene__video,.sw-scene__still{object-fit:contain;object-position:center center;z-index:2;}
+    .sw-scene__bg{display:block;object-position:center center;filter:blur(34px) saturate(1.3) brightness(1.03);transform:scale(1.22);}
+    .sw-scene::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+      background:linear-gradient(180deg,#fff 0%,rgba(255,255,255,.72) 9%,rgba(255,255,255,0) 27%,rgba(255,255,255,0) 73%,rgba(255,255,255,.72) 91%,#fff 100%);}
   }
   /* Touch: give the route dots a finger-sized hit area without growing the visible dot. */
   @media (hover:none) and (pointer:coarse){

@@ -202,11 +202,19 @@ function mountHotspots(container, api, sections) {
     const n = parseFloat(v);
     return isNaN(n) ? 0.42 : n / 100;
   }
+  // On portrait phones the scene is FITTED whole (object-fit:contain, centred),
+  // so the marker mapping must mirror `contain` (min-scale, centred) there — not
+  // the desktop `cover` (max-scale, object-position Y) — or markers drift off
+  // their appliances into the letterbox.
+  const containMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
   function metrics() {
     const r = stageEl.getBoundingClientRect();
-    const s = Math.max(r.width / FRAME_W, r.height / FRAME_H);
+    const contain = containMQ.matches;
+    const s = contain ? Math.min(r.width / FRAME_W, r.height / FRAME_H)
+                      : Math.max(r.width / FRAME_W, r.height / FRAME_H);
     const dw = FRAME_W * s, dh = FRAME_H * s;
-    return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * objY() };
+    const oyF = contain ? 0.5 : objY();
+    return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * oyF };
   }
   function mapPoint(fx, fy, m) {
     m = m || metrics();
@@ -223,7 +231,7 @@ function mountHotspots(container, api, sections) {
       // ken-burns transform (translateX((stageX-2)vw) scale(1.03+t*0.14), origin
       // center). Mirror it, or markers sit visibly off on slow loads / mobile.
       let still = null;
-      if (seg && seg.el && !seg.el.classList.contains('has-clip')) {
+      if (seg && seg.el && !seg.el.classList.contains('has-clip') && !containMQ.matches) {
         const local = clamp((lastY - seg.start) / (seg.end - seg.start), 0, 1);
         const stageX = window.innerWidth > 860 ? 4 : 0;
         still = {

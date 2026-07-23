@@ -209,6 +209,14 @@
     if (legacy) legacy.replaceWith(header);
     else document.body.prepend(header);
 
+    /* Publish the strap's real height so the first content block can clear the
+       now-overlaid (fixed) strap exactly, at any viewport width. */
+    if (!overlay) {
+      const measure = () => document.documentElement.style.setProperty('--sk-nav-h', header.offsetHeight + 'px');
+      requestAnimationFrame(measure);
+      window.addEventListener('resize', measure);
+    }
+
     // ---- mobile drawer: the whole strap as a glass side panel -------------
     const scrim = document.createElement('div');
     scrim.className = 'sk-scrim';
@@ -525,7 +533,12 @@
       padding:10px clamp(14px,3.4vw,42px);font-family:'Cairo','Segoe UI',system-ui,sans-serif;
       pointer-events:none;}
     .sk-nav>*{pointer-events:auto;}
-    .sk-nav--solid{position:sticky;}
+    /* Overlay on subpages too (not sticky), so the strap no longer occupies a
+       band of white body background above the hero — the page's own coloured
+       background now runs to the very top boundary, behind the glass strap. The
+       first content block after the strap is padded down to clear it. */
+    .sk-nav--solid{position:fixed;}
+    .sk-nav--solid+*{padding-top:calc(var(--sk-nav-h,86px) + 20px)!important;}
     .sk-nav__logo img{height:52px;width:auto;display:block;}
     /* the links pill sits dead-centre of the viewport, like an iOS nav */
     .sk-nav__links{position:absolute;left:50%;top:10px;transform:translateX(-50%);

@@ -56,8 +56,19 @@ import { rankOffers } from './engine/serve.mjs';
 import { extractProduct } from './engine/extract.mjs';
 import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
-import { openAccounts } from './engine/accounts.mjs';
+import { openAccounts, ORDER_STATUSES } from './engine/accounts.mjs';
 import { verifyIdToken, enabledProviders } from './engine/oidc.mjs';
+import { openCatalogAdmin, EDITABLE_FIELDS } from './engine/catalog-admin.mjs';
+import { mkdir } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+const randBytesHex = n => randomBytes(n).toString('hex');
+
+/* JSON data files the owner may edit from the control room. Whitelisted so the
+   content endpoint can never be pointed at an arbitrary path on disk. */
+const ADMIN_CONTENT = {
+  guides: { file: 'guides.json', label: 'أدلة الشراء / Buying guides' },
+  finder: { file: 'finder.json', label: 'مساعد الاختيار / Finder questions' },
+};
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.PORT || 8082);
@@ -1437,6 +1448,46 @@ function accounts() {
 
 const SESSION_COOKIE = 'sadko_session';
 
+/* ---- admin (the owner's control room) ------------------------------------
+   Who is an admin is decided ONLY by the ADMIN_EMAILS env var — a comma list
+   set on the server, never in the database and never editable from the browser.
+   An account gains admin power solely by signing in with a listed email, so a
+   compromised web layer cannot mint an admin. */
+const ADMIN_EMAILS = new Set(
+  String(process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+);
+const isAdminEmail = email => ADMIN_EMAILS.has(String(email || '').trim().toLowerCase());
+const isAdminUser  = user => !!(user && isAdminEmail(user.email));
+
+let CATALOG_ADMIN = null;
+function catalogAdmin() {
+  if (CATALOG_ADMIN === null) {
+    try { CATALOG_ADMIN = openCatalogAdmin(path.join(ROOT, 'data', 'catalog-admin.db')); }
+    catch (e) { console.error('[catalog-admin] unavailable:', e.message); CATALOG_ADMIN = false; }
+  }
+  return CATALOG_ADMIN;
+}
+
+/* The scraped base catalogue, cached in memory and re-read only when the file's
+   mtime changes (a re-crawl). The admin overlay is applied on top of this. */
+let _baseCat = { mtime: 0, list: null };
+async function baseCatalog() {
+  const file = path.join(ROOT, 'data', 'products.json');
+  try {
+    const m = statSync(file).mtimeMs;
+    if (_baseCat.list && _baseCat.mtime === m) return _baseCat.list;
+    const doc = JSON.parse(await readFile(file, 'utf8'));
+    _baseCat = { mtime: m, list: Array.isArray(doc.products) ? doc.products : [] };
+  } catch (e) { if (!_baseCat.list) _baseCat.list = []; }
+  return _baseCat.list;
+}
+// The storefront catalogue as customers see it = base ⊕ owner's overlay.
+async function mergedCatalog() {
+  const base = await baseCatalog();
+  const adm = catalogAdmin();
+  return adm ? adm.merge(base) : base;
+}
+
 /* ---- production hardening -------------------------------------------------
    Small, dependency-free versions of the things a public server needs. */
 
@@ -1627,6 +1678,189 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     } catch (e) { return json(500, { error: String(e.message || e) }); }
   }
 
+  /* ---- admin control room ----
+     Every route here demands a signed-in user whose email is in ADMIN_EMAILS.
+     The check is server-side and identical for reads and writes; there is no
+     "admin cookie" a browser could forge. Writes also pass the global same-origin
+     gate above. All mutations are recorded in the catalog-admin audit log. */
+  if (u.pathname.startsWith('/api/admin/')) {
+    const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+    const db = accounts();
+    const cadm = catalogAdmin();
+    if (!db || !cadm) return json(503, { error: 'unavailable' });
+
+    const me = currentUser(req);
+    if (!me) return json(401, { error: 'no-user', message: lang === 'en' ? 'Sign in first.' : 'سجّل دخولك الأول.' });
+    if (!isAdminUser(me)) return json(403, { error: 'not-admin', message: lang === 'en'
+      ? 'This account is not an administrator.' : 'الحساب ده مش من المسؤولين.' });
+    const actor = me.email;
+
+    try {
+      const rest = u.pathname.slice('/api/admin/'.length);   // e.g. "products", "products/adm-x"
+      const seg = rest.split('/').filter(Boolean);
+
+      /* who am I / can I */
+      if (rest === 'me' && req.method === 'GET')
+        return json(200, { admin: true, email: me.email, name: me.name,
+          editableFields: EDITABLE_FIELDS, orderStatuses: ORDER_STATUSES });
+
+      /* dashboard overview */
+      if (rest === 'overview' && req.method === 'GET') {
+        const base = await baseCatalog();
+        const cat = cadm.stats();
+        return json(200, {
+          accounts: db.adminOverview(),
+          catalog: { base: base.length, live: (await mergedCatalog()).length,
+                     edited: cat.overrides, custom: cat.custom, hidden: cat.hidden },
+          providers: enabledProviders().map(p => p.id),
+          audit: cadm.audit(12),
+        });
+      }
+
+      /* ------- products ------- */
+      if (seg[0] === 'products' && seg.length === 1 && req.method === 'GET') {
+        const base = await baseCatalog();
+        const ov = cadm.overridesMap();
+        const hidden = cadm.hiddenSet();
+        const custom = cadm.customList();
+        const q = (u.searchParams.get('q') || '').trim().toLowerCase();
+        const cat = (u.searchParams.get('cat') || '').trim();
+        const view = u.searchParams.get('view') || 'all';   // all | edited | hidden | custom
+        const page = Math.max(1, +u.searchParams.get('page') || 1);
+        const per = Math.min(100, Math.max(10, +u.searchParams.get('per') || 40));
+
+        // build the admin list: base (with override applied + flags) then custom
+        let rows = base.map(p => {
+          const id = String(p.id);
+          const patch = ov[id];
+          const merged = patch ? Object.assign({}, p, patch) : p;
+          return { ...merged, id, _edited: !!patch, _hidden: hidden.has(id), _custom: false };
+        });
+        rows = rows.concat(custom.map(c => ({ ...c, id: String(c.id), _edited: false, _hidden: hidden.has(String(c.id)), _custom: true })));
+
+        if (view === 'edited') rows = rows.filter(r => r._edited);
+        else if (view === 'hidden') rows = rows.filter(r => r._hidden);
+        else if (view === 'custom') rows = rows.filter(r => r._custom);
+        if (cat) rows = rows.filter(r => String(r.categoryId) === cat);
+        if (q) rows = rows.filter(r => (String(r.title) + ' ' + String(r.id)).toLowerCase().includes(q));
+
+        const total = rows.length;
+        const slice = rows.slice((page - 1) * per, page * per).map(r => ({
+          id: r.id, title: r.title, price: r.price, image: r.image, categoryId: r.categoryId,
+          _edited: r._edited, _hidden: r._hidden, _custom: r._custom,
+        }));
+        return json(200, { total, page, per, pages: Math.ceil(total / per), products: slice });
+      }
+
+      if (seg[0] === 'products' && seg.length === 1 && req.method === 'POST') {
+        const b = await readJson(req, 80000);
+        const r = cadm.createProduct(b, actor);
+        if (r.error) return json(400, { error: r.error, message: r.error === 'title-required'
+          ? (lang === 'en' ? 'A product needs a title.' : 'المنتج لازم يكون له اسم.') : r.error });
+        return json(200, r);
+      }
+
+      if (seg[0] === 'products' && seg[1] && seg.length === 2) {
+        const id = decodeURIComponent(seg[1]);
+        if (req.method === 'GET') {
+          const base = await baseCatalog();
+          const d = cadm.describe(base, id);
+          if (!d) return json(404, { error: 'not-found' });
+          return json(200, d);
+        }
+        if (req.method === 'PATCH' || req.method === 'PUT') {
+          const b = await readJson(req, 80000);
+          const isCustom = id.startsWith('adm-');
+          if (isCustom) { const r = cadm.updateCustom(id, b, actor); if (r.error) return json(404, { error: r.error }); return json(200, r); }
+          const merged = cadm.setOverride(id, b, actor);
+          return json(200, { ok: true, override: merged });
+        }
+        if (req.method === 'DELETE') {
+          const r = cadm.remove(id, actor);
+          return json(200, { ok: true, ...r });
+        }
+      }
+
+      // per-product actions: hide / show / revert
+      if (seg[0] === 'products' && seg[2] && req.method === 'POST') {
+        const id = decodeURIComponent(seg[1]);
+        const action = seg[2];
+        if (action === 'hide')   { cadm.hide(id, actor);   return json(200, { ok: true, hidden: true }); }
+        if (action === 'show')   { cadm.unhide(id, actor); return json(200, { ok: true, hidden: false }); }
+        if (action === 'revert') { cadm.revert(id, actor); return json(200, { ok: true, reverted: true }); }
+      }
+
+      /* ------- image upload (base64 data URL -> file under assets/img/uploads) ------- */
+      if (rest === 'upload' && req.method === 'POST') {
+        const b = await readJson(req, 6_000_000);            // ~6MB JSON => ~4MB image
+        const m = /^data:(image\/(png|jpe?g|webp|gif|avif));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.data || ''));
+        if (!m) return json(400, { error: 'bad-image', message: lang === 'en' ? 'Send a PNG/JPG/WebP image.' : 'ابعت صورة PNG/JPG/WebP.' });
+        const ext = m[2] === 'jpeg' ? 'jpg' : m[2];
+        const buf = Buffer.from(m[3], 'base64');
+        if (buf.length > 4_500_000) return json(413, { error: 'too-large', message: lang === 'en' ? 'Image must be under 4MB.' : 'الصورة لازم تكون أقل من ٤ ميجا.' });
+        const dir = path.join(ROOT, 'data', 'uploads');
+        await mkdir(dir, { recursive: true });
+        const name = 'p' + Date.now().toString(36) + randBytesHex(4) + '.' + ext;
+        await writeFile(path.join(dir, name), buf);
+        const url = 'data/uploads/' + name;
+        cadm.log(actor, 'image.upload', name, { bytes: buf.length });
+        return json(200, { ok: true, url });
+      }
+
+      /* ------- orders desk ------- */
+      if (rest === 'orders' && req.method === 'GET')
+        return json(200, { orders: db.allOrders(), statuses: ORDER_STATUSES });
+      if (seg[0] === 'orders' && seg[2] === 'status' && req.method === 'POST') {
+        const b = await readJson(req);
+        const r = db.setOrderStatus(decodeURIComponent(seg[1]), b.status);
+        if (r.error) return json(400, { error: r.error });
+        cadm.log(actor, 'order.status', seg[1], { status: b.status });
+        return json(200, r);
+      }
+
+      /* ------- customers ------- */
+      if (rest === 'customers' && req.method === 'GET')
+        return json(200, { customers: db.listUsersAdmin() });
+
+      /* ------- content / config JSON files (guides, finder …) ------- */
+      if (seg[0] === 'content' && seg[1] && seg.length === 2) {
+        const name = seg[1].replace(/[^a-z0-9_-]/gi, '');
+        if (!ADMIN_CONTENT[name]) return json(404, { error: 'unknown-content' });
+        const file = path.join(ROOT, 'data', ADMIN_CONTENT[name].file);
+        if (req.method === 'GET') {
+          const txt = existsSync(file) ? await readFile(file, 'utf8') : '{}';
+          return json(200, { name, label: ADMIN_CONTENT[name].label, json: txt });
+        }
+        if (req.method === 'PUT') {
+          const b = await readJson(req, 2_000_000);
+          let parsed; try { parsed = JSON.parse(b.json); } catch { return json(400, { error: 'bad-json', message: lang === 'en' ? 'That is not valid JSON.' : 'ده JSON مش صحيح.' }); }
+          await writeFile(file, JSON.stringify(parsed, null, 2));
+          cadm.log(actor, 'content.save', name, null);
+          return json(200, { ok: true });
+        }
+      }
+
+      /* ------- site settings ------- */
+      if (rest === 'settings' && req.method === 'GET')
+        return json(200, { settings: cadm.settings() });
+      if (rest === 'settings' && req.method === 'PUT') {
+        const b = await readJson(req, 200000);
+        const patch = (b && typeof b.settings === 'object') ? b.settings : {};
+        for (const [k, v] of Object.entries(patch)) cadm.setSetting(k, v, actor);
+        return json(200, { ok: true, settings: cadm.settings() });
+      }
+
+      /* ------- audit log ------- */
+      if (rest === 'audit' && req.method === 'GET')
+        return json(200, { audit: cadm.audit(+u.searchParams.get('limit') || 100) });
+
+      return json(404, { error: 'not-found' });
+    } catch (e) {
+      const code = (e && e.message === 'too-large') ? 'too-large' : 'bad-request';
+      return json(400, { error: code, message: String(e && e.message || e) });
+    }
+  }
+
   /* ---- accounts ---- */
   if (u.pathname.startsWith('/api/auth/') || u.pathname === '/api/orders') {
     const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
@@ -1635,8 +1869,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
 
     try {
-      if (u.pathname === '/api/auth/me' && req.method === 'GET')
-        return json(200, { user: currentUser(req) });
+      if (u.pathname === '/api/auth/me' && req.method === 'GET') {
+        const me = currentUser(req);
+        // tell the account page whether to surface the "control room" link
+        return json(200, { user: me ? Object.assign({}, me, { isAdmin: isAdminUser(me) }) : null });
+      }
 
       /* Which social buttons this deployment can actually show. With no
          *_CLIENT_ID configured this returns [], and the UI says so rather
@@ -1778,6 +2015,19 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     }
   }
 
+  /* The storefront reads the catalogue from this exact URL. Serve the MERGED
+     view (scraped base + the owner's overlay) so every edit the owner makes in
+     the control room is reflected across shop, category, finder and product
+     pages with no change to any of those pages. */
+  if (u.pathname === '/data/products.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    try {
+      const list = await mergedCatalog();
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'no-cache');
+      return res.end(JSON.stringify({ scrapedAt: _baseCat.mtime, count: list.length, products: list }));
+    } catch (e) { /* fall through to static */ }
+  }
+
   let p = decodeURIComponent(u.pathname); if (p === '/') p = '/index.html';
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !existsSync(f) || !statSync(f).isFile()) { res.statusCode = 404; res.end('not found'); return; }
@@ -1793,6 +2043,7 @@ function shutdown(signal) {
   console.log(`[server] ${signal} — shutting down`);
   const done = () => {
     try { ACCOUNTS && ACCOUNTS.close && ACCOUNTS.close(); } catch (e) {}
+    try { CATALOG_ADMIN && CATALOG_ADMIN.close && CATALOG_ADMIN.close(); } catch (e) {}
     process.exit(0);
   };
   try { SERVER.close(done); } catch (e) { done(); }

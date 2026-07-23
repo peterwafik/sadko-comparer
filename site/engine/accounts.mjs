@@ -87,6 +87,10 @@ export const PROFILE_KEYS = [
 ];
 const MAX_HOMES = 8;
 
+/* The lifecycle an order moves through on the owner's desk. Kept small and
+   explicit so a bad value can never be written to the orders table. */
+export const ORDER_STATUSES = ['received', 'confirmed', 'preparing', 'shipping', 'delivered', 'cancelled'];
+
 export function cleanProfile(input) {
   const out = {};
   if (!input || typeof input !== 'object') return out;
@@ -410,6 +414,48 @@ export function openAccounts(file) {
     },
 
     stats() { return { users: store.userCount(), sessions: store.sessionCount(), orders: store.orderCount() }; },
+
+    /* ---- admin desk ----
+       These read across ALL customers, so the server MUST gate them behind an
+       admin check before calling. They never expose password hashes or salts. */
+    ORDER_STATUSES,
+    listUsersAdmin() {
+      const out = [];
+      store.eachUser(u => out.push({
+        id: u.id, email: u.email, name: u.name, phone: u.phone || '',
+        createdAt: u.createdAt, homes: (u.homes || []).length,
+        orders: store.ordersFor(u.id).length,
+        providers: (u.identities || []).map(i => i.provider),
+      }));
+      out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      return out;
+    },
+    allOrders() {
+      // attach a light customer label so the desk can show who ordered
+      const names = new Map();
+      store.eachUser(u => names.set(u.id, { name: u.name, email: u.email, phone: u.phone || '' }));
+      return store.allOrders().map(o => Object.assign({ customer: names.get(o.userId) || null }, o));
+    },
+    setOrderStatus(ref, status) {
+      status = String(status || '').trim();
+      if (!ORDER_STATUSES.includes(status)) return { error: 'bad-status' };
+      const o = store.setOrderStatus(String(ref || ''), status);
+      if (!o) return { error: 'no-order' };
+      return { ok: true, order: o };
+    },
+    adminOverview() {
+      const dayAgo = new Date(Date.now() - 86400000).toISOString();
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      return {
+        users: store.userCount(), sessions: store.sessionCount(), orders: store.orderCount(),
+        ordersToday: store.ordersSince(dayAgo), ordersWeek: store.ordersSince(weekAgo),
+      };
+    },
+    getOrderAny(ref) {
+      const all = store.allOrders();
+      return all.find(o => o.ref === ref) || null;
+    },
+
     __raw: () => store.raw,   // tests only: assert on the stored bytes/rows directly
     close() { try { clearInterval(sweeper); store.close(); } catch (e) {} },
   };

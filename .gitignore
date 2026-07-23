@@ -18,6 +18,13 @@ site/data/accounts.json.migrated
 site/data/accounts.db
 site/data/accounts.db-*
 
+# owner's catalogue overlay (product edits, custom items, hidden, settings) —
+# runtime business data created and mutated on the server, like accounts.db
+site/data/catalog-admin.db
+site/data/catalog-admin.db-*
+# owner-uploaded product images — binary runtime data, live only on the server volume
+site/data/uploads/
+
 # engine runtime state
 site/data/price-index.json
 # SQLite write-ahead/session state — meaningless outside the writing process

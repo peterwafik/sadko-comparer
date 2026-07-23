@@ -194,6 +194,12 @@
           (u.providers && u.providers.length ? ' · ' + t('بتدخل بـ ', 'signs in with ') + esc(u.providers.join(', ')) : '') + '</p></div>' +
           '<button class="btn btn--quiet btn--sm" id="logoutBtn">' + t('تسجيل خروج', 'Sign out') + '</button></div>' +
 
+        // Only the owner (email in ADMIN_EMAILS on the server) gets this.
+        (u.isAdmin ? '<a href="admin.html" class="admin-link">' +
+            '<span>' + t('غرفة التحكم', 'Control room') + '</span>' +
+            '<small>' + t('إدارة المنتجات والطلبات والمحتوى', 'Manage products, orders & content') + '</small>' +
+            '<b>' + t('افتح ←', 'Open →') + '</b></a>' : '') +
+
         homesPanel(u) +
 
         '<div class="grid2 mt16">' +

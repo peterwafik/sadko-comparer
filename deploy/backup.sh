@@ -10,7 +10,9 @@ KEEP_DAYS="${SADKO_BACKUP_KEEP:-14}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 mkdir -p "$DEST"
-for db in accounts catalog; do
+# catalog-admin holds the owner's product edits, custom items and settings —
+# it lives only on the server, so it must be backed up like the others.
+for db in accounts catalog catalog-admin; do
   src="$DATA_DIR/$db.db"
   [[ -f "$src" ]] || continue
   out="$DEST/$db-$STAMP.db"

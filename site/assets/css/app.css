@@ -224,6 +224,15 @@ body.sk-auth-mode { overflow: hidden; }
 .sk-social__btn svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .prov-slot { display: flex; justify-content: center; min-height: 44px; }
 
+/* owner's shortcut into the control room — only rendered when the account is an admin */
+.admin-link { display: flex; align-items: center; gap: 12px; margin: 18px 0 4px; padding: 15px 18px;
+  border-radius: 16px; text-decoration: none; color: #fff;
+  background: linear-gradient(120deg, #14343a, #2e7e88); box-shadow: 0 12px 28px rgba(20,52,58,.22); }
+.admin-link span { font-weight: 900; font-size: 1rem; }
+.admin-link small { color: rgba(255,255,255,.82); font-size: .8rem; font-weight: 700; }
+.admin-link b { margin-inline-start: auto; font-weight: 900; color: #ffd98a; white-space: nowrap; }
+.admin-link:hover { filter: brightness(1.06); }
+
 /* ---------- utilities ---------- */
 .mt0{margin-top:0}.mt8{margin-top:8px}.mt16{margin-top:16px}.mt24{margin-top:24px}
 .muted { color: var(--ink-soft); }

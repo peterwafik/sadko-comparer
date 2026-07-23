@@ -144,6 +144,10 @@ export function openAccountsDb(file) {
     insertOrder:  db.prepare('INSERT INTO orders (ref,user_id,created_at,status,subtotal,payment,data_json) VALUES (?,?,?,?,?,?,?)'),
     ordersFor:    db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC'),
     orderByRef:   db.prepare('SELECT * FROM orders WHERE user_id = ? AND ref = ?'),
+    orderByRefAny:db.prepare('SELECT * FROM orders WHERE ref = ?'),
+    allOrders:    db.prepare('SELECT * FROM orders ORDER BY created_at DESC'),
+    setOrderStat: db.prepare('UPDATE orders SET status = ?, data_json = ? WHERE ref = ?'),
+    ordersSince:  db.prepare("SELECT COUNT(*) AS n, COALESCE(SUM(subtotal),0) AS rev FROM orders WHERE created_at > ?"),
     countOrders:  db.prepare('SELECT COUNT(*) AS n FROM orders'),
 
     addFail:      db.prepare('INSERT INTO login_fails (key,at) VALUES (?,?)'),
@@ -240,6 +244,16 @@ export function openAccountsDb(file) {
     ordersFor: userId => q.ordersFor.all(userId).map(r => parse(r.data_json, {})),
     orderByRef: (userId, ref) => { const r = q.orderByRef.get(userId, ref); return r ? parse(r.data_json, {}) : null; },
     orderCount: () => q.countOrders.get().n,
+    // admin: every order, regardless of owner (for the owner's order desk)
+    allOrders: () => q.allOrders.all().map(r => parse(r.data_json, {})),
+    setOrderStatus: (ref, status) => {
+      const r = q.orderByRefAny.get(ref);
+      if (!r) return null;
+      const o = parse(r.data_json, {}); o.status = status;
+      q.setOrderStat.run(status, JSON.stringify(o), ref);
+      return o;
+    },
+    ordersSince: iso => q.ordersSince.get(iso),
 
     /* ---- login throttling ---- */
     failCount: (key, windowMs) => q.countFails.get(key, Date.now() - windowMs).n,

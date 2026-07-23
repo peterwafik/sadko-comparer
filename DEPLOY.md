@@ -97,6 +97,34 @@ Best if you want to run the crawler continuously with no billing at all.
 | `TAVILY_API_KEY` | no | URL-discovery fallback disabled; registry + catalog only |
 | `GOOGLE_CLIENT_ID` | no | "Continue with Google" is hidden; email + password sign-in still works |
 | `MICROSOFT_CLIENT_ID` | no | Microsoft tokens are not accepted (see the note below) |
+| `ADMIN_EMAILS` | no | the owner control room (`/admin.html`) has no administrators — nobody can get in |
+
+## Admin control room (`/admin.html`)
+
+The owner console lets you manage **every product** (price, title, image,
+description, category — plus add, hide or delete), **orders** (see all of them
+and change status), **customers**, the **buying-guide / finder content**, and
+**site settings**. To turn it on:
+
+1. Set `ADMIN_EMAILS` to your email (comma-separated for several owners), e.g.
+   in `/etc/sadko.env`: `ADMIN_EMAILS=you@sadko-group.com` — then restart the
+   service. This is the **only** thing that grants admin access: an account
+   becomes an admin purely by signing in with a listed email, so a bug in the
+   web layer can never mint one.
+2. Register a normal account with that exact email (Account page → sign up).
+3. Open **`/admin.html`** (or use the "Control room" banner that now appears on
+   your Account page) and sign in.
+
+Your edits are stored as a thin **overlay** on top of the scraped catalogue in
+`site/data/catalog-admin.db`, never written back into `data/products.json`. So a
+re-crawl refreshes the base catalogue without wiping your changes, and the
+storefront reflects every edit instantly (the server merges the two when it
+serves `/data/products.json`). That database — and any images you upload, which
+land in `site/data/uploads/` — live **only on the server volume**, so:
+
+- they need the same **persistent `site/data` volume** as `accounts.db`;
+- they are in `.gitignore` (never committed); back them up with the rest — the
+  nightly `deploy/backup.sh` already includes `catalog-admin.db`.
 
 ## Customer accounts
 

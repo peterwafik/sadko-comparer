@@ -30,11 +30,21 @@
 
     function render(user) {
       root.dataset.painted = '1';
-      if (!Au.available) { root.innerHTML = offline(); return; }
-      root.innerHTML = user ? signedIn(user) : signedOut();
+      // The login/signup screen takes over the page (its own background + logo,
+      // no hero/footer). A signed-in user, the offline state, or a guest who
+      // came specifically to manage their places keeps the normal layout.
+      const guestHomes = !user && (location.hash === '#homes' || location.hash === '#home');
+      const authMode = !user && Au.available && !guestHomes;
+      document.body.classList.toggle('sk-auth-mode', authMode);
+
+      if (!Au.available) root.innerHTML = offline();
+      else if (user) root.innerHTML = signedIn(user);
+      else if (guestHomes) root.innerHTML = guestHomesScreen();
+      else root.innerHTML = authScreen();
+
       wire(user);
       mountProviderButtons();
-      if (location.hash === '#homes' || location.hash === '#home') {
+      if ((location.hash === '#homes' || location.hash === '#home') && user) {
         const el = root.querySelector('#homesBox'); el && el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
@@ -49,55 +59,86 @@
         homesPanel(null);
     }
 
-    /* ================= signed out ================= */
-    function signedOut() {
-      return '<div class="grid2">' +
-        '<div class="panel"><h2 class="panel__h">' + t('تسجيل الدخول', 'Sign in') + '</h2>' +
-          providerBox() +
-          '<form id="loginForm" class="mt16">' +
-            field('email', 'email', t('الإيميل', 'Email'), '', 'username') +
-            field('password', 'password', t('كلمة السر', 'Password'), '', 'current-password') +
-            '<div id="loginErr"></div>' +
-            '<button class="btn btn--teal btn--block mt8" type="submit">' + t('دخول', 'Sign in') + '</button>' +
-          '</form>' +
-          '<p class="muted small mt16">' + t('نسيت كلمة السر؟ كلّم خدمة العملاء على 19140 — لسه مفيش استرجاع أوتوماتيك بالإيميل.',
-            'Forgotten your password? Call customer care on 19140 — automatic email reset is not available yet.') + '</p>' +
-        '</div>' +
-        '<div class="panel"><h2 class="panel__h">' + t('حساب جديد', 'Create an account') + '</h2>' +
-          '<p class="panel__sub">' + t('الحساب مطلوب عشان تكمّل الشراء وتتابع طلبك. المطلوب قليل — والباقى اختيارى.',
-            'An account is needed to complete a purchase and follow your order. Only a little is required — the rest is optional.') + '</p>' +
-          '<form id="regForm">' +
-            field('name', 'text', t('الاسم', 'Full name'), '', 'name') +
-            field('email', 'email', t('الإيميل', 'Email'), '', 'email') +
-            field('phone', 'tel', t('الموبايل', 'Mobile'), t('اختيارى — للتواصل عن الطلب', 'Optional — to contact you about an order'), 'tel') +
-            field('password', 'password', t('كلمة السر', 'Password'), t('٨ حروف على الأقل، حروف وأرقام', 'At least 8 characters, letters and numbers'), 'new-password') +
-            '<div id="regErr"></div>' +
-            '<button class="btn btn--primary btn--block mt16" type="submit">' + t('اعمل حساب', 'Create account') + '</button>' +
-            '<p class="muted small mt8">' + t('بإنشاء الحساب أنت موافق على ', 'By creating an account you agree to our ') +
-              '<a href="' + A.P('terms.html') + '">' + t('شروط الاستخدام', 'terms') + '</a>' + t(' و', ' and ') +
-              '<a href="' + A.P('privacy.html') + '">' + t('سياسة الخصوصية', 'privacy policy') + '</a>.</p>' +
-          '</form>' +
-        '</div></div>' +
-        '<div class="note note--soft mt16 small">' + t(
-          'بنحفظ اسمك وإيميلك وموبايلك وعنوان التوصيل وبيانات أماكنك على سيرفر صادكو عشان تقدر تدخل وتطلب. كلمة السر بتتخزّن مشفّرة ومش بنقدر نشوفها. مفيش أى بيانات بطاقة بتتجمع على الموقع ده.',
-          'We store your name, email, mobile, delivery address and your places on SADKO\'s server so you can sign in and order. Your password is stored hashed and cannot be read by us. No card details are collected anywhere on this site.') + '</div>' +
-        homesPanel(null);
+    /* ================= login / signup screen =================
+       One centred card over a photo of a SADKO room, with the logo above it —
+       the pattern people expect from a real store. Login shows first; a link
+       flips to signup in place, no reload. Social sign-in sits on top; email +
+       password below. */
+    function authScreen() {
+      return '<div class="sk-auth">' +
+        '<div class="sk-auth__inner">' +
+          '<a class="sk-auth__logo" href="' + A.P('index.html') + '" aria-label="SADKO">' +
+            '<img src="' + A.P('assets/img/sadko-logo.png') + '" alt="صادكو جروب"></a>' +
+          '<div class="sk-auth__card">' +
+            '<h1 id="authTitle">' + t('أهلاً بيك تانى', 'Welcome back') + '</h1>' +
+            '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك تكمّل طلبك وتتابعه، وتلاقى ترشيحاتك على مقاس بيتك.',
+              'Sign in to complete and track your orders, and get suggestions sized to your home.') + '</p>' +
+
+            socialRow() +
+            '<div class="sk-auth__or"><span>' + t('أو بالإيميل', 'or with email') + '</span></div>' +
+
+            // login form
+            '<form id="loginForm" class="sk-authform">' +
+              field('email', 'email', t('الإيميل', 'Email'), '', 'username') +
+              field('password', 'password', t('كلمة السر', 'Password'), '', 'current-password') +
+              '<div id="loginErr"></div>' +
+              '<button class="btn btn--teal btn--block mt8" type="submit">' + t('دخول', 'Sign in') + '</button>' +
+              '<p class="sk-auth__mini">' + t('نسيت كلمة السر؟ كلّم خدمة العملاء على ', 'Forgotten your password? Call customer care on ') +
+                '<a href="tel:19140" dir="ltr">19140</a></p>' +
+            '</form>' +
+
+            // signup form (hidden until toggled)
+            '<form id="regForm" class="sk-authform" hidden>' +
+              field('name', 'text', t('الاسم', 'Full name'), '', 'name') +
+              field('email', 'email', t('الإيميل', 'Email'), '', 'email') +
+              field('phone', 'tel', t('الموبايل (اختيارى)', 'Mobile (optional)'), '', 'tel') +
+              field('password', 'password', t('كلمة السر', 'Password'), t('٨ حروف على الأقل، حروف وأرقام', 'At least 8 characters, letters and numbers'), 'new-password') +
+              '<div id="regErr"></div>' +
+              '<button class="btn btn--primary btn--block mt8" type="submit">' + t('اعمل حساب', 'Create account') + '</button>' +
+              '<p class="sk-auth__mini">' + t('بإنشاء الحساب أنت موافق على ', 'By creating an account you agree to our ') +
+                '<a href="' + A.P('terms.html') + '">' + t('شروط الاستخدام', 'terms') + '</a>' + t(' و', ' and ') +
+                '<a href="' + A.P('privacy.html') + '">' + t('سياسة الخصوصية', 'privacy') + '</a>.</p>' +
+            '</form>' +
+
+            '<p class="sk-auth__switch" id="authSwitch">' +
+              '<span id="switchText">' + t('لسه معندكش حساب؟', 'Don\'t have an account?') + '</span> ' +
+              '<button type="button" id="authToggle">' + t('اعمل حساب', 'Sign up') + '</button></p>' +
+          '</div>' +
+          '<a class="sk-auth__home" href="' + A.P('index.html') + '">' + t('← رجوع للبيت', '← Back to home') + '</a>' +
+        '</div></div>';
     }
 
-    /* ---- provider buttons, or an honest explanation ---- */
-    function providerBox() {
+    /* Social sign-in row. Google is a real, verified flow when a client id is
+       configured; otherwise the button explains (on click) how to enable it,
+       so the design still reads professionally in a demo. Extra providers
+       (Facebook/Apple) appear here automatically once the server advertises
+       them via /api/auth/config. */
+    function socialRow() {
       const usable = (cfg.providers || []).filter(p => p.mode === 'gis');
+      let html = '<div class="sk-social">';
       if (usable.length) {
-        return '<div id="provBox" class="stack">' +
-          usable.map(p => '<div class="prov-slot" data-prov="' + esc(p.id) + '" data-client="' + esc(p.clientId) + '"></div>').join('') +
-          '<div id="provErr"></div>' +
-          '<p class="muted small" style="margin:2px 0 0">' + t('بندخل باسمك وإيميلك بس — مش بنشوف كلمة سر جوجل ولا بنقدر نوصل لأى حاجة تانية فى حسابك.',
-            'We receive only your name and email — we never see your Google password and cannot reach anything else in your account.') + '</p>' +
-          '<div class="prov-or"><span>' + t('أو', 'or') + '</span></div></div>';
+        html += usable.map(p => '<div class="prov-slot" data-prov="' + esc(p.id) + '" data-client="' + esc(p.clientId) + '"></div>').join('');
+      } else {
+        // styled placeholder so the intended design is visible without config
+        html += '<button type="button" class="sk-social__btn" id="googleDemo">' + googleIcon() +
+          '<span>' + t('المتابعة بحساب جوجل', 'Continue with Google') + '</span></button>';
       }
-      return '<div class="note note--soft small">' + t(
-        'الدخول بحساب جوجل مش مفعّل على النسخة دى. التفعيل مجانى: محتاج Client ID من Google Cloud يتحط فى متغير البيئة GOOGLE_CLIENT_ID وقت التشغيل — الكود جاهز ومتحقق من التوكن على السيرفر.',
-        'Google sign-in is not enabled on this deployment. Turning it on is free: it needs a Client ID from Google Cloud set as the GOOGLE_CLIENT_ID environment variable — the code is already here and verifies the token server-side.') + '</div>';
+      html += '<div id="provErr"></div></div>';
+      return html;
+    }
+    function googleIcon() {
+      return '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.1-3.8 6.6-9.4 6.6-16.1z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9h-7.3v5.7C8.1 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.8 28.3c-.4-1.3-.7-2.7-.7-4.3s.2-2.9.7-4.3v-5.7H4.5C3 17 2.1 20.4 2.1 24s.9 7 2.4 10l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.1 29.9 2 24 2 15.4 2 8.1 6.9 4.5 14l7.3 5.7c1.7-5.2 6.5-9 12.2-9z"/></svg>';
+    }
+
+    /* guest place manager — reached from the "manage places" link, without
+       forcing a sign-in first (places live on the device until they register) */
+    function guestHomesScreen() {
+      return '<div class="between mt0"><div><h2 class="panel__h" style="font-size:1.25rem">' +
+          t('أماكنى', 'My places') + '</h2>' +
+          '<p class="muted small" style="margin:4px 0 0">' + t('عرّفنا على بيتك عشان نفلتر المنتجات على مقاسه — من غير ما تعمل حساب.',
+            'Tell us about your home so we filter products to fit — no account needed.') + '</p></div>' +
+          '<a class="btn btn--teal btn--sm" href="' + A.P('account.html') + '">' + t('سجّل دخول', 'Sign in') + '</a></div>' +
+        homesPanel(null);
     }
 
     /* Google Identity Services: load once, render a real button per slot. */
@@ -287,6 +328,33 @@
         btn.disabled = false;
         if (r.ok) return render(Au.current());
         msg($('#regErr'), 'warn', r.message || t('تعذّر إنشاء الحساب.', 'Could not create the account.'));
+      });
+
+      /* flip login <-> signup in place */
+      const toggle = $('#authToggle');
+      if (toggle) {
+        let mode = 'login';
+        toggle.addEventListener('click', () => {
+          mode = mode === 'login' ? 'signup' : 'login';
+          const login = mode === 'login';
+          $('#loginForm').hidden = !login;
+          $('#regForm').hidden = login;
+          $('#authTitle').textContent = login ? t('أهلاً بيك تانى', 'Welcome back') : t('اعمل حساب جديد', 'Create your account');
+          $('#authSub').textContent = login
+            ? t('سجّل دخولك تكمّل طلبك وتتابعه، وتلاقى ترشيحاتك على مقاس بيتك.', 'Sign in to complete and track your orders, and get suggestions sized to your home.')
+            : t('دقيقة واحدة، وتقدر تطلب وتتابع وتحفظ اللى بيعجبك.', 'A minute, and you can order, track and save what you like.');
+          $('#switchText').textContent = login ? t('لسه معندكش حساب؟', 'Don\'t have an account?') : t('عندك حساب بالفعل؟', 'Already have an account?');
+          toggle.textContent = login ? t('اعمل حساب', 'Sign up') : t('سجّل دخول', 'Sign in');
+          const firstInput = (login ? $('#loginForm') : $('#regForm')).querySelector('input');
+          firstInput && firstInput.focus();
+        });
+      }
+      /* demo Google button (no client id configured): explain, don't fake it */
+      const gd = $('#googleDemo');
+      gd && gd.addEventListener('click', () => {
+        msg($('#provErr'), 'soft', t(
+          'الدخول بجوجل هيشتغل على السيرفر أول ما يتحط GOOGLE_CLIENT_ID — التفعيل مجانى. لحد ساعتها استخدم الإيميل وكلمة السر تحت.',
+          'Google sign-in activates once GOOGLE_CLIENT_ID is set on the server — it is free to enable. Until then, use email and password below.'));
       });
 
       const lo = $('#logoutBtn');

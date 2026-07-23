@@ -174,6 +174,56 @@ img { max-width: 100%; }
 .prov-or { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: .82rem; font-weight: 700; margin: 4px 0; }
 .prov-or::before, .prov-or::after { content: ; flex: 1; height: 1px; background: var(--line); }
 
+/* ---------- login / signup screen ---------- */
+/* it owns the whole viewport: hide the site chrome so the focus is the card */
+body.sk-auth-mode .phero,
+body.sk-auth-mode [data-footer],
+body.sk-auth-mode .sk-nav,
+body.sk-auth-mode .sk-burger,
+body.sk-auth-mode .sk-scrim,
+body.sk-auth-mode .sk-drawer { display: none !important; }
+body.sk-auth-mode .wrap { max-width: none; padding: 0; }
+body.sk-auth-mode { overflow: hidden; }
+
+.sk-auth {
+  position: fixed; inset: 0; z-index: 1; overflow-y: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: clamp(40px, 9vh, 96px) 18px 44px;
+  background:
+    linear-gradient(180deg, rgba(14,36,40,.68) 0%, rgba(14,36,40,.8) 55%, rgba(14,36,40,.9) 100%),
+    url(../img/still_1.jpg) center/cover fixed;
+}
+.sk-auth__inner { width: min(430px, 100%); display: flex; flex-direction: column; align-items: center; }
+.sk-auth__logo { display: block; margin: 0 0 20px; }
+.sk-auth__logo img { height: 64px; width: auto; display: block; filter: drop-shadow(0 8px 20px rgba(0,0,0,.4)); }
+.sk-auth__card {
+  width: 100%; background: rgba(255,255,255,.95);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.6); border-radius: 26px; padding: clamp(24px,5vw,32px) clamp(20px,5vw,28px);
+  box-shadow: 0 30px 70px rgba(0,0,0,.4);
+}
+.sk-auth__card h1 { margin: 0 0 6px; font: 900 clamp(1.35rem,4.5vw,1.6rem) 'Cairo', sans-serif; color: var(--ink); }
+.sk-auth__sub { margin: 0 0 22px; color: var(--ink-soft); font-size: .9rem; line-height: 1.65; }
+.sk-authform[hidden] { display: none; }
+.sk-authform .field { margin-bottom: 13px; }
+.sk-auth__mini { margin: 12px 0 0; text-align: center; font-size: .8rem; color: var(--ink-soft); line-height: 1.6; }
+.sk-auth__mini a { color: var(--accent); font-weight: 700; }
+.sk-auth__or { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
+.sk-auth__or::before, .sk-auth__or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.sk-auth__switch { margin: 20px 0 0; text-align: center; font-size: .88rem; color: var(--ink-soft); }
+.sk-auth__switch button { background: none; border: 0; color: var(--accent); font: 800 .9rem 'Cairo', sans-serif; cursor: pointer; padding: 0 4px; }
+.sk-auth__switch button:hover { text-decoration: underline; }
+.sk-auth__home { margin-top: 22px; color: #fff; text-decoration: none; font: 700 .85rem 'Cairo', sans-serif; opacity: .88; }
+.sk-auth__home:hover { opacity: 1; text-decoration: underline; }
+/* social buttons */
+.sk-social { display: flex; flex-direction: column; gap: 10px; }
+.sk-social__btn { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; cursor: pointer;
+  padding: 12px; border-radius: 13px; font: 800 .92rem 'Cairo', sans-serif; color: var(--ink);
+  background: #fff; border: 1.5px solid var(--line); transition: background .15s, border-color .15s; }
+.sk-social__btn:hover { background: #f5f8f8; border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.sk-social__btn svg { width: 20px; height: 20px; flex: 0 0 auto; }
+.prov-slot { display: flex; justify-content: center; min-height: 44px; }
+
 /* ---------- utilities ---------- */
 .mt0{margin-top:0}.mt8{margin-top:8px}.mt16{margin-top:16px}.mt24{margin-top:24px}
 .muted { color: var(--ink-soft); }

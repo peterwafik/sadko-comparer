@@ -31,7 +31,19 @@
 .loadmore{display:block;margin:26px auto 0;font:800 .95rem 'Cairo',sans-serif;color:#fff;
   background:#2e7e88;border:0;border-radius:999px;padding:13px 34px;cursor:pointer;}
 .loadmore:hover{background:#1f5b63;}
-@media (max-width:860px){.shop-layout{grid-template-columns:1fr;}.side{position:static;}}
+@media (max-width:860px){
+  .shop-layout{grid-template-columns:1fr;}
+  /* On phones the full category tree would push every product off-screen, so
+     the sidebar collapses to just its "الفئات" header until tapped. */
+  .side{position:static;}
+  .side h3{cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin:0;padding:2px 4px;}
+  .side h3::after{content:'';width:9px;height:9px;border-right:2.5px solid #c97b12;
+    border-bottom:2.5px solid #c97b12;transform:rotate(45deg);transition:transform .25s;}
+  .side.is-open h3::after{transform:rotate(-135deg);}
+  .side:not(.is-open) a{display:none;}
+  .side.is-open a{animation:sideIn .25s ease;}
+  @keyframes sideIn{from{opacity:0}to{opacity:1}}
+}
 html[dir=ltr] .side .kid{margin-right:0;margin-left:16px;}
 </style>
 </head>
@@ -73,7 +85,17 @@ html[dir=ltr] .side .kid{margin-right:0;margin-left:16px;}
 </footer>
 
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="assets/js/nav.js?v=g15" defer></script>
+<script src="assets/js/nav.js?v=g16" defer></script>
 <script src="assets/js/shop.js?v=g3" defer></script>
+<script>
+/* mobile: the category sidebar is collapsed by default; its header toggles it,
+   and picking a category closes it so the products are visible */
+document.addEventListener('click', e => {
+  const side = document.querySelector('.side');
+  if (!side || window.innerWidth > 860) return;
+  if (e.target.closest('.side h3')) { side.classList.toggle('is-open'); }
+  else if (e.target.closest('.side a')) { side.classList.remove('is-open'); }
+});
+</script>
 </body>
 </html>

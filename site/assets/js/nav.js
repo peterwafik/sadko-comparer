@@ -41,6 +41,8 @@
       finderCtaH: 'مش عارف تختار إيه؟',
       finderCtaP: 'جاوب على كام سؤال عن بيتك واستخدامك، ونرشّح لك ٣ أجهزة من الفئة دى مع سبب واضح لكل ترشيح.',
       finderCtaB: 'ساعدنى أختار',
+      more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
+      grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
       pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ اتضافت', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
       orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
@@ -49,6 +51,8 @@
       finderCtaH: 'Not sure which one to pick?',
       finderCtaP: 'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category — each with a clear reason.',
       finderCtaB: 'Help me choose',
+      more: 'More', appliances: 'My appliances', account: 'My account', saved: 'Saved', cart: 'Cart',
+      grpBefore: 'Plan your purchase', grpAfter: 'After buying', menu: 'Menu', close: 'Close',
       pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
   }[LANG];
   const CAT_EN = {
@@ -139,109 +143,193 @@
       here === 'appliances.html' ? 'care' :
       ROOT ? 'shop' : '';
 
+    // The links that used to crowd the strap are split: a short primary row on
+    // desktop (home · shop · finder · compare · More▾), with everything else in
+    // a two-column "More" panel. The same groups drive the mobile drawer.
+    const A = (k, label, href, cls) =>
+      `<a class="sk-link${cls ? ' ' + cls : ''}${active === k ? ' is-active' : ''}" href="${P(href)}">${esc(label)}</a>`;
+    const MORE = [
+      { t: N.grpBefore, items: [['plan', N.plan, 'plan.html'], ['guides', N.guides, 'guides.html']] },
+      { t: N.grpAfter,  items: [['orders', N.orders, 'orders.html'], ['appliances', N.appliances, 'appliances.html'],
+                                ['showrooms', N.showrooms, 'showrooms.html'], ['care', N.care, 'care.html']] },
+    ];
+    const shopMenuInner =
+      `<a class="sk-menu__all" href="${P('shop.html')}">${N.all}</a>` +
+      SHOP_TREE.map((t, i) =>
+        t.kids
+        ? `<div class="sk-menu__item" data-i="${i}">` +
+            `<button type="button" class="sk-menu__row" aria-expanded="false">` +
+              `<span>${esc(catName(t.name))}</span><i class="sk-caret"></i>` +
+            `</button>` +
+            `<div class="sk-menu__kids">` +
+              `<a href="${C(t.id)}">${N.allPrefix}${esc(catName(t.name))}</a>` +
+              t.kids.map(k => `<a href="${C(k[0])}">${esc(catName(k[1]))}</a>`).join('') +
+            `</div>` +
+          `</div>`
+        : `<a class="sk-menu__row sk-menu__row--leaf" href="${C(t.id)}">${esc(catName(t.name))}</a>`
+      ).join('');
+
+    const iconAcct = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.2a7.8 7.8 0 0 1 15 0"/></svg>`;
+    const iconSaved = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
+    const iconCart = `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.5 12h10.2l2.2-8.5H6.2"/></svg>`;
+
     const header = document.createElement('header');
     header.className = 'sk-nav' + (overlay ? ' sk-nav--overlay' : ' sk-nav--solid') + (LANG === 'en' ? ' sk-nav--en' : '');
     header.innerHTML =
+      // mobile-only hamburger (visual start = top-left in RTL)
+      `<button type="button" class="sk-burger sk-glass" aria-label="${N.menu}" aria-expanded="false" aria-controls="sk-drawer">` +
+        `<span></span><span></span><span></span>` +
+      `</button>` +
       `<a class="sk-nav__logo" href="${P('index.html')}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
       `<nav class="sk-nav__links sk-glass" aria-label="${N.pagesAria}">` +
-        `<a class="sk-link${active === 'home' ? ' is-active' : ''}" href="${P('index.html')}">${N.home}</a>` +
+        A('home', N.home, 'index.html') +
         `<div class="sk-shop">` +
           `<button type="button" class="sk-link sk-shop__btn${active === 'shop' ? ' is-active' : ''}" aria-haspopup="true" aria-expanded="false">${N.shop} <i class="sk-caret"></i></button>` +
-          `<div class="sk-menu sk-glass" role="menu">` +
-            `<a class="sk-menu__all" href="${P('shop.html')}">${N.all}</a>` +
-            SHOP_TREE.map((t, i) =>
-              t.kids
-              ? `<div class="sk-menu__item" data-i="${i}">` +
-                  `<button type="button" class="sk-menu__row" aria-expanded="false">` +
-                    `<span>${esc(catName(t.name))}</span><i class="sk-caret"></i>` +
-                  `</button>` +
-                  `<div class="sk-menu__kids">` +
-                    `<a href="${C(t.id)}">${N.allPrefix}${esc(catName(t.name))}</a>` +
-                    t.kids.map(k => `<a href="${C(k[0])}">${esc(catName(k[1]))}</a>`).join('') +
-                  `</div>` +
-                `</div>`
-              : `<a class="sk-menu__row sk-menu__row--leaf" href="${C(t.id)}">${esc(catName(t.name))}</a>`
-            ).join('') +
+          `<div class="sk-menu sk-glass" role="menu">${shopMenuInner}</div>` +
+        `</div>` +
+        A('finder', N.finder, 'finder.html', 'sk-link--cta') +
+        A('compare', N.compare, 'compare.html') +
+        `<div class="sk-more">` +
+          `<button type="button" class="sk-link sk-more__btn" aria-haspopup="true" aria-expanded="false">${N.more} <i class="sk-caret"></i></button>` +
+          `<div class="sk-morepanel sk-glass" role="menu">` +
+            MORE.map(g => `<div class="sk-morecol"><h4>${esc(g.t)}</h4>` +
+              g.items.map(it => `<a class="sk-morelink${active === it[0] ? ' is-active' : ''}" href="${P(it[2])}">${esc(it[1])}</a>`).join('') +
+              `</div>`).join('') +
           `</div>` +
         `</div>` +
-        `<a class="sk-link sk-link--cta${active === 'finder' ? ' is-active' : ''}" href="${P('finder.html')}">${N.finder}</a>` +
-        `<a class="sk-link${active === 'compare' ? ' is-active' : ''}" href="${P('compare.html')}">${N.compare}</a>` +
-        `<a class="sk-link${active === 'plan' ? ' is-active' : ''}" href="${P('plan.html')}">${N.plan}</a>` +
-        `<a class="sk-link${active === 'guides' ? ' is-active' : ''}" href="${P('guides.html')}">${N.guides}</a>` +
-        `<a class="sk-link${active === 'orders' ? ' is-active' : ''}" href="${P('orders.html')}">${N.orders}</a>` +
-        `<a class="sk-link${active === 'showrooms' ? ' is-active' : ''}" href="${P('showrooms.html')}">${N.showrooms}</a>` +
-        `<a class="sk-link${active === 'care' ? ' is-active' : ''}" href="${P('care.html')}">${N.care}</a>` +
       `</nav>` +
       `<span class="sk-nav__side">` +
         `<button type="button" class="sk-lang sk-glass" title="${N.langTitle}" aria-label="${N.langTitle}">${N.langBtn}</button>` +
         `<a class="sk-hotline" href="tel:19140" dir="ltr">${N.call}</a>` +
-        `<a class="sk-cart sk-glass sk-acct${active === 'account' ? ' is-active' : ''}" href="${P('account.html')}" aria-label="${N.acctAria}" title="${N.acctAria}">` +
-          `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.2a7.8 7.8 0 0 1 15 0"/></svg>` +
-          `<em class="sk-acct__dot" hidden></em>` +
-        `</a>` +
-        `<a class="sk-cart sk-glass${active === 'saved' ? ' is-active' : ''}" href="${P('saved.html')}" aria-label="${N.savedAria}" title="${N.savedAria}">` +
-          `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>` +
-          `<em class="sk-saved__badge" hidden>0</em>` +
-        `</a>` +
-        `<a class="sk-cart sk-glass${active === 'cart' ? ' is-active' : ''}" href="${P('cart.html')}" aria-label="${N.cartAria}">` +
-          `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.5 12h10.2l2.2-8.5H6.2"/></svg>` +
-          `<em class="sk-cart__badge" hidden>0</em>` +
-        `</a>` +
+        `<a class="sk-cart sk-glass sk-acct${active === 'account' ? ' is-active' : ''}" href="${P('account.html')}" aria-label="${N.acctAria}" title="${N.acctAria}">${iconAcct}<em class="sk-acct__dot" hidden></em></a>` +
+        `<a class="sk-cart sk-glass${active === 'saved' ? ' is-active' : ''}" href="${P('saved.html')}" aria-label="${N.savedAria}" title="${N.savedAria}">${iconSaved}<em class="sk-saved__badge" hidden>0</em></a>` +
+        `<a class="sk-cart sk-glass${active === 'cart' ? ' is-active' : ''}" href="${P('cart.html')}" aria-label="${N.cartAria}">${iconCart}<em class="sk-cart__badge" hidden>0</em></a>` +
       `</span>`;
 
     if (legacy) legacy.replaceWith(header);
     else document.body.prepend(header);
 
-    header.querySelector('.sk-lang').addEventListener('click', () =>
-      window.skLang.set(LANG === 'en' ? 'ar' : 'en'));
+    // ---- mobile drawer: the whole strap as a glass side panel -------------
+    const scrim = document.createElement('div');
+    scrim.className = 'sk-scrim';
+    const drawer = document.createElement('aside');
+    drawer.id = 'sk-drawer';
+    drawer.className = 'sk-drawer sk-glass' + (LANG === 'en' ? ' sk-nav--en' : '');
+    drawer.setAttribute('aria-hidden', 'true');
+    const dLink = (k, label, href, cls) =>
+      `<a class="sk-dlink${cls ? ' ' + cls : ''}${active === k ? ' is-active' : ''}" href="${P(href)}">${esc(label)}</a>`;
+    drawer.innerHTML =
+      `<div class="sk-drawer__top">` +
+        `<a class="sk-drawer__logo" href="${P('index.html')}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
+        `<button type="button" class="sk-drawer__x" aria-label="${N.close}">&times;</button>` +
+      `</div>` +
+      `<div class="sk-drawer__icons">` +
+        `<a class="sk-diconbtn${active === 'account' ? ' is-active' : ''}" href="${P('account.html')}">${iconAcct}<span>${N.account}</span></a>` +
+        `<a class="sk-diconbtn${active === 'saved' ? ' is-active' : ''}" href="${P('saved.html')}">${iconSaved}<span>${N.saved}</span><em class="sk-saved__badge" hidden>0</em></a>` +
+        `<a class="sk-diconbtn${active === 'cart' ? ' is-active' : ''}" href="${P('cart.html')}">${iconCart}<span>${N.cart}</span><em class="sk-cart__badge" hidden>0</em></a>` +
+      `</div>` +
+      `<nav class="sk-drawer__nav" aria-label="${N.pagesAria}">` +
+        dLink('home', N.home, 'index.html') +
+        `<div class="sk-dacc">` +
+          `<button type="button" class="sk-dlink sk-dacc__btn" aria-expanded="false"><span>${N.shop}</span><i class="sk-caret"></i></button>` +
+          `<div class="sk-dacc__body"><div class="sk-dmenu">${shopMenuInner}</div></div>` +
+        `</div>` +
+        dLink('finder', N.finder, 'finder.html', 'sk-dlink--cta') +
+        dLink('compare', N.compare, 'compare.html') +
+        MORE.map(g => `<div class="sk-dgroup"><h4>${esc(g.t)}</h4>` +
+          g.items.map(it => dLink(it[0], it[1], it[2])).join('') + `</div>`).join('') +
+      `</nav>` +
+      `<div class="sk-drawer__foot">` +
+        `<button type="button" class="sk-dlang">${LANG === 'en' ? 'العربية' : 'English'} · ${N.langBtn}</button>` +
+        `<a class="sk-dcall" href="tel:19140" dir="ltr">${N.call}</a>` +
+      `</div>`;
+    document.body.appendChild(scrim);
+    document.body.appendChild(drawer);
 
-    /* dropdown open/close */
-    const shop = header.querySelector('.sk-shop');
-    const btn = header.querySelector('.sk-shop__btn');
-    const setOpen = open => {
-      shop.classList.toggle('is-open', open);
-      btn.setAttribute('aria-expanded', String(open));
-      if (!open) header.querySelectorAll('.sk-menu__item.is-open').forEach(x => x.classList.remove('is-open'));
+    header.querySelector('.sk-lang').addEventListener('click', () => window.skLang.set(LANG === 'en' ? 'ar' : 'en'));
+    drawer.querySelector('.sk-dlang').addEventListener('click', () => window.skLang.set(LANG === 'en' ? 'ar' : 'en'));
+
+    /* drawer open/close */
+    const burger = header.querySelector('.sk-burger');
+    let drawerOpen = false;
+    const setDrawer = open => {
+      drawerOpen = open;
+      drawer.classList.toggle('is-open', open);
+      scrim.classList.toggle('is-open', open);
+      burger.classList.toggle('is-open', open);
+      burger.setAttribute('aria-expanded', String(open));
+      drawer.setAttribute('aria-hidden', String(!open));
+      document.documentElement.classList.toggle('sk-lock', open);
     };
-    btn.addEventListener('click', e => { e.stopPropagation(); setOpen(!shop.classList.contains('is-open')); });
-    document.addEventListener('click', e => { if (!shop.contains(e.target)) setOpen(false); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+    burger.addEventListener('click', () => setDrawer(!drawerOpen));
+    scrim.addEventListener('click', () => setDrawer(false));
+    drawer.querySelector('.sk-drawer__x').addEventListener('click', () => setDrawer(false));
+    drawer.querySelectorAll('a[href]').forEach(a => a.addEventListener('click', () => setDrawer(false)));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawerOpen) setDrawer(false); });
 
-    /* accordion: titles expand on click, one at a time */
-    header.querySelectorAll('.sk-menu__item .sk-menu__row').forEach(row => {
-      row.addEventListener('click', e => {
+    /* generic "one popover at a time" for the desktop shop + more dropdowns */
+    const pops = [];
+    function makePop(container, btn) {
+      const set = open => {
+        container.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', String(open));
+        if (!open) container.querySelectorAll('.sk-menu__item.is-open').forEach(x => x.classList.remove('is-open'));
+      };
+      btn.addEventListener('click', e => {
         e.stopPropagation();
-        const item = row.parentElement;
-        const open = !item.classList.contains('is-open');
-        header.querySelectorAll('.sk-menu__item.is-open').forEach(x => x.classList.remove('is-open'));
-        item.classList.toggle('is-open', open);
-        row.setAttribute('aria-expanded', String(open));
+        const willOpen = !container.classList.contains('is-open');
+        pops.forEach(p => p.set(false));
+        set(willOpen);
       });
+      pops.push({ set, container });
+    }
+    const shopBox = header.querySelector('.sk-shop');
+    makePop(shopBox, shopBox.querySelector('.sk-shop__btn'));
+    const moreBox = header.querySelector('.sk-more');
+    makePop(moreBox, moreBox.querySelector('.sk-more__btn'));
+    document.addEventListener('click', e => { if (!pops.some(p => p.container.contains(e.target))) pops.forEach(p => p.set(false)); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') pops.forEach(p => p.set(false)); });
+
+    /* category accordion — used inside both the desktop shop menu and the drawer */
+    function wireAccordion(scope) {
+      scope.querySelectorAll('.sk-menu__item .sk-menu__row').forEach(row => {
+        row.addEventListener('click', e => {
+          e.stopPropagation();
+          const item = row.parentElement;
+          const open = !item.classList.contains('is-open');
+          scope.querySelectorAll('.sk-menu__item.is-open').forEach(x => x.classList.remove('is-open'));
+          item.classList.toggle('is-open', open);
+          row.setAttribute('aria-expanded', String(open));
+        });
+      });
+    }
+    wireAccordion(header);
+    wireAccordion(drawer);
+
+    /* drawer "Shop" accordion */
+    const dacc = drawer.querySelector('.sk-dacc');
+    dacc.querySelector('.sk-dacc__btn').addEventListener('click', () => {
+      const open = !dacc.classList.contains('is-open');
+      dacc.classList.toggle('is-open', open);
+      dacc.querySelector('.sk-dacc__btn').setAttribute('aria-expanded', String(open));
     });
 
-    /* cart badge */
-    const badge = header.querySelector('.sk-cart__badge');
-    const paint = () => {
-      const n = skCart.count();
-      badge.hidden = n === 0;
-      badge.textContent = n > 99 ? '99+' : String(n);
-    };
+    /* cart + saved badges live in BOTH the strap and the drawer, so paint all */
+    const setBadges = (sel, n) => document.querySelectorAll(sel).forEach(b => {
+      b.hidden = n === 0; b.textContent = n > 99 ? '99+' : String(n);
+    });
+    const paint = () => setBadges('.sk-cart__badge', skCart.count());
     document.addEventListener('sk-cart-change', paint);
     window.addEventListener('storage', e => { if (e.key === CART_KEY) paint(); });
     paint();
 
-    /* saved-products badge — reads the same store the app pages write to */
-    const sBadge = header.querySelector('.sk-saved__badge');
     const paintSaved = () => {
-      if (!sBadge) return;
       let n = 0;
       try { n = (JSON.parse(localStorage.getItem('sadko-saved-v1')) || []).length; } catch (e) {}
-      sBadge.hidden = n === 0;
-      sBadge.textContent = n > 99 ? '99+' : String(n);
+      setBadges('.sk-saved__badge', n);
     };
     /* a quiet dot on the account icon once a real session is confirmed */
-    const acctDot = header.querySelector('.sk-acct__dot');
-    const paintAcct = u => { if (acctDot) acctDot.hidden = !u; };
+    const paintAcct = u => document.querySelectorAll('.sk-acct__dot').forEach(d => { d.hidden = !u; });
     if (window.skAuth) { window.skAuth.onChange(paintAcct); paintAcct(window.skAuth.current()); }
 
     document.addEventListener('sk-store-change', paintSaved);
@@ -251,6 +339,7 @@
     if (ROOT && document.querySelector('article.card')) enhanceCategoryCards();
     if (ROOT) injectFinderCta();
     if (ROOT && LANG === 'en') translateCategoryPage();
+    ensureFooter();
   }
 
   /* ---- English mode for the prebuilt (Arabic-authored) category pages ----
@@ -295,6 +384,45 @@
       .replace('© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)', '© SADKO Group 2026 — Rebrand Preview')
       .replace('توصيل مجانى داخل القاهرة والجيزة والإسكندرية · الدفع عند الاستلام أو بالبطاقة',
         'Free delivery in Cairo, Giza & Alexandria · Cash on delivery or card');
+  }
+
+  /* ---- shared company footer on EVERY page ----
+     App pages render their own via skApp.footer() into [data-footer]; this
+     covers the rest: the legacy pages (shop/cart/orders/showrooms/compare) and
+     the 3D home, which had no footer at all. Same content and look everywhere. */
+  function ensureFooter() {
+    if (document.querySelector('[data-footer]')) return;        // app pages own theirs
+    const tt = (ar, en) => (LANG === 'en' ? en : ar);
+    const groups = [
+      { h: tt('صادكو', 'SADKO'), items: [
+        [tt('عن صادكو', 'About SADKO'), 'about.html'], [tt('تواصل معنا', 'Contact us'), 'contact.html'],
+        [tt('المعارض', 'Showrooms'), 'showrooms.html'], [tt('حسابى', 'My account'), 'account.html'] ] },
+      { h: tt('قبل ما تشترى', 'Before you buy'), items: [
+        [tt('ساعدنى أختار', 'Help me choose'), 'finder.html'], [tt('أدلة الشراء', 'Buying guides'), 'guides.html'],
+        [tt('قارن الأسعار', 'Compare prices'), 'compare.html'], [tt('خطط التجهيز', 'Shopping plans'), 'plan.html'] ] },
+      { h: tt('بعد الشراء', 'After you buy'), items: [
+        [tt('أجهزتى والضمان', 'My appliances & warranty'), 'appliances.html'], [tt('مركز خدمة العملاء', 'Customer care'), 'care.html'],
+        [tt('طلباتى', 'My orders'), 'orders.html'], [tt('التوصيل والتركيب', 'Delivery & installation'), 'delivery.html'] ] },
+      { h: tt('معلومات', 'Information'), items: [
+        [tt('الضمان والاسترجاع', 'Warranty & returns'), 'warranty.html'], [tt('الخصوصية', 'Privacy'), 'privacy.html'],
+        [tt('شروط الاستخدام', 'Terms of use'), 'terms.html'] ] },
+    ];
+    let el = document.querySelector('footer.foot');
+    const home = !!document.getElementById('world');
+    if (!el) { el = document.createElement('footer'); (home ? document.body : document.body).appendChild(el); }
+    el.className = 'foot sk-foot' + (home ? ' sk-foot--home' : '');
+    el.innerHTML =
+      '<div class="foot__inner"><div class="foot__cols">' +
+      groups.map(c => '<div><h4>' + esc(c.h) + '</h4><ul>' +
+        c.items.map(i => '<li><a href="' + P(i[1]) + '">' + esc(i[0]) + '</a></li>').join('') + '</ul></div>').join('') +
+      '<div><h4>' + tt('كلّمنا', 'Talk to us') + '</h4><ul>' +
+        '<li><a href="tel:19140" dir="ltr">19140</a></li>' +
+        '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li></ul>' +
+        '<p class="foot__tag">' + tt('مجموعة صادكو — من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group — since 1986, sole distributor of Kiriazi.') + '</p></div>' +
+      '</div><p class="foot__legal">' +
+        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وممكن تتغير — الرجاء التأكد قبل الشراء. مقارنة الأسعار بتغطى متاجر مدعومة محددة. الضمان والتركيب والاسترجاع بيقدمهم البائع المذكور فى العرض.',
+           'Prices and specifications are taken from product pages at the last update and may change — please confirm before buying. Price comparison covers a specific list of supported stores. Warranty, installation and returns are provided by the seller named on each offer.') +
+        '<br>© ' + tt('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }
 
   /* ---- add-to-cart buttons on the static category pages ---- */
@@ -434,11 +562,91 @@
     .sk-menu__kids a{display:block;font:600 .8rem 'Cairo',sans-serif;color:#4c6468;text-decoration:none;
       padding:7px 12px;margin-right:14px;border-right:2px solid rgba(46,126,136,.22);border-radius:0 10px 10px 0;}
     .sk-menu__kids a:hover{background:rgba(46,126,136,.1);color:#14343a;}
+    /* ---- desktop "More" split dropdown (two columns side by side) ---- */
+    .sk-more{position:relative;}
+    .sk-morepanel{position:absolute;top:calc(100% + 12px);right:50%;transform:translate(50%,-8px);
+      display:flex;gap:8px;padding:14px;border-radius:20px;
+      opacity:0;visibility:hidden;transition:opacity .22s,transform .22s,visibility .22s;z-index:80;}
+    .sk-more.is-open .sk-morepanel{opacity:1;visibility:visible;transform:translate(50%,0);}
+    .sk-morecol{min-width:158px;display:flex;flex-direction:column;gap:2px;}
+    .sk-morecol+.sk-morecol{border-inline-start:1px solid rgba(46,126,136,.16);padding-inline-start:8px;}
+    .sk-morecol h4{margin:2px 10px 6px;font:800 .68rem 'Cairo',sans-serif;letter-spacing:.05em;
+      text-transform:uppercase;color:#8a9aa0;}
+    .sk-morelink{display:block;font:700 .85rem 'Cairo',sans-serif;color:#28464b;text-decoration:none;
+      padding:9px 12px;border-radius:12px;white-space:nowrap;transition:background .16s,color .16s;}
+    .sk-morelink:hover{background:rgba(46,126,136,.12);color:#14343a;}
+    .sk-morelink.is-active{background:#2e7e88;color:#fff;}
     .sk-nav__side{display:flex;align-items:center;gap:10px;}
     .sk-hotline{font:800 .86rem 'Cairo',sans-serif;color:#241a05;text-decoration:none;background:#fe9800;
       padding:9px 17px;border-radius:999px;white-space:nowrap;box-shadow:0 6px 16px rgba(254,152,0,.35);
       transition:transform .15s;}
     .sk-hotline:hover{transform:translateY(-1px);}
+    /* ---- hamburger + off-canvas drawer (mobile only; hidden on desktop) ---- */
+    .sk-burger{display:none;flex-direction:column;justify-content:center;gap:5px;width:46px;height:46px;
+      border-radius:14px;cursor:pointer;padding:0 13px;border:1px solid rgba(255,255,255,.55);}
+    .sk-burger span{display:block;height:2.5px;border-radius:2px;background:#28464b;transition:transform .28s,opacity .2s;}
+    .sk-burger.is-open span:nth-child(1){transform:translateY(7.5px) rotate(45deg);}
+    .sk-burger.is-open span:nth-child(2){opacity:0;}
+    .sk-burger.is-open span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg);}
+    .sk-scrim{position:fixed;inset:0;z-index:90;background:rgba(16,40,45,.44);
+      opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;}
+    .sk-scrim.is-open{opacity:1;visibility:visible;}
+    .sk-drawer{position:fixed;top:0;bottom:0;left:0;z-index:95;width:min(85vw,340px);
+      display:flex;flex-direction:column;direction:rtl;border-radius:0 24px 24px 0;
+      /* glassy, but opaque enough that text stays legible over a busy page */
+      background:rgba(249,247,243,.9);
+      transform:translateX(-104%);transition:transform .34s cubic-bezier(.4,0,.2,1);}
+    .sk-drawer.sk-nav--en{direction:ltr;}
+    .sk-drawer.is-open{transform:translateX(0);}
+    .sk-drawer__top{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;flex:0 0 auto;}
+    .sk-drawer__logo img{height:46px;width:auto;display:block;}
+    .sk-drawer__x{font-size:1.9rem;line-height:1;background:none;border:0;color:#28464b;cursor:pointer;
+      width:42px;height:42px;border-radius:50%;display:grid;place-items:center;}
+    .sk-drawer__x:hover{background:rgba(46,126,136,.12);}
+    .sk-drawer__icons{display:flex;gap:8px;padding:4px 16px 12px;flex:0 0 auto;}
+    .sk-diconbtn{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;
+      padding:11px 4px;border-radius:15px;text-decoration:none;color:#28464b;font:700 .72rem 'Cairo',sans-serif;
+      background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.5);}
+    .sk-diconbtn.is-active{background:#2e7e88;color:#fff;border-color:#2e7e88;}
+    .sk-diconbtn svg{width:22px;height:22px;}
+    .sk-diconbtn .sk-saved__badge,.sk-diconbtn .sk-cart__badge{top:6px;left:10px;}
+    .sk-drawer__nav{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 12px;
+      display:flex;flex-direction:column;gap:2px;-webkit-overflow-scrolling:touch;}
+    .sk-dlink{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+      font:700 .96rem 'Cairo',sans-serif;color:#28464b;text-decoration:none;text-align:start;
+      padding:13px 14px;border-radius:13px;background:none;border:0;cursor:pointer;}
+    .sk-dlink:hover{background:rgba(46,126,136,.1);}
+    .sk-dlink.is-active{background:#2e7e88;color:#fff;}
+    .sk-dlink--cta{background:#fdecd0;color:#8a5b12;}
+    .sk-dgroup h4{margin:12px 14px 4px;font:800 .72rem 'Cairo',sans-serif;letter-spacing:.04em;
+      text-transform:uppercase;color:#8a9aa0;}
+    .sk-dacc__btn .sk-caret{transform:rotate(45deg);}
+    .sk-dacc.is-open .sk-dacc__btn .sk-caret{transform:rotate(135deg);}
+    .sk-dacc__body{max-height:0;overflow:hidden;transition:max-height .32s ease;}
+    .sk-dacc.is-open .sk-dacc__body{max-height:62vh;overflow-y:auto;}
+    .sk-dmenu{padding:2px 4px 6px;}
+    .sk-drawer__foot{flex:0 0 auto;display:flex;gap:10px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+      border-top:1px solid rgba(46,126,136,.18);}
+    .sk-dlang{flex:0 0 auto;font:800 .82rem 'Cairo',sans-serif;color:#28464b;cursor:pointer;
+      background:rgba(255,255,255,.55);border:1px solid rgba(46,126,136,.28);border-radius:999px;padding:11px 16px;}
+    .sk-dcall{flex:1;text-align:center;font:800 .92rem 'Cairo',sans-serif;color:#241a05;text-decoration:none;
+      background:#fe9800;border-radius:999px;padding:12px;box-shadow:0 6px 16px rgba(254,152,0,.35);}
+    html.sk-lock{overflow:hidden;}
+    /* ---- shared company footer (legacy + home pages) ---- */
+    .sk-foot{background:#14343a;color:#cfe3e6;direction:rtl;font-family:'Cairo','Segoe UI',system-ui,sans-serif;}
+    .sk-nav--en~.sk-foot,html[dir=ltr] .sk-foot{direction:ltr;}
+    .sk-foot .foot__inner{max-width:1240px;margin:0 auto;padding:40px clamp(16px,4vw,48px);}
+    .sk-foot .foot__cols{display:grid;gap:26px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));text-align:start;}
+    .sk-foot h4{margin:0 0 10px;font-size:.95rem;color:#fff;}
+    .sk-foot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+    .sk-foot a{color:#7ebec5;text-decoration:none;font-weight:700;font-size:.86rem;}
+    .sk-foot a:hover{color:#a9d6db;text-decoration:underline;}
+    .sk-foot .foot__tag{margin:14px 0 0;font-size:.82rem;opacity:.8;line-height:1.8;}
+    .sk-foot .foot__legal{max-width:1240px;margin:22px auto 0;padding:18px clamp(16px,4vw,48px) 6px;
+      border-top:1px solid rgba(255,255,255,.14);font-size:.78rem;opacity:.72;line-height:1.9;}
+    /* on the 3D home the footer sits at the very bottom of the scroll, above the fixed scene */
+    .sk-foot--home{position:relative;z-index:32;}
+    @media (max-width:560px){ .sk-foot .foot__cols{grid-template-columns:repeat(2,1fr);gap:20px;} }
     .sk-cart{position:relative;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
       color:#28464b;transition:color .2s,background .2s;}
     .sk-cart:hover,.sk-cart.is-active{color:#fff;background:#2e7e88;}
@@ -482,20 +690,24 @@
     .sk-fcta__btn:hover{filter:brightness(1.06);}
     /* keep page content clear of the sticky glass bar on sub-pages */
     .sk-nav--solid+*{margin-top:6px;}
-    /* The strap now carries the whole buying journey (finder, compare, plans,
-       guides, care), so the centred pill needs to drop to its own row well
-       before the old 920px point or it collides with the logo and the side
-       controls on ordinary laptop widths. */
-    @media (max-width:1280px){
-      .sk-nav{flex-wrap:wrap;row-gap:8px;position:sticky;}
-      .sk-nav--overlay{position:fixed;}
-      .sk-nav__links{position:static;transform:none;order:5;flex-basis:100%;justify-content:center;flex-wrap:wrap;margin:0 auto;}
-      .sk-menu{position:fixed;inset:auto 7vw auto 7vw;top:112px;right:auto;transform:translateY(-8px);width:auto;}
-      .sk-shop.is-open .sk-menu{transform:none;}
+    /* Mid width: the desktop pill still fits (only 5 items now), but its own
+       menus need to escape the pill's overflow, so pin them to the viewport. */
+    @media (max-width:1180px){
+      .sk-menu,.sk-morepanel{position:fixed;top:76px;right:auto;left:50%;transform:translate(-50%,-8px);}
+      .sk-shop.is-open .sk-menu,.sk-more.is-open .sk-morepanel{transform:translate(-50%,0);}
     }
-    @media (max-width:920px){ .sk-nav__logo img{height:42px;} }
-    @media (max-width:760px){ .sk-link{padding:7px 11px;font-size:.83rem;} }
-    @media (max-width:560px){ .sk-hotline{padding:8px 12px;font-size:.78rem;} }
+    /* ---- mobile: hamburger + centred logo, everything else in the drawer ---- */
+    @media (max-width:1080px){
+      .sk-nav{position:fixed;justify-content:center;min-height:60px;padding:8px clamp(10px,3vw,18px);}
+      .sk-nav--solid{position:fixed;}
+      .sk-nav--solid+*{margin-top:64px;}
+      .sk-burger{display:flex;position:absolute;left:clamp(10px,3vw,18px);top:50%;transform:translateY(-50%);}
+      .sk-nav__logo{margin:0;}
+      .sk-nav__logo img{height:46px;}
+      .sk-nav__links,.sk-nav__side{display:none;}
+    }
+    /* the home page has no sticky spacer (fixed overlay), so no top margin there */
+    @media (max-width:1080px){ .sk-nav--overlay+*{margin-top:0;} }
     `;
     const style = document.createElement('style');
     style.id = 'sk-nav-css';

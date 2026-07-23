@@ -188,4 +188,8 @@ img { max-width: 100%; }
   .panel { padding: 15px; }
   .btn { padding: 11px 18px; }
   .tbl th, .tbl td { padding: 10px 6px; font-size: .84rem; }
+  .wrap { padding-left: clamp(12px,4vw,44px); padding-right: clamp(12px,4vw,44px); }
+  /* two-column footer on phones, matching the legacy/home footer */
+  .foot__cols { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .phero { padding-top: clamp(22px,5vw,64px); }
 }

@@ -12,7 +12,7 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$DEST"
 # catalog-admin holds the owner's product edits, custom items and settings —
 # it lives only on the server, so it must be backed up like the others.
-for db in accounts catalog catalog-admin; do
+for db in accounts catalog catalog-admin analytics; do
   src="$DATA_DIR/$db.db"
   [[ -f "$src" ]] || continue
   out="$DEST/$db-$STAMP.db"

@@ -59,6 +59,7 @@ import { createVerifyOffer } from './engine/verify.mjs';
 import { openAccounts, ORDER_STATUSES } from './engine/accounts.mjs';
 import { verifyIdToken, enabledProviders } from './engine/oidc.mjs';
 import { openCatalogAdmin, EDITABLE_FIELDS } from './engine/catalog-admin.mjs';
+import { openAnalytics, EVENT_TYPES, FUNNEL_STAGES } from './engine/analytics.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -1468,6 +1469,15 @@ function catalogAdmin() {
   return CATALOG_ADMIN;
 }
 
+let ANALYTICS = null;
+function analytics() {
+  if (ANALYTICS === null) {
+    try { ANALYTICS = openAnalytics(path.join(ROOT, 'data', 'analytics.db')); }
+    catch (e) { console.error('[analytics] unavailable:', e.message); ANALYTICS = false; }
+  }
+  return ANALYTICS;
+}
+
 /* The scraped base catalogue, cached in memory and re-read only when the file's
    mtime changes (a re-crawl). The admin overlay is applied on top of this. */
 let _baseCat = { mtime: 0, list: null };
@@ -1661,6 +1671,37 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         detail: String(e.message || e) });
     }
   }
+  /* ---- funnel analytics (public writes, same-origin gated above) ----
+     The storefront beacons a step of the buying journey here: view / save /
+     add_to_cart / checkout_start. `purchase` is NOT accepted from the browser —
+     it is written server-side when an order actually lands, so it cannot be
+     faked. No personal data: an anonymous visitor id the browser generated. */
+  if (u.pathname === '/api/track' && req.method === 'POST') {
+    const an = analytics();
+    if (!an) return json(200, { ok: false });
+    try {
+      const b = await readJson(req, 4000);
+      const type = String(b.type || '');
+      if (type === 'purchase' || !EVENT_TYPES.includes(type)) return json(400, { error: 'bad-type' });
+      const me = currentUser(req);
+      an.record({ vid: b.vid, userId: me ? me.id : null, productId: b.productId, type, meta: b.meta });
+      return json(200, { ok: true });
+    } catch (e) { return json(400, { error: 'bad-request' }); }
+  }
+  /* The 20-minute "still thinking about these?" prompt reports back here when a
+     shopper says they will not continue, and (optionally) why. */
+  if (u.pathname === '/api/abandon' && req.method === 'POST') {
+    const an = analytics();
+    if (!an) return json(200, { ok: false });
+    try {
+      const b = await readJson(req, 8000);
+      const me = currentUser(req);
+      an.recordAbandon({ vid: b.vid, userId: me ? me.id : null,
+        reason: b.reason, note: b.note, value: b.value, items: Array.isArray(b.items) ? b.items.slice(0, 40) : [] });
+      return json(200, { ok: true });
+    } catch (e) { return json(400, { error: 'bad-request' }); }
+  }
+
   if (u.pathname === '/api/stores' && req.method === 'GET')
     return json(200, await loadRegistry());
   if (u.pathname === '/api/stores' && req.method === 'POST') {
@@ -1708,10 +1749,13 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (rest === 'overview' && req.method === 'GET') {
         const base = await baseCatalog();
         const cat = cadm.stats();
+        const an = analytics();
         return json(200, {
           accounts: db.adminOverview(),
           catalog: { base: base.length, live: (await mergedCatalog()).length,
                      edited: cat.overrides, custom: cat.custom, hidden: cat.hidden },
+          funnel: an ? an.funnel() : null,
+          abandonments: an ? an.stats().abandonments : 0,
           providers: enabledProviders().map(p => p.id),
           audit: cadm.audit(12),
         });
@@ -1745,10 +1789,17 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (q) rows = rows.filter(r => (String(r.title) + ' ' + String(r.id)).toLowerCase().includes(q));
 
         const total = rows.length;
-        const slice = rows.slice((page - 1) * per, page * per).map(r => ({
-          id: r.id, title: r.title, price: r.price, image: r.image, categoryId: r.categoryId,
-          _edited: r._edited, _hidden: r._hidden, _custom: r._custom,
-        }));
+        const an = analytics();
+        const stat = an ? an.productStatsMap() : {};
+        const slice = rows.slice((page - 1) * per, page * per).map(r => {
+          const s = stat[String(r.id)] || {};
+          return {
+            id: r.id, title: r.title, price: r.price, image: r.image, categoryId: r.categoryId,
+            _edited: r._edited, _hidden: r._hidden, _custom: r._custom,
+            // funnel interest at a glance: unique people per stage
+            stats: { views: s.view || 0, saves: s.save || 0, carts: s.add_to_cart || 0, purchases: s.purchase || 0 },
+          };
+        });
         return json(200, { total, page, per, pages: Math.ceil(total / per), products: slice });
       }
 
@@ -1848,6 +1899,34 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const patch = (b && typeof b.settings === 'object') ? b.settings : {};
         for (const [k, v] of Object.entries(patch)) cadm.setSetting(k, v, actor);
         return json(200, { ok: true, settings: cadm.settings() });
+      }
+
+      /* ------- funnel analytics ------- */
+      if (rest === 'analytics' && req.method === 'GET') {
+        const an = analytics();
+        if (!an) return json(200, { available: false });
+        const base = await baseCatalog();
+        const titleOf = id => { const p = cadm.describe(base, id); return p && p.product ? p.product.title : null; };
+        const decorate = rows => rows.map(r => ({ id: r.id, people: r.people, title: titleOf(r.id) }));
+        return json(200, {
+          available: true,
+          stages: FUNNEL_STAGES,
+          funnel: an.funnel(),
+          topViewed: decorate(an.topProducts('view', 10)),
+          topSaved: decorate(an.topProducts('save', 10)),
+          topCarted: decorate(an.topProducts('add_to_cart', 10)),
+          topPurchased: decorate(an.topProducts('purchase', 10)),
+          abandonReasons: an.abandonReasons(),
+          abandons: an.abandonList(40).map(a => Object.assign(a, {
+            items: (a.items || []).map(i => ({ id: i.id, title: i.title || titleOf(i.id) || i.id, qty: i.qty, price: i.price })),
+          })),
+          stats: an.stats(),
+        });
+      }
+      // per-product funnel, used by the product editor / list drill-down
+      if (seg[0] === 'analytics' && seg[1] === 'product' && seg[2] && req.method === 'GET') {
+        const an = analytics();
+        return json(200, { funnel: an ? an.productFunnel(decodeURIComponent(seg[2])) : [] });
       }
 
       /* ------- audit log ------- */
@@ -2006,6 +2085,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             ? 'Unsupported payment method.' : 'طريقة دفع غير مدعومة.' });
         const r = db.createOrder(me.id, b);
         if (r.error) return json(400, authErr(r.error, lang));
+        // Close the funnel: record a purchase event per line item, server-side so
+        // it is authoritative (the browser cannot fabricate a purchase).
+        try { const an = analytics(); if (an) an.recordPurchase({ vid: b.vid, userId: me.id, items: r.order.items }); } catch (e) {}
         return json(200, { ok: true, order: r.order });
       }
       return json(404, { error: 'not-found' });
@@ -2044,6 +2126,7 @@ function shutdown(signal) {
   const done = () => {
     try { ACCOUNTS && ACCOUNTS.close && ACCOUNTS.close(); } catch (e) {}
     try { CATALOG_ADMIN && CATALOG_ADMIN.close && CATALOG_ADMIN.close(); } catch (e) {}
+    try { ANALYTICS && ANALYTICS.close && ANALYTICS.close(); } catch (e) {}
     process.exit(0);
   };
   try { SERVER.close(done); } catch (e) { done(); }

@@ -105,13 +105,15 @@ html[dir=rtl] .sw-route__dot.is-active .sw-route__label { transform: translateY(
    interactive, and hotspots.js gates those on panel visibility. */
 .sw-copy__title { font-size: clamp(1.35rem, 2.9vw, 2.25rem); }
 .sw-copy { pointer-events: none !important; width: min(34vw, 400px); }
-@media (max-width:860px){ .sw-copy { width: auto; } }
-
+/* Phones: the copy is a content-sized frosted card the engine pins per-room over a
+   clear patch of the scene (mCopyX/mCopyY set inline), so give it a phone width and
+   let the inline top/left win — do NOT span it edge to edge. */
 @media (max-width:860px){
-  /* Phones: the panel spans the width at the bottom in both languages — but the
-     dir-scoped desktop rules above out-specify a bare `.sw-copy`, so repeat the
-     side pinning at the same specificity. */
-  html[dir] .sw-copy { left: clamp(18px,5vw,64px); right: clamp(18px,5vw,64px); }
+  .sw-copy { width: min(74vw, 340px); }
+  /* Phone: the card is a top-centre header for BOTH languages, so centre the text
+     — override the dir-scoped left/right alignment above (same specificity, later
+     in source wins). */
+  html[dir] .sw-copy { text-align: center; }
   html[dir=rtl] .sw-route { left: 6px; }
 }
 

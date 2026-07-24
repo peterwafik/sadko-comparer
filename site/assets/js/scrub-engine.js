@@ -85,7 +85,7 @@ function mountScrollWorld(container, config) {
   // ---- build the interleaved segment chain: dive0, conn0, dive1, … diveN-1 ----
   const SEGMENTS = [];
   SECTIONS.forEach((s, i) => {
-    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, accent: s.accent,
+    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, stillM: s.stillMobile, accent: s.accent,
                    w: s.scroll || DIVE_W, linger: s.linger || 0 };
     SEGMENTS.push(dive);
     s._seg = dive;
@@ -136,16 +136,22 @@ function mountScrollWorld(container, config) {
   // segment scenes
   SEGMENTS.forEach(s => {
     const scene = el('div', 'sw-scene'); scene.style.setProperty('--sw-accent', s.accent || '');
-    // Ambient backdrop: a blurred, cover-scaled copy of the same frame. Only shown
-    // on portrait phones, where the scene itself is fitted whole (letterboxed) —
-    // it fills the letterbox with the room's own colours, fading to white at the
-    // far edges. Invisible/idle on desktop.
-    const bg = el('img', 'sw-scene__bg'); bg.alt = ''; bg.decoding = 'async'; bg.loading = 'lazy';
-    if (s.still) bg.src = s.still;
+    // Portrait phones use a bespoke, portrait-shaped scene image per room instead
+    // of the desktop 16:9 video flight — the scenes simply cross-dissolve as you
+    // scroll (no camera-scrub). CSS shows this in portrait and hides the video/
+    // desktop-still; the desktop path is untouched.
+    let mimg = null;
+    if (s.stillM) {
+      mimg = el('img', 'sw-scene__mstill'); mimg.alt = ''; mimg.decoding = 'async'; mimg.loading = 'lazy';
+      mimg.src = s.stillM; scene.appendChild(mimg);
+    }
     const img = el('img', 'sw-scene__still'); img.alt = ''; img.decoding = 'async'; img.loading = 'lazy';
-    if (s.still) img.src = s.still;
-    scene.appendChild(bg); scene.appendChild(img); stage.appendChild(scene);
-    s.el = scene; s.img = img; s.video = null; s.hasClip = false;
+    // On a real touch phone with a bespoke portrait image, the desktop still is
+    // never shown — skip fetching it so phones don't pay for a hi-res still they
+    // won't see. (Desktop and DevTools emulation still load it as before.)
+    if (s.still && !(coarse && s.stillM)) img.src = s.still;
+    scene.appendChild(img); stage.appendChild(scene);
+    s.el = scene; s.img = img; s.mimg = mimg; s.video = null; s.hasClip = false;
     s.loading = false; s.ready = false; s.cur = 0; s.target = 0; s.visible = false;
   });
 
@@ -199,6 +205,9 @@ function mountScrollWorld(container, config) {
   }
 
   function loadClip(s) {
+    // Portrait phones use the bespoke portrait scene image and cross-dissolve
+    // between rooms — no video is fetched or scrubbed there at all.
+    if (portraitMQ.matches && s.stillM) return;
     // Under prefers-reduced-motion we never load the clips at all — the stills stay up
     // and simply cross-dissolve as you scroll. No scrubbed video motion, no decode cost.
     if (reduce || s.loading || !s.clip) return;
@@ -224,7 +233,10 @@ function mountScrollWorld(container, config) {
 
   function read() {
     const y = window.scrollY || window.pageYOffset;
-    const fade = CROSSFADE * vh;
+    // Portrait phones show static scene images with no camera-scrub, so the whole
+    // transition between rooms IS the crossfade — widen it there into a clear,
+    // gentle dissolve rather than the tight seam the video flight used.
+    const fade = (portraitMQ.matches ? 0.5 : CROSSFADE) * vh;
     let ci = 0;
     for (let i = 0; i < NSEG; i++) if (y >= SEGMENTS[i].start) ci = i;
 
@@ -292,8 +304,21 @@ function mountScrollWorld(container, config) {
           else { c.style.left = 'clamp(18px,5vw,64px)'; c.style.right = 'auto'; }
         }
       } else {
-        c.style.top = ''; c.style.left = ''; c.style.right = '';
-        c.style.transform = `translateY(${shift})`;
+        // Phones: the frosted copy card is pinned per-room over a clear (marker-
+        // free) patch of the portrait scene, via mCopyX/mCopyY (viewport
+        // fractions, box centred on the point). Falls back to bottom-anchored.
+        const my = SECTIONS[i].mCopyY, mx = SECTIONS[i].mCopyX;
+        if (my != null) {
+          // bottom:auto clears guide.js's dock-clearance rule, which would
+          // otherwise pin the card's bottom too and stretch it full-height.
+          c.style.top = (my * 100).toFixed(1) + '%'; c.style.bottom = 'auto';
+          c.style.left = ((mx != null ? mx : 0.5) * 100).toFixed(1) + '%';
+          c.style.right = 'auto';
+          c.style.transform = `translate(-50%, calc(-50% + ${shift}))`;
+        } else {
+          c.style.top = ''; c.style.left = ''; c.style.right = ''; c.style.bottom = '';
+          c.style.transform = `translateY(${shift})`;
+        }
       }
       c.style.pointerEvents = cop > 0.5 ? 'auto' : 'none';
     }
@@ -435,6 +460,9 @@ function injectCSS() {
   .sw-scene__video,.sw-scene__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;z-index:1;}
   .sw-scene__still{will-change:transform;} .sw-scene.has-clip .sw-scene__still{opacity:0;}
   .sw-scene__bg{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+  /* Portrait-phone scene image: hidden on desktop, shown (whole, letterboxed) in
+     the portrait block below where it replaces the video/desktop-still entirely. */
+  .sw-scene__mstill{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;z-index:2;}
   .sw-copylayer{position:fixed;inset:0;z-index:20;pointer-events:none;}
   .sw-copylayer::before{content:"";position:absolute;inset:0;width:min(58vw,780px);background:linear-gradient(90deg,var(--sw-bg) 0%,color-mix(in srgb,var(--sw-bg) 82%,transparent) 34%,color-mix(in srgb,var(--sw-bg) 40%,transparent) 62%,transparent 100%);}
   /* RTL (Arabic): the over-constrained scrim auto-anchors to the right edge; only
@@ -469,26 +497,24 @@ function injectCSS() {
   .sw-track{position:relative;z-index:1;width:100%;pointer-events:none;}
   @media (max-width:860px){
     .sw-nav{display:none;}
-    .sw-copylayer::before{width:100%;height:60%;top:auto;bottom:0;background:linear-gradient(0deg,var(--sw-bg) 8%,color-mix(in srgb,var(--sw-bg) 70%,transparent) 46%,transparent 100%);}
-    /* Anchor copy to the bottom, clear of the home indicator / collapsing URL bar.
-       dvh + env() are progressive: browsers that lack them keep the vh fallback line. */
-    .sw-copy{left:clamp(18px,5vw,64px);right:clamp(18px,5vw,64px);top:auto;bottom:clamp(64px,14vh,120px);transform:none;width:auto;max-width:560px;}
-    .sw-copy{bottom:calc(clamp(56px,12dvh,110px) + env(safe-area-inset-bottom));}
-    .sw-copy__title{font-size:clamp(1.9rem,7.5vw,2.7rem);}
+    /* The copy is a content-sized frosted card the engine pins per-room over a
+       clear patch of the scene (mCopyX/mCopyY) — not a bottom banner — so drop the
+       bottom pinning and let JS place it. Width tracks the phone. */
+    .sw-copy{width:min(74vw,340px);max-width:none;}
+    /* Compact, top-centred header card: tighten the gap under the 01/04 line so
+       the three lines sit close together instead of spanning a tall block. */
+    .sw-copy__eyebrow{margin-top:3px;}
+    .sw-copy__title{margin-top:2px;font-size:clamp(1.5rem,5.8vw,2.1rem);line-height:1.12;}
     .sw-copy__body{max-width:none;font-size:clamp(.98rem,3.6vw,1.1rem);} .sw-scene__video,.sw-scene__still{object-position:center 46%;}
     .sw-hint{bottom:calc(20px + env(safe-area-inset-bottom));}
     .sw-route{gap:16px;right:6px;} .sw-route__label{display:none;}
   }
-  /* Portrait phones: a 16:9 scene cropped to fill would lose most of the room, so
-     instead FIT the whole scene (letterboxed) and centre it. The letterbox above
-     and below is filled by a blurred, cover-scaled copy of the same frame — the
-     room's own colours — which a white gradient fades out toward the top and
-     bottom edges, so the room sits centred and the far areas melt into white. */
+  /* Portrait phones use the bespoke portrait scene image (m_<room>.jpg): show it
+     whole (contain, plain letterbox) and hide the desktop video/still entirely.
+     Rooms cross-dissolve as you scroll — no camera-scrub here. */
   @media (max-width:860px) and (orientation:portrait){
-    .sw-scene__video,.sw-scene__still{object-fit:contain;object-position:center center;z-index:2;}
-    .sw-scene__bg{display:block;object-position:center center;filter:blur(34px) saturate(1.3) brightness(1.03);transform:scale(1.22);}
-    .sw-scene::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-      background:linear-gradient(180deg,#fff 0%,rgba(255,255,255,.72) 9%,rgba(255,255,255,0) 27%,rgba(255,255,255,0) 73%,rgba(255,255,255,.72) 91%,#fff 100%);}
+    .sw-scene__mstill{display:block;}
+    .sw-scene__video,.sw-scene__still,.sw-scene__bg{display:none !important;}
   }
   /* Touch: give the route dots a finger-sized hit area without growing the visible dot. */
   @media (hover:none) and (pointer:coarse){

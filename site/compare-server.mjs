@@ -1521,6 +1521,10 @@ const SECURITY_HEADERS = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https:",
+    // the scroll-world home page fetches each scene clip same-origin, wraps it in
+    // a blob: URL and scrubs it as <video> — allow self + blob: media, or the
+    // camera flight is blocked and every scene falls back to its still.
+    "media-src 'self' blob:",
     "connect-src 'self' https://accounts.google.com",
     "frame-src https://accounts.google.com",
   ].join('; '),

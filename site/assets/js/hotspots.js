@@ -39,8 +39,8 @@ function mountHotspots(container, api, sections) {
   // relaxation pass pushes overlapping dots apart. It is capped at MAX_NUDGE of
   // the frame width, though: a marker that wanders further than that stops
   // sitting on its own appliance, which matters more than perfect spacing.
-  const DOT_R    = coarse ? 12 : 14;   // dot radius (matches the CSS box)
-  const RING_R   = DOT_R + 7;          // + the pulse ring
+  const DOT_R    = coarse ? 8 : 9;     // dot radius (matches the CSS box) — small markers
+  const RING_R   = DOT_R + 5;          // + the pulse ring
   const LBL_GAP  = 12;                 // dot edge -> label (matches the CSS)
   const PAD      = 5;                  // breathing room demanded around a label
   const MIN_GAP  = coarse ? 38 : 2 * RING_R;   // px wanted between dot centres
@@ -80,6 +80,9 @@ function mountHotspots(container, api, sections) {
       g.appendChild(a);
       return { el: a, k, uid: i + ':' + k, lab: a.querySelector('.hs-spot__label'),
                fx: h.fx, fy: h.fy, sfx: h.sfx ?? h.fx, sfy: h.sfy ?? h.fy,
+               // mfx/mfy: this appliance's spot on the portrait phone scene image
+               // (m_<room>.jpg). Falls back to the desktop coords if not given.
+               mfx: h.mfx ?? h.fx, mfy: h.mfy ?? h.fy,
                at: h.at ?? 0.55, span: h.span ?? 0.38,
                x: 0, y: 0, vis: false, op: 0, lw: 0, lh: 0, side: '', sx: 0, sy: 0 };
     });
@@ -202,19 +205,24 @@ function mountHotspots(container, api, sections) {
     const n = parseFloat(v);
     return isNaN(n) ? 0.42 : n / 100;
   }
-  // On portrait phones the scene is FITTED whole (object-fit:contain, centred),
-  // so the marker mapping must mirror `contain` (min-scale, centred) there — not
-  // the desktop `cover` (max-scale, object-position Y) — or markers drift off
-  // their appliances into the letterbox.
+  // Portrait phones show a DIFFERENT scene: the bespoke portrait image
+  // (m_<room>.jpg, ~1080×1610), object-fit:contain and centred. So there the
+  // mapping uses that image's aspect + contain + centre, and markers read from
+  // each spot's mfx/mfy. Desktop/landscape keeps the 16:9 video, cover + objY.
+  const MFRAME_W = 1080, MFRAME_H = 2160;
   const containMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
   function metrics() {
     const r = stageEl.getBoundingClientRect();
-    const contain = containMQ.matches;
-    const s = contain ? Math.min(r.width / FRAME_W, r.height / FRAME_H)
-                      : Math.max(r.width / FRAME_W, r.height / FRAME_H);
+    if (containMQ.matches) {
+      // cover (fill the screen) — mirrors the scene's object-fit:cover
+      const s = Math.max(r.width / MFRAME_W, r.height / MFRAME_H);
+      const dw = MFRAME_W * s, dh = MFRAME_H * s;
+      return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * 0.5 };
+    }
+    const s = Math.max(r.width / FRAME_W, r.height / FRAME_H);
     const dw = FRAME_W * s, dh = FRAME_H * s;
-    const oyF = contain ? 0.5 : objY();
-    return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * oyF };
+    // Match the scene's ACTUAL object-position Y (--sw-objy) on the desktop cover.
+    return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * objY() };
   }
   function mapPoint(fx, fy, m) {
     m = m || metrics();
@@ -241,8 +249,12 @@ function mountHotspots(container, api, sections) {
           cy: m.r.top + m.r.height / 2,
         };
       }
+      const portrait = containMQ.matches;
       const pts = gr.items.map(it => {
-        let p = sc ? mapPoint(it.sfx, it.sfy, m) : mapPoint(it.fx, it.fy, m);
+        // Portrait phone → the appliance's spot on the portrait scene image;
+        // showcase → its showcase-frame spot; otherwise its flight coords.
+        let p = portrait ? mapPoint(it.mfx, it.mfy, m)
+                         : (sc ? mapPoint(it.sfx, it.sfy, m) : mapPoint(it.fx, it.fy, m));
         if (still) p = { x: still.cx + (p.x - still.cx) * still.sc + still.tx,
                          y: still.cy + (p.y - still.cy) * still.sc };
         return { it, x: p.x, y: p.y, bx: p.x, by: p.y };
@@ -388,9 +400,10 @@ function mountHotspots(container, api, sections) {
     const vw = window.innerWidth, vh = window.innerHeight;
     const dots = live.map(it => ({ x1: it.x - RING_R, y1: it.y - RING_R,
                                    x2: it.x + RING_R, y2: it.y + RING_R, it }));
-    // Every label is on screen at once in forced-titles mode and on touch, so
-    // there they must dodge each other too; otherwise only the dots matter.
-    const allOpen = forceLabels || coarse;
+    // Every label is on screen at once only in forced-titles mode (the eye
+    // toggle) now — on touch, labels stay hidden until then — so they must dodge
+    // each other exactly when forceLabels is on; otherwise only the dots matter.
+    const allOpen = forceLabels;
     const copyBox = readCopyBox(force);
 
     // Solve the most hemmed-in markers first — they have the fewest options.
@@ -455,6 +468,17 @@ function mountHotspots(container, api, sections) {
         gr.el.style.opacity = 0;
         gr.on = false;
         gr.items.forEach(it => { it.el.style.pointerEvents = 'none'; it.vis = false; it.op = 0; });
+        return;
+      }
+      // Portrait phones show a STATIC scene image, so there is no per-appliance
+      // flight band — every marker in the room is live the whole time that room is
+      // on screen. (Labels still default hidden; the eye toggle reveals them.)
+      if (containMQ.matches) {
+        const on = seg.visible && gr.si === act;
+        gr.items.forEach(it => { it.el.style.opacity = on ? 1 : 0; it.el.style.pointerEvents = on ? 'auto' : 'none'; it.vis = on; it.op = on ? 1 : 0; });
+        gr.on = on;
+        gr.el.style.opacity = on ? 1 : 0;
+        gr.el.style.pointerEvents = 'none';
         return;
       }
       if (gr.si === showSi) {
@@ -533,8 +557,8 @@ function injectHotspotCSS() {
   const css = `
   .hs-layer{position:fixed;inset:0;z-index:25;pointer-events:none;}
   .hs-group{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .2s linear;}
-  .hs-spot{position:absolute;top:0;left:0;width:28px;height:28px;z-index:1;
-    text-decoration:none;will-change:transform;margin:-14px 0 0 -14px;
+  .hs-spot{position:absolute;top:0;left:0;width:18px;height:18px;z-index:1;
+    text-decoration:none;will-change:transform;margin:-9px 0 0 -9px;
     opacity:0;pointer-events:none;transition:opacity .18s linear;}
   /* the marker you're pointing at always reads over its neighbours */
   .hs-spot:hover,.hs-spot:focus-within{z-index:9;}
@@ -542,8 +566,8 @@ function injectHotspotCSS() {
     background:color-mix(in srgb, var(--hs-accent) 88%, #000);
     border:2px solid rgba(255,255,255,.92);
     box-shadow:0 2px 10px rgba(0,0,0,.35);}
-  .hs-spot__dot::before{content:"";position:absolute;inset:8px;border-radius:50%;background:#fff;}
-  .hs-spot__dot::after{content:"";position:absolute;inset:-7px;border-radius:50%;
+  .hs-spot__dot::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#fff;}
+  .hs-spot__dot::after{content:"";position:absolute;inset:-5px;border-radius:50%;
     border:2px solid color-mix(in srgb, var(--hs-accent) 70%, transparent);
     animation:hs-pulse 2.2s ease-out infinite;}
   @keyframes hs-pulse{0%{transform:scale(.6);opacity:.9}70%{transform:scale(1.25);opacity:0}100%{opacity:0}}
@@ -569,8 +593,11 @@ function injectHotspotCSS() {
   .hs-spot:hover .hs-spot__label,.hs-spot:focus-visible .hs-spot__label{--hs-ox:0px;--hs-oy:0px;opacity:1;}
   .hs-spot:hover .hs-spot__dot{background:var(--hs-accent);}
   @media (hover:none) and (pointer:coarse){
-    .hs-spot__label{opacity:1;font-size:.78rem;padding:6px 11px;--hs-ox:0px;--hs-oy:0px;}
-    .hs-spot{width:24px;height:24px;margin:-12px 0 0 -12px;}
+    /* Titles stay HIDDEN by default on touch (no hover to reveal them one at a
+       time) — they light up only when the eye toggle turns them on, via
+       .hs-layer--labels below. Dots alone keep the scene uncluttered. */
+    .hs-spot__label{font-size:.78rem;padding:6px 11px;}
+    .hs-spot{width:16px;height:16px;margin:-8px 0 0 -8px;}
   }
   @media (prefers-reduced-motion:reduce){ .hs-spot__dot::after{animation:none;display:none;} }
 

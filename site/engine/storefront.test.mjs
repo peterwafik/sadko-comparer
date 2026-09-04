@@ -82,3 +82,47 @@ test('card renders EN digits and currency when window.skLang reports en', () => 
     else global.window = savedWindow;
   }
 });
+
+test('promoHero renders nothing for missing, empty or malformed input', () => {
+  assert.equal(ui.promoHero(null), '');
+  assert.equal(ui.promoHero([]), '');
+  assert.equal(ui.promoHero('not an array'), '');
+  assert.equal(ui.promoHero([{}]), '');            // no title -> skipped
+});
+
+test('promoHero marks sample content so it is never read as a live campaign', () => {
+  const html = ui.promoHero([{ id: 'a', title: 'تكييفات', href: 'shop.html?cat=1', sample: true }]);
+  assert.ok(html.includes('محتوى تجريبي'));
+});
+
+test('promoHero omits the marker for real campaigns', () => {
+  const html = ui.promoHero([{ id: 'a', title: 'تكييفات', href: 'shop.html?cat=1' }]);
+  assert.ok(!html.includes('محتوى تجريبي'));
+});
+
+test('promoHero maps accent names to token classes, never raw hex', () => {
+  const html = ui.promoHero([{ id: 'a', title: 'x', href: '#', accent: 'amber' }]);
+  assert.ok(html.includes('promo--amber'));
+  assert.ok(!/#[0-9a-f]{6}/i.test(html));
+});
+
+test('promoHero falls back to a typographic panel when image is absent', () => {
+  const html = ui.promoHero([{ id: 'a', title: 'x', href: '#' }]);
+  assert.ok(!html.includes('<img'));
+});
+
+test('rail renders one card per product and a see-all link', () => {
+  const html = ui.rail('الأوفر', [P, { ...P, id: '2' }], 'shop.html?cat=38003882');
+  assert.equal((html.match(/<article class="card"/g) || []).length, 2);
+  assert.ok(html.includes('shop.html?cat=38003882'));
+});
+
+test('rail returns empty string when there are no products', () => {
+  assert.equal(ui.rail('الأوفر', [], '#'), '');
+});
+
+test('categoryTile shows its real count', () => {
+  const html = ui.categoryTile({ id: '38003882', name: 'ثلاجات', count: 76, href: 'shop.html?cat=38003882' });
+  assert.ok(html.includes('76'));
+  assert.ok(html.includes('ثلاجات'));
+});

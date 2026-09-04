@@ -54,5 +54,54 @@
     '</article>';
   }
 
-  return { esc: esc, clean: clean, money: money, card: card };
+  var ACCENTS = { teal: 'promo--teal', amber: 'promo--amber', ink: 'promo--ink' };
+
+  // A promo with no title is unusable; a missing/!Array input renders nothing at
+  // all rather than an empty frame. `sample:true` is always marked.
+  function promoHero(promos) {
+    if (!promos || !Array.isArray(promos)) return '';
+    var items = promos.filter(function (x) { return x && x.title; });
+    if (!items.length) return '';
+    return '<div class="promos">' + items.map(function (x) {
+      var accent = ACCENTS[x.accent] || ACCENTS.teal;
+      return '<a class="promo ' + accent + '" href="' + esc(x.href || '#') + '">' +
+        (x.image ? '<img class="promo__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
+        '<span class="promo__body">' +
+          (x.sample ? '<span class="promo__sample">محتوى تجريبي</span>' : '') +
+          '<span class="promo__title">' + esc(x.title) + '</span>' +
+          (x.sub ? '<span class="promo__sub">' + esc(x.sub) + '</span>' : '') +
+          (x.cta ? '<span class="promo__cta">' + esc(x.cta) + '</span>' : '') +
+        '</span></a>';
+    }).join('') + '</div>';
+  }
+
+  function categoryTile(c) {
+    return '<a class="ctile" href="' + esc(c.href) + '">' +
+      '<span class="ctile__name">' + esc(c.name) + '</span>' +
+      '<span class="ctile__count">' + esc(String(c.count)) + '</span></a>';
+  }
+
+  function brandTile(b) {
+    return '<a class="btile" href="' + esc(b.href) + '">' +
+      '<span class="btile__name">' + esc(b.name) + '</span>' +
+      '<span class="btile__count">' + esc(String(b.count)) + '</span></a>';
+  }
+
+  function priceBands(bands, labels) {
+    return '<div class="bands">' + bands.map(function (b, i) {
+      return '<a class="band" href="' + esc(b.href) + '">' + esc(labels[i]) + '</a>';
+    }).join('') + '</div>';
+  }
+
+  function rail(title, products, moreHref) {
+    if (!products || !products.length) return '';
+    return '<section class="rail">' +
+      '<div class="rail__head"><h2 class="rail__title">' + esc(title) + '</h2>' +
+      (moreHref ? '<a class="rail__more" href="' + esc(moreHref) + '">' + esc('شوف الكل') + '</a>' : '') +
+      '</div><div class="rail__track">' +
+      products.map(function (p) { return card(p, {}); }).join('') +
+      '</div></section>';
+  }
+
+  return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail };
 });

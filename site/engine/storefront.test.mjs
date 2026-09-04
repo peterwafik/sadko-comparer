@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const ui = require('../assets/js/storefront.js');
+const core = require('../assets/js/shop-core.js');
 
 const P = { id: '157676934', title: 'ثلاجة كريازى 10 قدم', price: 15785,
             image: 'https://example.test/a.jpg', url: 'https://example.test/p',
@@ -125,4 +126,45 @@ test('categoryTile shows its real count', () => {
   const html = ui.categoryTile({ id: '38003882', name: 'ثلاجات', count: 76, href: 'shop.html?cat=38003882' });
   assert.ok(html.includes('76'));
   assert.ok(html.includes('ثلاجات'));
+});
+
+const FDATA = {
+  cats: [{ id: '38003882', name: 'ثلاجات', count: 76, href: 'shop.html?cat=38003882' }],
+  brands: [{ key: 'kiriazi', name: 'كريازى', count: 2 }, { key: '__none__', name: 'غير محدد', count: 1 }],
+  bands: [{ key: '0-5000', label: 'تحت ٥٬٠٠٠', href: 'shop.html?max=5000' }]
+};
+const FLABELS = { cats: 'الفئة', brands: 'الماركة', price: 'السعر', clear: 'امسح الفلاتر' };
+
+test('facets mark the active category as checked', () => {
+  const html = ui.facets(core.parseState('?cat=38003882'), FDATA, FLABELS);
+  assert.ok(/checked/.test(html));
+});
+
+test('facets always offer the unspecified-brand bucket', () => {
+  const html = ui.facets(core.parseState(''), FDATA, FLABELS);
+  assert.ok(html.includes('__none__'));
+  assert.ok(html.includes('غير محدد'));
+});
+
+test('pager renders nothing for a single page', () => {
+  assert.equal(ui.pager(1, 1, p => '?page=' + p), '');
+});
+
+test('pager marks the current page and links the others', () => {
+  const html = ui.pager(2, 3, p => '?page=' + p);
+  assert.ok(html.includes('aria-current="page"'));
+  assert.ok(html.includes('?page=1'));
+  assert.ok(html.includes('?page=3'));
+});
+
+test('breadcrumb renders the last entry as text, not a link', () => {
+  const html = ui.breadcrumb([{ label: 'البيت', href: 'index.html' }, { label: 'المتجر' }]);
+  assert.equal((html.match(/<a /g) || []).length, 1);
+  assert.ok(html.includes('المتجر'));
+});
+
+test('toolbar reports the result count and marks the active sort', () => {
+  const html = ui.toolbar(core.parseState('?sort=price-asc'), 42, { count: n => n + ' منتج' });
+  assert.ok(html.includes('42'));
+  assert.ok(/selected/.test(html));
 });

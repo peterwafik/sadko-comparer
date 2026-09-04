@@ -103,5 +103,58 @@
       '</div></section>';
   }
 
-  return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail };
+  function facets(state, data, L) {
+    var cats = data.cats.map(function (c) {
+      var on = String(state.cat) === String(c.id);
+      return '<label class="facet__row"><input type="radio" name="cat" value="' + esc(c.id) + '"' +
+        (on ? ' checked' : '') + '><span>' + esc(c.name) + '</span><b>' + esc(String(c.count)) + '</b></label>';
+    }).join('');
+    var brands = data.brands.map(function (b) {
+      var on = state.brands.indexOf(b.key) >= 0;
+      return '<label class="facet__row"><input type="checkbox" name="brand" value="' + esc(b.key) + '"' +
+        (on ? ' checked' : '') + '><span>' + esc(b.name) + '</span><b>' + esc(String(b.count)) + '</b></label>';
+    }).join('');
+    var bands = data.bands.map(function (b) {
+      return '<a class="facet__band" href="' + esc(b.href) + '">' + esc(b.label) + '</a>';
+    }).join('');
+    return '<form class="facets" id="facets">' +
+      '<fieldset class="facet"><legend>' + esc(L.cats) + '</legend>' + cats + '</fieldset>' +
+      '<fieldset class="facet"><legend>' + esc(L.brands) + '</legend>' + brands + '</fieldset>' +
+      '<fieldset class="facet"><legend>' + esc(L.price) + '</legend>' + bands +
+        '<div class="facet__range"><input type="number" name="min" min="0" value="' + (state.min == null ? '' : state.min) + '">' +
+        '<input type="number" name="max" min="0" value="' + (state.max == null ? '' : state.max) + '"></div>' +
+      '</fieldset>' +
+      '<button type="button" class="facet__clear" id="facetClear">' + esc(L.clear) + '</button>' +
+    '</form>';
+  }
+
+  function toolbar(state, total, L) {
+    var opts = [['default', 'الترتيب الافتراضى'], ['price-asc', 'السعر: من الأقل للأعلى'], ['price-desc', 'السعر: من الأعلى للأقل']];
+    return '<div class="stoolbar">' +
+      '<span class="stoolbar__count">' + esc(L.count(total)) + '</span>' +
+      '<select class="stoolbar__sort" id="sortSel">' + opts.map(function (o) {
+        return '<option value="' + o[0] + '"' + (state.sort === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+      }).join('') + '</select></div>';
+  }
+
+  function pager(page, pages, hrefFor) {
+    if (pages <= 1) return '';
+    var out = [];
+    for (var i = 1; i <= pages; i++) {
+      out.push(i === page
+        ? '<span class="pager__pg" aria-current="page">' + i + '</span>'
+        : '<a class="pager__pg" href="' + esc(hrefFor(i)) + '">' + i + '</a>');
+    }
+    return '<nav class="pager">' + out.join('') + '</nav>';
+  }
+
+  function breadcrumb(trail) {
+    return '<nav class="scrumb">' + trail.map(function (x, i) {
+      return i === trail.length - 1
+        ? '<span>' + esc(x.label) + '</span>'
+        : '<a href="' + esc(x.href) + '">' + esc(x.label) + '</a>';
+    }).join(' <i>←</i> ') + '</nav>';
+  }
+
+  return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb };
 });

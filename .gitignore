@@ -55,3 +55,6 @@ node_modules/
 
 # customer bookings — runtime data, never commit
 site/data/bookings.json
+
+# Claude Code worktrees (isolated workspaces; never committed)
+.claude/worktrees/

@@ -83,3 +83,53 @@ test('PRICE_BANDS cover the catalogue range with no gaps and an open top band', 
   assert.equal(b[b.length - 1].max, null);
   for (let i = 1; i < b.length; i++) assert.equal(b[i].min, b[i - 1].max);
 });
+
+test('filter by category', () => {
+  const s = core.parseState('?cat=38003882');
+  assert.equal(core.filter(SAMPLE, s, specOf).length, 2);
+});
+
+test('filter by price range is inclusive of min and exclusive of max', () => {
+  const s = core.parseState('?min=9500&max=21000');
+  const ids = core.filter(SAMPLE, s, specOf).map(p => p.id);
+  assert.deepEqual(ids, ['1', '3']);
+});
+
+test('an unbranded product survives an unrelated brand filter only via __none__', () => {
+  const only = core.parseState('?brand=kiriazi');
+  assert.deepEqual(core.filter(SAMPLE, only, specOf).map(p => p.id), ['1', '2']);
+  const withNone = core.parseState('?brand=kiriazi,__none__');
+  assert.deepEqual(core.filter(SAMPLE, withNone, specOf).map(p => p.id), ['1', '2', '4']);
+});
+
+test('an unbranded product is present when no brand filter is applied', () => {
+  assert.ok(core.filter(SAMPLE, core.parseState(''), specOf).some(p => p.id === '4'));
+});
+
+test('search matches title case-insensitively', () => {
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=lg'), specOf).map(p => p.id), ['3']);
+});
+
+test('sortList does not mutate its input', () => {
+  const before = SAMPLE.map(p => p.id);
+  core.sortList(SAMPLE, 'price-asc');
+  assert.deepEqual(SAMPLE.map(p => p.id), before);
+});
+
+test('sortList orders by price both ways', () => {
+  assert.deepEqual(core.sortList(SAMPLE, 'price-asc').map(p => p.id), ['4', '3', '1', '2']);
+  assert.deepEqual(core.sortList(SAMPLE, 'price-desc').map(p => p.id), ['2', '1', '3', '4']);
+});
+
+test('paginate reports totals and clamps an out-of-range page', () => {
+  const r = core.paginate(SAMPLE, 99, 2);
+  assert.equal(r.total, 4);
+  assert.equal(r.pages, 2);
+  assert.equal(r.page, 2);
+  assert.deepEqual(r.items.map(p => p.id), ['3', '4']);
+});
+
+test('paginate on an empty list yields one page and no items', () => {
+  const r = core.paginate([], 1, 24);
+  assert.deepEqual(r, { items: [], page: 1, pages: 1, total: 0 });
+});

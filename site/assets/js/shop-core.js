@@ -87,5 +87,40 @@
       });
   }
 
-  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf };
+  function norm(s) {
+    return String(s || '').replace(/&nbsp;/g, ' ').toLowerCase();
+  }
+
+  function filter(products, state, specOf) {
+    var q = norm(state.q);
+    return products.filter(function (p) {
+      if (state.cat && String(p.categoryId) !== String(state.cat)) return false;
+      if (state.min != null && !(p.price >= state.min)) return false;
+      if (state.max != null && !(p.price < state.max)) return false;
+      if (q && norm(p.title).indexOf(q) < 0 && norm(p.description).indexOf(q) < 0) return false;
+      if (state.brands && state.brands.length) {
+        var b = (specOf(p) || {}).brand;
+        var key = (b && (b.key || b.en || b.ar)) ? String(b.key || b.en || b.ar).toLowerCase() : '__none__';
+        if (state.brands.indexOf(key) < 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function sortList(list, sort) {
+    var out = list.slice();
+    if (sort === 'price-asc') out.sort(function (a, b) { return a.price - b.price; });
+    else if (sort === 'price-desc') out.sort(function (a, b) { return b.price - a.price; });
+    return out;
+  }
+
+  function paginate(list, page, per) {
+    per = per || 24;
+    var total = list.length;
+    var pages = Math.max(1, Math.ceil(total / per));
+    var pg = Math.min(Math.max(1, page || 1), pages);
+    return { items: list.slice((pg - 1) * per, pg * per), page: pg, pages: pages, total: total };
+  }
+
+  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, sortList: sortList, paginate: paginate };
 });

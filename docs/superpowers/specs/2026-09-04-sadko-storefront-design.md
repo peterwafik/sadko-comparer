@@ -104,9 +104,29 @@ structure:
 </article>
 ```
 
-New classes may be added; these may not be removed or renamed. After any grid
-renders, the storefront calls the same hooks `nav.js` uses on load so injected
-controls appear on dynamically rendered cards too.
+New classes may be added; these may not be removed or renamed.
+
+**`enhanceCategoryCards` matches products by URL pathname**, not by id:
+
+```js
+byPath[decodeURIComponent(new URL(link.href).pathname)]
+```
+
+where `link` is `a.card__imgwrap`. Therefore the storefront card's `card__imgwrap`
+and `card__buy` **must** point at `product.url` (the sadko-group.com shop URL),
+exactly as the prebuilt pages do. Pointing them at `product.html?id=…` would make
+every lookup miss and add-to-cart would silently never appear. `nav.js` supplies
+the internal "التفاصيل والمقاس" link itself.
+
+**`nav.js` needs two additive changes** (no behaviour change for existing pages),
+so it is not in the untouched list:
+
+1. An idempotency guard — `enhanceCategoryCards` currently appends its buttons
+   unconditionally, so a second call would double them.
+2. `window.skNav = { enhanceCategoryCards, injectFinderCta }` — the storefront
+   re-renders the grid on every facet change and must be able to re-run the
+   enhancement over the new cards. There is currently no export, no event and no
+   MutationObserver, so this hook does not otherwise exist.
 
 ## 5. Architecture
 
@@ -128,7 +148,9 @@ controls appear on dynamically rendered cards too.
 | `product.html` | Loads `storefront.css`; shell otherwise unchanged. |
 | `assets/js/product.js` | **Only** `render()` and `head()` are rewritten (§8). |
 
-**Untouched:** `index.html`, all scroll-world modules, `nav.js`, `appshell.js`,
+**Modified, additively only:** `assets/js/nav.js` — idempotency guard + `window.skNav` export (see 4.1). No logic change.
+
+**Untouched:** `index.html`, all scroll-world modules, `appshell.js`,
 `specs.js`, `store.js`, `prefs.js`, `homes.js`, `auth.js`, `cart.html`,
 `checkout.html`, `account.html`, `admin.html`.
 

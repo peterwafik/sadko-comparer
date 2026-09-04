@@ -1,0 +1,160 @@
+/* ============================================================================
+   SADKO storefront — visual layer for the shop hub, browse grid, category
+   rails and the product page. Built entirely on app.css tokens (--teal,
+   --teal-deep, --ink, --ink-soft, --amber, --bg, --card, --line, --ok,
+   --warn, --bad, --radius, --shadow, --shadow-lg) — no new colour values are
+   defined here. RTL-first (Arabic default); every directional rule ships an
+   html[dir=ltr] mirror. Loads alongside category.css, which already owns
+   .card/.card__body/.card__title/.card__teaser/.card__row/.card__price/
+   .card__buy/.card__imgwrap — this file only adds .card__noimg to that set.
+   ========================================================================== */
+
+/* ---------- 1. breadcrumb ---------- */
+.scrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  font-size: .85rem; font-weight: 700; color: var(--ink-soft); margin: 0 0 16px; }
+.scrumb a { color: var(--accent); text-decoration: none; }
+.scrumb a:hover { text-decoration: underline; }
+.scrumb span { color: var(--ink); font-weight: 800; }
+.scrumb i { font-style: normal; color: var(--ink-soft); }
+/* the breadcrumb arrow is a hardcoded "←" glyph; it reads correctly in RTL
+   (pointing toward the next, more-specific crumb) but must flip in LTR or it
+   points backward against the reading direction. */
+html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
+
+/* ---------- 2. promo hero ---------- */
+.promos { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin: 0 0 26px; }
+.promo { position: relative; overflow: hidden; border-radius: var(--radius); min-height: 200px;
+  display: grid; align-items: end; text-decoration: none; color: #fff;
+  box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s; }
+.promo:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.promo__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; }
+.promo__body { position: relative; padding: 20px; display: grid; gap: 6px; justify-items: start;
+  background: linear-gradient(to top, color-mix(in srgb, var(--ink) 78%, transparent), transparent); }
+/* typographic fallbacks — used when a promo carries no image, so each must
+   read as a deliberate, finished background on its own. */
+.promo--teal { background: var(--teal-deep); }
+.promo--amber { background: var(--amber); color: var(--ink); }
+.promo--amber .promo__body { background: linear-gradient(to top, color-mix(in srgb, var(--ink) 30%, transparent), transparent); }
+.promo--ink { background: var(--ink); }
+.promo__sample { display: inline-block; font: 800 .72rem 'Cairo', sans-serif; letter-spacing: .02em;
+  padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, #fff 85%, transparent);
+  color: var(--ink); }
+.promo__title { font: 900 1.3rem 'Cairo', sans-serif; line-height: 1.3; }
+.promo__sub { font: 700 .9rem 'Cairo', sans-serif; opacity: .92; }
+.promo__cta { margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; font: 800 .85rem 'Cairo', sans-serif;
+  color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- 3. category / brand tiles ---------- */
+.ctiles, .btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ctile, .btile { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 13px 15px; text-decoration: none; color: var(--ink);
+  transition: transform .15s, box-shadow .15s, border-color .15s; }
+.ctile:hover, .btile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.ctile__name, .btile__name { font: 800 .88rem 'Cairo', sans-serif; line-height: 1.4; }
+.ctile__count, .btile__count { flex: 0 0 auto; font: 800 .74rem 'Cairo', sans-serif; color: var(--ink-soft);
+  background: color-mix(in srgb, var(--accent) 9%, #fff); border-radius: 999px; padding: 3px 9px; }
+
+/* ---------- 4. price bands ---------- */
+.bands { display: flex; flex-wrap: wrap; gap: 9px; }
+.band { text-decoration: none; font: 700 .84rem 'Cairo', sans-serif; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, #fff); border: 1.5px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: 999px; padding: 7px 15px; transition: .15s; }
+.band:hover { background: var(--accent); color: #fff; }
+
+/* ---------- 5. rails ---------- */
+.rail { margin: 0 0 30px; }
+.rail__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; flex-wrap: wrap; }
+.rail__title { margin: 0; font: 900 1.14rem 'Cairo', sans-serif; }
+.rail__more { text-decoration: none; font: 800 .85rem 'Cairo', sans-serif; color: var(--accent); white-space: nowrap; }
+.rail__more:hover { text-decoration: underline; }
+.rail__track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: 14px;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; padding-bottom: 6px; }
+.rail__track > .card { scroll-snap-align: start; }
+
+/* ---------- shop section heading (used on the shop hub between rails/tile groups) ---------- */
+.shop-h2 { margin: 0 0 14px; font: 900 1.2rem 'Cairo', sans-serif; color: var(--ink); }
+
+/* ---------- 6. shop grid (browse layout: filters + results) ---------- */
+.shopgrid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 26px; align-items: start; }
+.shopgrid__side { min-width: 0; }
+.shopgrid__main { min-width: 0; }
+.facets__toggle { display: none; }
+
+/* ---------- 7. facets ---------- */
+.facets { position: sticky; top: 86px; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; display: grid; gap: 16px; }
+.facet { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.facet legend { padding: 0 0 8px; font: 900 .85rem 'Cairo', sans-serif; color: var(--ink); }
+.facet__row { display: flex; align-items: center; gap: 9px; font: 700 .86rem 'Cairo', sans-serif; color: var(--ink); cursor: pointer; }
+.facet__row input { accent-color: var(--accent); flex: 0 0 auto; }
+.facet__row span { flex: 1 1 auto; }
+.facet__row b { flex: 0 0 auto; font: 800 .72rem 'Cairo', sans-serif; color: var(--ink-soft); }
+.facet__band { text-decoration: none; font: 700 .82rem 'Cairo', sans-serif; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, #fff); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 10px; padding: 6px 10px; display: block; }
+.facet__band:hover { background: color-mix(in srgb, var(--accent) 16%, #fff); }
+.facet__range { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.facet__range input { width: 0; flex: 1 1 auto; font: 700 .85rem 'Cairo', sans-serif; color: var(--ink);
+  border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 10px; background: #fff; }
+.facet__clear { justify-self: start; cursor: pointer; font: 800 .82rem 'Cairo', sans-serif; color: var(--ink-soft);
+  background: transparent; border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 16px; }
+.facet__clear:hover { border-color: color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); }
+
+/* ---------- 8. sort / count toolbar ---------- */
+.stoolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+.stoolbar__count { font: 700 .88rem 'Cairo', sans-serif; color: var(--ink-soft); }
+.stoolbar__sort { font: 700 .88rem 'Cairo', sans-serif; color: var(--ink); background: #fff;
+  border: 1.5px solid var(--line); border-radius: 12px; padding: 9px 14px; }
+
+/* ---------- 9. pager ---------- */
+.pager { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 30px 0 0; flex-wrap: wrap; }
+.pager__pg { min-width: 38px; height: 38px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; font: 800 .86rem 'Cairo', sans-serif; text-decoration: none; color: var(--ink);
+  background: #fff; border: 1.5px solid var(--line); }
+.pager__pg:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.pager__pg[aria-current] { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ---------- 10. no-image card fallback ---------- */
+.card__noimg { display: block; width: 100%; aspect-ratio: 1 / 1; border-radius: calc(var(--radius) - 6px);
+  background: var(--line); }
+
+/* ---------- 11. product page (pdp) ---------- */
+.pdp { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.pdp__media { min-width: 0; display: grid; gap: 12px; }
+.pdp__frame { aspect-ratio: 1 / 1; display: grid; place-items: center; background: #fff;
+  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; overflow: hidden; }
+.pdp__frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.pdp__buy { min-width: 0; }
+
+/* ============================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 860px) {
+  .promos { grid-template-columns: 1fr; }
+  .shopgrid { grid-template-columns: 1fr; }
+  .facets__toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; font: 800 .88rem 'Cairo', sans-serif; color: var(--ink); background: #fff;
+    border: 1.5px solid var(--line); border-radius: 999px; padding: 10px 18px; margin: 0 0 14px; }
+  .facets { position: fixed; inset: 0; z-index: 60; top: 0; overflow: auto; border-radius: 0;
+    display: none; padding: 20px; padding-bottom: 90px; }
+  .facets.is-open { display: grid; }
+}
+
+@media (max-width: 980px) {
+  .pdp { grid-template-columns: 1fr; gap: 22px; }
+  .pdp__buy { position: static; }
+}
+
+@media (min-width: 981px) {
+  .pdp__buy { position: sticky; top: 86px; }
+}
+
+/* keep long Arabic titles and horizontal rails from ever pushing the page
+   sideways on narrow phones (360px baseline). */
+@media (max-width: 480px) {
+  .rail__track { grid-auto-columns: minmax(160px, 78vw); }
+  .promo__title { font-size: 1.12rem; }
+  .ctiles, .btiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}

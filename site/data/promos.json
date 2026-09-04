@@ -1,0 +1,20 @@
+{
+  "note": "Sample content. Replace with real SADKO campaigns. Never add a 'was' price that isn't real — the catalogue has no discount data.",
+  "promos": [
+    { "id": "sample-kitchen", "sample": true, "accent": "teal",
+      "title": "كل حاجة للمطبخ", "titleEn": "Everything for the kitchen",
+      "sub": "١٥٧ جهاز صغير من صادكو", "subEn": "157 small appliances",
+      "cta": "تسوّق الأجهزة الصغيرة", "ctaEn": "Shop small appliances",
+      "href": "shop.html?cat=112439376", "image": "assets/img/still_2.jpg" },
+    { "id": "sample-cooling", "sample": true, "accent": "amber",
+      "title": "تبريد لبيتك", "titleEn": "Cooling for your home",
+      "sub": "ثلاجات وفريزرات وتكييفات", "subEn": "Fridges, freezers and air conditioners",
+      "cta": "شوف الثلاجات", "ctaEn": "See refrigerators",
+      "href": "shop.html?cat=38003882", "image": "assets/img/still_1.jpg" },
+    { "id": "sample-laundry", "sample": true, "accent": "ink",
+      "title": "ركن الغسيل", "titleEn": "The laundry corner",
+      "sub": "٤٩ غسالة", "subEn": "49 washing machines",
+      "cta": "تسوّق الغسالات", "ctaEn": "Shop washers",
+      "href": "shop.html?cat=38005652" }
+  ]
+}

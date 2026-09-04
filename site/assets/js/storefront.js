@@ -67,6 +67,10 @@
       return '<a class="promo ' + accent + '" href="' + esc(x.href || '#') + '">' +
         (x.image ? '<img class="promo__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
         '<span class="promo__body">' +
+          // Deliberately hardcoded, not a labels.* lookup: this marker is an honesty
+          // guarantee (seeded sample content must never read as a live campaign,
+          // regardless of caller-supplied labels), not a UI string to localise. Do
+          // not "fix" this into a labels parameter.
           (x.sample ? '<span class="promo__sample">محتوى تجريبي</span>' : '') +
           '<span class="promo__title">' + esc(x.title) + '</span>' +
           (x.sub ? '<span class="promo__sub">' + esc(x.sub) + '</span>' : '') +
@@ -87,17 +91,26 @@
       '<span class="btile__count">' + esc(String(b.count)) + '</span></a>';
   }
 
+  // Contract: `bands` entries must be caller-built {key, label?, href} objects —
+  // NOT raw PRICE_BANDS entries. shop-core's PRICE_BANDS is {key,min,max} with no
+  // href, so passing it directly is not sufficient input on its own; Tasks 8/9
+  // map each PRICE_BANDS entry through a bandHref() helper (adding a live href)
+  // before calling this. `labels` is a parallel array of display strings, applied
+  // by index — a band's own .label (if present) is not read here. If an entry's
+  // .href is absent, esc(undefined) resolves to '' and the anchor renders
+  // href="" rather than throwing; see the priceBands tests for that behaviour.
   function priceBands(bands, labels) {
     return '<div class="bands">' + bands.map(function (b, i) {
       return '<a class="band" href="' + esc(b.href) + '">' + esc(labels[i]) + '</a>';
     }).join('') + '</div>';
   }
 
-  function rail(title, products, moreHref) {
+  function rail(title, products, moreHref, labels) {
     if (!products || !products.length) return '';
+    var moreLabel = (labels && labels.more) || 'شوف الكل';
     return '<section class="rail">' +
       '<div class="rail__head"><h2 class="rail__title">' + esc(title) + '</h2>' +
-      (moreHref ? '<a class="rail__more" href="' + esc(moreHref) + '">' + esc('شوف الكل') + '</a>' : '') +
+      (moreHref ? '<a class="rail__more" href="' + esc(moreHref) + '">' + esc(moreLabel) + '</a>' : '') +
       '</div><div class="rail__track">' +
       products.map(function (p) { return card(p, {}); }).join('') +
       '</div></section>';
@@ -121,19 +134,30 @@
       '<fieldset class="facet"><legend>' + esc(L.cats) + '</legend>' + cats + '</fieldset>' +
       '<fieldset class="facet"><legend>' + esc(L.brands) + '</legend>' + brands + '</fieldset>' +
       '<fieldset class="facet"><legend>' + esc(L.price) + '</legend>' + bands +
-        '<div class="facet__range"><input type="number" name="min" min="0" value="' + (state.min == null ? '' : state.min) + '">' +
-        '<input type="number" name="max" min="0" value="' + (state.max == null ? '' : state.max) + '"></div>' +
+        '<div class="facet__range"><input type="number" name="min" min="0" value="' + (state.min == null ? '' : esc(state.min)) + '">' +
+        '<input type="number" name="max" min="0" value="' + (state.max == null ? '' : esc(state.max)) + '"></div>' +
       '</fieldset>' +
       '<button type="button" class="facet__clear" id="facetClear">' + esc(L.clear) + '</button>' +
     '</form>';
   }
 
+  // Default Arabic sort-option labels, keyed by shop-core's SORTS value (not by
+  // array position) so a caller-supplied `labels.sorts` map can override any
+  // subset without needing to know option order.
+  var DEFAULT_SORT_LABELS = {
+    'default': 'الترتيب الافتراضى',
+    'price-asc': 'السعر: من الأقل للأعلى',
+    'price-desc': 'السعر: من الأعلى للأقل'
+  };
+
   function toolbar(state, total, L) {
-    var opts = [['default', 'الترتيب الافتراضى'], ['price-asc', 'السعر: من الأقل للأعلى'], ['price-desc', 'السعر: من الأعلى للأقل']];
+    var sortLabels = (L && L.sorts) || {};
+    var keys = ['default', 'price-asc', 'price-desc'];
     return '<div class="stoolbar">' +
       '<span class="stoolbar__count">' + esc(L.count(total)) + '</span>' +
-      '<select class="stoolbar__sort" id="sortSel">' + opts.map(function (o) {
-        return '<option value="' + o[0] + '"' + (state.sort === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+      '<select class="stoolbar__sort" id="sortSel">' + keys.map(function (k) {
+        var label = sortLabels[k] || DEFAULT_SORT_LABELS[k];
+        return '<option value="' + k + '"' + (state.sort === k ? ' selected' : '') + '>' + esc(label) + '</option>';
       }).join('') + '</select></div>';
   }
 

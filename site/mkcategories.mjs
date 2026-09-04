@@ -9,10 +9,12 @@
 // taxonomy), NOT abbreviated to a handful of top-level names with a generic
 // fallback: nav.js's translateCategoryPage() (mounted on every category page)
 // rewrites <title> in English by looking up the *exact* Arabic name in its
-// CAT_EN map, so a placeholder like "منتجات" would leave 20 of the 30 pages
-// with a half-Arabic <title> in EN mode — precisely the hardcoded-Arabic class
-// of bug this plan has already caught three times. Keep this map in sync with
-// nav.js's SHOP_TREE if that ever changes.
+// CAT_EN map, so a placeholder like "منتجات" would leave pages with a
+// half-Arabic <title> in EN mode — precisely the hardcoded-Arabic class of
+// bug this plan has already caught repeatedly. Keep NAMES and CAT_EN in sync
+// with nav.js's SHOP_TREE / CAT_EN if either ever changes — the asserts below
+// (missing id, missing NAMES entry, missing CAT_EN entry, orphaned NAMES id)
+// turn a drift into a build failure instead of a silent bad page.
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -54,13 +56,36 @@ const NAMES = {
   '195273251': 'الأكثر مبيعاً'
 };
 
-const page = (id, name) => `<!DOCTYPE html>
+// Copied verbatim from assets/js/nav.js's CAT_EN (Arabic name -> English
+// name). Used only to derive each page's English name for data-cat-name-en —
+// shop.js prefers that attribute over appshell.js's A.catName(), which is
+// missing 11 of the 30 ids.
+const CAT_EN = {
+  'ثلاجات': 'Refrigerators', 'نو فروست': 'No frost', 'ديفروست': 'Defrost',
+  'فريزرات': 'Freezers', 'فريزر أفقى': 'Chest freezers', 'فريزر رأسى': 'Upright freezers',
+  'أفران وبوتاجازات': 'Ovens & Cookers', '4 شعلة': '4 burners', '5 شعلة': '5 burners', 'أفران كهربائية': 'Electric ovens',
+  'غسالات': 'Washers', 'غسالات ملابس': 'Washing machines', 'غسالات أطباق': 'Dishwashers',
+  'سخانات مياه': 'Water heaters', 'سخانات كهرباء': 'Electric heaters', 'سخانات غاز': 'Gas heaters',
+  'أجهزة صغيرة': 'Small appliances', 'مكانس': 'Vacuum cleaners', 'مكاوى': 'Irons',
+  'خلاطات ومحضرات طعام': 'Blenders & food processors', 'ميكروييف': 'Microwaves',
+  'كاتيل وماكينات قهوة': 'Kettles & coffee makers', 'قلايات': 'Air fryers',
+  'تكييفات هواء': 'Air conditioners', 'تليفزيونات': 'TVs', 'مبردات هواء ومراوح': 'Air coolers & fans',
+  'مبردات مياه': 'Water dispensers', 'حرف يدوية ومنتجات عضوية': 'Handicrafts & organic',
+  'عروض صادكو': 'SADKO Offers', 'الأكثر مبيعاً': 'Best sellers',
+  'كل المنتجات': 'All products', 'خلاطات ومحضرات': 'Blenders & processors', 'كاتيل وقهوة': 'Kettles & coffee',
+};
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>${name} — صادكو جروب</title>
-<meta name="description" content="تصفّح ${name} من صادكو جروب — بالسعر والصورة والمواصفات.">
+<title>${escHtml(nameAr)} — صادكو جروب</title>
+<meta name="description" content="تصفّح ${escHtml(nameAr)} من صادكو جروب — بالسعر والصورة والمواصفات.">
 <link rel="icon" href="../assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,9 +95,11 @@ const page = (id, name) => `<!DOCTYPE html>
 <link rel="stylesheet" href="../assets/css/storefront.css?v=s1">
 </head>
 <body>
-<main class="wrap wrap--wide" id="shop-root" data-cat="${id}">
+<div class="wrap wrap--wide">
+<main id="shop-root" data-cat="${escHtml(id)}" data-cat-name="${escHtml(nameAr)}" data-cat-name-en="${escHtml(nameEn)}">
   <div class="empty" data-i18n="loading">جارى التحميل…</div>
 </main>
+</div>
 <footer data-footer></footer>
 <script src="../assets/js/catalog-i18n.js?v=g2" defer></script>
 <script src="../assets/js/nav.js?v=g17" defer></script>
@@ -91,12 +118,47 @@ const page = (id, name) => `<!DOCTYPE html>
 const counts = {};
 cat.products.forEach(p => { counts[p.categoryId] = (counts[p.categoryId] || 0) + 1; });
 
+// Note (A): the outer <div class="wrap wrap--wide"> — with <main id="shop-root">
+// nested INSIDE it, not carrying those classes itself — is required, not
+// cosmetic: nav.js's injectFinderCta() finds no .hero on these pages and
+// falls back to `document.querySelector('.wrap')`, prepending the guided-
+// finder CTA as that element's first child. If #shop-root WERE the .wrap
+// element (as in an earlier revision of this generator), shop.js's very
+// first `root.innerHTML = …` would wipe the CTA out again on every render.
+// With .wrap as a parent that shop.js never touches, the CTA (inserted once,
+// at nav.js's mount) survives every subsequent facet-driven re-render.
+
+const files = readdirSync(CATDIR).filter(f => f.endsWith('.html'));
+const fileIds = new Set(files.map(f => f.replace('.html', '')));
+const nameIds = new Set(Object.keys(NAMES));
+
+// Note (B): fail loudly on drift instead of silently shipping a bad page —
+// a NAMES id with no file (dead entry), a file with no NAMES id (would have
+// silently fallen back to a generic, un-translatable name), or a name with
+// no CAT_EN entry (would ship a half-Arabic EN <title>).
+const namesWithNoFile = [...nameIds].filter(id => !fileIds.has(id));
+if (namesWithNoFile.length) {
+  throw new Error('mkcategories: NAMES has ids with no site/category/*.html file: ' + namesWithNoFile.join(', '));
+}
+const filesWithNoName = [...fileIds].filter(id => !nameIds.has(id));
+if (filesWithNoName.length) {
+  throw new Error('mkcategories: missing NAMES entry for category id(s): ' + filesWithNoName.join(', ') +
+    ' — add them to NAMES (and CAT_EN if not already covered by nav.js).');
+}
+for (const id of fileIds) {
+  if (!Object.prototype.hasOwnProperty.call(CAT_EN, NAMES[id])) {
+    throw new Error('mkcategories: missing CAT_EN entry for "' + NAMES[id] + '" (id ' + id +
+      ') — add it to nav.js CAT_EN and mirror it in this file\'s CAT_EN copy.');
+  }
+}
+
 let written = 0;
 const empties = [];
-for (const file of readdirSync(CATDIR).filter(f => f.endsWith('.html'))) {
+for (const file of files) {
   const id = file.replace('.html', '');
-  const name = NAMES[id] || 'منتجات';
-  writeFileSync(join(CATDIR, file), page(id, name));
+  const nameAr = NAMES[id];
+  const nameEn = CAT_EN[nameAr];
+  writeFileSync(join(CATDIR, file), page(id, nameAr, nameEn));
   written++;
   if (!counts[id]) empties.push(file);
 }

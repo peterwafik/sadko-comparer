@@ -7,6 +7,32 @@
   var EN = (window.skLang && window.skLang.get()) === 'en';
   function t(ar, en) { return EN ? en : ar; }
 
+  // Root-relative path helper, derived the exact same way nav.js:23 derives
+  // its own ROOT: a `data-root` attribute on this <script>, else '../' when
+  // the page lives under /category/. shop.js is loaded on both site-root
+  // pages (shop.html) and the 30 /category/*.html shells, and every literal
+  // 'shop.html'/'index.html'/'data/…' path below MUST go through P() or it
+  // 404s from a category page (site-root-relative, not page-relative).
+  var SCRIPT = document.currentScript;
+  var ROOT = (SCRIPT && SCRIPT.getAttribute('data-root')) ||
+    (location.pathname.replace(/\\/g, '/').includes('/category/') ? '../' : '');
+  function P(p) { return ROOT + p; }
+
+  // Prefer the category page's own bilingual name — data-cat-name /
+  // data-cat-name-en on #shop-root, emitted by mkcategories.mjs straight from
+  // nav.js's SHOP_TREE/CAT_EN — over appshell.js's A.catName(), which is
+  // missing 11 of the 30 category ids and falls back to a generic
+  // "فئة"/"Category" for them. Only applies to the page's OWN fixed id; every
+  // other id (e.g. the rest of the facet rail) still comes from A.catName().
+  function catNameOf(root, id) {
+    var fixed = root.getAttribute('data-cat');
+    if (fixed && String(id) === String(fixed)) {
+      var name = root.getAttribute(EN ? 'data-cat-name-en' : 'data-cat-name');
+      if (name) return name;
+    }
+    return window.skApp.catName(id);
+  }
+
   var BAND_LABELS = [t('تحت ٥٬٠٠٠', 'Under 5,000'), t('٥٬٠٠٠ – ١٥٬٠٠٠', '5,000 – 15,000'),
                      t('١٥٬٠٠٠ – ٣٠٬٠٠٠', '15,000 – 30,000'), t('فوق ٣٠٬٠٠٠', 'Over 30,000')];
   var RAIL_LABELS = { more: t('شوف الكل', 'See all') };
@@ -30,7 +56,7 @@
   // bare price-only URLs.
   function bandHref(b, state) {
     var base = state || { cat: '', q: '', brands: [], sort: 'default', all: false };
-    return 'shop.html' + C.stateToSearch(Object.assign({}, base, { min: b.min, max: b.max, page: 1 }));
+    return P('shop.html') + C.stateToSearch(Object.assign({}, base, { min: b.min, max: b.max, page: 1 }));
   }
 
   function specOf(p) { return window.skSpecs ? window.skSpecs.of(p) : {}; }
@@ -69,12 +95,11 @@
   }
 
   function renderHub(root, products, promos) {
-    var A = window.skApp;
     var cats = C.liveCategories(products).map(function (c) {
-      return { id: c.id, count: c.count, name: A.catName(c.id), href: 'shop.html?cat=' + c.id };
+      return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id };
     });
     var brands = C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; }).slice(0, 12)
-      .map(function (b) { return { key: b.key, count: b.count, name: t(b.ar, b.en), href: 'shop.html?brand=' + encodeURIComponent(b.key) }; });
+      .map(function (b) { return { key: b.key, count: b.count, name: t(b.ar, b.en), href: P('shop.html?brand=') + encodeURIComponent(b.key) }; });
     var liveB = liveBands(products);
     var bands = liveB.map(function (b) { return { key: b.key, href: b.href }; });
     var bandLabels = liveB.map(function (b) { return b.label; });
@@ -85,7 +110,7 @@
     }).join('');
 
     root.innerHTML =
-      U.breadcrumb([{ label: t('البيت', 'Home'), href: 'index.html' }, { label: t('المتجر', 'Shop') }]) +
+      U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
       U.promoHero(localizePromos(promos)) +
       '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
       '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
@@ -106,13 +131,12 @@
   function go(state) {
     var root = document.getElementById('shop-root');
     var fixed = root && root.getAttribute('data-cat');
-    var path = fixed ? location.pathname : 'shop.html';
+    var path = fixed ? location.pathname : P('shop.html');
     history.pushState(null, '', path + C.stateToSearch(fixed ? Object.assign({}, state, { cat: '' }) : state));
     render();
   }
 
   function renderBrowse(root, state, products) {
-    var A = window.skApp;
     var matched = C.filter(products, state, specOf);
     var sorted = C.sortList(matched, state.sort);
     var pg = C.paginate(sorted, state.page, 24);
@@ -125,7 +149,7 @@
 
     var data = {
       cats: C.liveCategories(forCats).map(function (c) {
-        return { id: c.id, count: c.count, name: A.catName(c.id), href: 'shop.html?cat=' + c.id };
+        return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id };
       }),
       brands: C.brandsOf(forBrands, specOf).map(function (b) {
         return { key: b.key, count: b.count, name: t(b.ar, b.en) };
@@ -133,7 +157,7 @@
       bands: liveBands(forPrice, state)
     };
 
-    var title = state.cat ? A.catName(state.cat) : (state.q ? t('نتائج البحث', 'Search results') : t('كل المنتجات', 'All products'));
+    var title = state.cat ? catNameOf(root, state.cat) : (state.q ? t('نتائج البحث', 'Search results') : t('كل المنتجات', 'All products'));
 
     var facetsHtml = U.facets(state, data, { cats: t('الفئة', 'Category'), brands: t('الماركة', 'Brand'),
                                               price: t('السعر', 'Price'), clear: t('امسح الفلاتر', 'Clear filters') });
@@ -150,6 +174,14 @@
       '<button type="button" class="facet__clear facets__done" id="facetDone">' +
         U.esc(t('تم — اعرض النتائج', 'Done — show results')) + '</button>');
 
+    // A search that matched nothing ("try another search") is a different
+    // situation, honestly, from a category that has no products listed yet —
+    // conflating them (as before) mislabels the 20 legitimately-empty
+    // category pages, which never had a search to retry.
+    var emptyMsg = state.q
+      ? t('مفيش نتايج للبحث ده — جرّب كلمة تانية.', 'No results — try another search.')
+      : t('لا يوجد منتجات فى هذا القسم حاليًا.', 'No products in this category yet.');
+
     root.innerHTML =
       // The site header (nav.js's `.sk-nav--solid`, z-index 70) sits fixed above
       // `.facets`' own z-index (60), so once the mobile sheet goes full-screen
@@ -160,8 +192,8 @@
       // `--sk-nav-h`, with the same fallback nav.js itself uses) only while the
       // sheet is open, on the breakpoint where it goes full-screen.
       '<style>@media (max-width:860px){#facets.is-open{padding-top:calc(var(--sk-nav-h,86px) + 16px)}}</style>' +
-      U.breadcrumb([{ label: t('البيت', 'Home'), href: 'index.html' },
-                    { label: t('المتجر', 'Shop'), href: 'shop.html' }, { label: title }]) +
+      U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') },
+                    { label: t('المتجر', 'Shop'), href: P('shop.html') }, { label: title }]) +
       '<div class="shopgrid">' +
         '<aside class="shopgrid__side">' +
           '<button type="button" class="facets__toggle" id="facetToggle">' + t('الفلاتر', 'Filters') + '</button>' +
@@ -170,9 +202,9 @@
         '<div class="shopgrid__main">' +
           U.toolbar(state, pg.total, { count: function (n) { return t(n + ' منتج', n + ' products'); }, sorts: SORT_LABELS }) +
           (pg.total ? '<div class="grid">' + pg.items.map(function (p) { return U.card(p, {}); }).join('') + '</div>'
-                    : '<p class="empty">' + t('مفيش نتايج للبحث ده — جرّب كلمة تانية.', 'No results — try another search.') + '</p>') +
+                    : '<p class="empty">' + emptyMsg + '</p>') +
           U.pager(pg.page, pg.pages, function (n) {
-            return 'shop.html' + C.stateToSearch(Object.assign({}, state, { page: n }));
+            return P('shop.html') + C.stateToSearch(Object.assign({}, state, { page: n }));
           }) +
         '</div>' +
       '</div>';
@@ -187,10 +219,23 @@
   function wireBrowse(root, state) {
     var form = root.querySelector('#facets');
 
+    var fixed = root.getAttribute('data-cat');
+
     function applyForm() {
       var fd = new FormData(form);
+      var newCat = fd.get('cat') || '';
+      // On a category page the Category facet must not be a dead control: a
+      // page cannot render two categories at once, so picking a DIFFERENT
+      // one is a real navigation to that category's own page (catHref
+      // already resolves correctly from /category/) rather than a value
+      // go()/render() would just pin back to `fixed` anyway. Every other
+      // facet (brand/price/sort) keeps the existing pinned-in-place behaviour.
+      if (fixed && newCat && newCat !== fixed) {
+        location.href = window.skApp.catHref(newCat);
+        return;
+      }
       go({
-        cat: fd.get('cat') || '', q: state.q,
+        cat: newCat, q: state.q,
         brands: fd.getAll('brand'),
         min: fd.get('min') ? parseInt(fd.get('min'), 10) : null,
         max: fd.get('max') ? parseInt(fd.get('max'), 10) : null,
@@ -207,7 +252,11 @@
     }
     var clear = root.querySelector('#facetClear');
     if (clear) clear.addEventListener('click', function () {
-      go({ cat: '', q: state.q, brands: [], min: null, max: null, sort: 'default', page: 1, all: true });
+      // `all: true` tells a non-fixed browse ("shop.html") to stay in browse
+      // mode with every filter cleared. On a fixed category page render()
+      // ignores `all` outright (it's always forced back to false), so
+      // setting it here would only leave a meaningless `?all=1` in the URL.
+      go({ cat: '', q: state.q, brands: [], min: null, max: null, sort: 'default', page: 1, all: !fixed });
     });
     var sortSel = root.querySelector('#sortSel');
     if (sortSel) sortSel.addEventListener('change', function () {
@@ -265,7 +314,7 @@
   function boot() {
     Promise.all([
       window.skApp.products(),
-      fetch('data/promos.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      fetch(P('data/promos.json')).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
     ]).then(function (res) {
       CACHE = { products: res[0], promos: (res[1] && res[1].promos) || null };
       render();

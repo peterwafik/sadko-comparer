@@ -117,6 +117,9 @@
     clear() { writeCart([]); },
   };
   window.skCart = skCart;
+  // The storefront re-renders its grid on every facet change, so it needs to
+  // re-run these over the new cards. Additive only; existing pages are unaffected.
+  window.skNav = { enhanceCategoryCards, injectFinderCta };
 
   /* ================= header ================= */
   function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
@@ -460,6 +463,7 @@
       document.querySelectorAll('article.card').forEach(card => {
         const link = card.querySelector('a.card__imgwrap') || card.querySelector('a[href]');
         if (!link) return;
+        if (card.__skProduct) return;   // already enhanced; re-runs must not double the buttons
         let prod = null;
         try { prod = byPath[decodeURIComponent(new URL(link.href).pathname)]; } catch (e) {}
         if (!prod) return;

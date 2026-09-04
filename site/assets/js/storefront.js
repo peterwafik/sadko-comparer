@@ -181,5 +181,14 @@
     }).join(' <i>←</i> ') + '</nav>';
   }
 
-  return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb };
+  // Browser-only. After any grid renders, re-run the site-wide card hooks so
+  // add-to-cart, the details link and filter-by-my-place appear on new cards.
+  // Safe to call repeatedly: nav.js guards on card.__skProduct.
+  function afterGrid(rootEl) {
+    if (typeof document === 'undefined') return;
+    try { if (window.skNav && window.skNav.enhanceCategoryCards) window.skNav.enhanceCategoryCards(); } catch (e) {}
+    try { if (window.skPrefs && window.skPrefs.applyToCards) window.skPrefs.applyToCards(rootEl); } catch (e) {}
+  }
+
+  return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
 });

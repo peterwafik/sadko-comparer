@@ -29,6 +29,22 @@
 
   function specOf(p) { return window.skSpecs ? window.skSpecs.of(p) : {}; }
 
+  // Live price bands: bucket `products` into C.PRICE_BANDS and drop any band
+  // with zero matches, exactly like liveCategories()/brandsOf() already do —
+  // "do not render a facet that would return zero results" applies to price
+  // bands too, not just cats/brands. Matches shop-core's filter() semantics
+  // (min inclusive, max exclusive) so counts agree with what clicking the
+  // band would actually filter to. Used by both the hub and the browse
+  // facets so the two never disagree about which bands are live.
+  function liveBands(products) {
+    return C.PRICE_BANDS.map(function (b, i) {
+      var count = products.filter(function (p) {
+        return p.price >= b.min && (b.max == null || p.price < b.max);
+      }).length;
+      return { key: b.key, label: BAND_LABELS[i], href: bandHref(b), count: count };
+    }).filter(function (b) { return b.count > 0; });
+  }
+
   // promos.json seeds bilingual pairs (title/titleEn, sub/subEn, cta/ctaEn);
   // skShopUI.promoHero only ever reads the bare (Arabic) keys, so the EN swap
   // happens here rather than inside that shared renderer.
@@ -51,7 +67,9 @@
     });
     var brands = C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; }).slice(0, 12)
       .map(function (b) { return { key: b.key, count: b.count, name: t(b.ar, b.en), href: 'shop.html?brand=' + encodeURIComponent(b.key) }; });
-    var bands = C.PRICE_BANDS.map(function (b) { return { key: b.key, href: bandHref(b) }; });
+    var liveB = liveBands(products);
+    var bands = liveB.map(function (b) { return { key: b.key, href: b.href }; });
+    var bandLabels = liveB.map(function (b) { return b.label; });
 
     var rails = cats.slice(0, 4).map(function (c) {
       var items = C.sortList(products.filter(function (p) { return String(p.categoryId) === c.id; }), 'price-asc').slice(0, 8);
@@ -66,7 +84,7 @@
       '<h2 class="shop-h2">' + t('تسوّق حسب الماركة', 'Shop by brand') + '</h2>' +
       '<div class="btiles">' + brands.map(U.brandTile).join('') + '</div>' +
       '<h2 class="shop-h2">' + t('تسوّق حسب السعر', 'Shop by price') + '</h2>' +
-      U.priceBands(bands, BAND_LABELS) +
+      U.priceBands(bands, bandLabels) +
       rails;
     U.afterGrid(root);
   }
@@ -86,6 +104,7 @@
     // so a user can always see what selecting another value would give them.
     var forCats = C.filter(products, Object.assign({}, state, { cat: '' }), specOf);
     var forBrands = C.filter(products, Object.assign({}, state, { brands: [] }), specOf);
+    var forPrice = C.filter(products, Object.assign({}, state, { min: null, max: null }), specOf);
 
     var data = {
       cats: C.liveCategories(forCats).map(function (c) {
@@ -94,7 +113,7 @@
       brands: C.brandsOf(forBrands, specOf).map(function (b) {
         return { key: b.key, count: b.count, name: t(b.ar, b.en) };
       }),
-      bands: C.PRICE_BANDS.map(function (b, i) { return { key: b.key, label: BAND_LABELS[i], href: bandHref(b) }; })
+      bands: liveBands(forPrice)
     };
 
     var title = state.cat ? A.catName(state.cat) : (state.q ? t('نتائج البحث', 'Search results') : t('كل المنتجات', 'All products'));
@@ -204,8 +223,19 @@
   function render() {
     var root = document.getElementById('shop-root');
     var state = C.parseState(location.search);
-    if (C.isBrowse(state)) renderBrowse(root, state, CACHE.products);
-    else renderHub(root, CACHE.products, CACHE.promos);
+    if (C.isBrowse(state)) {
+      renderBrowse(root, state, CACHE.products);
+    } else {
+      // Leaving browse for the hub: `go()` reaches here through render()
+      // itself (not only via popstate) whenever a facet change makes
+      // isBrowse() false again (e.g. clearing the last min/max), which can
+      // happen with the mobile sheet still `.is-open`. wireBrowse()'s
+      // ESC_HANDLER is otherwise only swapped out on the *next* browse
+      // render, so tear it down here too or it stays attached to `document`
+      // referencing a now-detached (but still `.is-open`) form.
+      if (ESC_HANDLER) { document.removeEventListener('keydown', ESC_HANDLER); ESC_HANDLER = null; }
+      renderHub(root, CACHE.products, CACHE.promos);
+    }
   }
   window.addEventListener('popstate', render);
 

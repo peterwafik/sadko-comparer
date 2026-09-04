@@ -97,8 +97,17 @@
     U.afterGrid(root);
   }
 
+  // Prebuilt category pages (site/category/*.html) set data-cat on #shop-root
+  // to pin one category id — see render()'s own read of the same attribute.
+  // go() must never let a facet change on such a page navigate it away to
+  // shop.html: it keeps location.pathname (the category page itself) and
+  // strips `cat` from the querystring (render() reasserts it from data-cat
+  // on every render, so the URL never needs to carry it).
   function go(state) {
-    history.pushState(null, '', 'shop.html' + C.stateToSearch(state));
+    var root = document.getElementById('shop-root');
+    var fixed = root && root.getAttribute('data-cat');
+    var path = fixed ? location.pathname : 'shop.html';
+    history.pushState(null, '', path + C.stateToSearch(fixed ? Object.assign({}, state, { cat: '' }) : state));
     render();
   }
 
@@ -230,7 +239,13 @@
   var CACHE = null;
   function render() {
     var root = document.getElementById('shop-root');
+    // A category page (data-cat on #shop-root — see site/mkcategories.mjs)
+    // pins its category regardless of the URL: state.cat is forced to it and
+    // `all` (which would otherwise show every category) is cleared so the
+    // page always renders that one category's browse view, never the hub.
+    var fixed = root.getAttribute('data-cat');
     var state = C.parseState(location.search);
+    if (fixed) { state.cat = fixed; state.all = false; }
     if (C.isBrowse(state)) {
       renderBrowse(root, state, CACHE.products);
     } else {
@@ -261,7 +276,15 @@
     if (EN) {
       document.documentElement.lang = 'en';
       document.documentElement.dir = 'ltr';
-      document.title = 'Shop — SADKO Group';
+      // On a category page nav.js's translateCategoryPage() already rewrote
+      // <title> to "<Category> — SADKO Group" earlier in this same
+      // DOMContentLoaded phase (nav.js's listener runs first — it's added
+      // first, since nav.js is the earlier <script> tag). Only shop.html
+      // itself (no data-cat) needs the generic title here; overwriting it
+      // unconditionally would blank out the category name on every one of
+      // the 30 category pages in EN mode.
+      var root0 = document.getElementById('shop-root');
+      if (!(root0 && root0.getAttribute('data-cat'))) document.title = 'Shop — SADKO Group';
       var l = document.querySelector('[data-i18n="loading"]');
       if (l) l.textContent = 'Loading…';
     }

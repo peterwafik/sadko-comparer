@@ -27,24 +27,32 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   display: grid; align-items: end; text-decoration: none; color: #fff;
   box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s; }
 .promo:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-.promo__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; }
-/* Stretched to the full .promo box (not content-sized) so the gradient's dark
-   stops land under the title wherever it falls, not just at the bottom edge —
-   a content-sized box only puts full opacity right behind .promo__cta. */
-.promo__body { position: absolute; inset: 0; padding: 20px; display: flex; flex-direction: column;
-  justify-content: flex-end; align-items: flex-start; gap: 6px;
+/* Scrim lives on a decorative ::before, NOT on .promo__body — .promo__body
+   must stay in-flow (position:relative) so this grid container still has a
+   real in-flow child and can grow past min-height when copy wraps to more
+   lines. The ::before is stacked above .promo__bg (the photo) and below
+   .promo__body (the text) via explicit z-index, and covers the full box so
+   the dark stops sit under the whole text block, not just its bottom edge. */
+.promo::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(to top,
     color-mix(in srgb, var(--ink) 90%, transparent) 0%,
     color-mix(in srgb, var(--ink) 62%, transparent) 45%,
     transparent 100%); }
+/* No photo behind the scrim: the flat accent fill (teal/amber/ink) is already
+   a deliberate, finished background and doesn't need the photo-strength dark
+   wash — ease off so it doesn't read as a muddy smudge. Targets the actual
+   absence of the image layer (not the accent class), since any accent can in
+   principle pair with or without an image. */
+.promo:not(:has(.promo__bg))::before { background: linear-gradient(to top,
+    color-mix(in srgb, var(--ink) 38%, transparent) 0%,
+    color-mix(in srgb, var(--ink) 18%, transparent) 45%,
+    transparent 100%); }
+.promo__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; z-index: 0; }
+.promo__body { position: relative; z-index: 2; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
 /* typographic fallbacks — used when a promo carries no image, so each must
    read as a deliberate, finished background on its own. */
 .promo--teal { background: var(--teal-deep); }
 .promo--amber { background: var(--amber); color: var(--ink); }
-.promo--amber .promo__body { background: linear-gradient(to top,
-    color-mix(in srgb, var(--ink) 42%, transparent) 0%,
-    color-mix(in srgb, var(--ink) 22%, transparent) 45%,
-    transparent 100%); }
 .promo--ink { background: var(--ink); }
 .promo__sample { display: inline-block; font: 800 .72rem 'Cairo', sans-serif; letter-spacing: .02em;
   padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, #fff 85%, transparent);

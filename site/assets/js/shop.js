@@ -21,10 +21,16 @@
     'price-desc': 'Price: high to low'
   } : undefined;
 
-  function bandHref(b) {
-    var s = { brands: [], sort: 'default', page: 1 };
-    s.min = b.min; s.max = b.max;
-    return 'shop.html' + C.stateToSearch(Object.assign({ cat: '', q: '', all: false }, s));
+  // Builds a price-band link that PRESERVES every other active facet (cat, q,
+  // brands, sort, all) and changes only the price dimension plus resetting
+  // page to 1 — the same "narrow, don't replace" contract the rest of the
+  // facet rail follows. `state` is the caller's current browse state; the
+  // hub calls this with no active state at all (nothing to preserve yet), so
+  // `base` falls back to a clean, filter-free state and hub band links stay
+  // bare price-only URLs.
+  function bandHref(b, state) {
+    var base = state || { cat: '', q: '', brands: [], sort: 'default', all: false };
+    return 'shop.html' + C.stateToSearch(Object.assign({}, base, { min: b.min, max: b.max, page: 1 }));
   }
 
   function specOf(p) { return window.skSpecs ? window.skSpecs.of(p) : {}; }
@@ -35,13 +41,15 @@
   // bands too, not just cats/brands. Matches shop-core's filter() semantics
   // (min inclusive, max exclusive) so counts agree with what clicking the
   // band would actually filter to. Used by both the hub and the browse
-  // facets so the two never disagree about which bands are live.
-  function liveBands(products) {
+  // facets so the two never disagree about which bands are live. `state` is
+  // forwarded to bandHref() so a band link narrows the CURRENT view instead
+  // of replacing it (see bandHref's comment); the hub omits it.
+  function liveBands(products, state) {
     return C.PRICE_BANDS.map(function (b, i) {
       var count = products.filter(function (p) {
         return p.price >= b.min && (b.max == null || p.price < b.max);
       }).length;
-      return { key: b.key, label: BAND_LABELS[i], href: bandHref(b), count: count };
+      return { key: b.key, label: BAND_LABELS[i], href: bandHref(b, state), count: count };
     }).filter(function (b) { return b.count > 0; });
   }
 
@@ -113,7 +121,7 @@
       brands: C.brandsOf(forBrands, specOf).map(function (b) {
         return { key: b.key, count: b.count, name: t(b.ar, b.en) };
       }),
-      bands: liveBands(forPrice)
+      bands: liveBands(forPrice, state)
     };
 
     var title = state.cat ? A.catName(state.cat) : (state.q ? t('نتائج البحث', 'Search results') : t('كل المنتجات', 'All products'));

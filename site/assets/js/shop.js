@@ -10,6 +10,16 @@
   var BAND_LABELS = [t('تحت ٥٬٠٠٠', 'Under 5,000'), t('٥٬٠٠٠ – ١٥٬٠٠٠', '5,000 – 15,000'),
                      t('١٥٬٠٠٠ – ٣٠٬٠٠٠', '15,000 – 30,000'), t('فوق ٣٠٬٠٠٠', 'Over 30,000')];
   var RAIL_LABELS = { more: t('شوف الكل', 'See all') };
+  // toolbar()'s own DEFAULT_SORT_LABELS are hardcoded Arabic, so EN pages must
+  // supply an override map keyed by shop-core's sort ids or the sort <select>
+  // would show Arabic text on an English page (the exact class of bug flagged
+  // in review of earlier tasks). Left undefined in Arabic so toolbar() falls
+  // back to its own (correct) Arabic defaults.
+  var SORT_LABELS = EN ? {
+    'default': 'Default order',
+    'price-asc': 'Price: low to high',
+    'price-desc': 'Price: high to low'
+  } : undefined;
 
   function bandHref(b) {
     var s = { brands: [], sort: 'default', page: 1 };
@@ -61,26 +71,151 @@
     U.afterGrid(root);
   }
 
-  // TEMPORARY — Task 9 replaces this wholesale with the real faceted browse
-  // view (facets sidebar, toolbar, pager, filtered grid). Task 8 only ships
-  // the hub, but shop-core's isBrowse() already recognises `?cat=`/`?q=`/etc.
-  // URLs, and boot() below must call *something* by that name or loading
-  // shop.html with any of those params throws a ReferenceError. Falling back
-  // to the hub keeps the page working (if not yet filtering) until Task 9 lands.
-  function renderBrowse(root, state, products, promos) {
-    renderHub(root, products, promos);
+  function go(state) {
+    history.pushState(null, '', 'shop.html' + C.stateToSearch(state));
+    render();
   }
 
-  function boot() {
+  function renderBrowse(root, state, products) {
+    var A = window.skApp;
+    var matched = C.filter(products, state, specOf);
+    var sorted = C.sortList(matched, state.sort);
+    var pg = C.paginate(sorted, state.page, 24);
+
+    // Facet counts are computed against everything EXCEPT the facet being shown,
+    // so a user can always see what selecting another value would give them.
+    var forCats = C.filter(products, Object.assign({}, state, { cat: '' }), specOf);
+    var forBrands = C.filter(products, Object.assign({}, state, { brands: [] }), specOf);
+
+    var data = {
+      cats: C.liveCategories(forCats).map(function (c) {
+        return { id: c.id, count: c.count, name: A.catName(c.id), href: 'shop.html?cat=' + c.id };
+      }),
+      brands: C.brandsOf(forBrands, specOf).map(function (b) {
+        return { key: b.key, count: b.count, name: t(b.ar, b.en) };
+      }),
+      bands: C.PRICE_BANDS.map(function (b, i) { return { key: b.key, label: BAND_LABELS[i], href: bandHref(b) }; })
+    };
+
+    var title = state.cat ? A.catName(state.cat) : (state.q ? t('نتائج البحث', 'Search results') : t('كل المنتجات', 'All products'));
+
+    var facetsHtml = U.facets(state, data, { cats: t('الفئة', 'Category'), brands: t('الماركة', 'Brand'),
+                                              price: t('السعر', 'Price'), clear: t('امسح الفلاتر', 'Clear filters') });
+    // (A) facets() (storefront.js — not modifiable from here) renders no way to
+    // dismiss the mobile full-screen sheet it becomes at <=860px
+    // (`.facets.is-open`, see storefront.css). Splice an Apply/Done control
+    // into the top of its own <form> so it scrolls with the sheet and needs no
+    // CSS changes — wireBrowse() below makes it apply the pending fields
+    // (min/max only fire `change` on blur) and, because that always triggers a
+    // full re-render with no `.is-open` on the fresh markup, also closes the
+    // sheet. Escape (wired below) closes it without applying.
+    facetsHtml = facetsHtml.replace('<form class="facets" id="facets">',
+      '<form class="facets" id="facets">' +
+      '<button type="button" class="facet__clear facets__done" id="facetDone">' +
+        U.esc(t('تم — اعرض النتائج', 'Done — show results')) + '</button>');
+
+    root.innerHTML =
+      // The site header (nav.js's `.sk-nav--solid`, z-index 70) sits fixed above
+      // `.facets`' own z-index (60), so once the mobile sheet goes full-screen
+      // (`.facets.is-open`, storefront.css) its first child — our Done control —
+      // would otherwise render right underneath that header, unreachable. This
+      // scoped rule (not a storefront.css edit — it's part of shop.js's own
+      // markup) reserves the header's real measured height (nav.js's
+      // `--sk-nav-h`, with the same fallback nav.js itself uses) only while the
+      // sheet is open, on the breakpoint where it goes full-screen.
+      '<style>@media (max-width:860px){#facets.is-open{padding-top:calc(var(--sk-nav-h,86px) + 16px)}}</style>' +
+      U.breadcrumb([{ label: t('البيت', 'Home'), href: 'index.html' },
+                    { label: t('المتجر', 'Shop'), href: 'shop.html' }, { label: title }]) +
+      '<div class="shopgrid">' +
+        '<aside class="shopgrid__side">' +
+          '<button type="button" class="facets__toggle" id="facetToggle">' + t('الفلاتر', 'Filters') + '</button>' +
+          facetsHtml +
+        '</aside>' +
+        '<div class="shopgrid__main">' +
+          U.toolbar(state, pg.total, { count: function (n) { return t(n + ' منتج', n + ' products'); }, sorts: SORT_LABELS }) +
+          (pg.total ? '<div class="grid">' + pg.items.map(function (p) { return U.card(p, {}); }).join('') + '</div>'
+                    : '<p class="empty">' + t('مفيش نتايج للبحث ده — جرّب كلمة تانية.', 'No results — try another search.') + '</p>') +
+          U.pager(pg.page, pg.pages, function (n) {
+            return 'shop.html' + C.stateToSearch(Object.assign({}, state, { page: n }));
+          }) +
+        '</div>' +
+      '</div>';
+    U.afterGrid(root);
+    wireBrowse(root, state);
+  }
+
+  // Module-scoped so wireBrowse() can remove the *previous* render's Escape
+  // listener before adding the new one (see the note beside its use below).
+  var ESC_HANDLER = null;
+
+  function wireBrowse(root, state) {
+    var form = root.querySelector('#facets');
+
+    function applyForm() {
+      var fd = new FormData(form);
+      go({
+        cat: fd.get('cat') || '', q: state.q,
+        brands: fd.getAll('brand'),
+        min: fd.get('min') ? parseInt(fd.get('min'), 10) : null,
+        max: fd.get('max') ? parseInt(fd.get('max'), 10) : null,
+        sort: state.sort, page: 1, all: state.all
+      });
+    }
+
+    if (form) {
+      form.addEventListener('change', applyForm);
+      // Never let the browser attempt a real form submission (Enter in a
+      // number field can trigger one even with no submit button) — go()
+      // through applyForm() is the only navigation this form should cause.
+      form.addEventListener('submit', function (ev) { ev.preventDefault(); applyForm(); });
+    }
+    var clear = root.querySelector('#facetClear');
+    if (clear) clear.addEventListener('click', function () {
+      go({ cat: '', q: state.q, brands: [], min: null, max: null, sort: 'default', page: 1, all: true });
+    });
+    var sortSel = root.querySelector('#sortSel');
+    if (sortSel) sortSel.addEventListener('change', function () {
+      go(Object.assign({}, state, { sort: sortSel.value, page: 1 }));
+    });
+    var toggle = root.querySelector('#facetToggle');
+    if (toggle && form) toggle.addEventListener('click', function () { form.classList.toggle('is-open'); });
+    // (A) Mobile dismiss, continued: the Done control applies+closes (see
+    // applyForm's re-render note above); Escape closes without applying, for
+    // someone who opened the sheet and changed their mind. Escape must be
+    // caught on `document` — right after opening, focus is still on the
+    // #facetToggle button *outside* the form (it becomes visually hidden
+    // underneath the fixed sheet, but keeps focus), so a keydown listener
+    // scoped to the form itself would never see that keypress. ESC_HANDLER
+    // is swapped out (not merely added) on every render so re-renders never
+    // accumulate a second, third, ... stale document-level listener.
+    var done = root.querySelector('#facetDone');
+    if (done && form) done.addEventListener('click', applyForm);
+    if (ESC_HANDLER) document.removeEventListener('keydown', ESC_HANDLER);
+    ESC_HANDLER = form ? function (ev) {
+      if (ev.key === 'Escape' && form.classList.contains('is-open')) {
+        ev.preventDefault();
+        form.classList.remove('is-open');
+      }
+    } : null;
+    if (ESC_HANDLER) document.addEventListener('keydown', ESC_HANDLER);
+  }
+
+  var CACHE = null;
+  function render() {
     var root = document.getElementById('shop-root');
     var state = C.parseState(location.search);
+    if (C.isBrowse(state)) renderBrowse(root, state, CACHE.products);
+    else renderHub(root, CACHE.products, CACHE.promos);
+  }
+  window.addEventListener('popstate', render);
+
+  function boot() {
     Promise.all([
       window.skApp.products(),
       fetch('data/promos.json').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
     ]).then(function (res) {
-      var products = res[0], promos = (res[1] && res[1].promos) || null;
-      if (C.isBrowse(state)) renderBrowse(root, state, products, promos);
-      else renderHub(root, products, promos);
+      CACHE = { products: res[0], promos: (res[1] && res[1].promos) || null };
+      render();
     });
   }
 

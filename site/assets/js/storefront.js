@@ -64,7 +64,8 @@
     if (!items.length) return '';
     return '<div class="promos">' + items.map(function (x) {
       var accent = ACCENTS[x.accent] || ACCENTS.teal;
-      return '<a class="promo ' + accent + '" href="' + esc(x.href || '#') + '">' +
+      var noimg = x.image ? '' : ' promo--noimg';
+      return '<a class="promo ' + accent + noimg + '" href="' + esc(x.href || '#') + '">' +
         (x.image ? '<img class="promo__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
         '<span class="promo__body">' +
           // Deliberately hardcoded, not a labels.* lookup: this marker is an honesty

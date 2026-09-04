@@ -112,6 +112,16 @@ test('promoHero falls back to a typographic panel when image is absent', () => {
   assert.ok(!html.includes('<img'));
 });
 
+// storefront.css keys its no-image fallback scrim off this class (not a :has()
+// selector, for older-Android/Safari support), so both directions matter: a
+// promo without an image must carry it, and a promo with one must not.
+test('promoHero marks a promo with no image as promo--noimg, and one with an image as not', () => {
+  const withoutImage = ui.promoHero([{ id: 'a', title: 'x', href: '#' }]);
+  assert.ok(withoutImage.includes('promo--noimg'));
+  const withImage = ui.promoHero([{ id: 'a', title: 'x', href: '#', image: 'assets/img/still_1.jpg' }]);
+  assert.ok(!withImage.includes('promo--noimg'));
+});
+
 test('rail renders one card per product and a see-all link', () => {
   const html = ui.rail('الأوفر', [P, { ...P, id: '2' }], 'shop.html?cat=38003882');
   assert.equal((html.match(/<article class="card"/g) || []).length, 2);

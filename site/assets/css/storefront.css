@@ -40,15 +40,18 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
     transparent 100%); }
 /* No photo behind the scrim: the flat accent fill (teal/amber/ink) is already
    a deliberate, finished background and doesn't need the photo-strength dark
-   wash — ease off so it doesn't read as a muddy smudge. Targets the actual
-   absence of the image layer (not the accent class), since any accent can in
-   principle pair with or without an image. */
-.promo:not(:has(.promo__bg))::before { background: linear-gradient(to top,
+   wash — ease off so it doesn't read as a muddy smudge. Keyed on the
+   renderer-supplied .promo--noimg class (a plain class selector, universally
+   supported) rather than a relational pseudo-class keyed off .promo__bg's
+   presence, since that selector is unsupported on older Android/Safari and
+   this site's shoppers skew toward older devices. */
+.promo--noimg::before { background: linear-gradient(to top,
     color-mix(in srgb, var(--ink) 38%, transparent) 0%,
     color-mix(in srgb, var(--ink) 18%, transparent) 45%,
     transparent 100%); }
 .promo__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; z-index: 0; }
-.promo__body { position: relative; z-index: 2; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+.promo__body { position: relative; z-index: 2; padding: 20px; display: flex; flex-direction: column;
+  align-items: flex-start; gap: 6px; }
 /* typographic fallbacks — used when a promo carries no image, so each must
    read as a deliberate, finished background on its own. */
 .promo--teal { background: var(--teal-deep); }

@@ -52,13 +52,33 @@ test('card escapes HTML in the title', () => {
 
 test('card renders the price and never a was-price', () => {
   const html = ui.card(P, {});
-  // ui.money() is the module's own formatter (locale/ICU-dependent digit script);
-  // deriving the expectation from it keeps this assertion correct across Node builds.
-  assert.ok(html.includes(ui.money(P.price)));
+  // Independent oracle — does not call ui.money(), so a broken money() (e.g. always
+  // returning '', or a wrong digit script) cannot make this assertion pass by accident.
+  // 15785 in Arabic-Indic numerals (this Node build has full ICU, so ar-EG renders those,
+  // grouped with a U+066C Arabic thousands separator) is "١٥٬٧٨٥"; on a small-ICU build
+  // ar-EG silently falls back to Latin digits/comma ("15,785").
+  assert.match(html, /15,?785|١٥٬٧٨٥/);
+  // Guards the fallback path (non-finite price) independently of the regex above.
+  assert.ok(ui.money(P.price).length > 0);
   assert.ok(!/was|كان|<del|<s>/i.test(html));
 });
 
 test('card tolerates a missing image without emitting a broken src', () => {
   const html = ui.card({ ...P, image: '' }, {});
   assert.ok(!html.includes('src=""'));
+});
+
+test('card renders EN digits and currency when window.skLang reports en', () => {
+  const savedWindow = global.window;
+  global.window = { skLang: { get: () => 'en' } };
+  try {
+    const html = ui.card(P, {});
+    // Independent oracle: calls Number.prototype.toLocaleString directly, not ui.money().
+    assert.ok(html.includes((15785).toLocaleString('en-EG')));
+    assert.ok(html.includes('EGP'));
+    assert.ok(!html.includes('جنيه'));
+  } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
 });

@@ -17,10 +17,17 @@
 
   function clean(s) { return String(s == null ? '' : s).replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim(); }
 
+  // Same language convention as appshell.js's EN()/money(): read window.skLang when it
+  // exists, default to Arabic otherwise. Guarded so this stays callable from node:test,
+  // where `window` is undefined.
+  function isEN() {
+    return typeof window !== 'undefined' && !!(window.skLang && window.skLang.get() === 'en');
+  }
+
   function money(n) {
     var v = Number(n);
     if (!isFinite(v)) return '';
-    return v.toLocaleString('ar-EG');
+    return isEN() ? v.toLocaleString('en-EG') : v.toLocaleString('ar-EG');
   }
 
   // MUST keep every class nav.js/prefs.js query, and MUST href the catalogue url:
@@ -40,7 +47,7 @@
         '<h3 class="card__title">' + esc(title) + '</h3>' +
         '<p class="card__teaser">' + esc(teaser) + '</p>' +
         '<div class="card__row">' +
-          '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || 'جنيه') + '</small></span>' +
+          '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (isEN() ? 'EGP' : 'جنيه')) + '</small></span>' +
           '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(opts.buyLabel || 'اشترى الآن') + '</a>' +
         '</div>' +
       '</div>' +

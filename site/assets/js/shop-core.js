@@ -50,5 +50,42 @@
               s.min != null || s.max != null || s.sort !== 'default' || s.page > 1);
   }
 
-  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse };
+  var PRICE_BANDS = [
+    { key: '0-5000',      min: 0,     max: 5000 },
+    { key: '5000-15000',  min: 5000,  max: 15000 },
+    { key: '15000-30000', min: 15000, max: 30000 },
+    { key: '30000+',      min: 30000, max: null }
+  ];
+
+  function liveCategories(products) {
+    var by = {};
+    products.forEach(function (p) {
+      var id = String(p.categoryId);
+      by[id] = (by[id] || 0) + 1;
+    });
+    return Object.keys(by)
+      .map(function (id) { return { id: id, count: by[id] }; })
+      .sort(function (a, b) { return b.count - a.count; });
+  }
+
+  // `specOf` is injected so this function has no dependency on window.skSpecs.
+  // Products whose brand cannot be derived are counted under '__none__', which is
+  // always sorted last — they must remain visible, never silently dropped.
+  function brandsOf(products, specOf) {
+    var by = {};
+    products.forEach(function (p) {
+      var b = (specOf(p) || {}).brand;
+      var key = (b && (b.key || b.en || b.ar)) ? String(b.key || b.en || b.ar).toLowerCase() : '__none__';
+      if (!by[key]) by[key] = { key: key, ar: b ? b.ar : 'غير محدد', en: b ? b.en : 'Unspecified', count: 0 };
+      by[key].count++;
+    });
+    return Object.keys(by).map(function (k) { return by[k]; })
+      .sort(function (a, b) {
+        if (a.key === '__none__') return 1;
+        if (b.key === '__none__') return -1;
+        return b.count - a.count;
+      });
+  }
+
+  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf };
 });

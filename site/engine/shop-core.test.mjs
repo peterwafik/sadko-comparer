@@ -49,3 +49,37 @@ test('isBrowse is false for the bare hub and true for any recognised parameter',
   assert.equal(core.isBrowse(core.parseState('?cat=38003882')), true);
   assert.equal(core.isBrowse(core.parseState('?q=lg')), true);
 });
+
+const SAMPLE = [
+  { id: '1', title: 'ثلاجة كريازى 10 قدم', price: 15785, categoryId: '38003882' },
+  { id: '2', title: 'ثلاجة كريازى 12 قدم', price: 21000, categoryId: '38003882' },
+  { id: '3', title: 'غسالة LG 7 كيلو',     price: 9500,  categoryId: '38005652' },
+  { id: '4', title: 'خلاط بدون ماركة',      price: 650,   categoryId: '112439376' }
+];
+// stand-in for window.skSpecs.of — returns no brand for product 4
+const specOf = p => ({ brand: p.title.includes('كريازى') ? { ar: 'كريازى', en: 'Kiriazi', key: 'kiriazi' }
+                        : p.title.includes('LG') ? { ar: 'إل جى', en: 'LG', key: 'lg' } : undefined });
+
+test('liveCategories counts only categories that have products, count-desc', () => {
+  const cats = core.liveCategories(SAMPLE);
+  assert.deepEqual(cats, [
+    { id: '38003882', count: 2 },
+    { id: '38005652', count: 1 },
+    { id: '112439376', count: 1 }
+  ]);
+});
+
+test('brandsOf counts derivable brands and buckets the rest under __none__ last', () => {
+  const brands = core.brandsOf(SAMPLE, specOf);
+  assert.equal(brands[0].key, 'kiriazi');
+  assert.equal(brands[0].count, 2);
+  assert.equal(brands[brands.length - 1].key, '__none__');
+  assert.equal(brands[brands.length - 1].count, 1);
+});
+
+test('PRICE_BANDS cover the catalogue range with no gaps and an open top band', () => {
+  const b = core.PRICE_BANDS;
+  assert.equal(b[0].min, 0);
+  assert.equal(b[b.length - 1].max, null);
+  for (let i = 1; i < b.length; i++) assert.equal(b[i].min, b[i - 1].max);
+});

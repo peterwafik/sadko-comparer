@@ -33,22 +33,38 @@
   // MUST keep every class nav.js/prefs.js query, and MUST href the catalogue url:
   // enhanceCategoryCards resolves products by URL pathname, so an internal href
   // breaks add-to-cart on every card. See storefront.test.mjs.
+  // Same convention as nav.js's translateCategoryPage(): in EN the title runs
+  // through the rule-based catalog translator (specs/teasers exist only in
+  // Arabic, so the teaser is hidden rather than mistranslated), and the buy
+  // label gets an English default. Guarded so this stays callable from
+  // node:test, where window/skCatalogI18n do not exist.
+  function translateForEN(s) {
+    try {
+      if (typeof window !== 'undefined' && window.skCatalogI18n && window.skCatalogI18n.translateTitle) {
+        return window.skCatalogI18n.translateTitle(s);
+      }
+    } catch (e) {}
+    return s;
+  }
+
   function card(p, opts) {
     opts = opts || {};
     var href = opts.href || p.url || '#';
-    var title = clean(p.title);
+    var en = isEN();
+    var title = en ? translateForEN(clean(p.title)) : clean(p.title);
     var teaser = clean(p.description).slice(0, 120);
     var img = p.image
       ? '<img loading="lazy" decoding="async" src="' + esc(p.image) + '" alt="' + esc(title) + '">'
       : '<span class="card__noimg" aria-hidden="true"></span>';
+    var buyLabel = opts.buyLabel || (en ? 'Buy now ↗' : 'اشترى الآن');
     return '<article class="card" data-id="' + esc(p.id) + '" data-cat="' + esc(p.categoryId) + '">' +
       '<a class="card__imgwrap" href="' + esc(href) + '">' + img + '</a>' +
       '<div class="card__body">' +
         '<h3 class="card__title">' + esc(title) + '</h3>' +
-        '<p class="card__teaser">' + esc(teaser) + '</p>' +
+        '<p class="card__teaser"' + (en ? ' hidden' : '') + '>' + esc(teaser) + '</p>' +
         '<div class="card__row">' +
-          '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (isEN() ? 'EGP' : 'جنيه')) + '</small></span>' +
-          '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(opts.buyLabel || 'اشترى الآن') + '</a>' +
+          '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small></span>' +
+          '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(buyLabel) + '</a>' +
         '</div>' +
       '</div>' +
     '</article>';

@@ -84,6 +84,97 @@ test('card renders EN digits and currency when window.skLang reports en', () => 
   }
 });
 
+// AR (default) behaviour is the pre-existing baseline: title/teaser stay in
+// Arabic and unhidden, and the buy button reads the Arabic default — none of
+// this changes when no EN branch is exercised. window is left untouched
+// (undefined under node:test unless a prior test set it) so this is exactly
+// today's code path.
+test('card in AR mode (default) keeps title, teaser and buy label unchanged', () => {
+  const savedWindow = global.window;
+  delete global.window;
+  try {
+    const html = ui.card(P, {});
+    assert.ok(html.includes('>' + P.title + '<'));
+    assert.ok(html.includes('>' + P.description + '<'));
+    assert.ok(!/class="card__teaser"[^>]*\bhidden\b/.test(html));
+    assert.match(html, /class="card__buy"[^>]*>اشترى الآن</);
+    assert.ok(!html.includes('Buy now'));
+  } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
+});
+
+// EN mode: the buy button must read the English default, never the Arabic
+// literal, and an explicit opts.buyLabel must still win over both defaults.
+test('card in EN mode uses the English buy label by default, and honours an explicit override', () => {
+  const savedWindow = global.window;
+  global.window = { skLang: { get: () => 'en' } };
+  try {
+    const html = ui.card(P, {});
+    assert.match(html, /class="card__buy"[^>]*>Buy now/);
+    assert.ok(!html.includes('اشترى الآن'));
+    const overridden = ui.card(P, { buyLabel: 'Custom label' });
+    assert.match(overridden, /class="card__buy"[^>]*>Custom label</);
+  } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
+});
+
+// EN mode: specs/teasers exist only in Arabic (same rationale as nav.js's
+// translateCategoryPage), so the teaser must be hidden — but the element
+// itself must still exist, since prefs.js/nav.js query .card__body's
+// children by fixed structure, not by presence of the teaser.
+test('card in EN mode hides the teaser but keeps the .card__teaser element in the markup', () => {
+  const savedWindow = global.window;
+  global.window = { skLang: { get: () => 'en' } };
+  try {
+    const html = ui.card(P, {});
+    assert.match(html, /<p class="card__teaser"[^>]*\bhidden\b[^>]*>/);
+  } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
+});
+
+// EN mode with no catalog translator loaded (e.g. a page that forgot the
+// <script>, or a future consumer of card() outside the shop pages): must not
+// throw, and must fall back to the untranslated Arabic title rather than
+// producing empty/garbled text.
+test('card in EN mode falls back to the untranslated title when window.skCatalogI18n is absent', () => {
+  const savedWindow = global.window;
+  global.window = { skLang: { get: () => 'en' } };   // no skCatalogI18n on this window
+  try {
+    assert.doesNotThrow(() => ui.card(P, {}));
+    const html = ui.card(P, {});
+    assert.ok(html.includes('>' + P.title + '<'));
+  } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
+});
+
+// EN mode with a catalog translator present: the title actually gets routed
+// through it. The mock returns a marker string unrelated to any real
+// translation logic, so this proves card() calls translateTitle rather than
+// happening to produce translated-looking text on its own.
+test('card in EN mode routes the title through window.skCatalogI18n.translateTitle when present', () => {
+  const savedWindow = global.window;
+  global.window = {
+    skLang: { get: () => 'en' },
+    skCatalogI18n: { translateTitle: () => '__TRANSLATED_MARKER__' }
+  };
+  try {
+    const html = ui.card(P, {});
+    assert.ok(html.includes('__TRANSLATED_MARKER__'));
+    assert.ok(!html.includes(P.title));
+  } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
+});
+
 test('promoHero renders nothing for missing, empty or malformed input', () => {
   assert.equal(ui.promoHero(null), '');
   assert.equal(ui.promoHero([]), '');

@@ -169,14 +169,19 @@ const FDATA = {
 const FLABELS = { cats: 'الفئة', brands: 'الماركة', price: 'السعر', clear: 'امسح الفلاتر' };
 
 test('facets checks only the category row matching state.cat, not any other row', () => {
-  const html = ui.facets(core.parseState('?cat=38003882'), FDATA, FLABELS);
+  // Deliberately targets FDATA.cats[1] (id 77009911), NOT cats[0] (38003882):
+  // an "always check index 0" regression would happen to match cats[0]'s id and
+  // pass a test that targeted it, exactly as toolbar's price-asc (option index 1,
+  // not 0) test is sabotage-proof. Targeting the non-first row here closes the
+  // same gap for facets.
+  const html = ui.facets(core.parseState('?cat=77009911'), FDATA, FLABELS);
   // Independent of position/order: matches the exact matching-row markup, and
   // separately proves the non-matching row's markup carries no `checked` at all —
   // this fails if `checked` were hoisted onto every row (or the first row)
   // unconditionally, unlike a bare /checked/.test(html).
-  assert.match(html, /<input type="radio" name="cat" value="38003882" checked>/);
-  assert.doesNotMatch(html, /<input type="radio" name="cat" value="77009911"[^>]*checked/);
-  assert.match(html, /<input type="radio" name="cat" value="77009911">/);
+  assert.match(html, /<input type="radio" name="cat" value="77009911" checked>/);
+  assert.doesNotMatch(html, /<input type="radio" name="cat" value="38003882"[^>]*checked/);
+  assert.match(html, /<input type="radio" name="cat" value="38003882">/);
 });
 
 test('facets always offer the unspecified-brand bucket', () => {

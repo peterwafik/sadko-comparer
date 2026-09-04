@@ -137,6 +137,7 @@
   }
 
   function renderBrowse(root, state, products) {
+    var fixed = root.getAttribute('data-cat');
     var matched = C.filter(products, state, specOf);
     var sorted = C.sortList(matched, state.sort);
     var pg = C.paginate(sorted, state.page, 24);
@@ -204,7 +205,11 @@
           (pg.total ? '<div class="grid">' + pg.items.map(function (p) { return U.card(p, {}); }).join('') + '</div>'
                     : '<p class="empty">' + emptyMsg + '</p>') +
           U.pager(pg.page, pg.pages, function (n) {
-            return P('shop.html') + C.stateToSearch(Object.assign({}, state, { page: n }));
+            // Pinned exactly like go()'s fixed branch: stay on this category's
+            // own path, not shop.html — the pager must not be the one control
+            // that silently relocates the user off a category page.
+            var path = fixed ? location.pathname : P('shop.html');
+            return path + C.stateToSearch(Object.assign({}, state, { cat: fixed ? '' : state.cat, page: n }));
           }) +
         '</div>' +
       '</div>';
@@ -312,9 +317,15 @@
   window.addEventListener('popstate', render);
 
   function boot() {
+    // A category page (data-cat) always renders renderBrowse, never renderHub
+    // — the only consumer of promos — so fetching promos.json there is pure
+    // wasted work; skip the request entirely instead of fetching and discarding.
+    var fixedPage = document.getElementById('shop-root').getAttribute('data-cat');
+    var promos = fixedPage ? Promise.resolve(null)
+      : fetch(P('data/promos.json')).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     Promise.all([
       window.skApp.products(),
-      fetch(P('data/promos.json')).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+      promos
     ]).then(function (res) {
       CACHE = { products: res[0], promos: (res[1] && res[1].promos) || null };
       render();

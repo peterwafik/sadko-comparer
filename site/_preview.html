@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SADKO — dev preview harness (desktop + portrait phone)</title>
+<!--
+  THROWAWAY DEV HARNESS — not part of the site, do not link to it or deploy it.
+
+  Why iframes instead of two browser windows:
+   1. A real Chrome window cannot be resized narrow enough to trigger the home
+      page's `(max-width:860px) and (orientation:portrait)` media queries — the
+      viewport floors around 967px, so a resized tab silently shows the DESKTOP
+      render and the portrait work looks like it never landed.
+   2. At 125% display scaling a 1536px screen is only ~1229 CSS px wide, so a real
+      desktop viewport (>860) and a 393px phone cannot both fit side by side.
+  An <iframe> has its own viewport for media-query evaluation, and CSS `scale()`
+  shrinks how much SCREEN it takes without changing the viewport it reports. So the
+  left frame genuinely believes it is 1280px wide and the right one genuinely
+  believes it is a portrait phone — both correct, both visible at once.
+
+  Language: the site persists its language in localStorage['sadko-lang'] and this
+  harness is served from the same origin as the site, so it shares that exact store.
+  Writing the key here and reloading the frames is the same thing the in-page AR/EN
+  toggle does — no postMessage bridge needed.
+
+  Caveats:
+   - `pointer:coarse` still won't match (desktop pointer), so hover-only affordances
+     (marker labels, card hovers) behave as desktop. Expected; scene rendering and
+     layout are unaffected.
+   - The home page's scroll world scrubs video on scroll. Scroll INSIDE a frame:
+     a background tab throttles rAF, which looks exactly like "the scroll world is
+     frozen" but is the browser, not the page.
+-->
+<style>
+  :root{ --bg:#0e1013; --panel:#181c22; --ink:#eef1f5; --soft:#94a0ae;
+         --line:#2a3039; --accent:#2e7e88; --amber:#c98a24; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;
+    font:13px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    display:flex;flex-direction:column}
+  header{padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+  h1{font-size:14px;margin:0;font-weight:650;white-space:nowrap}
+  .tag{font-size:10.5px;color:var(--soft);border:1px solid var(--line);padding:2px 7px;border-radius:999px}
+  .row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+  .row--pages{padding:7px 14px;border-bottom:1px solid var(--line);background:#13161b;flex:0 0 auto}
+  .lbl{font-size:10.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.06em;margin-inline-end:2px}
+  .spacer{margin-left:auto}
+  button{font:inherit;font-size:11.5px;color:var(--soft);background:transparent;
+    border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
+  button:hover{color:var(--ink);border-color:#3a424e}
+  button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.lang.on{background:var(--amber);border-color:var(--amber);color:#1a1204}
+
+  main{flex:1 1 auto;display:flex;gap:14px;padding:10px;min-height:0;
+       justify-content:center;align-items:flex-start}
+  .pane{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+  .cap{font-size:11px;color:var(--soft);margin-bottom:6px;white-space:nowrap}
+  .cap b{color:var(--ink)}
+  .cap .live{color:#54c27e}
+  /* Each viewport is rendered at TRUE pixel size, then scaled down purely visually.
+     transform:scale() does not change the viewport the iframe reports.
+     NOTE: no flex growth here — JS sets exact px, and flex:1 would override it. */
+  .box{position:relative;overflow:hidden;flex:0 0 auto}
+  .box iframe{border:0;transform-origin:0 0;display:block;background:#f6f3ee}
+  .desk iframe{box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:5px}
+  .phone{background:#000;border-radius:30px;padding:7px;box-shadow:0 14px 44px rgba(0,0,0,.55)}
+  .phone iframe{border-radius:24px}
+  .crop{font-size:10.5px;margin-top:7px;text-align:center;min-height:15px}
+  .crop a{color:#6f7c8a}
+  .ok{color:#54c27e}.warn{color:#e0a33c}
+
+  /* Test checklist — an overlay so it never steals height from the frames. */
+  #notes{position:fixed;inset:auto 12px 12px auto;width:min(430px,46vw);max-height:64vh;
+    overflow:auto;background:#151920;border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;box-shadow:0 18px 50px rgba(0,0,0,.6);display:none;z-index:9}
+  #notes.show{display:block}
+  #notes h2{font-size:12.5px;margin:0 0 8px;color:var(--ink)}
+  #notes ul{margin:0;padding-inline-start:18px}
+  #notes li{font-size:11.5px;color:var(--soft);margin:0 0 6px}
+  #notes li b{color:var(--ink);font-weight:600}
+  #notes .why{font-size:10.5px;color:#6f7c8a;margin-top:9px;border-top:1px solid var(--line);padding-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>SADKO — desktop vs portrait phone</h1>
+  <span class="tag">dev harness · each frame reports its own true viewport</span>
+  <span class="row"><span class="lbl">lang</span><span class="row" id="langs"></span></span>
+  <span class="row spacer" id="devices"></span>
+  <button id="reload" title="Force both frames to reload">&#8635; reload</button>
+  <button id="notesBtn">test checklist</button>
+</header>
+
+<div class="row row--pages">
+  <span class="lbl">page</span>
+  <span class="row" id="pages"></span>
+</div>
+
+<main>
+  <div class="pane">
+    <div class="cap">DESKTOP &middot; nominal <b>1280 &times; 800</b> &middot; reports <span class="live" id="dlive">&hellip;</span></div>
+    <div class="box desk"><iframe id="d" src="index.html" width="1280" height="800"></iframe></div>
+    <div class="crop"><a id="dopen" href="index.html" target="_blank">open this page full-size &#8599;</a></div>
+  </div>
+  <div class="pane">
+    <div class="cap">PORTRAIT PHONE &middot; <b id="mdim">393 &times; 852</b> &middot; aspect <b id="masp">0.461</b> &middot; reports <span class="live" id="mlive">&hellip;</span></div>
+    <div class="box"><div class="phone" id="ph"><iframe id="m" src="index.html" width="393" height="852"></iframe></div></div>
+    <div class="crop" id="crop"></div>
+  </div>
+</main>
+
+<div id="notes"></div>
+
+<script>
+  // Shipped portrait scene is 9:21 (1320x3080). Cover maths mirrored from scrub-engine.js.
+  var IMG_W = 1320, IMG_H = 3080;
+
+  var DEVICES = [
+    ['iPhone 15', 393, 852], ['15 Pro Max', 430, 932], ['iPhone SE', 375, 667],
+    ['Pixel 9 XL', 448, 998], ['S24 Ultra', 384, 832], ['Xperia 21:9', 411, 960],
+    ['Z Fold cover', 344, 882]
+  ];
+
+  // Every page worth eyeballing after this branch's work, with what changed on it.
+  // The harness is only useful if it says what to look at, so each page carries its own list.
+  var PAGES = [
+    { label: 'Home (scroll world)', url: 'index.html', crop: true, notes: [
+      ['Shop hand-off', 'the 4th room is now <b>Shop</b>, not the offers room. Scroll to the end of the laundry leg: the video is cut where the offers room used to appear, the veil fades in, and it navigates to shop.html.'],
+      ['Scroll INSIDE the frame', 'click the frame first. A background or never-focused iframe throttles rAF and the world will look frozen &mdash; that is the browser, not the page.'],
+      ['Portrait scenes', 'the phone frame uses the 9:21 tall stills; the crop readout below it says how much is trimmed.'],
+      ['Back button', 'after it lands on the shop, Back should return you here without instantly bouncing forward again.']
+    ]},
+    { label: 'Shop (all products)', url: 'shop.html', notes: [
+      ['Section order', 'ad hero (above the breadcrumbs) &rarr; breadcrumbs &rarr; search &rarr; <b>Shop by brand</b> &rarr; Hot offers &rarr; Shop by category &rarr; Featured &rarr; Best sellers.'],
+      ['Ad hero rotates', 'the top ad changes every 5s. Keep the tab focused &mdash; a hidden tab pauses it on purpose.'],
+      ['Ads down the page', 'contained ad slots (solo / grid) sit between the rails and never go full-bleed.'],
+      ['Rail arrows', 'every carousel has <b>&lsaquo;</b> on the left and <b>&rsaquo;</b> on the right, in BOTH languages, and no scrollbar.'],
+      ['Advanced search', 'category / brand / price / sort filters; try a query like "tv".'],
+      ['No &ldquo;Shop by price&rdquo;', 'deliberately absent here, and present on the category subpages.']
+    ]},
+    { label: 'Category page', url: 'category/112439376.html', notes: [
+      ['Card layout', 'square image frame, title and teaser on reserved lines, price on its own row, one primary button plus quiet secondary links &mdash; nothing crushed side by side.'],
+      ['Consistent cards', 'the same card in a grid and inside a rail should differ only in width.'],
+      ['Shop by price', 'present here, unlike the shop hub.'],
+      ['Rail arrows', '&lsaquo; left, &rsaquo; right, statically, in Arabic too.']
+    ]},
+    { label: 'Product (PDP)', url: 'product.html?id=676766143', notes: [
+      ['Titles', 'no doubled HTML entities (&amp;amp; / &amp;nbsp;) anywhere in the name.'],
+      ['English mode', 'the title goes through the rule-based catalogue translator; no Arabic left in EN.'],
+      ['Related rail', 'arrows, not a scrollbar.']
+    ]},
+    { label: 'Our Values (new)', url: 'values.html', notes: [
+      ['New page', 'split out of About and linked from the footer as &ldquo;Our Values&rdquo;.'],
+      ['One language at a time', 'each value heading renders AR or EN, never both.']
+    ]},
+    { label: 'About', url: 'about.html', notes: [
+      ['Slimmed down', '&ldquo;What we stand for&rdquo; and its sections are gone &mdash; they live on Our Values now.'],
+      ['Link card', 'About should carry a card pointing at the Values page.']
+    ]},
+    { label: 'Finder', url: 'finder.html', notes: [
+      ['Result cards', 'same card contract as the shop; buttons not crushed.'],
+      ['Language', 'no Arabic strings leaking into EN mode.']
+    ]},
+    { label: 'Plan', url: 'plan.html', notes: [
+      ['Room plans', 'card layout and spacing match the rest of the site.']
+    ]},
+    { label: 'Guides', url: 'guides.html', notes: [
+      ['Guide rails', 'arrows instead of scrollbars.']
+    ]},
+    { label: 'Compare', url: 'compare.html', notes: [
+      ['Table scroll', 'the comparison table still scrolls horizontally on purpose &mdash; it is a table, not a carousel, and was deliberately left with native scrolling.']
+    ]},
+    { label: 'Cart', url: 'cart.html', notes: [
+      ['Stored titles', 'add something from the shop first; in EN the cart must show translated titles, not the raw Arabic it stored.']
+    ]},
+    { label: 'Saved', url: 'saved.html', notes: [
+      ['Card layout', 'same card contract as everywhere else.']
+    ]}
+  ];
+
+  var LANG_KEY = 'sadko-lang';
+  var d = document.getElementById('d'), m = document.getElementById('m'),
+      ph = document.getElementById('ph'),
+      devBar = document.getElementById('devices'),
+      pageBar = document.getElementById('pages'),
+      langBar = document.getElementById('langs'),
+      notes = document.getElementById('notes');
+  var mw = 393, mh = 852, page = PAGES[0];
+
+  function fit() {
+    // main.clientHeight still includes its own 10px padding; subtract that plus the
+    // caption above each frame and the crop/open line below it, or the bottom line
+    // renders half-clipped off the viewport.
+    var avail = Math.max(240, document.querySelector('main').clientHeight - 68);
+    var totalW = window.innerWidth - 52;            // page padding + gap
+
+    // Size the PHONE first (it is the thing being reviewed) by fitting its height,
+    // then give the desktop frame whatever width is left. Sizing both from fixed
+    // percentage shares let the desktop overrun and push the phone off-screen.
+    var pw = mw + 14, phh = mh + 14;                // + bezel padding
+    var ms = Math.min(avail / phh, (totalW * 0.42) / pw);
+    ph.style.transform = 'scale(' + ms + ')';
+    ph.style.transformOrigin = '0 0';
+    var phoneW = Math.round(pw * ms);
+    ph.parentElement.style.width  = phoneW + 'px';
+    ph.parentElement.style.height = Math.round(phh * ms) + 'px';
+
+    var remaining = Math.max(200, totalW - phoneW);
+    var ds = Math.min(avail / 800, remaining / 1280);
+    d.style.transform = 'scale(' + ds + ')';
+    d.parentElement.style.width  = Math.round(1280 * ds) + 'px';
+    d.parentElement.style.height = Math.round(800  * ds) + 'px';
+  }
+
+  // Read back what each frame actually believes its viewport is. Same origin, so
+  // this is a direct measurement rather than a claim in the caption.
+  function reportViewports() {
+    function read(fr, el) {
+      try {
+        var w = fr.contentWindow;
+        document.getElementById(el).textContent = w.innerWidth + ' × ' + w.innerHeight;
+      } catch (e) { document.getElementById(el).textContent = 'n/a'; }
+    }
+    read(d, 'dlive'); read(m, 'mlive');
+  }
+  d.addEventListener('load', reportViewports);
+  m.addEventListener('load', reportViewports);
+
+  function cropReadout() {
+    var el = document.getElementById('crop');
+    if (!page.crop) {
+      el.innerHTML = '<a href="' + page.url + '" target="_blank">open this page full-size ↗</a>';
+      return;
+    }
+    var s = Math.max(mw / IMG_W, mh / IMG_H);
+    var side = Math.round(IMG_W * s - mw), tb = Math.round(IMG_H * s - mh);
+    el.innerHTML = side < 1
+      ? '<span class="ok">✓ 0px side crop</span> · ' + tb + 'px trimmed top/bottom (ceiling + floor)'
+      : '<span class="warn">' + side + 'px side crop</span> · into generated margin, not the room';
+  }
+
+  function apply(w, h, btn) {
+    mw = w; mh = h; m.width = w; m.height = h;
+    document.getElementById('mdim').textContent = w + ' × ' + h;
+    document.getElementById('masp').textContent = (w / h).toFixed(3);
+    [].forEach.call(devBar.children, function (b) { b.classList.toggle('on', b === btn); });
+    cropReadout();
+    fit();
+    reportViewports();
+  }
+
+  function go(p, btn) {
+    page = p;
+    d.src = p.url; m.src = p.url;
+    document.getElementById('dopen').href = p.url;
+    [].forEach.call(pageBar.children, function (b) { b.classList.toggle('on', b === btn); });
+    renderNotes();
+    cropReadout();
+  }
+
+  function renderNotes() {
+    notes.innerHTML = '<h2>' + page.label + ' — what to look at</h2><ul>' +
+      page.notes.map(function (n) { return '<li><b>' + n[0] + ':</b> ' + n[1] + '</li>'; }).join('') +
+      '</ul><div class="why">Both frames show the same page at once. Scroll inside a frame ' +
+      'to drive it; the phone frame is a real portrait viewport, so the mobile media queries match.</div>';
+  }
+
+  function lang() {
+    try { return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'ar'; } catch (e) { return 'ar'; }
+  }
+  function setLang(l) {
+    // Same origin as the site, so this IS the store the site reads. Reloading the
+    // frames afterwards is exactly what the in-page toggle does.
+    try { localStorage.setItem(LANG_KEY, l); } catch (e) {}
+    paintLangs();
+    d.contentWindow.location.reload(); m.contentWindow.location.reload();
+  }
+  function paintLangs() {
+    [].forEach.call(langBar.children, function (b) { b.classList.toggle('on', b.getAttribute('data-l') === lang()); });
+  }
+
+  [['العربية (RTL)', 'ar'], ['English (LTR)', 'en']].forEach(function (pair) {
+    var b = document.createElement('button');
+    b.className = 'lang'; b.setAttribute('data-l', pair[1]); b.textContent = pair[0];
+    b.onclick = function () { setLang(pair[1]); };
+    langBar.appendChild(b);
+  });
+  paintLangs();
+
+  PAGES.forEach(function (p, i) {
+    var b = document.createElement('button');
+    b.textContent = p.label;
+    b.onclick = function () { go(p, b); };
+    pageBar.appendChild(b);
+    if (i === 0) b.classList.add('on');
+  });
+
+  DEVICES.forEach(function (dev, i) {
+    var b = document.createElement('button');
+    b.textContent = dev[0];
+    b.onclick = function () { apply(dev[1], dev[2], b); };
+    devBar.appendChild(b);
+    if (i === 0) setTimeout(function () { apply(dev[1], dev[2], b); }, 0);
+  });
+
+  document.getElementById('reload').onclick = function () {
+    d.contentWindow.location.reload(); m.contentWindow.location.reload();
+  };
+  document.getElementById('notesBtn').onclick = function () { notes.classList.toggle('show'); };
+
+  renderNotes();
+  addEventListener('resize', fit);
+</script>
+</body>
+</html>

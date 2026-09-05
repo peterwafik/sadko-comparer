@@ -43,10 +43,16 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   border: 0; background: color-mix(in srgb, #fff 82%, transparent); color: var(--ink);
   font-size: 1.4rem; line-height: 1; display: grid; place-items: center; transition: background .18s; }
 .adhero__nav:hover { background: #fff; }
-.adhero__nav--prev { inset-inline-start: 12px; }
-.adhero__nav--next { inset-inline-end: 12px; }
-/* Direction-sensitive glyphs, so mirror them in LTR. */
-html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
+/* PHYSICAL left/right, not inset-inline: the banner arrows stay put when the page
+   flips to LTR, matching the rail arrows. `‹` is always the button on the left and
+   `›` always the one on the right, in Arabic and English alike. */
+.adhero__nav--prev { left: 12px; }
+.adhero__nav--next { right: 12px; }
+/* And the glyphs are never mirrored. Two separate things would mirror them: an
+   author transform, and the bidi algorithm — U+2039/U+203A are Bidi_Mirrored, so in
+   an RTL paragraph the engine draws `‹` as `›` on its own. Isolating the glyph in an
+   LTR run is what keeps the left button pointing left in Arabic. */
+.adhero__nav i { display: block; transform: none; direction: ltr; unicode-bidi: isolate; }
 .adhero__dots { position: absolute; inset-inline: 0; bottom: 12px; z-index: 3;
   display: flex; justify-content: center; gap: var(--sk-gap-xs); }
 .adhero__dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; cursor: pointer;
@@ -166,9 +172,11 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 .rail__nav:disabled { opacity: 0; pointer-events: none; }
 /* A rail with nothing to scroll shows no arrows at all. */
 .rail__slider--static .rail__nav { display: none; }
-/* The glyphs are direction-neutral here (they are pinned physically), so they
-   must NOT inherit the LTR mirror the breadcrumb chevrons use. */
-.rail__nav i { display: block; transform: none; }
+/* The glyphs are direction-neutral here (they are pinned physically), so they must
+   NOT inherit the LTR mirror the breadcrumb chevrons use — and they must not be
+   mirrored by the bidi algorithm either: U+2039/U+203A are Bidi_Mirrored, so inside
+   an RTL paragraph `‹` is DRAWN as `›`. Isolating an LTR run pins the shape. */
+.rail__nav i { display: block; transform: none; direction: ltr; unicode-bidi: isolate; }
 
 
 /* ---------- shop section heading (used on the shop hub between rails/tile groups) ---------- */

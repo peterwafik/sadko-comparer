@@ -48,7 +48,30 @@ test('the arrow sides are pinned physically, not with logical properties', () =>
   assert.ok(!/\.rail__nav--[lr] \{ inset-inline/.test(CSS),
     'an arrow is pinned with a logical property — it will swap sides in Arabic');
   // and the glyph must not inherit the LTR mirror the breadcrumb chevron uses
-  assert.match(CSS, /\.rail__nav i \{ display: block; transform: none; \}/);
+  assert.match(CSS, /\.rail__nav i \{ display: block; transform: none;/);
+});
+
+test('the banner arrows are pinned the same way as the rail arrows', () => {
+  // The ad hero is a second carousel with its own controls; it kept the old
+  // direction-sensitive treatment (inset-inline + an LTR scaleX flip) after the
+  // rails were converted, which put `›` on the left of every banner.
+  assert.match(CSS, /\.adhero__nav--prev \{ left:/, 'the previous-banner arrow is not pinned with `left`');
+  assert.match(CSS, /\.adhero__nav--next \{ right:/, 'the next-banner arrow is not pinned with `right`');
+  assert.ok(!/\.adhero__nav--(prev|next) \{ inset-inline/.test(CSS),
+    'a banner arrow is pinned with a logical property — it will swap sides in Arabic');
+  assert.ok(!/html\[dir="?ltr"?\] \.adhero__nav i/.test(CSS),
+    'the banner glyphs are still mirrored in LTR — that swaps the two arrows');
+});
+
+test('neither carousel lets the bidi algorithm mirror its arrow glyphs', () => {
+  // U+2039/U+203A are Bidi_Mirrored: inside an RTL paragraph the engine draws `‹`
+  // as `›` by itself, so pinning the buttons physically is not enough — the glyph
+  // has to sit in its own LTR run or Arabic shows both arrows pointing inward.
+  for (const sel of ['.rail__nav i', '.adhero__nav i']) {
+    const rule = CSS.slice(CSS.indexOf(sel + ' {'), CSS.indexOf(sel + ' {') + 160);
+    assert.match(rule, /direction: ltr/, sel + ' does not force an LTR run');
+    assert.match(rule, /unicode-bidi: isolate/, sel + ' does not isolate its bidi run');
+  }
 });
 
 test('the rail scrollbar is hidden in every engine', () => {

@@ -29,7 +29,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
    Contained, never full-bleed. The rest of the shop is capped at the page width,
    and an ad that breaks that line reads as a takeover rather than as part of the
    page — which is exactly the note that sent the previous full-width strap back. */
-.adhero { position: relative; margin: 0 0 var(--sk-gutter);
+.adhero { position: relative; margin: 0 0 var(--sk-section);
   border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
   background: color-mix(in srgb, var(--accent) 7%, #fff);
   aspect-ratio: 1600 / 608; }
@@ -57,7 +57,7 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 
 /* Interleaved ad blocks, dealt out between the sections so a new one appears every
    screen or so on the way down. 'duo' is a pair, 'solo' one wide banner. */
-.adslot { display: grid; gap: var(--sk-grid-gap); margin: 0 0 var(--sk-gutter); }
+.adslot { display: grid; gap: var(--sk-grid-gap); margin: 0 0 var(--sk-section); }
 /* The paired artwork is SQUARE, so at half of a 1352px container each ad came out
    660px tall and dominated the page more than the products did. Cap the column and
    centre the row: the ads stay a comfortable size and the block reads as an insert
@@ -65,6 +65,10 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 .adslot--duo { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 420px));
   justify-content: center; }
 .adslot--solo { grid-template-columns: 1fr; }
+/* One full-width row of the square artwork — the same shape btech uses for its
+   collection tiles, and the only way four square images read as one deliberate
+   block instead of two oversized panels. */
+.adslot--grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
 .adslot__ad { display: block; border-radius: var(--radius); overflow: hidden;
   box-shadow: var(--shadow); background: color-mix(in srgb, var(--accent) 7%, #fff);
   transition: transform .18s, box-shadow .18s; }
@@ -72,18 +76,20 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 .adslot__ad img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* The pair is square artwork; the solo banner is wide. Fixing the ratio per layout
    keeps a row even when the two images have different intrinsic sizes. */
-.adslot--duo .adslot__ad { aspect-ratio: 1 / 1; }
+.adslot--duo .adslot__ad,
+.adslot--grid .adslot__ad { aspect-ratio: 1 / 1; }
 .adslot--solo .adslot__ad { aspect-ratio: 1600 / 608; }
 
 /* ---------- 3. category / brand tiles ---------- */
-.ctiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sk-gap-sm); }
+.ctiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--sk-gap-sm); margin: 0 0 var(--sk-section); }
 
 /* Brand row: a circular mark over the name, the "shop by brand" pattern the big
    retailers use. We ship no third-party logo files, so .btile__mark falls back to
    a wordmark disc — the row looks deliberate either way, and dropping a PNG into
    assets/img/brands/ turns it into a real logo with no code change. */
 .btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gutter); }
+  gap: var(--sk-gap-sm); margin: 0 0 var(--sk-section); }
 .btile { display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: var(--sk-gap-sm) 6px; text-align: center;
   text-decoration: none; color: var(--ink); }
@@ -125,9 +131,11 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 .band:hover { background: var(--accent); color: #fff; }
 
 /* ---------- 5. rails ---------- */
-.rail { margin: 0 0 var(--sk-gutter); }
+.rail { margin: 0 0 var(--sk-section); }
 .rail__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gap-sm); flex-wrap: wrap; }
-.rail__title { margin: 0; font: 900 1.14rem 'Cairo', sans-serif; }
+/* Same size/weight as .shop-h2 — a rail is a section like any other, and two
+   heading scales on one page is what made the order look unsettled. */
+.rail__title { margin: 0; font: 900 1.3rem 'Cairo', sans-serif; }
 .rail__more { text-decoration: none; font: 800 .85rem 'Cairo', sans-serif; color: var(--accent); white-space: nowrap; }
 .rail__more:hover { text-decoration: underline; }
 .rail__track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: var(--sk-grid-gap);
@@ -135,7 +143,11 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 .rail__track > .card { scroll-snap-align: start; }
 
 /* ---------- shop section heading (used on the shop hub between rails/tile groups) ---------- */
-.shop-h2 { margin: 0 0 var(--sk-gap-sm); font: 900 1.2rem 'Cairo', sans-serif; color: var(--ink); }
+/* Section headings carry the same weight as the rail titles so every band of the
+   page announces itself the same way. Sized to sit between btech's 24px/600 and
+   SADKO's heavier Cairo. margin-top:0 — the block above owns the 48px gap, so the
+   rhythm stays uniform whether or not a section has a heading. */
+.shop-h2 { margin: 0 0 var(--sk-gap-md); font: 900 1.3rem 'Cairo', sans-serif; color: var(--ink); }
 
 /* ---------- 6. shop grid (browse layout: filters + results) ---------- */
 .shopgrid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: var(--sk-gutter); align-items: start; }
@@ -169,7 +181,9 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 /* Direction-agnostic on purpose: the field and its button are laid out by flex
    order, so the pill reads correctly in RTL and LTR with no mirror rule. */
 /* ---------- advanced search ---------- */
-.asearch { margin: 0 0 var(--sk-gutter); }
+/* The search is the last piece of page chrome before the sections begin, so it
+   hands off on the same 48px rhythm every section below it uses. */
+.asearch { margin: 0 0 var(--sk-section); }
 .asearch .ssearch { flex: 1 1 100%; width: 100%; }
 .asearch .ssearch__input { flex: 1 1 auto; }
 .asearch__more { margin-top: var(--sk-gap-xs); }
@@ -271,5 +285,7 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
   .btile__mark { width: 68px; height: 68px; }
   /* A pair of square ads side by side is unreadable on a phone; stack them. */
   .adslot--duo { grid-template-columns: 1fr; }
+  /* four square ads across is unreadable on a phone; two is the floor. */
+  .adslot--grid { grid-template-columns: repeat(2, 1fr); }
   .ctiles, .btiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }

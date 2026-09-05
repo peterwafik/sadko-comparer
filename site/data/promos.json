@@ -2,7 +2,8 @@
   "note": "REAL SADKO campaign artwork, downloaded from the company's own live homepage (https://sadko-group.com/) on 2026-09-05 and stored under assets/img/promos/. The banner text is baked into the images in Arabic; `title`/`sub` transcribe what each image says so screen readers and the English side have an equivalent. Do not add a 'was' price, discount %, rating or stock claim here — the catalogue carries no discount data, and these banners make none.",
   "captured": "2026-09-05",
   "source": "https://sadko-group.com/",
-  "placement": "hero = the rotating banner at the top of shop.html; slot = the ad blocks interleaved between the shop's sections.",
+  "placement": "hero = the rotating banner at the top of shop.html; slot = the ad blocks interleaved between the shop's sections. Slots are dealt out in the order below: the first goes in the wide single-banner block, the rest fill the square ad row, so a wide banner should come first.",
+  "notIncluded": "assets/img/promos/tile-hotline.jpg (the 19140 strip) was downloaded but is not listed: it is 285x155, so the square ad tile cropped the number to '9140'. The hotline already appears in the header and the footer. Kept in the folder in case a square version is produced.",
   "promos": [
     {
       "id": "bestsellers", "slot": "hero", "accent": "teal",
@@ -26,7 +27,7 @@
       "altEn": "SADKO offer: 6 months interest-free instalments for NBE purchase-card holders"
     },
     {
-      "id": "summer", "slot": "hero", "accent": "ink",
+      "id": "summer", "slot": "slot", "accent": "ink",
       "title": "الصيف مع صادكو",
       "titleEn": "Summer with SADKO",
       "cta": "تسوّق التكييفات", "ctaEn": "Shop air conditioners",
@@ -64,14 +65,6 @@
       "image": "assets/img/promos/tile-preee.jpg",
       "alt": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر — جديد",
       "altEn": "Kiriazi Solitaire Elegant 370L refrigerator — new"
-    },
-    {
-      "id": "hotline", "slot": "slot", "accent": "amber",
-      "title": "كلّمنا على ١٩١٤٠", "titleEn": "Call us on 19140",
-      "href": "contact.html",
-      "image": "assets/img/promos/tile-hotline.jpg",
-      "alt": "الخط الساخن لصادكو ١٩١٤٠",
-      "altEn": "SADKO hotline 19140"
     }
   ]
 }

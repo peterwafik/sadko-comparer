@@ -223,12 +223,45 @@ test('the hub interleaves ad slots between the rails', () => {
   const hub = functionBody(src, 'renderHub');
   const rails = [0, 1, 2, 3].map(i => hub.indexOf('railList[' + i + ']'));
   rails.forEach((at, i) => assert.ok(at > 0, 'rail ' + i + ' is not rendered individually'));
-  // every deal() call must fall between two rails, never all before or all after
   const deals = [];
   for (let i = hub.indexOf('deal('); i !== -1; i = hub.indexOf('deal(', i + 1)) deals.push(i);
-  assert.ok(deals.length >= 3, 'expected at least three interleaved ad slots, found ' + deals.length);
-  assert.ok(deals[0] > rails[0] && deals[0] < rails[1], 'the first ad slot is not between rails 1 and 2');
-  assert.ok(deals[deals.length - 1] < rails[3], 'the last ad slot is not before the final rail');
+  assert.ok(deals.length >= 2, 'expected at least two interleaved ad slots, found ' + deals.length);
+  // The property that matters is INTERLEAVING: every ad sits strictly between two
+  // rails, so none of them can be stacked together at the top or dumped at the end.
+  for (const at of deals) {
+    assert.ok(at > rails[0], 'an ad slot renders before the first rail');
+    assert.ok(at < rails[rails.length - 1], 'an ad slot renders after the last rail');
+  }
+  // and no two ads are adjacent with no rail between them
+  for (let i = 1; i < deals.length; i++) {
+    assert.ok(rails.some(r => r > deals[i - 1] && r < deals[i]),
+      'two ad slots run back to back with no rail between them');
+  }
+});
+
+// Section order is copied from btech.com's shop page, measured off the live site.
+// Brands sit straight after the hero; price is NOT on the hub at all.
+test('the hub follows the btech section order', () => {
+  const hub = functionBody(src, 'renderHub');
+  const at = s => { const i = hub.indexOf(s); assert.ok(i > 0, 'hub is missing ' + s); return i; };
+  const hero = at('U.adHero('), brands = at('btiles'), cats = at('ctiles');
+  const rail0 = at('railList[0]'), rail1 = at('railList[1]');
+  assert.ok(hero < brands, 'the brand row should follow the hero');
+  assert.ok(brands < rail0, 'the first rail should follow the brand row');
+  assert.ok(rail0 < cats, 'the category tiles should follow the first rail');
+  assert.ok(cats < rail1, 'the second rail should follow the category tiles');
+});
+
+test('"shop by price" is not on the hub, but the browse facets still have it', () => {
+  // Comment-stripped: renderHub explains in prose WHY the price filter is not here,
+  // and a raw grep matches that explanation as if it were the code.
+  const hub = functionBody(src, 'renderHub')
+    .split(/\r?\n/).filter(l => !/^\s*\/\//.test(l)).join('\n');
+  assert.ok(!/priceBands|تسوّق حسب السعر|Shop by price/.test(hub),
+    'the price filter is back on the hub — it belongs in the facet rail, not the landing page');
+  // the facet rail (browse view + every category page) must still build them
+  assert.match(functionBody(src, 'renderBrowse'), /bands: liveBands\(/,
+    'the browse facets no longer offer price bands');
 });
 
 // adDealer hands out each ad once and then stops, so an owner who trims

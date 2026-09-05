@@ -266,10 +266,15 @@
   // One interleaved ad block. `layout` is 'duo' (two side by side) or 'solo' (one
   // wide). Called repeatedly down the page with different slices of the promo list,
   // so a shopper meets a new ad every screen or so instead of one banner up top.
+  // Layouts: 'solo' — one wide banner across the container, the shape the hero
+  // uses; 'grid' — the square tiles in one full-width row, so four pieces of
+  // square artwork read as a deliberate block rather than two oversized panels;
+  // 'duo' — a centred pair, kept for a promos.json with only two tiles left.
   function adSlot(promos, layout) {
     var items = (promos || []).filter(function (x) { return x && x.image; });
     if (!items.length) return '';
-    var cls = 'adslot adslot--' + (layout === 'solo' ? 'solo' : 'duo');
+    var kind = (layout === 'solo' || layout === 'grid') ? layout : 'duo';
+    var cls = 'adslot adslot--' + kind;
     return '<div class="' + cls + '">' +
       items.map(function (x) { return adFigure(x, 'adslot__ad'); }).join('') +
     '</div>';

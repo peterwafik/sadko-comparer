@@ -164,10 +164,6 @@
             ? P('assets/img/brands/') + b.key + '.png' : ''
         };
       });
-    var liveB = liveBands(products);
-    var bands = liveB.map(function (b) { return { key: b.key, href: b.href }; });
-    var bandLabels = liveB.map(function (b) { return b.label; });
-
     // Rails are emitted one at a time so an ad can be dropped BETWEEN them.
     var railList = cats.slice(0, 4).map(function (c) {
       var items = C.sortList(products.filter(function (p) { return String(p.categoryId) === c.id; }), 'price-asc').slice(0, 8);
@@ -179,20 +175,26 @@
     root.innerHTML =
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
       U.advancedSearch({ q: '', sort: 'default' }, advData(root, products)) +
+      // Section order mirrors btech.com's shop page, measured off the live site:
+      //   hero -> brand shop -> rail -> wide ad -> categories -> rail -> ad grid -> rail
+      // Brands sit high (straight after the hero) because they are a navigation
+      // aid, not a footnote; the ads land between rails so each one arrives on its
+      // own screenful. Every block is the same width and separated by the same
+      // 48px, which is the uniformity the previous arrangement was missing.
       U.adHero(ads.hero) +
-      '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
-      '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
       '<h2 class="shop-h2">' + t('تسوّق حسب الماركة', 'Shop by brand') + '</h2>' +
       '<div class="btiles">' + brands.map(U.brandTile).join('') + '</div>' +
       (railList[0] || '') +
-      deal(2, 'duo') +
-      (railList[1] || '') +
       deal(1, 'solo') +
+      '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
+      '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
+      (railList[1] || '') +
+      deal(4, 'grid') +
       (railList[2] || '') +
-      deal(2, 'duo') +
-      (railList[3] || '') +
-      '<h2 class="shop-h2">' + t('تسوّق حسب السعر', 'Shop by price') + '</h2>' +
-      U.priceBands(bands, bandLabels);
+      (railList[3] || '');
+    // "Shop by price" is deliberately NOT on the hub. It is a filter, and the hub
+    // is for browsing; the price facet is already in the rail on every category
+    // page and on the browse view, which is where someone narrowing by price is.
     U.afterGrid(root);
     wireAdStrap(root);
     wireAdvanced(root, null);

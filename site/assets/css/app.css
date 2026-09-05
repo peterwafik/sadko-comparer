@@ -23,6 +23,10 @@
   --sk-gap-lg: 26px;
   --sk-grid-gap: clamp(14px, 1.6vw, 20px);
   --sk-gutter: clamp(18px, 2.4vw, 28px);
+  /* Rhythm between top-level shop sections. btech.com separates every section on
+     its shop page by a flat 48px; this matches that at desktop and eases down on
+     narrow screens where 48px of dead space costs a third of the viewport. */
+  --sk-section: clamp(28px, 3.4vw, 48px);
   --sk-pad-card: 14px 16px 16px;
 }
 html, body { margin: 0; background: var(--bg); color: var(--ink);

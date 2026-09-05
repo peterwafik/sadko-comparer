@@ -364,7 +364,7 @@
       if (why.depth) bits.push(A.num(why.depth) + t(' أعمق من المساحة', ' too deep'));
       let html = '<p class="small muted" style="margin:0">' +
         t('استبعدنا ', 'We excluded ') + A.num(s.excluded) + t(' منتج', ' products') +
-        (bits.length ? ' (' + bits.join('، ') + ')' : '') + '. ' +
+        (bits.length ? ' (' + bits.join(t('، ', ', ')) + ')' : '') + '. ' +
         t('الترتيب بيعتمد على إجاباتك، مش على إعلانات مدفوعة.', 'Ranking is based on your answers, not paid placement.') + '</p>';
       if (out.nearMiss.length) {
         html += '<div class="note note--warn mt16">' + t('فيه ', 'There ') + A.num(out.nearMiss.length) +

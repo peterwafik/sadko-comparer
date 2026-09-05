@@ -406,7 +406,8 @@
     const tt = (ar, en) => (LANG === 'en' ? en : ar);
     const groups = [
       { h: tt('صادكو', 'SADKO'), items: [
-        [tt('عن صادكو', 'About SADKO'), 'about.html'], [tt('تواصل معنا', 'Contact us'), 'contact.html'],
+        [tt('عن صادكو', 'About SADKO'), 'about.html'], [tt('قيمنا', 'Our Values'), 'values.html'],
+        [tt('تواصل معنا', 'Contact us'), 'contact.html'],
         [tt('المعارض', 'Showrooms'), 'showrooms.html'], [tt('حسابى', 'My account'), 'account.html'] ] },
       { h: tt('قبل ما تشترى', 'Before you buy'), items: [
         [tt('ساعدنى أختار', 'Help me choose'), 'finder.html'], [tt('أدلة الشراء', 'Buying guides'), 'guides.html'],

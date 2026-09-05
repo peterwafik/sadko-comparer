@@ -44,8 +44,8 @@
 <body>
 
 <section class="hero">
-  <p class="hero__crumb"><a href="index.html">البيت</a> ← <span>سلة التسوق</span></p>
-  <h1 class="hero__title">سلة التسوق</h1>
+  <p class="hero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ← <span data-i18n="crumb-here">سلة التسوق</span></p>
+  <h1 class="hero__title" data-i18n="title">سلة التسوق</h1>
   <p class="hero__meta" id="heroMeta"></p>
 </section>
 
@@ -53,18 +53,18 @@
   <div class="cart-layout" id="layout">
     <div id="items"></div>
     <aside class="summary" id="summary">
-      <h3>ملخص الطلب</h3>
-      <div class="row"><span>عدد القطع</span><b id="sCount">0</b></div>
-      <div class="row total"><span>الإجمالى</span><b id="sTotal">0 جنيه</b></div>
-      <a class="act act--checkout" href="checkout.html">كمّل الطلب</a>
-      <a class="act act--call" href="tel:19140">أو اطلب بالتليفون — 19140</a>
-      <a class="act act--mail" id="mailBtn" href="#">ابعت الطلب بالإيميل</a>
-      <button class="act act--save" id="saveBtn" type="button">احفظ الطلب فى «الطلبات»</button>
-      <button class="act act--clear" id="clearBtn" type="button">فضّى السلة</button>
-      <p class="note">الدفع عند الاستلام أو تحويل بنكى أو فى المعرض — الدفع بالبطاقة أونلاين لسه مش متاح. رسوم التوصيل والتركيب بتتأكد معاك بالتليفون. للتقسيط اسأل خدمة العملاء على 19140.</p>
+      <h3 data-i18n="summary">ملخص الطلب</h3>
+      <div class="row"><span data-i18n="count">عدد القطع</span><b id="sCount">0</b></div>
+      <div class="row total"><span data-i18n="total">الإجمالى</span><b id="sTotal">0 جنيه</b></div>
+      <a class="act act--checkout" href="checkout.html" data-i18n="checkout">كمّل الطلب</a>
+      <a class="act act--call" href="tel:19140" data-i18n="byphone">أو اطلب بالتليفون — 19140</a>
+      <a class="act act--mail" id="mailBtn" href="#" data-i18n="byemail">ابعت الطلب بالإيميل</a>
+      <button class="act act--save" id="saveBtn" type="button" data-i18n="save">احفظ الطلب فى «الطلبات»</button>
+      <button class="act act--clear" id="clearBtn" type="button" data-i18n="clear">فضّى السلة</button>
+      <p class="note" data-i18n="paynote">الدفع عند الاستلام أو تحويل بنكى أو فى المعرض — الدفع بالبطاقة أونلاين لسه مش متاح. رسوم التوصيل والتركيب بتتأكد معاك بالتليفون. للتقسيط اسأل خدمة العملاء على 19140.</p>
     </aside>
   </div>
-  <p class="empty" id="empty" hidden>سلتك فاضية — <a href="shop.html">اتفضل على المتجر</a> أو اتفسّح فى <a href="index.html">بيت صادكو</a> ودوس على أى جهاز يعجبك.</p>
+  <p class="empty" id="empty" hidden>سلتك فاضية — <a href="shop.html" data-i18n="toshop">اتفضل على المتجر</a> أو اتفسّح فى <a href="index.html" data-i18n="tohouse">بيت صادكو</a> ودوس على أى جهاز يعجبك.</p>
 </main>
 
 <footer class="foot">
@@ -75,11 +75,39 @@
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g17" defer></script>
+<script src="assets/js/nav.js?v=g18" defer></script>
+<script src="assets/js/catalog-i18n.js?v=g2" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {
+  const T = {
+    "crumb-home": "Home",
+    "crumb-here": "Shopping cart",
+    "title": "Shopping cart",
+    "summary": "Order summary",
+    "count": "Items",
+    "total": "Total",
+    "checkout": "Complete the order",
+    "byphone": "Or order by phone — 19140",
+    "byemail": "Send the order by email",
+    "save": "Save the order to “Orders”",
+    "clear": "Empty the cart",
+    "toshop": "Head to the shop",
+    "tohouse": "the SADKO house",
+    "paynote": "Cash on delivery, bank transfer or payment in the showroom — online card payment is not available yet. Delivery and installation fees are confirmed with you by phone. For instalments, ask customer care on 19140."
+  };
+  const EN = !!(window.skLang && window.skLang.get() === 'en');
+  const t = (ar, en) => (EN ? en : ar);
   const fmt = n => n.toLocaleString('en-US');
-  const clean = s => String(s||'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+  const norm = s => String(s||'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+  // Same treatment the shop cards and the product page give a title: in English
+  // it goes through the rule-based catalogue translator, guarded so a missing
+  // script just leaves the Arabic name rather than throwing.
+  const clean = s => {
+    const v = norm(s);
+    if (!EN) return v;
+    try { if (window.skCatalogI18n && window.skCatalogI18n.translateTitle) return window.skCatalogI18n.translateTitle(v); } catch (e) {}
+    return v;
+  };
 
   function paint() {
     const items = skCart.items();
@@ -87,17 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('layout').style.display = items.length ? '' : 'none';
     document.getElementById('empty').hidden = items.length > 0;
     document.getElementById('heroMeta').textContent = items.length
-      ? (skCart.count() + ' قطعة — إجمالى ' + fmt(skCart.total()) + ' جنيه') : 'فاضية لسه';
+      ? (skCart.count() + t(' قطعة — إجمالى ', ' items — total ') + fmt(skCart.total()) + t(' جنيه', ' EGP'))
+      : t('فاضية لسه', 'Still empty');
     box.innerHTML = '';
     items.forEach(i => {
       const el = document.createElement('div');
       el.className = 'citem';
       el.innerHTML =
         '<img src="' + (i.image||'') + '" alt="">' +
-        '<div><h3></h3><span class="p">' + fmt((i.price||0)*i.qty) + ' جنيه</span>' +
+        '<div><h3></h3><span class="p">' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP') + '</span>' +
           '<span class="qty"><button type="button" data-d="-1">−</button><b>' + i.qty + '</b><button type="button" data-d="1">+</button></span>' +
         '</div>' +
-        '<button class="rm" type="button">شيل</button>';
+        '<button class="rm" type="button">' + t('شيل', 'Remove') + '</button>';
       el.querySelector('h3').textContent = clean(i.title);
       el.querySelectorAll('.qty button').forEach(b =>
         b.addEventListener('click', () => { skCart.setQty(i.id, i.qty + (+b.dataset.d)); paint(); }));
@@ -105,14 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
       box.appendChild(el);
     });
     document.getElementById('sCount').textContent = skCart.count();
-    document.getElementById('sTotal').textContent = fmt(skCart.total()) + ' جنيه';
+    document.getElementById('sTotal').textContent = fmt(skCart.total()) + t(' جنيه', ' EGP');
 
-    const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ' — ' + fmt((i.price||0)*i.qty) + ' جنيه');
-    const body = 'السلام عليكم،%0D%0Aعايز أطلب الأجهزة دى:%0D%0A' +
+    const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ' — ' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP'));
+    const body = encodeURIComponent(t('السلام عليكم،\nعايز أطلب الأجهزة دى:\n', 'Hello,\nI would like to order these appliances:\n')).replace(/%0A/g,'%0D%0A') +
       encodeURIComponent(lines.join('\n')).replace(/%0A/g,'%0D%0A') +
-      '%0D%0Aالإجمالى: ' + fmt(skCart.total()) + ' جنيه%0D%0Aالاسم:%0D%0Aالعنوان:%0D%0Aرقم الموبايل:';
+      '%0D%0A' + encodeURIComponent(t('الإجمالى: ', 'Total: ')) + fmt(skCart.total()) +
+      encodeURIComponent(t(' جنيه\nالاسم:\nالعنوان:\nرقم الموبايل:', ' EGP\nName:\nAddress:\nMobile:')).replace(/%0A/g,'%0D%0A');
     document.getElementById('mailBtn').href =
-      'mailto:csupport@sadko-group.com?subject=' + encodeURIComponent('طلب جديد من الموقع') + '&body=' + body;
+      'mailto:csupport@sadko-group.com?subject=' + encodeURIComponent(t('طلب جديد من الموقع', 'New order from the website')) + '&body=' + body;
   }
 
   document.getElementById('saveBtn').addEventListener('click', () => {
@@ -121,12 +151,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let orders = [];
     try { orders = JSON.parse(localStorage.getItem('sadko-orders-v1')) || []; } catch(e){}
     orders.unshift({ id: 'SK-' + Date.now().toString(36).toUpperCase(), at: new Date().toISOString(),
-      items, total: skCart.total(), status: 'محفوظ — لسه ما اتأكدش' });
+      // a KEY, not a sentence: this string is persisted, so storing it in the
+      // language of the moment made an order saved in Arabic read Arabic on the
+      // English orders page for ever after. orders.html renders the key.
+      items, total: skCart.total(), status: 'saved-unconfirmed' });
     try { localStorage.setItem('sadko-orders-v1', JSON.stringify(orders)); } catch(e){}
     skCart.clear();
     location.href = 'orders.html';
   });
   document.getElementById('clearBtn').addEventListener('click', () => { skCart.clear(); paint(); });
+  if (EN) {
+    document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+    document.title = 'Shopping cart — SADKO Group';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n'); if (T[k] != null) el.textContent = T[k];
+    });
+  }
   paint();
 });
 </script>

@@ -406,7 +406,10 @@
           '<h3 class="panel__h" style="font-size:.98rem">' + esc(t(x.ar, x.en)) +
             ' <span class="badge">' + num(x.cats.length) + ' ' + t('صنف', 'items') + '</span></h3>' +
           '<p class="panel__sub" style="margin-bottom:10px">' + esc(t(x.dAr, x.dEn)) + '</p>' +
-          '<p class="small muted" style="margin:0 0 12px">' + esc(x.cats.map(c => A.catName(c)).join('، ')) + '</p>' +
+          // The separator follows the language too: A.catName() returns English
+          // names in EN mode, and joining them with the Arabic comma "،" put
+          // Arabic punctuation in the middle of an English list.
+          '<p class="small muted" style="margin:0 0 12px">' + esc(x.cats.map(c => A.catName(c)).join(t('، ', ', '))) + '</p>' +
           '<button class="btn btn--teal btn--sm btn--block" data-act="tpl" data-tpl="' + esc(x.key) + '">' +
             t('استخدم القالب ده', 'Use this template') + '</button>' +
         '</div>').join('') + '</div>' +

@@ -82,6 +82,7 @@
     const L = [
       { h: t('صادكو', 'SADKO'), items: [
         [t('عن صادكو', 'About SADKO'), P('about.html')],
+        [t('قيمنا', 'Our Values'), P('values.html')],
         [t('تواصل معنا', 'Contact us'), P('contact.html')],
         [t('المعارض', 'Showrooms'), P('showrooms.html')],
         [t('حسابى', 'My account'), P('account.html')],

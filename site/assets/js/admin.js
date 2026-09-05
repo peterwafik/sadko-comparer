@@ -515,7 +515,9 @@
   }
   function rowOrder(o) {
     const cust = o.customer || {};
-    const items = (o.items || []).map(i => `${esc(i.title)}${i.qty > 1 ? ' ×' + i.qty : ''}`).join('، ');
+    // Separator follows the admin's language, like every other string here.
+    const items = (o.items || []).map(i => `${esc(i.title)}${i.qty > 1 ? ' ×' + i.qty : ''}`)
+      .join(LANG === 'en' ? ', ' : '، ');
     const total = o.subtotal != null ? o.subtotal : (o.totals && o.totals.subtotal) || 0;
     return `<tr>
       <td class="mono" style="font-weight:800">${esc(o.ref)}</td>

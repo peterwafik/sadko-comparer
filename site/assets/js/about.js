@@ -2,8 +2,8 @@
    SADKO — "عن صادكو": the brand page.
    ----------------------------------------------------------------------------
    An editorial read rather than a wall of text: who we are → the heritage
-   (1961 → 1986 → today) → the twelve values → how we work → reach → where to
-   go next.
+   (1961 → 1986 → today) → reach → where to go next. The twelve values and the
+   four working rules live on values.html (see valuesLink below).
 
    Every claim on this page is one the company actually makes about itself.
    Nothing here is padded with invented figures, awards or dates: if it is not
@@ -48,68 +48,6 @@
         pEn: 'Alongside the online store, SADKO has a group of showrooms for direct sales, serving more than 40,000 customers a year across Greater Cairo, Giza, Alexandria and the North Coast up to Marsa Matrouh.' },
     ];
 
-    /* ---------------- the twelve values ----------------
-       Each one is described in human terms: what it means for the person
-       standing in front of us. No internal mapping, no product features. */
-    const VALUES = [
-      { ar: 'المحبة', en: 'Love',
-        dAr: 'بنتعامل مع اللى قدامنا كإنسان قبل ما يكون عملية بيع — والنصيحة الصادقة تسبق البيعة.',
-        dEn: 'We deal with the person in front of us as a person before a sale — honest advice comes before the transaction.' },
-      { ar: 'روح العائلة', en: 'Family spirit',
-        dAr: 'علاقتنا بيك ما بتخلصش عند باب المعرض؛ نفس الناس اللى باعت لك هى اللى بتتابع معاك بعد كده.',
-        dEn: 'Our relationship with you does not end at the showroom door; the same people who sold to you are the ones who follow up afterwards.' },
-      { ar: 'النزاهة', en: 'Integrity',
-        dAr: 'السعر والمواصفات وشروط الضمان بنقولها زى ما هى — ولو الجهاز مش مناسب لبيتك، بنقولها برضه.',
-        dEn: 'Price, specifications and warranty terms are told as they are — and if an appliance is wrong for your home, we say that too.' },
-      { ar: 'الاحترام', en: 'Respect',
-        dAr: 'وقتك وميزانيتك وقرارك محترمين. مفيش ضغط، ومفيش استعجال على حاجة انت لسه بتفكر فيها.',
-        dEn: 'Your time, your budget and your decision are respected. No pressure, and no rushing you on something you are still thinking about.' },
-      { ar: 'اللطف', en: 'Kindness',
-        dAr: 'أى سؤال — مهما بان بسيط أو متكرر — يستاهل رد هادى وواضح من غير ما حد يحسسك إنه تافه.',
-        dEn: 'Any question — however simple or repeated it seems — deserves a calm, clear answer with no one making you feel it was a silly one.' },
-      { ar: 'الجمال', en: 'Beauty',
-        dAr: 'الجهاز جزء من شكل بيتك، مش صندوق فى الركن. فبنهتم بشكله وتشطيبه زى ما بنهتم بأدائه.',
-        dEn: 'An appliance is part of how your home looks, not a box in the corner — so we care about its finish as much as its performance.' },
-      { ar: 'الحكمة الجماعية', en: 'Collective wisdom',
-        dAr: 'خبرة البائع والفنى وخدمة العملاء بتتجمع مع بعض، عشان اللى يوصل لك يبقى رأى الفريق كله مش اجتهاد فردى.',
-        dEn: 'What the salesperson, the technician and customer care each know is pooled, so what reaches you is the whole team’s view rather than one person’s guess.' },
-      { ar: 'التعاون', en: 'Cooperation',
-        dAr: 'شغلنا مع المصنّعين وزمايلنا فى المعارض قايم على التعاون، وده اللى بيخلى الرد والخدمة أسرع لما تحتاجهم.',
-        dEn: 'Our work with manufacturers and between showrooms runs on cooperation, and that is what makes the answer and the service faster when you need them.' },
-      { ar: 'البهجة', en: 'Joy',
-        dAr: 'شراء جهاز للبيت لحظة فرح فى العيلة. بنحب نحافظ على الفرحة دى من أول ما تدخل المعرض لحد ما الجهاز يشتغل.',
-        dEn: 'Buying an appliance is a happy moment in a family. We like to protect that from the moment you walk in until the appliance is running.' },
-      { ar: 'الإلهام', en: 'Inspiration',
-        dAr: 'نفسنا تخرج من عندنا بفكرة تخلى يومك أسهل — مش بمنتج زيادة كنت ممكن تستغنى عنه.',
-        dEn: 'We would rather you leave with an idea that makes your day easier than with an extra product you could have done without.' },
-      { ar: 'الحضور', en: 'Presence',
-        dAr: 'موجودين قبل الشراء وبعده. لما تحتاجنا تلاقى حد يرد، سواء فى المعرض أو على التليفون.',
-        dEn: 'We are there before the purchase and after it. When you need us, someone answers — in the showroom or on the phone.' },
-      { ar: 'الوعى', en: 'Awareness',
-        dAr: 'بننبّه لاستهلاك الكهرباء والمياه وتأثيره على فاتورتك وعلى البيئة، حتى لو ده معناه إنك تشترى أقل.',
-        dEn: 'We flag electricity and water consumption and what it does to your bill and to the environment — even when that means you buy less.' },
-    ];
-
-    /* ---------------- how we work ---------------- */
-    const WORK = [
-      { hAr: 'الشراكة: تبادل نقاط القوة',
-        hEn: 'Partnership: exchanging strengths',
-        pAr: 'مبدأنا فى الشراكة إن كل طرف يقدّم اللى هو شاطر فيه، عشان نوصل لنمو مشترك. وأى شراكة عندنا مبنية على الكفاءة المهنية والعدل والاحترام والثقة — مش على مين يكسب الجولة دى.',
-        pEn: 'Our principle of partnership is that each side brings what it is strong at, so that both grow together. Every partnership we enter is built on professional competence, fairness, respect and trust — not on who wins this round.' },
-      { hAr: 'علاقة طويلة، مش صفقة واحدة',
-        hEn: 'A long relationship, not one deal',
-        pAr: 'بنشتغل على علاقات مثمرة وطويلة المدى مع عملائنا، وعلى خدمة بعد البيع بكفاءة عالية. الجهاز بيعيش سنين، والمفروض اللى باعهولك يعيش معاه السنين دى.',
-        pEn: 'We work for productive, long-term relationships with our customers, and for highly efficient after-sales service. An appliance lasts years, and whoever sold it to you should be there for those years.' },
-      { hAr: 'احنا جزء من المجتمع',
-        hEn: 'We are part of society',
-        pAr: 'بنؤمن إن صادكو جزء من المجتمع، وهدفنا نخدم الأسرة المصرية والبيت المصرى بكل مستوياته وشرايحه، فى مدن ومجتمعات مختلفة، ونخلى حياتهم أسهل وأبهج.',
-        pEn: 'We believe SADKO is part of society. Our aim is to serve Egyptian families and homes of all levels and segments, across different cities and communities, and to make their lives easier and more joyful.' },
-      { hAr: 'المنتج والبيئة',
-        hEn: 'The product and the environment',
-        pAr: 'وعشان كده بنحرص نوفّر أفضل المنتجات فى الكفاءة والجودة، ومنتجات بتراعى البيئة ونظافتها — لأن اللى بيدخل البيت بيأثر على اللى برّه البيت كمان.',
-        pEn: 'That is why we take care to provide the best products in efficiency and quality, and products that respect the environment and its cleanliness — because what comes into the home affects what is outside it too.' },
-    ];
-
     /* ---------------- reach ---------------- */
     const STATS = [
       { v: '1986', lAr: 'سنة التأسيس', lEn: 'Founded' },
@@ -149,31 +87,6 @@
           '</li>').join('') + '</ol></div></section>';
     }
 
-    function values() {
-      return '<section class="ab-sec" aria-labelledby="ab-vals">' +
-        '<h2 class="ab-h" id="ab-vals">' + esc(t('اللى احنا مؤمنين بيه', 'What we stand for')) + '</h2>' +
-        '<p class="ab-sub">' + esc(t(
-          'اتناشر قيمة، مكتوبة هنا بالمعنى اللى بيوصل للعميل مش بالمعنى اللى بيتقال فى الاجتماعات.',
-          'Twelve values, written here in terms of what they mean for a customer rather than what they sound like in a meeting.')) + '</p>' +
-        '<ul class="vals">' + VALUES.map((v, i) =>
-          '<li class="val"><span class="n" aria-hidden="true">' + (i + 1) + '</span>' +
-            '<h3>' + esc(v.ar) + '<span class="en ltr">' + esc(v.en) + '</span></h3>' +
-            '<p>' + esc(t(v.dAr, v.dEn)) + '</p>' +
-          '</li>').join('') + '</ul></section>';
-    }
-
-    function work() {
-      return '<section class="ab-sec" aria-labelledby="ab-work">' +
-        '<h2 class="ab-h" id="ab-work">' + esc(t('إزاى بنشتغل', 'How we work')) + '</h2>' +
-        '<p class="ab-sub">' + esc(t(
-          'أربع قواعد بتحكم علاقتنا بالعميل وبالشريك وبالمنتج نفسه.',
-          'Four rules that govern our relationship with the customer, the partner, and the product itself.')) + '</p>' +
-        '<div class="grid2 ab-work">' + WORK.map(w =>
-          '<div class="panel"><h3 class="panel__h">' + esc(t(w.hAr, w.hEn)) + '</h3>' +
-          '<p class="ab-p" style="margin:0">' + esc(t(w.pAr, w.pEn)) + '</p></div>').join('') +
-        '</div></section>';
-    }
-
     function reach() {
       return '<section class="ab-sec" aria-labelledby="ab-reach">' +
         '<h2 class="ab-h" id="ab-reach">' + esc(t('وصولنا', 'Our reach')) + '</h2>' +
@@ -188,6 +101,20 @@
           'The showrooms cover Greater Cairo, Giza, Alexandria and the North Coast up to Marsa Matrouh. The Marina showroom operates in the summer season only, so it is best to call the branch before making the trip.')) + '</p>' +
         '<p class="mt16"><a class="btn btn--ghost btn--sm" href="' + P('showrooms.html') + '">' +
           esc(t('شوف عناوين المعارض السبعة', 'See the seven showroom addresses')) + '</a></p>' +
+        '</section>';
+    }
+
+    /* The values and the working rules moved to values.html — this page had
+       grown into one very long read. A card here keeps them one click away
+       instead of simply disappearing from About. */
+    function valuesLink() {
+      return '<section class="ab-sec panel" aria-labelledby="ab-vlink">' +
+        '<h2 class="ab-h" id="ab-vlink">' + esc(t('اللى احنا مؤمنين بيه', 'What we stand for')) + '</h2>' +
+        '<p class="ab-p">' + esc(t(
+          'اتناشر قيمة وأربع قواعد شغل، مكتوبة بالمعنى اللى بيوصل للعميل — فى صفحة لوحدها.',
+          'Twelve values and four working rules, written in terms of what they mean for a customer — on a page of their own.')) + '</p>' +
+        '<p style="margin:14px 0 0"><a class="btn btn--teal btn--sm" href="' + P('values.html') + '">' +
+          esc(t('اقرا قيمنا', 'Read our values')) + '</a></p>' +
         '</section>';
     }
 
@@ -208,7 +135,7 @@
         '</div></section>';
     }
 
-    root.innerHTML = lead() + story() + values() + work() + reach() + cta();
+    root.innerHTML = lead() + story() + reach() + valuesLink() + cta();
   }
 
   window.mountAbout = mountAbout;

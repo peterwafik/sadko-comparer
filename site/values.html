@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>قيمنا — صادكو جروب</title>
+<meta name="description" content="اتناشر قيمة بنشتغل بيها فى صادكو، وأربع قواعد بتحكم علاقتنا بالعميل وبالشريك وبالمنتج — مكتوبة بالمعنى اللى بيوصل للعميل.">
+<link rel="icon" href="assets/img/sadko-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css?v=a6">
+<style>
+/* Our Values — the editorial bits this page needs, lifted from about.html when
+   the values and working rules moved off it. Built on the app.css tokens. */
+.ab-sec { margin-top: clamp(26px,4vw,44px); }
+.ab-sec:first-child { margin-top: 0; }
+.ab-h { font-size: clamp(1.2rem,2.7vw,1.55rem); font-weight: 900; margin: 0 0 6px; line-height: 1.35; }
+.ab-sub { color: var(--ink-soft); font-weight: 700; line-height: 1.85; margin: 0 0 18px; max-width: 72ch; }
+.ab-p { font-size: .95rem; line-height: 1.95; font-weight: 600; margin: 0 0 12px; max-width: 74ch; }
+.ab-p:last-child { margin-bottom: 0; }
+
+/* the 12 values */
+.vals { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%,248px), 1fr)); }
+.val { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 16px 18px 18px; box-shadow: var(--shadow); }
+.val::before { content: ''; position: absolute; inset-block-start: 0; inset-inline: 0; height: 3px;
+  background: linear-gradient(90deg, var(--teal), var(--amber)); }
+.val .n { position: absolute; inset-block-start: 12px; inset-inline-end: 14px; line-height: 1;
+  font: 900 1.5rem 'Cairo', sans-serif; color: color-mix(in srgb, var(--accent) 14%, transparent); }
+.val h3 { margin: 4px 0 0; padding-inline-end: 36px; font-size: 1.02rem; font-weight: 900; line-height: 1.4; }
+.val p { margin: 9px 0 0; font-size: .87rem; line-height: 1.85; font-weight: 600; color: var(--ink-soft); }
+
+.ab-work { grid-template-columns: repeat(auto-fit, minmax(min(100%,430px), 1fr)); }
+.ab-cta { text-align: center; }
+.ab-cta .chips, .ab-cta .row { justify-content: center; }
+.wrap :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<section class="phero">
+  <div class="phero__inner">
+    <p class="phero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ←
+      <a href="about.html" data-i18n="crumb-about">عن صادكو</a> ← <span data-i18n="crumb-here">قيمنا</span></p>
+    <h1 class="phero__title" data-i18n="title">قيمنا</h1>
+    <p class="phero__sub" data-i18n="sub">اتناشر قيمة وأربع قواعد شغل. مش شعارات للحيطة — دى اللى بتحكم إزاى بنرد على سؤالك،
+      وإزاى بنقول لك إن الجهاز ده مش مناسب لبيتك، وإزاى بنفضل موجودين بعد ما الجهاز يدخل.</p>
+  </div>
+</section>
+
+<main class="wrap" id="values-root">
+  <div class="empty" data-i18n="loading">جارى التحميل…</div>
+</main>
+
+<footer data-footer></footer>
+
+<script src="assets/js/nav.js?v=g18" defer></script>
+<script src="assets/js/appshell.js?v=a5" defer></script>
+<script src="assets/js/values.js?v=a1" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const T = {
+    'crumb-home': 'Home', 'crumb-about': 'About SADKO', 'crumb-here': 'Our Values',
+    'title': 'Our Values',
+    'sub': 'Twelve values and four working rules. Not slogans for the wall — these are what govern how we answer your question, how we tell you an appliance is wrong for your home, and how we stay present after it is delivered.',
+    'loading': 'Loading…',
+  };
+  if (window.skLang && window.skLang.get() === 'en') {
+    document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+    document.title = 'Our Values — SADKO Group';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
+    });
+  }
+  skApp.footer();
+  mountValues(document.getElementById('values-root'));
+});
+</script>
+</body>
+</html>

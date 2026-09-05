@@ -609,7 +609,11 @@
           h: ['المواصفات مقروءة آلياً — وده معناه فيه ثغرات', 'Specifications are read automatically — which means there are gaps'],
           blocks: [
             p('المواصفات اللى بتشوفها فى الجداول والمقارنات (السعة، المقاسات، كفاءة الطاقة، اللون، الخصائص) مستخرجة آلياً من عناوين وأوصاف المنتجات. لما الوصف ما يذكرش حاجة، بتظهر «غير متوفر» — ودى معناها إحنا مش عارفين، مش إن الجهاز ما فيهوش الخاصية دى.',
-              'The specifications you see in tables and comparisons (capacity, dimensions, energy rating, colour, features) are extracted automatically from product titles and descriptions. When a description does not mention something it shows as "غير متوفر" (not available) — which means we do not know, not that the appliance lacks it.'),
+              // Quotes the label the English UI actually shows ("not stated", see
+              // product.js), not the Arabic one: quoting «غير متوفر» here put Arabic
+              // in the middle of an English paragraph AND named a label an English
+              // reader would never see on screen.
+              'The specifications you see in tables and comparisons (capacity, dimensions, energy rating, colour, features) are extracted automatically from product titles and descriptions. When a description does not mention something it shows as "not stated" — which means we do not know, not that the appliance lacks it.'),
             note('warn',
               'قبل ما تشترى بناءً على رقم معيّن — مقاس، سعة، كفاءة طاقة، مدة ضمان — أكّده من صفحة المنتج الأصلية أو من خدمة العملاء على ' + TEL + '. القراءة الآلية ممكن تغلط.',
               'Before you buy on the strength of a particular figure — a dimension, a capacity, an energy rating, a warranty period — confirm it against the original product page or with customer care on ' + TEL + '. Automatic reading can get it wrong.'),

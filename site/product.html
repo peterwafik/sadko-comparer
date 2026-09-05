@@ -10,11 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/app.css?v=a6">
-<style>
-  /* product-specific: media column beside the buying actions */
-  .pgrid { display: grid; gap: 22px; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); align-items: start; }
-  @media (max-width: 820px) { .pgrid { grid-template-columns: 1fr; } }
-</style>
+<link rel="stylesheet" href="assets/css/storefront.css?v=s1">
 </head>
 <body>
 
@@ -24,6 +20,7 @@
 
 <footer data-footer></footer>
 
+<script src="assets/js/catalog-i18n.js?v=g2" defer></script>
 <script src="assets/js/nav.js?v=g17" defer></script>
 <script src="assets/js/appshell.js?v=a4" defer></script>
 <script src="assets/js/specs.js?v=a4" defer></script>
@@ -32,7 +29,9 @@
 <script src="assets/js/homes.js?v=a4" defer></script>
 <script src="assets/js/prefs.js?v=a4" defer></script>
 <script src="assets/js/guides.js?v=a4" defer></script>
-<script src="assets/js/product.js?v=a4" defer></script>
+<script src="assets/js/shop-core.js?v=s1" defer></script>
+<script src="assets/js/storefront.js?v=s1" defer></script>
+<script src="assets/js/product.js?v=a5" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   if (window.skLang && window.skLang.get() === 'en') {

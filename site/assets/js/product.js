@@ -70,13 +70,23 @@
 
     /* ================= render ================= */
     function render(p, s, peers) {
-      document.title = p.title.replace(/&nbsp;/g, ' ').slice(0, 70) + ' — ' + t('صادكو جروب', 'SADKO Group');
+      var U = window.skShopUI;
+      var en0 = !!(window.skLang && window.skLang.get() === 'en');
+      var dispTitle = (en0 && window.skCatalogI18n && window.skCatalogI18n.translateTitle)
+        ? window.skCatalogI18n.translateTitle(p.title) : p.title;
+      document.title = dispTitle.replace(/&nbsp;/g, ' ').slice(0, 70) + ' — ' + t('صادكو جروب', 'SADKO Group');
       root.innerHTML =
-        '<nav class="phero__crumb" style="margin-bottom:14px"><a href="' + A.P('index.html') + '">' + t('البيت', 'Home') + '</a> ← ' +
-          '<a href="' + A.catHref(p.categoryId) + '">' + esc(A.catName(p.categoryId)) + '</a> ← <span>' + t('تفاصيل المنتج', 'Product details') + '</span></nav>' +
-        '<div class="pgrid">' +
-          '<div class="pgrid__media"><div class="panel" style="padding:18px"><img src="' + esc(p.image) + '" alt="' + esc(p.title) + '" style="width:100%;aspect-ratio:1/1;object-fit:contain"></div></div>' +
-          '<div class="pgrid__main">' + head(p, s) + '</div>' +
+        U.breadcrumb([
+          { label: t('البيت', 'Home'), href: A.P('index.html') },
+          { label: t('المتجر', 'Shop'), href: A.P('shop.html') },
+          { label: A.catName(p.categoryId), href: A.catHref(p.categoryId) },
+          { label: t('تفاصيل المنتج', 'Product details') }
+        ]) +
+        '<div class="pdp">' +
+          '<div class="pdp__media"><div class="panel pdp__frame">' +
+            '<img src="' + esc(p.image) + '" alt="' + esc(dispTitle) + '">' +
+          '</div></div>' +
+          '<div class="pdp__buy">' + head(p, s) + '</div>' +
         '</div>' +
         '<div class="grid2 mt24">' +
           '<div>' + suitability(p, s) + spaceCheck(p, s) + '</div>' +
@@ -84,23 +94,28 @@
         '</div>' +
         specsPanel(p, s) +
         '<div class="grid2 mt16"><div>' + reviewsPanel(p) + '</div><div>' + qaPanel(p) + '</div></div>' +
-        '<div id="guidesBox"></div>';
+        '<div id="guidesBox"></div>' +
+        U.rail(t('منتجات مشابهة', 'Related products'), peers.slice(0, 8), A.catHref(p.categoryId), { more: t('شوف الكل', 'See all') });
       wire(p, s, peers);
       guides(p);
+      U.afterGrid(root);
     }
 
     /* ---- headline + actions ---- */
     function head(p, s) {
       const saved = St.saved.has(p.id);
-      return '<h1 style="font-size:clamp(1.3rem,3vw,1.9rem);font-weight:900;margin:0 0 10px;line-height:1.4">' + esc(p.title) + '</h1>' +
+      const en = !!(window.skLang && window.skLang.get() === 'en');
+      const title = (en && window.skCatalogI18n && window.skCatalogI18n.translateTitle)
+        ? window.skCatalogI18n.translateTitle(p.title) : p.title;
+      return '<h1 class="pdp__title" style="font:900 clamp(1.3rem,3vw,1.9rem) Cairo,sans-serif;margin:0 0 10px;line-height:1.4">' + esc(title) + '</h1>' +
         '<div class="chips mt8">' +
           (s.brand ? '<span class="chip">' + esc(t(s.brand.ar, s.brand.en)) + '</span>' : '') +
           (s.headline ? '<span class="chip chip--mute">' + A.num(s.headline.v) + ' ' + esc(t(s.headline.u, s.headline.uEn)) + '</span>' : '') +
           (s.energy.cls ? '<span class="chip chip--ok">' + t('كفاءة طاقة ', 'Energy class ') + esc(s.energy.cls) + '</span>' : '') +
           (s.energy.inverter ? '<span class="chip chip--ok">' + t('انفرتر', 'Inverter') + '</span>' : '') +
         '</div>' +
-        '<p style="font:900 1.8rem Cairo,sans-serif;color:var(--accent);margin:16px 0 4px">' + A.money(p.price) + '</p>' +
-        '<p class="muted small" style="margin:0 0 16px">' + t('سعر صادكو وقت آخر تحديث للكتالوج — أكّد السعر قبل الشراء.', 'SADKO price at the last catalogue update — confirm before buying.') + '</p>' +
+        '<p class="pdp__price" style="font:900 1.8rem Cairo,sans-serif;color:var(--accent);margin:16px 0 4px">' + A.money(p.price) + '</p>' +
+        '<p class="muted small pdp__caveat" style="margin:0 0 16px">' + t('سعر صادكو وقت آخر تحديث للكتالوج — أكّد السعر قبل الشراء.', 'SADKO price at the last catalogue update — confirm before buying.') + '</p>' +
         '<div class="chips">' +
           '<a class="btn btn--primary" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + t('اشترى من صادكو', 'Buy from SADKO') + '</a>' +
           '<a class="btn btn--teal" href="' + A.P('compare.html') + '?q=' + encodeURIComponent(cleanTitle(p.title)) + '">' + t('قارن الأسعار', 'Compare prices') + '</a>' +

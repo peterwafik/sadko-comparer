@@ -217,8 +217,16 @@
   // Safe to call repeatedly: nav.js guards on card.__skProduct.
   function afterGrid(rootEl) {
     if (typeof document === 'undefined') return;
+    // enhanceCategoryCards() fetches products.json, and only once that resolves
+    // does it set card.__skProduct and call nav.js's mountPrefsBar(), which is
+    // what actually mounts the bar and runs skPrefs.applyToCards(). Calling
+    // applyToCards here as well looked like belt-and-braces but never did
+    // anything: it runs before that fetch settles, so every card it sees still
+    // has no __skProduct and the filter has nothing to reason about. Removed
+    // rather than chained — mountPrefsBar() is the single owner of preference
+    // filtering, and it deliberately no-ops where there is no `.grid` (the hub
+    // and the PDP rail), which is why those surfaces are never filtered down.
     try { if (window.skNav && window.skNav.enhanceCategoryCards) window.skNav.enhanceCategoryCards(); } catch (e) {}
-    try { if (window.skPrefs && window.skPrefs.applyToCards) window.skPrefs.applyToCards(rootEl); } catch (e) {}
   }
 
   return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };

@@ -11,7 +11,7 @@
 
 /* ---------- 1. breadcrumb ---------- */
 .scrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  font-size: .85rem; font-weight: 700; color: var(--ink-soft); margin: 0 0 16px; }
+  font-size: .85rem; font-weight: 700; color: var(--ink-soft); margin: 0 0 var(--sk-gutter); }
 .scrumb a { color: var(--accent); text-decoration: none; }
 .scrumb a:hover { text-decoration: underline; }
 .scrumb span { color: var(--ink); font-weight: 800; }
@@ -33,7 +33,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
    both rows of the wide column so the pair stacks beside it and nothing is
    left over. Keep every count covered: an owner editing promos.json can leave
    one, two or five promos in the file. */
-.promos { display: grid; grid-template-columns: 1fr; gap: 18px; margin: 0 0 26px; }
+.promos { display: grid; grid-template-columns: 1fr; gap: var(--sk-gap-md); margin: 0 0 var(--sk-gutter); }
 .promos--n1 { grid-template-columns: 1fr; }
 .promos--n2 { grid-template-columns: 2fr 1fr; }
 .promos--n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
@@ -87,7 +87,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------- 3. category / brand tiles ---------- */
-.ctiles, .btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ctiles, .btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sk-gap-sm); }
 .ctile, .btile { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   min-width: 0; overflow-wrap: anywhere;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
@@ -100,34 +100,34 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   background: color-mix(in srgb, var(--accent) 9%, #fff); border-radius: 999px; padding: 3px 9px; }
 
 /* ---------- 4. price bands ---------- */
-.bands { display: flex; flex-wrap: wrap; gap: 9px; }
+.bands { display: flex; flex-wrap: wrap; gap: var(--sk-gap-xs); }
 .band { text-decoration: none; font: 700 .84rem 'Cairo', sans-serif; color: var(--accent);
   background: color-mix(in srgb, var(--accent) 9%, #fff); border: 1.5px solid color-mix(in srgb, var(--accent) 26%, transparent);
   border-radius: 999px; padding: 7px 15px; transition: .15s; }
 .band:hover { background: var(--accent); color: #fff; }
 
 /* ---------- 5. rails ---------- */
-.rail { margin: 0 0 30px; }
-.rail__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; flex-wrap: wrap; }
+.rail { margin: 0 0 var(--sk-gutter); }
+.rail__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gap-sm); flex-wrap: wrap; }
 .rail__title { margin: 0; font: 900 1.14rem 'Cairo', sans-serif; }
 .rail__more { text-decoration: none; font: 800 .85rem 'Cairo', sans-serif; color: var(--accent); white-space: nowrap; }
 .rail__more:hover { text-decoration: underline; }
-.rail__track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: 14px;
+.rail__track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: var(--sk-grid-gap);
   overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; padding-bottom: 6px; }
 .rail__track > .card { scroll-snap-align: start; }
 
 /* ---------- shop section heading (used on the shop hub between rails/tile groups) ---------- */
-.shop-h2 { margin: 0 0 14px; font: 900 1.2rem 'Cairo', sans-serif; color: var(--ink); }
+.shop-h2 { margin: 0 0 var(--sk-gap-sm); font: 900 1.2rem 'Cairo', sans-serif; color: var(--ink); }
 
 /* ---------- 6. shop grid (browse layout: filters + results) ---------- */
-.shopgrid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 26px; align-items: start; }
+.shopgrid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: var(--sk-gutter); align-items: start; }
 .shopgrid__side { min-width: 0; }
 .shopgrid__main { min-width: 0; }
 .facets__toggle { display: none; }
 
 /* ---------- 7. facets ---------- */
 .facets { position: sticky; top: 86px; background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; display: grid; gap: 16px; }
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--sk-gap-md); display: grid; gap: var(--sk-gap-md); }
 .facet { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
 .facet legend { padding: 0 0 8px; font: 900 .85rem 'Cairo', sans-serif; color: var(--ink); }
 .facet__row { display: flex; align-items: center; gap: 9px; font: 700 .86rem 'Cairo', sans-serif; color: var(--ink); cursor: pointer; }
@@ -146,11 +146,11 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .facet__clear:hover { border-color: color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); }
 
 /* ---------- 8. sort / count toolbar ---------- */
-.stoolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+.stoolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gap-md); }
 /* ---------- 8b. search (toolbar + hub) ---------- */
 /* Direction-agnostic on purpose: the field and its button are laid out by flex
    order, so the pill reads correctly in RTL and LTR with no mirror rule. */
-.hubsearch { margin: 0 0 22px; max-width: 560px; }
+.hubsearch { margin: 0 0 var(--sk-gutter); max-width: 560px; }
 .ssearch { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; }
 .ssearch__input { flex: 1 1 auto; min-width: 0; font: 700 .88rem 'Cairo', sans-serif; color: var(--ink);
   background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px; }
@@ -166,7 +166,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   border: 1.5px solid var(--line); border-radius: 12px; padding: 9px 14px; }
 
 /* ---------- 9. pager ---------- */
-.pager { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 30px 0 0; flex-wrap: wrap; }
+.pager { display: flex; justify-content: center; align-items: center; gap: var(--sk-gap-xs); margin: var(--sk-gutter) 0 0; flex-wrap: wrap; }
 .pager__pg { min-width: 38px; height: 38px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center;
   border-radius: 999px; font: 800 .86rem 'Cairo', sans-serif; text-decoration: none; color: var(--ink);
   background: #fff; border: 1.5px solid var(--line); }
@@ -189,7 +189,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   background: var(--line); }
 
 /* ---------- 11. product page (pdp) ---------- */
-.pdp { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.pdp { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: var(--sk-gutter); align-items: start; }
 .pdp__media { min-width: 0; display: grid; gap: 12px; }
 .pdp__frame { aspect-ratio: 1 / 1; display: grid; place-items: center; background: #fff;
   border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; overflow: hidden; }

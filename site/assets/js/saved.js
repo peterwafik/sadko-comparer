@@ -55,7 +55,13 @@
       return '<article class="pcard">' +
         '<div class="pcard__img"><img loading="lazy" src="' + esc(s.image) + '" alt=""></div>' +
         '<div class="pcard__b">' +
-          '<h3 class="pcard__t">' + esc(s.title) + '</h3>' +
+          // Titles are stored verbatim from the catalogue, which carries HTML
+          // entities as literal text ("كولدير&nbsp;2 حنفية"), so esc() alone rendered
+          // the entity on the card. skShopUI.clean() decodes it when storefront.js is
+          // present; the &nbsp; fallback matches what line 66 below already does.
+          '<h3 class="pcard__t">' + esc(window.skShopUI && window.skShopUI.clean
+            ? window.skShopUI.clean(s.title)
+            : String(s.title == null ? '' : s.title).replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&')) + '</h3>' +
           '<div class="between"><span class="pcard__p">' + A.money(now != null ? now : was) + '</span>' + badge + '</div>' +
           (hitTarget ? '<div class="note note--info small">' + t('وصل للسعر اللى حددته (', 'It reached your target price (') + A.money(s.targetPrice) + ').</div>' : '') +
           '<label class="field small" style="margin:0"><span class="field__l">' + t('نبّهنى لو نزل عن', 'Remind me if it drops below') + '</span>' +
@@ -65,7 +71,9 @@
             '<a class="btn btn--teal btn--sm" href="' + A.P('product.html') + '?id=' + encodeURIComponent(s.id) + '">' + t('التفاصيل', 'Details') + '</a>' +
             '<a class="btn btn--ghost btn--sm" href="' + A.P('compare.html') + '?q=' + encodeURIComponent(String(s.title).replace(/&nbsp;/g, ' ').slice(0, 60)) + '">' + t('قارن', 'Compare') + '</a>' +
             '<a class="btn btn--ghost btn--sm" href="' + A.P('plan.html') + '?add=' + encodeURIComponent(s.id) + '">' + t('لخطة', 'To a plan') + '</a>' +
-            '<button class="btn btn--quiet btn--sm" data-rm="' + esc(s.id) + '" aria-label="' + t('شيل من المحفوظات', 'Remove from saved') + '">✕</button>' +
+            // btn--icon: the actions in a .pcard__row share the width evenly, which is
+            // right for the three labelled links but stretched this one glyph to 239px.
+            '<button class="btn btn--quiet btn--sm btn--icon" data-rm="' + esc(s.id) + '" aria-label="' + t('شيل من المحفوظات', 'Remove from saved') + '">✕</button>' +
           '</div>' +
         '</div></article>';
     }

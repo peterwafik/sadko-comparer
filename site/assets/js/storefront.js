@@ -15,7 +15,26 @@
     });
   }
 
-  function clean(s) { return String(s == null ? '' : s).replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim(); }
+  // The catalogue is scraped HTML, so 193 of the 471 products carry entities as
+  // LITERAL text ("Giza &amp; Alex", "كولدير&nbsp;2 حنفية"). esc() would escape the
+  // ampersand a second time and the card would read "Giza &amp;amp; Alex" — which is
+  // exactly what shipped. Decode first, then esc() re-escapes the real characters
+  // correctly. plan.js:25 and posters.js:33 already do this; storefront.js missed it.
+  var ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+  function decodeEntities(s) {
+    return String(s).replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([a-zA-Z][a-zA-Z0-9]*));/g,
+      function (m, dec, hex, name) {
+        if (dec) return String.fromCodePoint(parseInt(dec, 10));
+        if (hex) return String.fromCodePoint(parseInt(hex, 16));
+        var k = name.toLowerCase();
+        // An unknown entity is left verbatim rather than guessed at — it is catalogue
+        // text, not markup we control. Every consumer of clean() escapes its output,
+        // so decoding can never introduce live markup.
+        return Object.prototype.hasOwnProperty.call(ENTITIES, k) ? ENTITIES[k] : m;
+      });
+  }
+
+  function clean(s) { return decodeEntities(String(s == null ? '' : s)).replace(/\s+/g, ' ').trim(); }
 
   // Same language convention as appshell.js's EN()/money(): read window.skLang when it
   // exists, default to Arabic otherwise. Guarded so this stays callable from node:test,
@@ -62,8 +81,14 @@
       '<div class="card__body">' +
         '<h3 class="card__title">' + esc(title) + '</h3>' +
         '<p class="card__teaser"' + (en ? ' hidden' : '') + '>' + esc(teaser) + '</p>' +
+        // The price sits on its OWN line, above the actions. It used to share
+        // .card__row with the buy link — and nav.js's enhanceCategoryCards() then
+        // appended "Details" and "Add to cart" into that same flex row, so four
+        // controls fought over ~306px: "Details & size" was squeezed to 65px (three
+        // wrapped lines) and "Add to cart" to 49px (four). .card__row is now the
+        // action block ALONE, which is also the element nav.js appends into.
+        '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small></span>' +
         '<div class="card__row">' +
-          '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small></span>' +
           '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(buyLabel) + '</a>' +
         '</div>' +
       '</div>' +

@@ -13,6 +13,17 @@
   --radius: 18px;
   --shadow: 0 2px 10px rgba(20,52,58,.05);
   --shadow-lg: 0 14px 34px rgba(20,52,58,.12);
+
+  /* Shared spacing scale — same values as category.css, repeated here so the pages
+     that load only app.css (saved, finder, plan, appliances …) get the same rhythm.
+     Components used to pick gaps ad hoc (8/9/10/14/16/18/24px); these replace that. */
+  --sk-gap-xs: 8px;
+  --sk-gap-sm: 12px;
+  --sk-gap-md: 18px;
+  --sk-gap-lg: 26px;
+  --sk-grid-gap: clamp(14px, 1.6vw, 20px);
+  --sk-gutter: clamp(18px, 2.4vw, 28px);
+  --sk-pad-card: 14px 16px 16px;
 }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
   font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif; }
@@ -38,8 +49,15 @@ img { max-width: 100%; }
 .panel + .panel { margin-top: 18px; }
 .panel__h { margin: 0 0 4px; font-size: 1.06rem; font-weight: 900; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .panel__sub { margin: 0 0 16px; color: var(--ink-soft); font-size: .88rem; line-height: 1.7; }
-.grid2 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(100%,320px),1fr)); }
-.grid3 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(100%,270px),1fr)); }
+/* grid2 is the two-panel page layout, so auto-FIT is right there: two panels should
+   share the full width. */
+.grid2 { display: grid; gap: var(--sk-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%,320px),1fr)); }
+/* grid3 is the product-card list (saved, finder, guides, plan, appliances) and needs
+   auto-FILL: auto-fit collapses the empty tracks, so a page showing a single saved
+   product stretched that one card across the whole row — a 1150px square photo next
+   to 270px cards everywhere else. auto-fill keeps the track width fixed, so a card is
+   the same size whether the list holds one item or twenty. */
+.grid3 { display: grid; gap: var(--sk-grid-gap); grid-template-columns: repeat(auto-fill, minmax(min(100%,270px),1fr)); }
 
 /* ---------- buttons ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
@@ -93,14 +111,35 @@ img { max-width: 100%; }
 .pcard { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
   display: flex; flex-direction: column; box-shadow: var(--shadow); transition: transform .18s, box-shadow .18s; }
 .pcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-.pcard__img { aspect-ratio: 1/1; display: grid; place-items: center; padding: 14px; background: #fff; }
-.pcard__img img { max-height: 100%; object-fit: contain; }
-.pcard__b { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+/* Square image frame, same technique as .card__imgwrap in category.css and for the
+   same reason: `aspect-ratio` with an in-flow <img> whose min-height is auto lets a
+   tall photo stretch the frame, so products rendered at visibly different scales.
+   Absolutely sizing the image removes the circular dependency. (This variant also
+   had no max-width, so a wide photo could overflow its card entirely.) */
+.pcard__img { position: relative; display: block; aspect-ratio: 1/1;
+  padding: var(--sk-gap-sm); background: #fff; overflow: hidden; }
+.pcard__img img { position: absolute; inset: var(--sk-gap-sm);
+  width: calc(100% - 2 * var(--sk-gap-sm)); height: calc(100% - 2 * var(--sk-gap-sm));
+  object-fit: contain; }
+.pcard__b { padding: var(--sk-pad-card); display: flex; flex-direction: column; gap: var(--sk-gap-xs); flex: 1; }
+/* Reserve both lines so the price and the action row land on the same baseline in
+   every card of a row, exactly as .card__title does. */
 .pcard__t { font: 800 .95rem 'Cairo', sans-serif; line-height: 1.5; margin: 0;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: calc(2 * 1.5em); }
 .pcard__p { font: 900 1.1rem 'Cairo', sans-serif; color: var(--accent); }
 .pcard__p small { font-size: .72rem; color: var(--ink-soft); font-weight: 700; }
-.pcard__row { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* These rows carry between two and four actions depending on the page. Letting each
+   button grow to an equal share keeps them the same size within a card and stops a
+   long label from squeezing its neighbour, which is what went wrong on the shop
+   cards. Buttons never wrap their own text; the row wraps instead. */
+.pcard__row { margin-top: auto; padding-top: var(--sk-gap-xs);
+  display: flex; gap: var(--sk-gap-xs); flex-wrap: wrap; align-items: stretch; }
+.pcard__row > .btn { flex: 1 1 auto; min-width: 0; white-space: nowrap; }
+.pcard__row > .btn--block { flex: 1 1 100%; }
+/* An icon-only control (a single glyph with an aria-label) keeps its natural size —
+   sharing the row evenly would stretch one "✕" across the width. */
+.btn--icon { flex: 0 0 auto !important; padding-left: 12px; padding-right: 12px; }
 
 /* ---------- reason list (why we recommended this) ---------- */
 .why { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }

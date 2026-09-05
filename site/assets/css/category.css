@@ -4,6 +4,18 @@
   --teal: #7ebec5; --teal-deep: #2e7e88; --ink: #14343a;
   --amber: #fe9800; --bg: #f7f5f1; --card: #fff;
   --accent: var(--teal-deep);
+
+  /* One spacing scale for the whole storefront. Gaps and paddings were previously
+     picked ad hoc per component (8/9/10/14/16/18/24px), which is why the rhythm
+     read as uneven. Everything below steps through these instead. --sk-gutter is
+     the single gap between page-level blocks; --sk-grid-gap the gap between cards. */
+  --sk-gap-xs: 8px;
+  --sk-gap-sm: 12px;
+  --sk-gap-md: 18px;
+  --sk-gap-lg: 26px;
+  --sk-grid-gap: clamp(14px, 1.6vw, 20px);
+  --sk-gutter: clamp(18px, 2.4vw, 28px);
+  --sk-pad-card: 14px 16px 16px;
 }
 html, body { margin: 0; background: var(--bg); color: var(--ink);
   font-family: 'Cairo', 'Segoe UI', system-ui, sans-serif; }
@@ -40,27 +52,94 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
 
 /* ---------- grid ---------- */
 .wrap { padding: clamp(18px, 3vw, 36px) clamp(16px, 4vw, 48px) 72px; max-width: 1440px; margin: 0 auto; }
-.grid { display: grid; gap: clamp(14px, 2vw, 24px);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.grid { display: grid; gap: var(--sk-grid-gap);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  align-items: stretch; }   /* every card in a row is the same height */
 .card { background: var(--card); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
   box-shadow: 0 2px 10px rgba(20, 52, 58, .05); transition: transform .2s, box-shadow .2s; }
 .card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(20, 52, 58, .12); }
-.card__imgwrap { display: grid; place-items: center; aspect-ratio: 1 / 1;
-  background: #fff; padding: 14px; }
-.card__imgwrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.card__noimg { font-weight: 900; font-size: 1.4rem; color: color-mix(in srgb, var(--accent) 30%, #fff); }
-.card__body { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 18px; flex: 1; }
+/* A strictly square frame with the image absolutely sized inside it.
+   `aspect-ratio` alone did NOT hold: the <img> is a normal in-flow child whose
+   min-height resolves to auto, so a tall product photo stretched the wrapper and
+   `max-height:100%` had no definite height to resolve against. Measured frames on
+   one row were 340x340, 340x419 and 340x467 — that is the "some are extra zoomed
+   in or zoomed out" effect, and it also pushed each card's title to a different
+   baseline. Positioning the image removes the circular dependency: the frame is
+   square, and object-fit:contain scales every photo to fit it. */
+.card__imgwrap { position: relative; display: block; aspect-ratio: 1 / 1;
+  background: #fff; padding: var(--sk-gap-sm); overflow: hidden; }
+.card__imgwrap img { position: absolute; inset: var(--sk-gap-sm);
+  width: calc(100% - 2 * var(--sk-gap-sm)); height: calc(100% - 2 * var(--sk-gap-sm));
+  object-fit: contain; }
+.card__noimg { position: absolute; inset: 0; display: grid; place-items: center;
+  font-weight: 900; font-size: 1.4rem; color: color-mix(in srgb, var(--accent) 30%, #fff); }
+.card__body { display: flex; flex-direction: column; gap: var(--sk-gap-xs); padding: var(--sk-pad-card); flex: 1; }
+
+/* Title and teaser are clamped AND reserve their full height, so the price and the
+   action block sit on the same baseline in every card of a row no matter how long
+   the product name is. Without the min-height, a one-line title lifts that card's
+   buttons above its neighbours' and the grid looks ragged. */
 .card__title { font-size: .98rem; font-weight: 800; line-height: 1.45; margin: 0;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.card__teaser { font-size: .8rem; color: #5b6b6e; line-height: 1.6; margin: 0;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.card__row { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; }
-.card__price { font-weight: 900; font-size: 1.12rem; color: var(--accent); white-space: nowrap; }
-.card__price small { font-weight: 700; font-size: .72rem; color: #5b6b6e; }
-.card__buy { text-decoration: none; font-weight: 800; font-size: .85rem; color: #241a05;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: calc(2 * 1.45em); }
+.card__teaser { font-size: .8rem; color: var(--ink-soft, #5b6b6e); line-height: 1.6; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: calc(2 * 1.6em); }
+/* `.card__teaser` sets display, which outranks the UA sheet's [hidden]{display:none}
+   (both are one selector, author styles win) — so the EN card was rendering the
+   Arabic teaser it explicitly marked hidden. Re-assert it at higher specificity. */
+.card__teaser[hidden] { display: none; }
+
+.card__price { margin-top: auto; padding-top: var(--sk-gap-xs);
+  font-weight: 900; font-size: 1.12rem; color: var(--accent); white-space: nowrap; }
+.card__price small { font-weight: 700; font-size: .72rem; color: var(--ink-soft, #5b6b6e); }
+
+/* ---------- card actions ----------
+   nav.js appends .sk-detbtn then .sk-addbtn into .card__row, so the DOM order is
+   buy, details, add — but the visual hierarchy should lead with the cart. `order`
+   fixes that without nav.js needing to know. One full-width primary button, two
+   quiet secondary links beneath it: three competing pills is what made the row
+   unreadable in the first place. */
+/* Flex-wrap, deliberately NOT a two-column grid: the same card renders at ~340px in
+   the browse grid and ~190px in a hub rail, and a rigid grid forced the Arabic
+   "التفاصيل والمقاس" (118px of text) into a 73px column and ellipsised it. This is a
+   CONTAINER-width problem, so a viewport media query cannot see it either. Leaving
+   the secondary links at their default min-width:auto means they cannot shrink below
+   their text — when both no longer fit on one line, they wrap to their own lines
+   instead, at any container size and without container queries. */
+.card__row { display: flex; flex-wrap: wrap; gap: var(--sk-gap-xs);
+  margin-top: var(--sk-gap-sm); }
+
+.card__row .sk-addbtn { order: 1; flex: 1 1 100%; width: 100%;
+  font: 800 .85rem 'Cairo', sans-serif; color: #241a05; background: var(--amber);
+  border: 0; border-radius: 12px; padding: 11px 12px; cursor: pointer;
+  transition: filter .2s, transform .15s; }
+.card__row .sk-addbtn:hover { filter: brightness(1.06); transform: translateY(-1px); background: var(--amber); }
+.card__row .sk-addbtn.is-done { background: #1d7a3f; color: #fff; }
+
+/* Secondary actions: quiet, equal-width, single line. Never a filled pill — they
+   must read as "more info" next to the one button that adds to the cart. */
+.card__row .sk-detbtn,
+.card__row .card__buy { display: block; text-align: center; text-decoration: none;
+  font: 700 .78rem 'Cairo', sans-serif; color: var(--accent);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: 10px; padding: 8px 6px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; transition: background .18s, color .18s; }
+.card__row .sk-detbtn { order: 2; flex: 1 1 auto; }
+.card__row .card__buy { order: 3; flex: 1 1 auto; }
+.card__row .sk-detbtn:hover,
+.card__row .card__buy:hover { background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent); transform: none; filter: none; }
+/* Before nav.js's catalogue fetch resolves, the buy link is the only action present;
+   let it span the row rather than sit half-width beside a gap. */
+.card__row .card__buy:only-child { flex-basis: 100%; }
+
+/* The empty-state reuses .card__buy as a standalone call to action, outside any
+   .card__row — it keeps the original amber pill. */
+.empty .card__buy { text-decoration: none; font-weight: 800; font-size: .85rem; color: #241a05;
   background: var(--amber); padding: 9px 16px; border-radius: 999px; white-space: nowrap; transition: .2s; }
-.card__buy:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.empty .card__buy:hover { filter: brightness(1.06); transform: translateY(-1px); }
 
 .empty { text-align: center; padding: 64px 16px; color: #5b6b6e; font-weight: 600; }
 .empty .card__buy { display: inline-block; margin-top: 12px; }

@@ -24,6 +24,51 @@ test('card renders an article.card root', () => {
   assert.match(ui.card(P, {}), /<article class="card"/);
 });
 
+/* ---------------------------------------------- card layout regressions --- */
+
+// The bug this pins: .card__row used to hold the price AND the buy link, and
+// nav.js's enhanceCategoryCards() then appended "Details" and "Add to cart" into
+// that same flex row. Four controls fought over ~306px — measured live, the
+// details link collapsed to 65px across three wrapped lines and the add button to
+// 49px across four. .card__row is the element nav.js appends into, so it must stay
+// the ACTION container only; the price sits outside it.
+test('the price is not inside .card__row (which nav.js fills with buttons)', () => {
+  const html = ui.card(P, {});
+  const row = html.slice(html.indexOf('<div class="card__row">'));
+  assert.ok(!row.includes('card__price'),
+    '.card__price is back inside .card__row — the action row will crowd again');
+  assert.ok(html.indexOf('card__price') < html.indexOf('card__row'),
+    'the price should render above the action row');
+});
+
+test('.card__row ships exactly one action, leaving room for nav.js to append two', () => {
+  const html = ui.card(P, {});
+  const row = html.slice(html.indexOf('<div class="card__row">'));
+  assert.equal((row.match(/<a /g) || []).length, 1,
+    '.card__row should contain only the buy link at render time');
+  assert.match(row, /class="card__buy"/);
+});
+
+// 193 of the 471 catalogue products carry HTML entities as literal text, so
+// esc()ing without decoding first rendered "Giza &amp;amp; Alex" on the card.
+test('clean() decodes the entities the scraped catalogue actually contains', () => {
+  assert.equal(ui.clean('Cairo, Giza &amp; Alex'), 'Cairo, Giza & Alex');
+  assert.equal(ui.clean('كولدير&nbsp;2 حنفية'), 'كولدير 2 حنفية');
+  assert.equal(ui.clean('a &#39;b&#39; c'), "a 'b' c");
+  assert.equal(ui.clean('&quot;x&quot;'), '"x"');
+});
+
+test('clean() leaves an unknown entity verbatim rather than guessing', () => {
+  assert.equal(ui.clean('50 &deg; &widget;'), '50 &deg; &widget;');
+});
+
+// Decoding must never be able to inject live markup: every consumer escapes.
+test('a decoded entity is re-escaped by card(), not emitted as markup', () => {
+  const html = ui.card(Object.assign({}, P, { title: '&lt;script&gt;x&lt;/script&gt;' }), {});
+  assert.ok(!html.includes('<script>'), 'decoded markup reached the card unescaped');
+  assert.ok(html.includes('&lt;script&gt;'), 'the title should render as visible text');
+});
+
 test('card keeps every hook nav.js and prefs.js depend on', () => {
   const html = ui.card(P, {});
   for (const cls of REQUIRED) assert.ok(html.includes(cls), 'missing ' + cls);

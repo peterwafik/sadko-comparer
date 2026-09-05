@@ -75,9 +75,13 @@
       // title through the same rule-based translator so the PDP title, tab
       // title and image alt all agree with what they just clicked. Computed
       // once here and threaded into head() so the two never diverge.
+      // U.clean() first: 193 of the 471 catalogue titles carry HTML entities as
+      // literal text, and esc()ing those without decoding rendered "&nbsp;" and
+      // "&amp;" on the page. The cards go through the same helper.
+      const rawTitle = U.clean(p.title);
       const dispTitle = (!!(window.skLang && window.skLang.get() === 'en') && window.skCatalogI18n && window.skCatalogI18n.translateTitle)
-        ? window.skCatalogI18n.translateTitle(p.title) : p.title;
-      document.title = dispTitle.replace(/&nbsp;/g, ' ').slice(0, 70) + ' — ' + t('صادكو جروب', 'SADKO Group');
+        ? window.skCatalogI18n.translateTitle(rawTitle) : rawTitle;
+      document.title = dispTitle.slice(0, 70) + ' — ' + t('صادكو جروب', 'SADKO Group');
       root.innerHTML =
         U.breadcrumb([
           { label: t('البيت', 'Home'), href: A.P('index.html') },

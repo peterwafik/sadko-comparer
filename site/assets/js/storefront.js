@@ -78,7 +78,15 @@
     if (!promos || !Array.isArray(promos)) return '';
     var items = promos.filter(function (x) { return x && x.title; });
     if (!items.length) return '';
-    return '<div class="promos">' + items.map(function (x) {
+    // The promo grid arrangement depends on HOW MANY promos there are (spec S6:
+    // one large slot plus a stacked pair). A three-promo hero in a plain 2-column
+    // grid auto-places into r1c1/r1c2/r2c1 and reserves an EMPTY r2c2 cell — a
+    // real 440x200 hole at the top of the shop landing page. The count is
+    // published as a class rather than detected in CSS with :has(), for the same
+    // reason .promo--noimg exists: relational selectors are unsupported on the
+    // older Android/Safari builds this storefront's shoppers still use.
+    var sizeClass = items.length <= 3 ? ' promos--n' + items.length : ' promos--many';
+    return '<div class="promos' + sizeClass + '">' + items.map(function (x) {
       var accent = ACCENTS[x.accent] || ACCENTS.teal;
       var noimg = x.image ? '' : ' promo--noimg';
       return '<a class="promo ' + accent + noimg + '" href="' + esc(x.href || '#') + '">' +
@@ -181,11 +189,36 @@
     }
   };
 
+  // Search is a first-class browse control (spec S7), not a URL you have to know
+  // how to type. Bilingual defaults follow the same isEN() convention as every
+  // other default in this module, and a caller may override them through
+  // L.search. The input is deliberately id="q"/name="q": that is the parameter
+  // shop-core.parseState()/stateToSearch() already round-trip, so the URL stays
+  // the single source of truth for the search term exactly as it is for every
+  // other facet.
+  var DEFAULT_SEARCH_LABELS = {
+    ar: { placeholder: 'ابحث فى منتجات صادكو…', label: 'ابحث فى المنتجات', submit: 'بحث' },
+    en: { placeholder: 'Search SADKO products…', label: 'Search products', submit: 'Search' }
+  };
+
+  function searchBox(value, L) {
+    var d = DEFAULT_SEARCH_LABELS[isEN() ? 'en' : 'ar'];
+    var lab = (L && L.search) || {};
+    return '<form class="ssearch" role="search" id="searchForm">' +
+      '<input type="search" class="ssearch__input" id="q" name="q" autocomplete="off"' +
+        ' value="' + esc(value == null ? '' : value) + '"' +
+        ' placeholder="' + esc(lab.placeholder || d.placeholder) + '"' +
+        ' aria-label="' + esc(lab.label || d.label) + '">' +
+      '<button type="submit" class="ssearch__btn">' + esc(lab.submit || d.submit) + '</button>' +
+    '</form>';
+  }
+
   function toolbar(state, total, L) {
     var sortLabels = (L && L.sorts) || {};
     var fallback = DEFAULT_SORT_LABELS[isEN() ? 'en' : 'ar'];
     var keys = ['default', 'price-asc', 'price-desc'];
     return '<div class="stoolbar">' +
+      searchBox(state && state.q, L) +
       '<span class="stoolbar__count">' + esc(L.count(total)) + '</span>' +
       '<select class="stoolbar__sort" id="sortSel">' + keys.map(function (k) {
         var label = sortLabels[k] || fallback[k];
@@ -193,15 +226,38 @@
       }).join('') + '</select></div>';
   }
 
-  function pager(page, pages, hrefFor) {
+  // Spec S7: numbered on desktop, but on <=860px "prev / صفحة N من M / next".
+  // 20 numbered pills measured 347x130 on a 393px phone — three rows of thumb-sized
+  // targets. ONE markup emits both forms and storefront.css shows the right one per
+  // breakpoint, so there is still a single pagination mechanism (no infinite scroll,
+  // no second code path that can disagree about which page you are on).
+  var DEFAULT_PAGER_LABELS = {
+    ar: { prev: 'السابق', next: 'التالى', status: function (p, n) { return 'صفحة ' + p + ' من ' + n; } },
+    en: { prev: 'Previous', next: 'Next', status: function (p, n) { return 'Page ' + p + ' of ' + n; } }
+  };
+
+  function pager(page, pages, hrefFor, L) {
     if (pages <= 1) return '';
+    var d = DEFAULT_PAGER_LABELS[isEN() ? 'en' : 'ar'];
+    var lab = (L && L.pager) || {};
+    function step(kind, target, label, live) {
+      var cls = 'pager__step pager__step--' + kind;
+      return live
+        ? '<a class="' + cls + '" rel="' + kind + '" href="' + esc(hrefFor(target)) + '">' + esc(label) + '</a>'
+        : '<span class="' + cls + ' is-off" aria-disabled="true">' + esc(label) + '</span>';
+    }
     var out = [];
     for (var i = 1; i <= pages; i++) {
       out.push(i === page
         ? '<span class="pager__pg" aria-current="page">' + i + '</span>'
         : '<a class="pager__pg" href="' + esc(hrefFor(i)) + '">' + i + '</a>');
     }
-    return '<nav class="pager">' + out.join('') + '</nav>';
+    return '<nav class="pager">' +
+      step('prev', page - 1, lab.prev || d.prev, page > 1) +
+      '<span class="pager__status">' + esc((lab.status || d.status)(page, pages)) + '</span>' +
+      '<span class="pager__pgs">' + out.join('') + '</span>' +
+      step('next', page + 1, lab.next || d.next, page < pages) +
+    '</nav>';
   }
 
   function breadcrumb(trail) {
@@ -229,5 +285,5 @@
     try { if (window.skNav && window.skNav.enhanceCategoryCards) window.skNav.enhanceCategoryCards(); } catch (e) {}
   }
 
-  return { esc: esc, clean: clean, money: money, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
+  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
 });

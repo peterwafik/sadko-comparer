@@ -91,13 +91,31 @@
     return String(s || '').replace(/&nbsp;/g, ' ').toLowerCase();
   }
 
-  function filter(products, state, specOf) {
+  // `trTitle` is the OPTIONAL catalogue translator (window.skCatalogI18n.translateTitle,
+  // injected by the caller so this module stays DOM-free). The catalogue is authored
+  // entirely in Arabic, so without it an English shopper typing "fridge" matches nothing
+  // at all — master shop.js had this branch and the storefront rewrite lost it.
+  // A query matches when it hits the Arabic title, the Arabic description, OR the
+  // translated (English) title. The translator is only consulted when the Arabic sides
+  // miss, and a throwing translator degrades to "no English match" rather than emptying
+  // the whole result set.
+  function matchesQuery(p, q, trTitle) {
+    if (!q) return true;
+    if (norm(p.title).indexOf(q) >= 0) return true;
+    if (norm(p.description).indexOf(q) >= 0) return true;
+    if (trTitle) {
+      try { if (norm(trTitle(p.title)).indexOf(q) >= 0) return true; } catch (e) {}
+    }
+    return false;
+  }
+
+  function filter(products, state, specOf, trTitle) {
     var q = norm(state.q);
     return products.filter(function (p) {
       if (state.cat && String(p.categoryId) !== String(state.cat)) return false;
       if (state.min != null && !(p.price >= state.min)) return false;
       if (state.max != null && !(p.price < state.max)) return false;
-      if (q && norm(p.title).indexOf(q) < 0 && norm(p.description).indexOf(q) < 0) return false;
+      if (!matchesQuery(p, q, trTitle)) return false;
       if (state.brands && state.brands.length) {
         var b = (specOf(p) || {}).brand;
         var key = (b && (b.key || b.en || b.ar)) ? String(b.key || b.en || b.ar).toLowerCase() : '__none__';
@@ -122,5 +140,46 @@
     return { items: list.slice((pg - 1) * per, pg * per), page: pg, pages: pages, total: total };
   }
 
-  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, sortList: sortList, paginate: paginate };
+  // Bilingual promo copy (data/promos.json). Extracted out of shop.js so it is
+  // testable, and made HONEST: in English mode a field is taken ONLY from its *En
+  // key. The old `x.titleEn || x.title` silently rendered Arabic to an English
+  // shopper for any promo the owner had not fully translated. Now:
+  //   - a promo with no `titleEn` is dropped from the EN hero entirely (it cannot
+  //     be presented in English, and promoHero already treats a title-less promo
+  //     as unusable), and it is reported through `onDrop` so the owner can see it;
+  //   - a missing `subEn`/`ctaEn` drops just that line, exactly as promoHero
+  //     already does for an absent `sub`/`cta`.
+  // Nothing here mutates the input. In Arabic mode the list is returned untouched.
+  function localizePromos(promos, en, onDrop) {
+    if (!promos || !Array.isArray(promos)) return promos;
+    if (!en) return promos;
+    var out = [];
+    promos.forEach(function (x) {
+      if (!x) return;
+      if (!x.titleEn) { if (onDrop) onDrop(x); return; }
+      var c = Object.assign({}, x);
+      c.title = x.titleEn;
+      if (x.subEn) c.sub = x.subEn; else delete c.sub;
+      if (x.ctaEn) c.cta = x.ctaEn; else delete c.cta;
+      out.push(c);
+    });
+    return out;
+  }
+
+  // How many products fall in each PRICE_BANDS bucket, using exactly filter()'s
+  // semantics (min inclusive, max exclusive) so a band's count always equals what
+  // clicking it filters to. Pure half of shop.js's liveBands(); the href half stays
+  // in shop.js because it reads the DOM.
+  function bandCounts(products) {
+    return PRICE_BANDS.map(function (b) {
+      return {
+        key: b.key, min: b.min, max: b.max,
+        count: products.filter(function (p) {
+          return p.price >= b.min && (b.max == null || p.price < b.max);
+        }).length
+      };
+    });
+  }
+
+  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate };
 });

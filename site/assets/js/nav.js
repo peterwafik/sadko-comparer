@@ -58,13 +58,13 @@
   const CAT_EN = {
     'ثلاجات': 'Refrigerators', 'نو فروست': 'No frost', 'ديفروست': 'Defrost',
     'فريزرات': 'Freezers', 'فريزر أفقى': 'Chest freezers', 'فريزر رأسى': 'Upright freezers',
-    'أفران وبوتاجازات': 'Ovens & Cookers', '4 شعلة': '4 burners', '5 شعلة': '5 burners', 'أفران كهربائية': 'Electric ovens',
-    'غسالات': 'Washers', 'غسالات ملابس': 'Washing machines', 'غسالات أطباق': 'Dishwashers',
-    'سخانات مياه': 'Water heaters', 'سخانات كهرباء': 'Electric heaters', 'سخانات غاز': 'Gas heaters',
+    'أفران وبوتاجازات': 'Cookers & ovens', '4 شعلة': '4 burners', '5 شعلة': '5 burners', 'أفران كهربائية': 'Electric ovens',
+    'غسالات': 'Washing machines', 'غسالات ملابس': 'Clothes washing machines', 'غسالات أطباق': 'Dishwashers',
+    'سخانات مياه': 'Water heaters', 'سخانات كهرباء': 'Electric water heaters', 'سخانات غاز': 'Gas water heaters',
     'أجهزة صغيرة': 'Small appliances', 'مكانس': 'Vacuum cleaners', 'مكاوى': 'Irons',
-    'خلاطات ومحضرات طعام': 'Blenders & food processors', 'ميكروييف': 'Microwaves',
-    'كاتيل وماكينات قهوة': 'Kettles & coffee makers', 'قلايات': 'Air fryers',
-    'تكييفات هواء': 'Air conditioners', 'تليفزيونات': 'TVs', 'مبردات هواء ومراوح': 'Air coolers & fans',
+    'خلاطات ومحضرات طعام': 'Blenders & mixers', 'ميكروييف': 'Microwaves',
+    'كاتيل وماكينات قهوة': 'Kettles & coffee machines', 'قلايات': 'Air fryers',
+    'تكييفات هواء': 'Air conditioners', 'تليفزيونات': 'Televisions', 'مبردات هواء ومراوح': 'Air coolers & fans',
     'مبردات مياه': 'Water dispensers', 'حرف يدوية ومنتجات عضوية': 'Handicrafts & organic',
     'عروض صادكو': 'SADKO Offers', 'الأكثر مبيعاً': 'Best sellers',
     'كل المنتجات': 'All products', 'خلاطات ومحضرات': 'Blenders & processors', 'كاتيل وقهوة': 'Kettles & coffee',
@@ -454,12 +454,31 @@
     else host.prepend(box);
   }
 
+  /* data/products.json is ~500 KB and compare-server.mjs serves it with
+     cache-control: no-cache, so the browser re-downloads it in full every time.
+     The storefront re-renders its grid on every facet change and calls
+     enhanceCategoryCards() again through skShopUI.afterGrid(), which used to mean
+     half a megabyte per filter click on a mobile-first Egyptian storefront.
+     Memoised at module scope: fetched once per page load, shared by every re-run.
+     The promise is CLEARED on failure so a transient error (offline, a dropped
+     connection mid-scroll) cannot latch permanently and leave add-to-cart broken
+     for the rest of the session — the next render retries. */
+  let CATALOG_BY_PATH = null;
+  function catalogByPath() {
+    if (!CATALOG_BY_PATH) {
+      CATALOG_BY_PATH = fetch(P('data/products.json')).then(r => r.json()).then(d => {
+        const byPath = {};
+        (d.products || []).forEach(p => {
+          try { byPath[decodeURIComponent(new URL(p.url).pathname)] = p; } catch (e) {}
+        });
+        return byPath;
+      }).catch(err => { CATALOG_BY_PATH = null; throw err; });
+    }
+    return CATALOG_BY_PATH;
+  }
+
   function enhanceCategoryCards() {
-    fetch(P('data/products.json')).then(r => r.json()).then(d => {
-      const byPath = {};
-      (d.products || []).forEach(p => {
-        try { byPath[decodeURIComponent(new URL(p.url).pathname)] = p; } catch (e) {}
-      });
+    catalogByPath().then(byPath => {
       document.querySelectorAll('article.card').forEach(card => {
         const link = card.querySelector('a.card__imgwrap') || card.querySelector('a[href]');
         if (!link) return;
@@ -499,6 +518,21 @@
     return new Promise(resolve => {
       const url = P(src);
       if (document.querySelector('script[data-sk="' + src + '"]')) return resolve();
+      /* The data-sk marker only recognises tags THIS function injected. Pages that
+         already carry the module as a plain <script src="assets/js/prefs.js"> tag
+         (shop.html, product.html and all 30 generated category pages do) carry no
+         such marker, so the module was being fetched and EXECUTED a second time —
+         re-running auth.js reassigns window.skAuth to a fresh instance with a fresh
+         listener list underneath code that had already captured the old one. Match
+         on the file name as well so an existing plain tag counts. Every such tag is
+         defer-loaded and nav.js only reaches here from its own DOMContentLoaded
+         mount, by which point all deferred scripts have already executed. */
+      const file = src.split('/').pop();
+      const already = [].slice.call(document.querySelectorAll('script[src]')).some(tag => {
+        const path = (tag.getAttribute('src') || '').split('?')[0].split('#')[0];
+        return path === src || path.endsWith('/' + file);
+      });
+      if (already) return resolve();
       const s = document.createElement('script');
       s.src = url + '?v=a4'; s.defer = false; s.setAttribute('data-sk', src);
       s.onload = resolve; s.onerror = resolve;
@@ -507,14 +541,19 @@
   }
   async function mountPrefsBar() {
     if (!document.querySelector('article.card')) return;
+    /* The .grid test used to sit BELOW the five loads, so a page with cards but no
+       grid — the product page, whose related rail supplies eight article.card
+       elements — pulled in and re-executed all five modules before bailing out one
+       line later. Nothing below here runs without a grid, so test for it first and
+       load nothing at all on those surfaces. */
+    const grid = document.querySelector('.grid');
+    if (!grid) return;
     await loadOnce('assets/js/specs.js');
     await loadOnce('assets/js/store.js');
     await loadOnce('assets/js/auth.js');
     await loadOnce('assets/js/homes.js');
     await loadOnce('assets/js/prefs.js');
     if (!window.skPrefs) return;
-    const grid = document.querySelector('.grid');
-    if (!grid) return;
     const bar = document.createElement('div');
     grid.parentElement.insertBefore(bar, grid);
     const api = window.skPrefs.mountBar(bar, { onChange: () => { window.skPrefs.applyToCards(document); api && api.redraw(); window.skPrefs.applyToCards(document); } });

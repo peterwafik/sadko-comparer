@@ -14,7 +14,7 @@
     { "id": "sample-laundry", "sample": true, "accent": "ink",
       "title": "ركن الغسيل", "titleEn": "The laundry corner",
       "sub": "٤٩ غسالة", "subEn": "49 washing machines",
-      "cta": "تسوّق الغسالات", "ctaEn": "Shop washers",
+      "cta": "تسوّق الغسالات", "ctaEn": "Shop washing machines",
       "href": "shop.html?cat=38005652" }
   ]
 }

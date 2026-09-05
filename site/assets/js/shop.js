@@ -70,6 +70,14 @@
 
   function specOf(p) { return window.skSpecs ? window.skSpecs.of(p) : {}; }
 
+  // The catalogue is Arabic-only, so an English shopper typing "fridge" would match
+  // nothing without the rule-based translator. skShopUI.translateForEN wraps
+  // window.skCatalogI18n.translateTitle and is already loaded on every shop surface
+  // (catalog-i18n.js is the first script tag on shop.html and on all 30 category
+  // pages). Null in Arabic mode: an Arabic query already matches the raw titles, and
+  // translating 471 titles on every keystroke-free re-render would be wasted work.
+  var TR = EN ? U.translateForEN : null;
+
   // Live price bands: bucket `products` into C.PRICE_BANDS and drop any band
   // with zero matches, exactly like liveCategories()/brandsOf() already do —
   // "do not render a facet that would return zero results" applies to price
@@ -80,26 +88,22 @@
   // forwarded to bandHref() so a band link narrows the CURRENT view instead
   // of replacing it (see bandHref's comment); the hub omits it.
   function liveBands(products, state) {
-    return C.PRICE_BANDS.map(function (b, i) {
-      var count = products.filter(function (p) {
-        return p.price >= b.min && (b.max == null || p.price < b.max);
-      }).length;
-      return { key: b.key, label: BAND_LABELS[i], href: bandHref(b, state), count: count };
+    return C.bandCounts(products).map(function (b, i) {
+      return { key: b.key, label: BAND_LABELS[i], href: bandHref(b, state), count: b.count };
     }).filter(function (b) { return b.count > 0; });
   }
 
   // promos.json seeds bilingual pairs (title/titleEn, sub/subEn, cta/ctaEn);
   // skShopUI.promoHero only ever reads the bare (Arabic) keys, so the EN swap
-  // happens here rather than inside that shared renderer.
+  // happens before it. The swap itself lives in shop-core (pure, unit-tested):
+  // the old `x.titleEn || x.title` fallback here rendered Arabic to an English
+  // shopper for any promo the owner had not translated. promos.json is
+  // owner-editable and unvalidated, so that fallback was a live Arabic-in-EN
+  // path waiting for the first untranslated campaign. A dropped promo is
+  // reported to the console so the omission is diagnosable rather than silent.
   function localizePromos(promos) {
-    if (!promos || !Array.isArray(promos)) return promos;
-    if (!EN) return promos;
-    return promos.map(function (x) {
-      return Object.assign({}, x, {
-        title: x.titleEn || x.title,
-        sub: x.subEn || x.sub,
-        cta: x.ctaEn || x.cta
-      });
+    return C.localizePromos(promos, EN, function (x) {
+      try { console.warn('[sadko] promo "' + (x && x.id) + '" has no titleEn — hidden in English.'); } catch (e) {}
     });
   }
 
@@ -120,6 +124,7 @@
 
     root.innerHTML =
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
+      '<div class="hubsearch">' + U.searchBox('') + '</div>' +
       U.promoHero(localizePromos(promos)) +
       '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
       '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
@@ -129,6 +134,11 @@
       U.priceBands(bands, bandLabels) +
       rails;
     U.afterGrid(root);
+    // The hub holds no filter state, so a search from here starts a clean browse.
+    wireSearch(root, function (q) {
+      if (!q) return;
+      go({ cat: '', q: q, brands: [], min: null, max: null, sort: 'default', page: 1, all: false });
+    });
   }
 
   // Prebuilt category pages (site/category/*.html) set data-cat on #shop-root
@@ -147,15 +157,15 @@
 
   function renderBrowse(root, state, products) {
     var fixed = root.getAttribute('data-cat');
-    var matched = C.filter(products, state, specOf);
+    var matched = C.filter(products, state, specOf, TR);
     var sorted = C.sortList(matched, state.sort);
     var pg = C.paginate(sorted, state.page, 24);
 
     // Facet counts are computed against everything EXCEPT the facet being shown,
     // so a user can always see what selecting another value would give them.
-    var forCats = C.filter(products, Object.assign({}, state, { cat: '' }), specOf);
-    var forBrands = C.filter(products, Object.assign({}, state, { brands: [] }), specOf);
-    var forPrice = C.filter(products, Object.assign({}, state, { min: null, max: null }), specOf);
+    var forCats = C.filter(products, Object.assign({}, state, { cat: '' }), specOf, TR);
+    var forBrands = C.filter(products, Object.assign({}, state, { brands: [] }), specOf, TR);
+    var forPrice = C.filter(products, Object.assign({}, state, { min: null, max: null }), specOf, TR);
 
     var data = {
       cats: C.liveCategories(forCats).map(function (c) {
@@ -230,7 +240,44 @@
   // listener before adding the new one (see the note beside its use below).
   var ESC_HANDLER = null;
 
+  // Every search submit re-renders the whole surface (innerHTML), which destroys
+  // the input the shopper is typing in. Remember that the last navigation came
+  // from the search box so the fresh one can take focus back with the caret at
+  // the end — otherwise refining a search means re-clicking the field each time.
+  var FOCUS_SEARCH = false;
+
+  // One search-form binding shared by the hub and the browse toolbar. The form is
+  // rendered by skShopUI.searchBox() on both, so the id is the same on both; only
+  // what to do with the term differs. Submitting with an unchanged term is a
+  // deliberate no-op — it must not push a duplicate history entry.
+  function wireSearch(root, onSubmit, current) {
+    var form = root.querySelector('#searchForm');
+    var input = form && form.querySelector('#q');
+    if (form) form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var q = input ? input.value.trim() : '';
+      if (q === String(current == null ? '' : current)) return;
+      FOCUS_SEARCH = true;
+      onSubmit(q);
+    });
+    if (FOCUS_SEARCH && input) {
+      FOCUS_SEARCH = false;
+      input.focus();
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
+    }
+  }
+
   function wireBrowse(root, state) {
+    // Search composes with every other facet: the term is carried through
+    // unchanged in `state`, so cat/brand/price/sort/pagination all keep
+    // narrowing the search results rather than replacing them.
+    wireSearch(root, function (q) {
+      // Emptying the box on shop.html means "show me everything", not "throw me
+      // back to the hub" — `all` keeps the browse view alive with no filters.
+      // On a pinned category page render() forces all:false anyway.
+      go(Object.assign({}, state, { q: q, page: 1, all: state.all || !q }));
+    }, state.q);
+
     var form = root.querySelector('#facets');
 
     var fixed = root.getAttribute('data-cat');
@@ -249,7 +296,7 @@
         return;
       }
       go({
-        cat: newCat, q: state.q,
+        cat: newCat, q: state.q,   // the search term survives every facet change
         brands: fd.getAll('brand'),
         min: fd.get('min') ? parseInt(fd.get('min'), 10) : null,
         max: fd.get('max') ? parseInt(fd.get('max'), 10) : null,
@@ -270,7 +317,11 @@
       // mode with every filter cleared. On a fixed category page render()
       // ignores `all` outright (it's always forced back to false), so
       // setting it here would only leave a meaningless `?all=1` in the URL.
-      go({ cat: '', q: state.q, brands: [], min: null, max: null, sort: 'default', page: 1, all: !fixed });
+      // "Clear filters" clears the search term too — it is a filter like any
+      // other, it is rendered inside the same results toolbar, and leaving it
+      // set would make the button visibly not clear the thing most likely to
+      // be narrowing the results.
+      go({ cat: '', q: '', brands: [], min: null, max: null, sort: 'default', page: 1, all: !fixed });
     });
     var sortSel = root.querySelector('#sortSel');
     if (sortSel) sortSel.addEventListener('change', function () {

@@ -1,5 +1,8 @@
 // site/engine/storefront.test.mjs
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
@@ -446,4 +449,297 @@ test('no renderer emits an Arabic default when the page language is English', ()
   const chrome = html.replace(/<article class="card"[\s\S]*?<\/article>/g, '');
   assert.ok(!AR.test(chrome), 'Arabic default leaked into EN chrome: ' +
     (chrome.match(/[^<>]*[؀-ۿ][^<>]*/) || [''])[0]);
+});
+
+/* ============================================================================
+   Search box (finding 1)
+   ----------------------------------------------------------------------------
+   The rewrite shipped shop.html with no search input at all, which made the ?q=
+   plumbing in shop-core/shop.js unreachable. The control belongs in the browse
+   toolbar, so these assert it is really there, carries the current term, and is
+   named exactly what parseState()/stateToSearch() round-trip.
+   ========================================================================== */
+
+test('searchBox renders a real search input named q', () => {
+  const html = ui.searchBox('');
+  assert.match(html, /<input type="search"[^>]*\bid="q"/);
+  assert.match(html, /<input type="search"[^>]*\bname="q"/);
+  assert.match(html, /<form class="ssearch"[^>]*role="search"/);
+  assert.match(html, /<button type="submit"/);
+});
+
+test('searchBox shows the active term so a shopper can see and refine it', () => {
+  assert.match(ui.searchBox('ثلاجة'), /value="ثلاجة"/);
+  // an absent term is an empty field, not the string "undefined" or "null"
+  assert.match(ui.searchBox(undefined), /value=""/);
+  assert.match(ui.searchBox(null), /value=""/);
+});
+
+test('searchBox escapes a term that would otherwise break out of the attribute', () => {
+  const html = ui.searchBox('" onfocus="alert(1)');
+  assert.ok(!html.includes('" onfocus="alert(1)"'));
+  assert.ok(html.includes('&quot;'));
+});
+
+test('searchBox is bilingual: Arabic by default, English under skLang=en', () => {
+  const ar = ui.searchBox('');
+  const ph = ar.match(/placeholder="([^"]*)"/)[1];
+  const al = ar.match(/aria-label="([^"]*)"/)[1];
+  assert.ok(AR.test(ph), 'Arabic placeholder expected, got: ' + ph);
+  assert.ok(AR.test(al), 'Arabic aria-label expected, got: ' + al);
+
+  const en = inEN(() => ui.searchBox(''));
+  const enPh = en.match(/placeholder="([^"]*)"/)[1];
+  const enAl = en.match(/aria-label="([^"]*)"/)[1];
+  const enBtn = en.match(/<button type="submit"[^>]*>([^<]*)<\/button>/)[1];
+  assert.ok(!AR.test(enPh), 'Arabic leaked into the EN placeholder: ' + enPh);
+  assert.ok(!AR.test(enAl), 'Arabic leaked into the EN aria-label: ' + enAl);
+  assert.ok(!AR.test(enBtn), 'Arabic leaked into the EN submit label: ' + enBtn);
+  assert.ok(enPh.length && enAl.length && enBtn.length);
+});
+
+test('searchBox labels are caller-overridable through L.search', () => {
+  const html = ui.searchBox('', { search: { placeholder: 'Find a fridge', label: 'Find', submit: 'Go' } });
+  assert.ok(html.includes('placeholder="Find a fridge"'));
+  assert.ok(html.includes('aria-label="Find"'));
+  assert.ok(html.includes('>Go</button>'));
+});
+
+test('toolbar carries the search box alongside the count and sort', () => {
+  const html = ui.toolbar(core.parseState('?q=%D8%AB%D9%84%D8%A7%D8%AC%D8%A9'), 12, { count: n => n + ' منتج' });
+  assert.match(html, /<form class="ssearch"/);
+  // and it is populated from state.q, not blanked on every render
+  assert.match(html, /<input type="search"[^>]*value="ثلاجة"/);
+  assert.ok(html.includes('12'));
+  assert.ok(html.includes('id="sortSel"'));
+});
+
+test('toolbar renders an empty search field when no term is active', () => {
+  const html = ui.toolbar(core.parseState(''), 471, { count: n => n + ' منتج' });
+  assert.match(html, /<input type="search"[^>]*value=""/);
+});
+
+/* ============================================================================
+   Compact pager (finding 5)
+   ----------------------------------------------------------------------------
+   Spec §7: numbered on desktop, "prev / صفحة N من M / next" at ≤860px. 20 pills
+   measured 347×130px on a 393px phone. One markup, one mechanism; storefront.css
+   shows exactly one of the two forms per breakpoint.
+   ========================================================================== */
+
+test('pager emits prev/next steps and a page-of-pages status alongside the numbers', () => {
+  const html = ui.pager(2, 5, n => '?page=' + n);
+  assert.match(html, /class="pager__step pager__step--prev"[^>]*href="\?page=1"/);
+  assert.match(html, /class="pager__step pager__step--next"[^>]*href="\?page=3"/);
+  assert.match(html, /<span class="pager__status">صفحة 2 من 5<\/span>/);
+  // the numbered form is still present for desktop, inside its own hideable box
+  assert.match(html, /<span class="pager__pgs">/);
+  assert.ok(html.includes('aria-current="page"'));
+});
+
+test('pager disables prev on the first page and next on the last, with no href to click', () => {
+  const first = ui.pager(1, 5, n => '?page=' + n);
+  assert.match(first, /<span class="pager__step pager__step--prev is-off" aria-disabled="true">/);
+  assert.doesNotMatch(first, /pager__step--prev"[^>]*href/);
+  assert.match(first, /class="pager__step pager__step--next"[^>]*href="\?page=2"/);
+
+  const last = ui.pager(5, 5, n => '?page=' + n);
+  assert.match(last, /<span class="pager__step pager__step--next is-off" aria-disabled="true">/);
+  assert.doesNotMatch(last, /pager__step--next"[^>]*href/);
+  assert.match(last, /class="pager__step pager__step--prev"[^>]*href="\?page=4"/);
+});
+
+test('pager status and step labels are English under skLang=en', () => {
+  const html = inEN(() => ui.pager(3, 7, n => '?page=' + n));
+  const status = html.match(/<span class="pager__status">([^<]*)<\/span>/)[1];
+  assert.equal(status, 'Page 3 of 7');
+  assert.ok(!AR.test(html.replace(/<span class="pager__pgs">[\s\S]*?<\/span>/, '')),
+    'Arabic leaked into the EN pager');
+});
+
+test('pager labels are caller-overridable, status included', () => {
+  const html = ui.pager(2, 4, n => '?page=' + n,
+    { pager: { prev: 'Back', next: 'Forward', status: (a, b) => a + '/' + b } });
+  assert.ok(html.includes('>Back</a>'));
+  assert.ok(html.includes('>Forward</a>'));
+  assert.ok(html.includes('<span class="pager__status">2/4</span>'));
+});
+
+test('pager still renders nothing at all for a single page — no orphan prev/next', () => {
+  assert.equal(ui.pager(1, 1, n => '?page=' + n), '');
+});
+
+/* ============================================================================
+   Promo grid arrangement (finding 2)
+   ----------------------------------------------------------------------------
+   Three promos in a bare 2fr/1fr grid auto-place into r1c1, r1c2, r2c1 and leave
+   a reserved, empty r2c2 — measured 440×200px at 1440px. promoHero publishes the
+   count as a class (no :has(); older Android/Safari would ignore it silently) and
+   storefront.css keys the arrangement off it. Both halves are asserted, because
+   either one alone would let the hole come back.
+   ========================================================================== */
+
+const CSS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../assets/css/storefront.css'), 'utf8');
+const promo = n => Array.from({ length: n }, (_, i) => ({ id: 'p' + i, title: 'Promo ' + i, href: '#' }));
+
+test('promoHero publishes the promo count as a class on the grid container', () => {
+  assert.match(ui.promoHero(promo(1)), /<div class="promos promos--n1">/);
+  assert.match(ui.promoHero(promo(2)), /<div class="promos promos--n2">/);
+  assert.match(ui.promoHero(promo(3)), /<div class="promos promos--n3">/);
+  assert.match(ui.promoHero(promo(5)), /<div class="promos promos--many">/);
+});
+
+test('the count class counts RENDERED promos, not raw input rows', () => {
+  // a title-less promo is filtered out, so the class must not claim three
+  const html = ui.promoHero([{ id: 'a', title: 'A' }, { id: 'b' }, { id: 'c', title: 'C' }]);
+  assert.match(html, /<div class="promos promos--n2">/);
+  assert.equal((html.match(/<a class="promo /g) || []).length, 2);
+});
+
+test('storefront.css defines an arrangement for every count class promoHero can emit', () => {
+  for (const cls of ['promos--n1', 'promos--n2', 'promos--n3', 'promos--many']) {
+    assert.ok(CSS.includes('.' + cls), 'storefront.css has no rule for .' + cls);
+  }
+});
+
+test('the three-promo layout spans the first slot down both rows, so no cell is left empty', () => {
+  // The hole was structural: 3 items, 2 columns, nothing occupying r2c2. The row
+  // span on the first promo is what turns that into one large + a stacked pair.
+  const rule = CSS.match(/\.promos--n3 > \.promo:first-child \{([^}]*)\}/);
+  assert.ok(rule, '.promos--n3 > .promo:first-child rule missing');
+  assert.match(rule[1], /grid-row:\s*1\s*\/\s*span 2/);
+  const grid = CSS.match(/\.promos--n3 \{([^}]*)\}/);
+  assert.ok(grid, '.promos--n3 rule missing');
+  assert.match(grid[1], /grid-template-columns:\s*2fr 1fr/);
+  assert.match(grid[1], /grid-template-rows:\s*1fr 1fr/);
+});
+
+test('the single-column mobile breakpoint releases the row span', () => {
+  // Left in place, the span would stretch the first promo over two auto rows in a
+  // one-column stack. The reset must live inside the ≤860px block.
+  const mobile = CSS.slice(CSS.indexOf('@media (max-width: 860px)'));
+  assert.match(mobile, /\.promos--n3 > \.promo:first-child \{ grid-row: auto; \}/);
+  assert.match(mobile, /\.promos--n3[^{]*\{[^}]*grid-template-columns: 1fr/);
+});
+
+test('the compact pager form is the one shown at the mobile breakpoint', () => {
+  const base = CSS.slice(0, CSS.indexOf('@media (max-width: 860px)'));
+  const mobile = CSS.slice(CSS.indexOf('@media (max-width: 860px)'));
+  // desktop: numbers visible, status hidden
+  assert.match(base, /\.pager__status \{ display: none;/);
+  // mobile: the reverse — exactly one of the two forms is ever on screen
+  assert.match(mobile, /\.pager__pgs \{ display: none; \}/);
+  assert.match(mobile, /\.pager__status \{ display: inline-flex; \}/);
+});
+
+/* ============================================================================
+   One English name per category (finding 6)
+   ----------------------------------------------------------------------------
+   Three maps decide what a category is called in English:
+     · appshell.js CATS      -> the browse facet rail and the PDP breadcrumb
+     · nav.js CAT_EN         -> the shop menu and translateCategoryPage()'s <title>
+     · mkcategories.mjs      -> each generated page's data-cat-name-en
+   They disagreed on the same id (Washing machines/Washers, Televisions/TVs,
+   Cookers & ovens/Ovens & Cookers, and four more on empty categories), so the
+   name changed under a shopper clicking from the facet rail into the category
+   page. appshell.js is the authority — it is what is already live site-wide.
+   This test is source-level and says so; it exists because the three maps have
+   no runtime relationship that could otherwise catch the drift.
+   ========================================================================== */
+
+const SITE = join(dirname(fileURLToPath(import.meta.url)), '..');
+const read = f => readFileSync(join(SITE, f), 'utf8');
+
+// appshell.js: "'38005652':  { ar: '…', en: '…' },"
+function appshellCats(src) {
+  const out = {};
+  const block = src.slice(src.indexOf('const CATS = {'), src.indexOf('const catName'));
+  for (const m of block.matchAll(/'(\d+)':\s*\{\s*ar:\s*'([^']*)',\s*en:\s*'([^']*)'\s*\}/g)) {
+    out[m[1]] = { ar: m[2], en: m[3] };
+  }
+  return out;
+}
+// a named "'<arabic>': '<english>'" map, read out of one const block
+function pairs(src, startMarker, endMarker) {
+  const block = src.slice(src.indexOf(startMarker), src.indexOf(endMarker, src.indexOf(startMarker)));
+  const out = {};
+  for (const m of block.matchAll(/'([^']+)':\s*'([^']*)'/g)) out[m[1]] = m[2];
+  return out;
+}
+
+const APPSHELL = appshellCats(read('assets/js/appshell.js'));
+const MK_SRC = read('mkcategories.mjs');
+const MK_NAMES = pairs(MK_SRC, 'const NAMES = {', '};');
+const MK_EN = pairs(MK_SRC, 'const CAT_EN = {', '};');
+const NAV_EN = pairs(read('assets/js/nav.js'), 'const CAT_EN = {', '};');
+
+test('the category-name extractors actually found the three maps', () => {
+  // guards the test itself: a regex that silently matched nothing would make
+  // every assertion below vacuously true.
+  assert.ok(Object.keys(APPSHELL).length >= 19, 'appshell CATS: ' + Object.keys(APPSHELL).length);
+  assert.ok(Object.keys(MK_NAMES).length === 30, 'mkcategories NAMES: ' + Object.keys(MK_NAMES).length);
+  assert.ok(Object.keys(MK_EN).length >= 30, 'mkcategories CAT_EN: ' + Object.keys(MK_EN).length);
+  assert.equal(APPSHELL['38005652'].en, 'Washing machines');
+});
+
+test('every category appshell.js names in English is named identically by the generated pages', () => {
+  const seen = [];
+  for (const id of Object.keys(APPSHELL)) {
+    const ar = MK_NAMES[id];
+    assert.ok(ar, 'mkcategories NAMES has no id ' + id);
+    assert.equal(MK_EN[ar], APPSHELL[id].en,
+      'id ' + id + ': category page says "' + MK_EN[ar] + '", the facet rail says "' + APPSHELL[id].en + '"');
+    seen.push(id);
+  }
+  assert.ok(seen.length >= 19);
+});
+
+test('nav.js CAT_EN agrees too, so the <title> matches the page it titles', () => {
+  // translateCategoryPage() rewrites <title> from nav.js's map while shop.js
+  // renders the heading from data-cat-name-en; a divergence shows up as a tab
+  // titled "Washers" above a page headed "Washing machines".
+  for (const id of Object.keys(APPSHELL)) {
+    assert.equal(NAV_EN[MK_NAMES[id]], APPSHELL[id].en, 'nav.js CAT_EN disagrees for id ' + id);
+  }
+});
+
+test('mkcategories CAT_EN stays a verbatim copy of nav.js CAT_EN', () => {
+  assert.deepEqual(MK_EN, NAV_EN);
+});
+
+test('no two category nodes share an English name', () => {
+  // "غسالات" taking appshell's "Washing machines" would otherwise collide with its
+  // own child "غسالات ملابس", listing the same label twice in the shop menu.
+  const byEn = {};
+  for (const [ar, en] of Object.entries(NAV_EN)) (byEn[en] = byEn[en] || []).push(ar);
+  const dupes = Object.entries(byEn).filter(([, list]) => list.length > 1);
+  assert.deepEqual(dupes, [], 'duplicate English category names: ' + JSON.stringify(dupes));
+});
+
+/* ============================================================================
+   Generated category page shape
+   ----------------------------------------------------------------------------
+   shop.js reads data-cat / data-cat-name / data-cat-name-en off #shop-root, and
+   the storefront depends on the category.css -> app.css -> storefront.css load
+   order. Neither was guarded by anything.
+   ========================================================================== */
+
+test('a generated category page carries the attributes shop.js reads', () => {
+  const html = read('category/38005652.html');
+  assert.match(html, /<main id="shop-root" data-cat="38005652" data-cat-name="غسالات" data-cat-name-en="Washing machines">/);
+});
+
+test('every generated category page keeps the load-bearing stylesheet order', () => {
+  const { readdirSync } = require('node:fs');
+  const files = readdirSync(join(SITE, 'category')).filter(f => f.endsWith('.html'));
+  assert.equal(files.length, 30);
+  for (const f of files) {
+    const html = read('category/' + f);
+    const order = [...html.matchAll(/<link rel="stylesheet" href="\.\.\/assets\/css\/([a-z]+)\.css/g)].map(m => m[1]);
+    assert.deepEqual(order, ['category', 'app', 'storefront'], f + ' stylesheet order: ' + order.join(' -> '));
+    // and the page must be able to render the browse view at all
+    assert.ok(html.includes('assets/js/shop-core.js'), f + ' missing shop-core.js');
+    assert.ok(html.includes('assets/js/storefront.js'), f + ' missing storefront.js');
+    assert.ok(html.includes('assets/js/shop.js'), f + ' missing shop.js');
+  }
 });

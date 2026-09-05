@@ -22,7 +22,26 @@
 html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 
 /* ---------- 2. promo hero ---------- */
-.promos { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin: 0 0 26px; }
+/* The arrangement is keyed on the count class promoHero() publishes
+   (.promos--n1 / --n2 / --n3 / --many), NOT on :has() — same reasoning as
+   .promo--noimg below: relational selectors are unsupported on the older
+   Android/Safari builds these shoppers use, and a silently-ignored :has()
+   here would put the empty cell straight back.
+   Spec S6 asks for one large slot plus a stacked pair. A bare 2fr/1fr grid
+   auto-places three promos into r1c1, r1c2, r2c1 and RESERVES r2c2 — a real
+   440x200 empty box under the second promo. --n3 spans the first promo down
+   both rows of the wide column so the pair stacks beside it and nothing is
+   left over. Keep every count covered: an owner editing promos.json can leave
+   one, two or five promos in the file. */
+.promos { display: grid; grid-template-columns: 1fr; gap: 18px; margin: 0 0 26px; }
+.promos--n1 { grid-template-columns: 1fr; }
+.promos--n2 { grid-template-columns: 2fr 1fr; }
+.promos--n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+.promos--n3 > .promo:first-child { grid-row: 1 / span 2; }
+/* 4+ is beyond the arrangement the spec describes, so it degrades to an even
+   wrap rather than guessing at a hierarchy the owner did not express. auto-fill
+   over a min track keeps every slot the same size and never reserves a cell. */
+.promos--many { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 .promo { position: relative; overflow: hidden; border-radius: var(--radius); min-height: 200px;
   display: grid; align-items: end; text-decoration: none; color: #fff;
   box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s; }
@@ -128,6 +147,20 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 
 /* ---------- 8. sort / count toolbar ---------- */
 .stoolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+/* ---------- 8b. search (toolbar + hub) ---------- */
+/* Direction-agnostic on purpose: the field and its button are laid out by flex
+   order, so the pill reads correctly in RTL and LTR with no mirror rule. */
+.hubsearch { margin: 0 0 22px; max-width: 560px; }
+.ssearch { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; }
+.ssearch__input { flex: 1 1 auto; min-width: 0; font: 700 .88rem 'Cairo', sans-serif; color: var(--ink);
+  background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 9px 16px; }
+.ssearch__input::placeholder { color: var(--ink-soft); }
+.ssearch__input:focus { outline: none; border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+.ssearch__btn { flex: 0 0 auto; cursor: pointer; font: 800 .84rem 'Cairo', sans-serif; color: #fff;
+  background: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 9px 18px; }
+.ssearch__btn:hover { background: color-mix(in srgb, var(--accent) 82%, var(--ink));
+  border-color: color-mix(in srgb, var(--accent) 82%, var(--ink)); }
 .stoolbar__count { font: 700 .88rem 'Cairo', sans-serif; color: var(--ink-soft); }
 .stoolbar__sort { font: 700 .88rem 'Cairo', sans-serif; color: var(--ink); background: #fff;
   border: 1.5px solid var(--line); border-radius: 12px; padding: 9px 14px; }
@@ -139,6 +172,17 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   background: #fff; border: 1.5px solid var(--line); }
 .pager__pg:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .pager__pg[aria-current] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pager__pgs { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+.pager__step { min-height: 38px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; font: 800 .86rem 'Cairo', sans-serif; text-decoration: none; color: var(--ink);
+  background: #fff; border: 1.5px solid var(--line); }
+.pager__step:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.pager__step.is-off { opacity: .42; cursor: default; }
+/* "صفحة N من M" / "Page N of M" — the compact mobile form. Emitted always, shown
+   only under 860px (spec S7); the numbered pills are hidden there instead, so
+   exactly one of the two is ever visible and there is still one mechanism. */
+.pager__status { display: none; align-items: center; padding: 0 6px; min-height: 38px;
+  font: 800 .86rem 'Cairo', sans-serif; color: var(--ink-soft); }
 
 /* ---------- 10. no-image card fallback ---------- */
 .card__noimg { display: block; width: 100%; aspect-ratio: 1 / 1; border-radius: calc(var(--radius) - 6px);
@@ -156,7 +200,13 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
    Responsive
    ========================================================================== */
 @media (max-width: 860px) {
-  .promos { grid-template-columns: 1fr; }
+  .promos, .promos--n1, .promos--n2, .promos--n3, .promos--many { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .promos--n3 > .promo:first-child { grid-row: auto; }
+  .pager__pgs { display: none; }
+  .pager__status { display: inline-flex; }
+  .pager { gap: 10px; flex-wrap: nowrap; }
+  .stoolbar { justify-content: flex-start; }
+  .ssearch { flex: 1 1 100%; }
   .shopgrid { grid-template-columns: 1fr; }
   .facets__toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     cursor: pointer; font: 800 .88rem 'Cairo', sans-serif; color: var(--ink); background: #fff;

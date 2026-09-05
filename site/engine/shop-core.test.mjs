@@ -133,3 +133,197 @@ test('paginate on an empty list yields one page and no items', () => {
   const r = core.paginate([], 1, 24);
   assert.deepEqual(r, { items: [], page: 1, pages: 1, total: 0 });
 });
+
+/* ============================================================================
+   Search (finding 1)
+   ----------------------------------------------------------------------------
+   The storefront rewrite dropped the search box and, with it, master's
+   English-query-against-Arabic-title branch. SAMPLE below is Arabic-titled, the
+   way the real 471-product catalogue is, so an English query can only match
+   through the injected translator — these tests fail against a filter() that
+   ignores `trTitle`.
+   ========================================================================== */
+
+// Stand-in for window.skCatalogI18n.translateTitle, matching only the two words
+// it is asked about. Not an identity function: an implementation that forgot to
+// call it, or called it with the wrong argument, gets nothing back.
+const trTitle = s => s
+  .replace('ثلاجة', 'Refrigerator')
+  .replace('غسالة', 'Washing machine')
+  .replace('كريازى', 'Kiriazi');
+
+test('an English query finds Arabic-titled products through the injected translator', () => {
+  // Sanity: without the translator the same query matches nothing at all — so the
+  // assertion below cannot be satisfied by a plain Arabic substring match.
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=refrigerator'), specOf).map(p => p.id), []);
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=refrigerator'), specOf, trTitle).map(p => p.id),
+    ['1', '2']);
+});
+
+test('the English branch is case-insensitive and matches mid-title words', () => {
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=WASHING'), specOf, trTitle).map(p => p.id), ['3']);
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=Kiriazi'), specOf, trTitle).map(p => p.id), ['1', '2']);
+});
+
+test('an Arabic query still matches the raw title with a translator present', () => {
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=%D8%BA%D8%B3%D8%A7%D9%84%D8%A9'), specOf, trTitle).map(p => p.id), ['3']);
+});
+
+test('search also matches the description, not just the title', () => {
+  const list = [{ id: 'd', title: 'جهاز', description: 'انفرتر موفر للكهرباء', price: 100, categoryId: '1' }];
+  assert.equal(core.filter(list, core.parseState('?q=%D8%A7%D9%86%D9%81%D8%B1%D8%AA%D8%B1'), specOf).length, 1);
+});
+
+test('a query no side matches returns nothing rather than everything', () => {
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=zzzz'), specOf, trTitle), []);
+});
+
+test('a throwing translator degrades to "no English match", it does not empty the results', () => {
+  const boom = () => { throw new Error('translator blew up'); };
+  // the Arabic side still matches …
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=%D8%BA%D8%B3%D8%A7%D9%84%D8%A9'), specOf, boom).map(p => p.id), ['3']);
+  // … and an English-only query simply finds nothing instead of throwing
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=refrigerator'), specOf, boom), []);
+});
+
+test('the translator is never consulted when there is no query', () => {
+  let calls = 0;
+  const counting = s => { calls++; return s; };
+  assert.equal(core.filter(SAMPLE, core.parseState(''), specOf, counting).length, SAMPLE.length);
+  assert.equal(calls, 0);
+});
+
+test('search composes with category, brand and price rather than replacing them', () => {
+  // "Kiriazi" translates onto products 1 and 2; the price window keeps only 1.
+  const s = core.parseState('?q=kiriazi&cat=38003882&brand=kiriazi&min=9000&max=20000');
+  assert.deepEqual(core.filter(SAMPLE, s, specOf, trTitle).map(p => p.id), ['1']);
+});
+
+test('q survives the URL round-trip so a search is shareable', () => {
+  const s = core.parseState('?q=fridge&cat=38003882&page=2');
+  assert.equal(core.stateToSearch(s), '?cat=38003882&q=fridge&page=2');
+  assert.equal(core.parseState(core.stateToSearch(s)).q, 'fridge');
+});
+
+test('a bare ?q= selects browse over the hub', () => {
+  assert.equal(core.isBrowse(core.parseState('?q=fridge')), true);
+  assert.equal(core.isBrowse(core.parseState('')), false);
+});
+
+/* ============================================================================
+   bandCounts (extracted from shop.js's liveBands)
+   ========================================================================== */
+
+test('bandCounts uses filter()\'s own min-inclusive / max-exclusive boundaries', () => {
+  const onBoundary = [
+    { id: 'a', title: 'x', price: 5000, categoryId: '1' },
+    { id: 'b', title: 'x', price: 4999, categoryId: '1' },
+    { id: 'c', title: 'x', price: 15000, categoryId: '1' },
+    { id: 'd', title: 'x', price: 30000, categoryId: '1' }
+  ];
+  const counts = core.bandCounts(onBoundary);
+  assert.deepEqual(counts.map(b => b.count), [1, 1, 1, 1]);
+  // and each count equals what selecting that band actually filters to
+  counts.forEach(b => {
+    const state = Object.assign(core.parseState(''), { min: b.min, max: b.max });
+    assert.equal(core.filter(onBoundary, state, specOf).length, b.count, b.key);
+  });
+});
+
+test('bandCounts keeps every band, including empty ones, for the caller to prune', () => {
+  assert.equal(core.bandCounts([]).length, core.PRICE_BANDS.length);
+  assert.deepEqual(core.bandCounts([]).map(b => b.count), [0, 0, 0, 0]);
+});
+
+/* ============================================================================
+   localizePromos (finding 7)
+   ----------------------------------------------------------------------------
+   The old shop.js fallback was `x.titleEn || x.title`, which rendered Arabic to
+   an English shopper for any promo the (owner-editable, unvalidated) promos.json
+   had not fully translated.
+   ========================================================================== */
+
+const AR_RE = /[\u0600-\u06FF]/;
+const PROMO = { id: 'p1', sample: true, accent: 'teal', href: '#',
+                title: 'ركن الغسيل', titleEn: 'The laundry corner',
+                sub: '٤٩ غسالة', subEn: '49 washing machines',
+                cta: 'تسوّق', ctaEn: 'Shop washing machines' };
+
+test('localizePromos leaves the list untouched in Arabic mode', () => {
+  const out = core.localizePromos([PROMO], false);
+  assert.equal(out[0].title, 'ركن الغسيل');
+  assert.equal(out[0].sub, '٤٩ غسالة');
+});
+
+test('localizePromos swaps in every *En field in English mode', () => {
+  const out = core.localizePromos([PROMO], true);
+  assert.equal(out[0].title, 'The laundry corner');
+  assert.equal(out[0].sub, '49 washing machines');
+  assert.equal(out[0].cta, 'Shop washing machines');
+  assert.ok(!AR_RE.test(out[0].title + out[0].sub + out[0].cta));
+});
+
+test('localizePromos does not mutate the promo it was given', () => {
+  const input = { ...PROMO };
+  core.localizePromos([input], true);
+  assert.equal(input.title, 'ركن الغسيل');
+  assert.equal(input.sub, '٤٩ غسالة');
+});
+
+test('a promo with no titleEn is dropped in English, never shown in Arabic', () => {
+  const untranslated = { id: 'p2', title: 'عرض بدون ترجمة', sub: 'وصف', cta: 'اشتر' };
+  const dropped = [];
+  const out = core.localizePromos([PROMO, untranslated], true, x => dropped.push(x.id));
+  assert.deepEqual(out.map(x => x.id), ['p1']);
+  assert.deepEqual(dropped, ['p2']);
+  // the whole rendered payload must carry no Arabic at all
+  assert.ok(!AR_RE.test(JSON.stringify(out.map(x => [x.title, x.sub, x.cta]))));
+});
+
+test('a missing subEn/ctaEn drops just that line instead of falling back to Arabic', () => {
+  const partial = { id: 'p3', title: 'عنوان', titleEn: 'Title', sub: 'وصف عربى', cta: 'اشتر' };
+  const out = core.localizePromos([partial], true);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].title, 'Title');
+  assert.equal(out[0].sub, undefined);
+  assert.equal(out[0].cta, undefined);
+  assert.ok(!('sub' in out[0]));
+  assert.ok(!('cta' in out[0]));
+});
+
+test('localizePromos passes a null/non-array payload straight through', () => {
+  assert.equal(core.localizePromos(null, true), null);
+  assert.equal(core.localizePromos(undefined, true), undefined);
+});
+
+/* The shipped data must never need the drop path above: every seeded promo is
+   fully bilingual, and the sample marker stays on. This is the validation
+   promos.json never had. */
+test('every promo in data/promos.json carries its English counterparts', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { join, dirname } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const data = JSON.parse(readFileSync(join(here, '../data/promos.json'), 'utf8'));
+  assert.ok(Array.isArray(data.promos) && data.promos.length, 'promos.json has no promos');
+  for (const promo of data.promos) {
+    assert.ok(promo.title, promo.id + ': no Arabic title');
+    assert.ok(promo.titleEn, promo.id + ': missing titleEn');
+    if (promo.sub) assert.ok(promo.subEn, promo.id + ': has sub but no subEn');
+    if (promo.cta) assert.ok(promo.ctaEn, promo.id + ': has cta but no ctaEn');
+    for (const k of ['titleEn', 'subEn', 'ctaEn']) {
+      if (promo[k]) assert.ok(!AR_RE.test(promo[k]), promo.id + ': ' + k + ' contains Arabic');
+    }
+    // honesty constraints: seeded content stays marked, and no invented pricing
+    assert.equal(promo.sample, true, promo.id + ': seeded promos must stay sample:true');
+    for (const k of ['was', 'wasPrice', 'discount', 'percent', 'price', 'rating']) {
+      assert.ok(!(k in promo), promo.id + ': forbidden field ' + k);
+    }
+  }
+  // and nothing is dropped when the real file is localised
+  assert.equal(core.localizePromos(data.promos, true).length, data.promos.length);
+});

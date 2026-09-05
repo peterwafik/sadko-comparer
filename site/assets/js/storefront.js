@@ -95,50 +95,25 @@
     '</article>';
   }
 
-  var ACCENTS = { teal: 'promo--teal', amber: 'promo--amber', ink: 'promo--ink' };
-
-  // A promo with no title is unusable; a missing/!Array input renders nothing at
-  // all rather than an empty frame. `sample:true` is always marked.
-  function promoHero(promos) {
-    if (!promos || !Array.isArray(promos)) return '';
-    var items = promos.filter(function (x) { return x && x.title; });
-    if (!items.length) return '';
-    // The promo grid arrangement depends on HOW MANY promos there are (spec S6:
-    // one large slot plus a stacked pair). A three-promo hero in a plain 2-column
-    // grid auto-places into r1c1/r1c2/r2c1 and reserves an EMPTY r2c2 cell — a
-    // real 440x200 hole at the top of the shop landing page. The count is
-    // published as a class rather than detected in CSS with :has(), for the same
-    // reason .promo--noimg exists: relational selectors are unsupported on the
-    // older Android/Safari builds this storefront's shoppers still use.
-    var sizeClass = items.length <= 3 ? ' promos--n' + items.length : ' promos--many';
-    return '<div class="promos' + sizeClass + '">' + items.map(function (x) {
-      var accent = ACCENTS[x.accent] || ACCENTS.teal;
-      var noimg = x.image ? '' : ' promo--noimg';
-      return '<a class="promo ' + accent + noimg + '" href="' + esc(x.href || '#') + '">' +
-        (x.image ? '<img class="promo__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
-        '<span class="promo__body">' +
-          // Deliberately NOT a labels.* lookup: this marker is an honesty guarantee
-          // (seeded sample content must never read as a live campaign, regardless of
-          // caller-supplied labels). Do not "fix" this into a labels parameter — but
-          // it is still a user-visible string, so it follows the page language the
-          // same way every other default here does. An English shopper must be able
-          // to read the warning, or the guarantee is worthless to them.
-          (x.sample ? '<span class="promo__sample">' + (isEN() ? 'Sample content' : 'محتوى تجريبي') + '</span>' : '') +
-          '<span class="promo__title">' + esc(x.title) + '</span>' +
-          (x.sub ? '<span class="promo__sub">' + esc(x.sub) + '</span>' : '') +
-          (x.cta ? '<span class="promo__cta">' + esc(x.cta) + '</span>' : '') +
-        '</span></a>';
-    }).join('') + '</div>';
-  }
-
   function categoryTile(c) {
     return '<a class="ctile" href="' + esc(c.href) + '">' +
       '<span class="ctile__name">' + esc(c.name) + '</span>' +
       '<span class="ctile__count">' + esc(String(c.count)) + '</span></a>';
   }
 
+  // Circular brand tile, the "shop by brand" pattern big retailers use. If a logo
+  // file exists at assets/img/brands/<key>.(png|svg) it is shown; if it 404s the
+  // <img> removes itself and the wordmark underneath shows through, so the row
+  // looks deliberate whether or not the logos have been supplied yet. We ship no
+  // third-party logo files — see assets/img/brands/README.md.
   function brandTile(b) {
-    return '<a class="btile" href="' + esc(b.href) + '">' +
+    var logo = b.logo
+      ? '<img class="btile__logo" src="' + esc(b.logo) + '" alt="" loading="lazy"' +
+        ' onerror="this.parentNode.classList.add(\'btile__mark--nologo\');this.remove()">'
+      : '';
+    return '<a class="btile" href="' + esc(b.href) + '" title="' + esc(b.name) + '">' +
+      '<span class="btile__mark' + (logo ? '' : ' btile__mark--nologo') + '">' + logo +
+        '<span class="btile__word">' + esc(b.name) + '</span></span>' +
       '<span class="btile__name">' + esc(b.name) + '</span>' +
       '<span class="btile__count">' + esc(String(b.count)) + '</span></a>';
   }
@@ -238,47 +213,66 @@
     '</form>';
   }
 
-  // ---- full-width advertising strap -------------------------------------
-  // Slides come from the SAME promos the hero uses (data/promos.json), so nothing
-  // new is invented here and every seeded slide keeps its sample marker. Rendered
-  // as a list of absolutely-stacked slides; shop.js drives the rotation and owns
-  // the timer. Static markup shows slide 0, so the strap is legible with JS idle.
-  function adStrap(promos) {
-    if (!promos || !Array.isArray(promos)) return '';
-    var items = promos.filter(function (x) { return x && x.title; });
+  // ---- advertising ------------------------------------------------------
+  // Every ad is REAL SADKO campaign artwork taken from the company's own homepage
+  // (see data/promos.json for the source and capture date). The message is baked
+  // into each image in Arabic, so the markup deliberately renders the artwork and
+  // nothing else — overlaying our own headline on top would print the same words
+  // twice. The transcribed text becomes the accessible name instead.
+  // The caller passes promos already run through shop-core's localizePromos(), so
+  // `alt` and `title` are in the page's language by the time they arrive here.
+  function adAlt(x) { return x.alt || x.title || ''; }
+
+  function adFigure(x, cls) {
+    if (!x || !x.image) return '';
+    return '<a class="' + cls + '" href="' + esc(x.href || '#') + '">' +
+      '<img src="' + esc(x.image) + '" alt="' + esc(adAlt(x)) + '" loading="lazy" decoding="async">' +
+    '</a>';
+  }
+
+  // The hero sits INSIDE the page container (it is not full-bleed): the rest of the
+  // shop is capped at the same width, and an ad that breaks that line reads as a
+  // takeover rather than as part of the page. shop.js owns the rotation timer.
+  function adHero(promos) {
+    var items = (promos || []).filter(function (x) { return x && x.image && x.slot === 'hero'; });
     if (!items.length) return '';
     var en = isEN();
-    var dots = items.length > 1
-      ? '<div class="adstrap__dots" role="tablist" aria-label="' + esc(en ? 'Choose a slide' : 'اختر إعلان') + '">' +
-          items.map(function (x, i) {
-            return '<button type="button" class="adstrap__dot' + (i === 0 ? ' is-on' : '') + '"' +
-              ' role="tab" data-go="' + i + '" aria-selected="' + (i === 0 ? 'true' : 'false') + '"' +
-              ' aria-label="' + esc((en ? 'Slide ' : 'إعلان ') + (i + 1)) + '"></button>';
-          }).join('') + '</div>'
+    var many = items.length > 1;
+    var dots = many ? '<div class="adhero__dots" role="tablist" aria-label="' +
+      esc(en ? 'Choose a banner' : 'اختر لافتة') + '">' + items.map(function (x, i) {
+        return '<button type="button" class="adhero__dot' + (i === 0 ? ' is-on' : '') + '"' +
+          ' role="tab" data-go="' + i + '" aria-selected="' + (i === 0 ? 'true' : 'false') + '"' +
+          ' aria-label="' + esc((en ? 'Banner ' : 'لافتة ') + (i + 1)) + '"></button>';
+      }).join('') + '</div>' : '';
+    var arrows = many
+      ? '<button type="button" class="adhero__nav adhero__nav--prev" data-step="-1" aria-label="' +
+          esc(en ? 'Previous banner' : 'اللافتة السابقة') + '"><i aria-hidden="true">‹</i></button>' +
+        '<button type="button" class="adhero__nav adhero__nav--next" data-step="1" aria-label="' +
+          esc(en ? 'Next banner' : 'اللافتة التالية') + '"><i aria-hidden="true">›</i></button>'
       : '';
-    var arrows = items.length > 1
-      ? '<button type="button" class="adstrap__nav adstrap__nav--prev" data-step="-1" aria-label="' +
-          esc(en ? 'Previous ad' : 'الإعلان السابق') + '"><i aria-hidden="true">‹</i></button>' +
-        '<button type="button" class="adstrap__nav adstrap__nav--next" data-step="1" aria-label="' +
-          esc(en ? 'Next ad' : 'الإعلان التالى') + '"><i aria-hidden="true">›</i></button>'
-      : '';
-    return '<section class="adstrap" id="adStrap" aria-roledescription="carousel"' +
-        ' aria-label="' + esc(en ? 'Offers' : 'عروض') + '">' +
-      '<div class="adstrap__slides">' + items.map(function (x, i) {
-        var accent = ACCENTS[x.accent] || ACCENTS.teal;
-        return '<a class="adstrap__slide ' + accent + (i === 0 ? ' is-on' : '') + '"' +
-          ' href="' + esc(x.href || '#') + '" role="group" aria-roledescription="slide"' +
-          ' aria-label="' + esc((i + 1) + ' / ' + items.length) + '"' +
+    return '<section class="adhero" id="adStrap" aria-roledescription="carousel" aria-label="' +
+        esc(en ? 'Offers' : 'عروض') + '">' +
+      '<div class="adhero__slides">' + items.map(function (x, i) {
+        return '<a class="adhero__slide' + (i === 0 ? ' is-on' : '') + '" href="' + esc(x.href || '#') + '"' +
+          ' role="group" aria-roledescription="slide" aria-label="' + esc(adAlt(x)) + '"' +
           (i === 0 ? '' : ' aria-hidden="true" tabindex="-1"') + '>' +
-          (x.image ? '<img class="adstrap__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
-          '<span class="adstrap__body">' +
-            (x.sample ? '<span class="adstrap__sample">' + (en ? 'Sample content' : 'محتوى تجريبي') + '</span>' : '') +
-            '<span class="adstrap__title">' + esc(x.title) + '</span>' +
-            (x.sub ? '<span class="adstrap__sub">' + esc(x.sub) + '</span>' : '') +
-            (x.cta ? '<span class="adstrap__cta">' + esc(x.cta) + '</span>' : '') +
-          '</span></a>';
+          '<img src="' + esc(x.image) + '" alt="' + esc(adAlt(x)) + '"' +
+            (i === 0 ? '' : ' loading="lazy"') + ' decoding="async">' +
+        '</a>';
       }).join('') + '</div>' + arrows + dots +
     '</section>';
+  }
+
+  // One interleaved ad block. `layout` is 'duo' (two side by side) or 'solo' (one
+  // wide). Called repeatedly down the page with different slices of the promo list,
+  // so a shopper meets a new ad every screen or so instead of one banner up top.
+  function adSlot(promos, layout) {
+    var items = (promos || []).filter(function (x) { return x && x.image; });
+    if (!items.length) return '';
+    var cls = 'adslot adslot--' + (layout === 'solo' ? 'solo' : 'duo');
+    return '<div class="' + cls + '">' +
+      items.map(function (x) { return adFigure(x, 'adslot__ad'); }).join('') +
+    '</div>';
   }
 
   // ---- advanced search panel --------------------------------------------
@@ -396,5 +390,5 @@
     try { if (window.skNav && window.skNav.enhanceCategoryCards) window.skNav.enhanceCategoryCards(); } catch (e) {}
   }
 
-  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, adStrap: adStrap, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
+  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
 });

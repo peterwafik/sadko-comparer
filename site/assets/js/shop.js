@@ -93,9 +93,9 @@
     }).filter(function (b) { return b.count > 0; });
   }
 
-  // promos.json seeds bilingual pairs (title/titleEn, sub/subEn, cta/ctaEn);
-  // skShopUI.promoHero only ever reads the bare (Arabic) keys, so the EN swap
-  // happens before it. The swap itself lives in shop-core (pure, unit-tested):
+  // promos.json carries bilingual pairs (title/titleEn, sub/subEn, cta/ctaEn and
+  // alt/altEn); the renderers read only the bare keys, so the EN swap happens
+  // before them. The swap itself lives in shop-core (pure, unit-tested):
   // the old `x.titleEn || x.title` fallback here rendered Arabic to an English
   // shopper for any promo the owner had not translated. promos.json is
   // owner-editable and unvalidated, so that fallback was a live Arabic-in-EN
@@ -123,11 +123,29 @@
     };
   }
 
-  // The advertising strap belongs to shop.html ("all products"), not to the pinned
-  // category pages, which open straight onto one category's listing.
-  function adStrapFor(root, promos) {
-    if (root.getAttribute('data-cat')) return '';
-    return U.adStrap(localizePromos(promos));
+  // Splits the promo list into the rotating hero at the top and the ads dealt out
+  // between the sections below. The pinned category pages open straight onto one
+  // category's listing, so the advertising belongs to shop.html only.
+  function adsFor(root, promos) {
+    if (root.getAttribute('data-cat')) return { hero: [], slots: [] };
+    var all = localizePromos(promos) || [];
+    return {
+      hero: all.filter(function (x) { return x && x.slot === 'hero'; }),
+      slots: all.filter(function (x) { return x && x.slot !== 'hero'; })
+    };
+  }
+
+  // Deal the interleaved ads out down the page, a couple at a time, so a shopper
+  // meets a new one every screen or so instead of one banner at the top. Returns
+  // '' once the list is used up, which is what keeps this safe for an owner who
+  // edits promos.json down to a single ad.
+  function adDealer(slots) {
+    var at = 0;
+    return function (n, layout) {
+      var take = slots.slice(at, at + n);
+      at += take.length;
+      return take.length ? U.adSlot(take, layout) : '';
+    };
   }
 
   function renderHub(root, products, promos) {
@@ -135,28 +153,46 @@
       return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id };
     });
     var brands = C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; }).slice(0, 12)
-      .map(function (b) { return { key: b.key, count: b.count, name: t(b.ar, b.en), href: P('shop.html?brand=') + encodeURIComponent(b.key) }; });
+      .map(function (b) {
+        return {
+          key: b.key, count: b.count, name: t(b.ar, b.en),
+          href: P('shop.html?brand=') + encodeURIComponent(b.key),
+          // Only brands listed in assets/img/brands/logos.json get a logo request;
+          // everyone else renders the wordmark disc. See brandTile() and the folder's
+          // README for how to add one.
+          logo: (CACHE && CACHE.logos || []).indexOf(b.key) >= 0
+            ? P('assets/img/brands/') + b.key + '.png' : ''
+        };
+      });
     var liveB = liveBands(products);
     var bands = liveB.map(function (b) { return { key: b.key, href: b.href }; });
     var bandLabels = liveB.map(function (b) { return b.label; });
 
-    var rails = cats.slice(0, 4).map(function (c) {
+    // Rails are emitted one at a time so an ad can be dropped BETWEEN them.
+    var railList = cats.slice(0, 4).map(function (c) {
       var items = C.sortList(products.filter(function (p) { return String(p.categoryId) === c.id; }), 'price-asc').slice(0, 8);
       return U.rail(t('الأوفر فى ', 'Best value in ') + c.name, items, c.href, RAIL_LABELS);
-    }).join('');
+    });
+    var ads = adsFor(root, promos);
+    var deal = adDealer(ads.slots);
 
     root.innerHTML =
-      adStrapFor(root, promos) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
       U.advancedSearch({ q: '', sort: 'default' }, advData(root, products)) +
-      U.promoHero(localizePromos(promos)) +
+      U.adHero(ads.hero) +
       '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
       '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
       '<h2 class="shop-h2">' + t('تسوّق حسب الماركة', 'Shop by brand') + '</h2>' +
       '<div class="btiles">' + brands.map(U.brandTile).join('') + '</div>' +
+      (railList[0] || '') +
+      deal(2, 'duo') +
+      (railList[1] || '') +
+      deal(1, 'solo') +
+      (railList[2] || '') +
+      deal(2, 'duo') +
+      (railList[3] || '') +
       '<h2 class="shop-h2">' + t('تسوّق حسب السعر', 'Shop by price') + '</h2>' +
-      U.priceBands(bands, bandLabels) +
-      rails;
+      U.priceBands(bands, bandLabels);
     U.afterGrid(root);
     wireAdStrap(root);
     wireAdvanced(root, null);
@@ -238,7 +274,7 @@
       // `--sk-nav-h`, with the same fallback nav.js itself uses) only while the
       // sheet is open, on the breakpoint where it goes full-screen.
       '<style>@media (max-width:860px){#facets.is-open{padding-top:calc(var(--sk-nav-h,86px) + 16px)}}</style>' +
-      adStrapFor(root, CACHE && CACHE.promos) +
+      U.adHero(adsFor(root, CACHE && CACHE.promos).hero) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') },
                     { label: t('المتجر', 'Shop'), href: P('shop.html') }, { label: title }]) +
       '<div class="shopgrid">' +
@@ -311,7 +347,7 @@
   function wireAdStrap(root) {
     stopAdStrap();
     var strap = root.querySelector('#adStrap');
-    var slides = strap ? [].slice.call(strap.querySelectorAll('.adstrap__slide')) : [];
+    var slides = strap ? [].slice.call(strap.querySelectorAll('.adhero__slide')) : [];
     // No strap on this render (a category page), or a single ad that never
     // rotates: drop the document-level listener too, or it keeps a detached strap
     // alive and goes on stopping a timer it can never restart.
@@ -321,7 +357,7 @@
       return;
     }
     syncBleed();
-    var dots = [].slice.call(strap.querySelectorAll('.adstrap__dot'));
+    var dots = [].slice.call(strap.querySelectorAll('.adhero__dot'));
     var at = 0;
 
     function show(next) {
@@ -553,11 +589,21 @@
     var fixedPage = document.getElementById('shop-root').getAttribute('data-cat');
     var promos = fixedPage ? Promise.resolve(null)
       : fetch(P('data/promos.json')).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    // Which brands actually have a logo file. Asking for every brand's logo and
+    // letting the missing ones 404 into the wordmark fallback worked, but cost one
+    // failed request per brand on every load — 12 of them with nothing shipped yet.
+    // The manifest keeps that at zero and makes "drop a file in" an explicit,
+    // reviewable edit. A missing or broken manifest simply means no logos.
+    var logos = fetch(P('assets/img/brands/logos.json'))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { return (d && Array.isArray(d.logos)) ? d.logos : []; })
+      .catch(function () { return []; });
     Promise.all([
       window.skApp.products(),
-      promos
+      promos,
+      logos
     ]).then(function (res) {
-      CACHE = { products: res[0], promos: (res[1] && res[1].promos) || null };
+      CACHE = { products: res[0], promos: (res[1] && res[1].promos) || null, logos: res[2] || [] };
       render();
     });
   }

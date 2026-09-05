@@ -406,9 +406,17 @@ test('localizePromos passes a null/non-array payload straight through', () => {
   assert.equal(core.localizePromos(undefined, true), undefined);
 });
 
-/* The shipped data must never need the drop path above: every seeded promo is
-   fully bilingual, and the sample marker stays on. This is the validation
-   promos.json never had. */
+/* The shipped data must never need the drop path above: every promo is fully
+   bilingual. This is the validation promos.json never had.
+
+   The `sample: true` assertion that used to sit here is gone ON PURPOSE. It
+   existed because the file held seeded placeholder campaigns that must never read
+   as live offers. The file now holds SADKO's own artwork, downloaded from the
+   company's live homepage — real campaigns, so marking them "sample content" would
+   itself be the false statement. What replaces it: provenance must be recorded
+   (where the artwork came from and when), the sample marker must still be honoured
+   if anyone re-seeds placeholder content, and the ban on invented commercial
+   fields stays exactly as strict. */
 test('every promo in data/promos.json carries its English counterparts', async () => {
   const { readFileSync } = await import('node:fs');
   const { fileURLToPath } = await import('node:url');
@@ -416,17 +424,26 @@ test('every promo in data/promos.json carries its English counterparts', async (
   const here = dirname(fileURLToPath(import.meta.url));
   const data = JSON.parse(readFileSync(join(here, '../data/promos.json'), 'utf8'));
   assert.ok(Array.isArray(data.promos) && data.promos.length, 'promos.json has no promos');
+  // Provenance: the artwork is someone's real campaign, so the file has to say
+  // whose and as of when, or nobody can tell later whether an ad is still current.
+  assert.ok(data.source, 'promos.json does not record where the artwork came from');
+  assert.match(String(data.captured), /^\d{4}-\d{2}-\d{2}$/, 'promos.json has no capture date');
   for (const promo of data.promos) {
     assert.ok(promo.title, promo.id + ': no Arabic title');
     assert.ok(promo.titleEn, promo.id + ': missing titleEn');
     if (promo.sub) assert.ok(promo.subEn, promo.id + ': has sub but no subEn');
     if (promo.cta) assert.ok(promo.ctaEn, promo.id + ': has cta but no ctaEn');
-    for (const k of ['titleEn', 'subEn', 'ctaEn']) {
+    // The message is printed inside the artwork, so `alt` is the ONLY thing a
+    // screen-reader user or an English shopper gets from it.
+    assert.ok(promo.alt, promo.id + ': no alt text for the artwork');
+    assert.ok(promo.altEn, promo.id + ': missing altEn');
+    for (const k of ['titleEn', 'subEn', 'ctaEn', 'altEn']) {
       if (promo[k]) assert.ok(!AR_RE.test(promo[k]), promo.id + ': ' + k + ' contains Arabic');
     }
-    // honesty constraints: seeded content stays marked, and no invented pricing
-    assert.equal(promo.sample, true, promo.id + ': seeded promos must stay sample:true');
-    for (const k of ['was', 'wasPrice', 'discount', 'percent', 'price', 'rating']) {
+    // If anyone re-seeds placeholder content, it must still say so.
+    if ('sample' in promo) assert.equal(promo.sample, true, promo.id + ': sample must be true or absent');
+    // No invented commercial claims, exactly as strict as before.
+    for (const k of ['was', 'wasPrice', 'discount', 'percent', 'price', 'rating', 'stock']) {
       assert.ok(!(k in promo), promo.id + ': forbidden field ' + k);
     }
   }

@@ -1,20 +1,77 @@
 {
-  "note": "Sample content. Replace with real SADKO campaigns. Never add a 'was' price that isn't real — the catalogue has no discount data.",
+  "note": "REAL SADKO campaign artwork, downloaded from the company's own live homepage (https://sadko-group.com/) on 2026-09-05 and stored under assets/img/promos/. The banner text is baked into the images in Arabic; `title`/`sub` transcribe what each image says so screen readers and the English side have an equivalent. Do not add a 'was' price, discount %, rating or stock claim here — the catalogue carries no discount data, and these banners make none.",
+  "captured": "2026-09-05",
+  "source": "https://sadko-group.com/",
+  "placement": "hero = the rotating banner at the top of shop.html; slot = the ad blocks interleaved between the shop's sections.",
   "promos": [
-    { "id": "sample-kitchen", "sample": true, "accent": "teal",
-      "title": "كل حاجة للمطبخ", "titleEn": "Everything for the kitchen",
-      "sub": "١٥٧ جهاز صغير من صادكو", "subEn": "157 small appliances",
-      "cta": "تسوّق الأجهزة الصغيرة", "ctaEn": "Shop small appliances",
-      "href": "shop.html?cat=112439376", "image": "assets/img/still_2.jpg" },
-    { "id": "sample-cooling", "sample": true, "accent": "amber",
-      "title": "تبريد لبيتك", "titleEn": "Cooling for your home",
-      "sub": "ثلاجات وفريزرات وتكييفات", "subEn": "Fridges, freezers and air conditioners",
-      "cta": "شوف الثلاجات", "ctaEn": "See refrigerators",
-      "href": "shop.html?cat=38003882", "image": "assets/img/still_1.jpg" },
-    { "id": "sample-laundry", "sample": true, "accent": "ink",
-      "title": "ركن الغسيل", "titleEn": "The laundry corner",
-      "sub": "٤٩ غسالة", "subEn": "49 washing machines",
-      "cta": "تسوّق الغسالات", "ctaEn": "Shop washing machines",
-      "href": "shop.html?cat=38005652" }
+    {
+      "id": "bestsellers", "slot": "hero", "accent": "teal",
+      "title": "تعرف على المنتجات الأكثر مبيعاً من صادكو",
+      "titleEn": "Discover SADKO's best sellers",
+      "cta": "تسوّق دلوقتى", "ctaEn": "Shop now",
+      "href": "shop.html?all=1",
+      "image": "assets/img/promos/hero-bestseller.jpg",
+      "alt": "لافتة صادكو: تعرف على المنتجات الأكثر مبيعاً",
+      "altEn": "SADKO banner: discover the best-selling products"
+    },
+    {
+      "id": "nbe-instalments", "slot": "hero", "accent": "amber",
+      "title": "تقسيط ٦ شهور بدون فوائد",
+      "titleEn": "6 months interest-free instalments",
+      "sub": "لعملاء كارت مشتريات البنك الأهلى",
+      "subEn": "For National Bank of Egypt purchase-card holders",
+      "href": "contact.html",
+      "image": "assets/img/promos/hero-feb.jpg",
+      "alt": "عرض صادكو: تقسيط ٦ شهور بدون فوائد لعملاء كارت مشتريات البنك الأهلى",
+      "altEn": "SADKO offer: 6 months interest-free instalments for NBE purchase-card holders"
+    },
+    {
+      "id": "summer", "slot": "hero", "accent": "ink",
+      "title": "الصيف مع صادكو",
+      "titleEn": "Summer with SADKO",
+      "cta": "تسوّق التكييفات", "ctaEn": "Shop air conditioners",
+      "href": "shop.html?cat=38032005",
+      "image": "assets/img/promos/hero-summer.jpg",
+      "alt": "لافتة صادكو الصيفية",
+      "altEn": "SADKO summer banner"
+    },
+
+    {
+      "id": "instalments-tile", "slot": "slot", "accent": "ink",
+      "title": "صادكو بالتقسيط", "titleEn": "SADKO in instalments",
+      "sub": "٦ شهور بدون فوائد", "subEn": "6 months, interest-free",
+      "href": "contact.html",
+      "image": "assets/img/promos/tile-kk.jpg",
+      "alt": "صادكو بالتقسيط — ٦ شهور بدون فوائد",
+      "altEn": "SADKO in instalments — 6 months interest-free"
+    },
+    {
+      "id": "delivery-tile", "slot": "slot", "accent": "teal",
+      "title": "مهما كان مكانك هانوصل لك",
+      "titleEn": "Wherever you are, we deliver",
+      "href": "delivery.html",
+      "image": "assets/img/promos/tile-delivery.jpg",
+      "alt": "توصيل صادكو: مهما كان مكانك هانوصل لك",
+      "altEn": "SADKO delivery: wherever you are, we deliver"
+    },
+    {
+      "id": "kiriazi-solitaire", "slot": "slot", "accent": "ink",
+      "title": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر",
+      "titleEn": "Kiriazi Solitaire Elegant 370L refrigerator",
+      "sub": "جديد — بمقبض جانبي", "subEn": "New — side handle",
+      "cta": "شوف المنتج", "ctaEn": "See the product",
+      "href": "product.html?id=837495061",
+      "image": "assets/img/promos/tile-preee.jpg",
+      "alt": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر — جديد",
+      "altEn": "Kiriazi Solitaire Elegant 370L refrigerator — new"
+    },
+    {
+      "id": "hotline", "slot": "slot", "accent": "amber",
+      "title": "كلّمنا على ١٩١٤٠", "titleEn": "Call us on 19140",
+      "href": "contact.html",
+      "image": "assets/img/promos/tile-hotline.jpg",
+      "alt": "الخط الساخن لصادكو ١٩١٤٠",
+      "altEn": "SADKO hotline 19140"
+    }
   ]
 }

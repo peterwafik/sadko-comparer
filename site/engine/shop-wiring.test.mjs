@@ -50,7 +50,7 @@ test('the extractor really isolated the functions it is about to assert over', (
   // guards the guard: an extractor that returned '' would make every
   // "body.includes(...)" assertion below fail loudly, but a too-greedy one that
   // returned the whole file would make them all vacuously pass.
-  assert.ok(renderHub.includes('U.promoHero'), 'renderHub body looks wrong');
+  assert.ok(renderHub.includes('U.adHero'), 'renderHub body looks wrong');
   assert.ok(!renderHub.includes('function renderBrowse'), 'renderHub body swallowed the next function');
   assert.ok(wireBrowse.includes('#facetClear'), 'wireBrowse body looks wrong');
   assert.ok(!wireBrowse.includes('function render('), 'wireBrowse body swallowed the next function');
@@ -173,6 +173,21 @@ test('the ad timer is module-scoped and cleared before a new one is started', ()
     'wireAdStrap must clear the previous render’s timer before doing anything else');
 });
 
+// Renaming the renderer's classes without renaming the wiring's selectors leaves a
+// carousel that renders perfectly and never moves — which is exactly what happened
+// when adStrap became adHero. Pin the two halves against each other.
+test('the carousel wiring queries the classes the renderer actually emits', () => {
+  const uiSrc = readFileSync(new URL('../assets/js/storefront.js', import.meta.url), 'utf8');
+  const wire = functionBody(src, 'wireAdStrap');
+  for (const cls of ['adhero__slide', 'adhero__dot']) {
+    assert.ok(uiSrc.includes(cls), 'storefront.js no longer emits .' + cls);
+    assert.ok(wire.includes('.' + cls), 'wireAdStrap does not query .' + cls);
+  }
+  // the id is the handle between them
+  assert.ok(uiSrc.includes('id="adStrap"'), 'the hero no longer carries id="adStrap"');
+  assert.ok(wire.includes("'#adStrap'"), 'wireAdStrap no longer looks up #adStrap');
+});
+
 test('the strap advances on a 5 second dwell', () => {
   // [^)]* would stop at the ')' of the callback's own "function ()" — match lazily
   // across it instead, the same trap the renderBrowse filter() test hit.
@@ -191,17 +206,38 @@ test('the document-level visibility listener is swapped, never stacked', () => {
     'a strap-less render leaves the visibility listener attached');
 });
 
-test('the strap is rendered above the breadcrumb and only on shop.html', () => {
+test('both views render the hero, and the pinned category pages opt out', () => {
   const hub = functionBody(src, 'renderHub');
   const browse = functionBody(src, 'renderBrowse');
   for (const [name, body] of [['renderHub', hub], ['renderBrowse', browse]]) {
-    assert.ok(body.indexOf('adStrapFor(') >= 0, name + ' does not render the ad strap');
-    assert.ok(body.indexOf('adStrapFor(') < body.indexOf('U.breadcrumb('),
-      name + ' renders the strap below the breadcrumb');
+    assert.ok(body.indexOf('adHero(') >= 0, name + ' does not render the ad hero');
   }
-  // the pinned category pages opt out
-  assert.match(functionBody(src, 'adStrapFor'), /data-cat[\s\S]{0,40}return ''/,
-    'adStrapFor no longer excludes the pinned category pages');
+  assert.match(functionBody(src, 'adsFor'), /data-cat[\s\S]{0,80}hero: \[\], slots: \[\]/,
+    'adsFor no longer excludes the pinned category pages');
+});
+
+// The whole point of the redesign: ads are DEALT OUT between the sections rather
+// than stacked in one block at the top, so a shopper meets a new one as they
+// scroll. Assert the interleaving, not just that ads exist.
+test('the hub interleaves ad slots between the rails', () => {
+  const hub = functionBody(src, 'renderHub');
+  const rails = [0, 1, 2, 3].map(i => hub.indexOf('railList[' + i + ']'));
+  rails.forEach((at, i) => assert.ok(at > 0, 'rail ' + i + ' is not rendered individually'));
+  // every deal() call must fall between two rails, never all before or all after
+  const deals = [];
+  for (let i = hub.indexOf('deal('); i !== -1; i = hub.indexOf('deal(', i + 1)) deals.push(i);
+  assert.ok(deals.length >= 3, 'expected at least three interleaved ad slots, found ' + deals.length);
+  assert.ok(deals[0] > rails[0] && deals[0] < rails[1], 'the first ad slot is not between rails 1 and 2');
+  assert.ok(deals[deals.length - 1] < rails[3], 'the last ad slot is not before the final rail');
+});
+
+// adDealer hands out each ad once and then stops, so an owner who trims
+// promos.json to one ad gets one ad — not the same one repeated down the page.
+test('the ad dealer never repeats or overruns its list', () => {
+  const body = functionBody(src, 'adDealer');
+  assert.match(body, /slots\.slice\(at, at \+ n\)/, 'adDealer no longer takes a fresh slice');
+  assert.match(body, /at \+= take\.length/, 'adDealer does not advance past what it handed out');
+  assert.match(body, /take\.length \?/, 'adDealer renders an empty slot instead of nothing');
 });
 
 /* ------------------------------------------- gaps the fix-wave re-review found --- */

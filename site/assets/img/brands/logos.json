@@ -1,0 +1,4 @@
+{
+  "note": "Brand keys that have a logo file in this folder. The shop only requests a logo for a key listed here, so an empty list means zero failed image requests rather than one 404 per brand. Add the key AND drop <key>.png beside this file — see README.md.",
+  "logos": []
+}

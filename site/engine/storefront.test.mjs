@@ -223,44 +223,6 @@ test('card in EN mode routes the title through window.skCatalogI18n.translateTit
   }
 });
 
-test('promoHero renders nothing for missing, empty or malformed input', () => {
-  assert.equal(ui.promoHero(null), '');
-  assert.equal(ui.promoHero([]), '');
-  assert.equal(ui.promoHero('not an array'), '');
-  assert.equal(ui.promoHero([{}]), '');            // no title -> skipped
-});
-
-test('promoHero marks sample content so it is never read as a live campaign', () => {
-  const html = ui.promoHero([{ id: 'a', title: 'تكييفات', href: 'shop.html?cat=1', sample: true }]);
-  assert.ok(html.includes('محتوى تجريبي'));
-});
-
-test('promoHero omits the marker for real campaigns', () => {
-  const html = ui.promoHero([{ id: 'a', title: 'تكييفات', href: 'shop.html?cat=1' }]);
-  assert.ok(!html.includes('محتوى تجريبي'));
-});
-
-test('promoHero maps accent names to token classes, never raw hex', () => {
-  const html = ui.promoHero([{ id: 'a', title: 'x', href: '#', accent: 'amber' }]);
-  assert.ok(html.includes('promo--amber'));
-  assert.ok(!/#[0-9a-f]{6}/i.test(html));
-});
-
-test('promoHero falls back to a typographic panel when image is absent', () => {
-  const html = ui.promoHero([{ id: 'a', title: 'x', href: '#' }]);
-  assert.ok(!html.includes('<img'));
-});
-
-// storefront.css keys its no-image fallback scrim off this class (not a :has()
-// selector, for older-Android/Safari support), so both directions matter: a
-// promo without an image must carry it, and a promo with one must not.
-test('promoHero marks a promo with no image as promo--noimg, and one with an image as not', () => {
-  const withoutImage = ui.promoHero([{ id: 'a', title: 'x', href: '#' }]);
-  assert.ok(withoutImage.includes('promo--noimg'));
-  const withImage = ui.promoHero([{ id: 'a', title: 'x', href: '#', image: 'assets/img/still_1.jpg' }]);
-  assert.ok(!withImage.includes('promo--noimg'));
-});
-
 test('rail renders one card per product and a see-all link', () => {
   const html = ui.rail('الأوفر', [P, { ...P, id: '2' }], 'shop.html?cat=38003882');
   assert.equal((html.match(/<article class="card"/g) || []).length, 2);
@@ -397,7 +359,9 @@ test('toolbar uses supplied sort labels, defaulting to the current Arabic when o
    label at all — must be correct in BOTH languages. Three of them were Arabic-only
    and shipped as latent bugs: rail()'s see-all label and toolbar()'s sort options
    were masked because every current caller happens to pass an override, and
-   promoHero()'s sample marker (deliberately not overridable) was live in English.
+   promoHero()'s sample marker (not overridable) was live in English. promoHero
+   itself has since been removed with the seeded sample promos — the point stands
+   for every default that remains.
    These tests remove the mask: they call each renderer with NO labels at all.
    ========================================================================== */
 
@@ -460,40 +424,6 @@ test('toolbar sorts override still wins in EN mode, per key, over the EN default
   // the keys it did not override fall back to the EN defaults, not the Arabic ones
   assert.ok(html.includes('Default order'));
   assert.ok(html.includes('Price: high to low'));
-});
-
-test('promoHero sample marker is readable in EN — the honesty warning must not be Arabic-only', () => {
-  const html = inEN(() => ui.promoHero([{ id: 'a', title: 'Kitchen', href: 'shop.html?cat=1', sample: true }]));
-  const marker = html.match(/<span class="promo__sample">([^<]*)<\/span>/);
-  assert.ok(marker, 'sample marker missing in EN mode');
-  assert.equal(marker[1], 'Sample content');
-  assert.ok(!AR.test(marker[1]));
-});
-
-test('promoHero sample marker stays Arabic outside EN mode, and is still not caller-overridable', () => {
-  // `labels`-style keys on the promo itself must not be able to suppress or reword it
-  const html = ui.promoHero([{ id: 'a', title: 'تكييفات', href: '#', sample: true, sampleLabel: 'Deal' }]);
-  assert.ok(html.includes('<span class="promo__sample">محتوى تجريبي</span>'));
-  assert.ok(!html.includes('Deal'));
-});
-
-test('no renderer emits an Arabic default when the page language is English', () => {
-  // A single sweep over every string this module can produce with no labels at all.
-  const html = inEN(() =>
-    ui.breadcrumb([{ label: 'Home', href: '/' }, { label: 'Shop' }]) +
-    ui.promoHero([{ id: 'a', title: 'Kitchen', sub: 'Sub', cta: 'Go', href: '#', sample: true }]) +
-    ui.categoryTile({ name: 'Refrigerators', count: 76, href: '#' }) +
-    ui.brandTile({ name: 'Kiriazi', count: 58, href: '#' }) +
-    ui.priceBands([{ key: '0-5000', href: '#' }], ['Under 5,000']) +
-    ui.rail('Best value', [{ ...P, title: 'Fridge', description: 'desc' }], '#') +
-    ui.toolbar(core.parseState(''), 5, { count: n => n + ' products' }) +
-    ui.pager(1, 3, n => '?page=' + n)
-  );
-  // P's own title/description are Arabic catalogue data, not module defaults — strip
-  // the card bodies before asserting, so this test fails only on chrome we author.
-  const chrome = html.replace(/<article class="card"[\s\S]*?<\/article>/g, '');
-  assert.ok(!AR.test(chrome), 'Arabic default leaked into EN chrome: ' +
-    (chrome.match(/[^<>]*[؀-ۿ][^<>]*/) || [''])[0]);
 });
 
 /* ============================================================================
@@ -615,57 +545,20 @@ test('pager still renders nothing at all for a single page — no orphan prev/ne
 });
 
 /* ============================================================================
-   Promo grid arrangement (finding 2)
+   Stylesheet-level assertions
    ----------------------------------------------------------------------------
-   Three promos in a bare 2fr/1fr grid auto-place into r1c1, r1c2, r2c1 and leave
-   a reserved, empty r2c2 — measured 440×200px at 1440px. promoHero publishes the
-   count as a class (no :has(); older Android/Safari would ignore it silently) and
-   storefront.css keys the arrangement off it. Both halves are asserted, because
-   either one alone would let the hole come back.
+   Some layout guarantees live only in CSS, where no renderer can be asked about
+   them. These read the stylesheet directly and say so.
+
+   (The promo-grid tests that used to sit here went with promoHero: the seeded
+   sample promos it rendered — a text overlay on a coloured panel — were replaced
+   by SADKO's own campaign artwork, which carries its message inside the image.
+   adHero/adSlot render the artwork alone, so there is no overlay grid left to
+   leave a hole in.)
    ========================================================================== */
 
 const CSS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../assets/css/storefront.css'), 'utf8');
-const promo = n => Array.from({ length: n }, (_, i) => ({ id: 'p' + i, title: 'Promo ' + i, href: '#' }));
 
-test('promoHero publishes the promo count as a class on the grid container', () => {
-  assert.match(ui.promoHero(promo(1)), /<div class="promos promos--n1">/);
-  assert.match(ui.promoHero(promo(2)), /<div class="promos promos--n2">/);
-  assert.match(ui.promoHero(promo(3)), /<div class="promos promos--n3">/);
-  assert.match(ui.promoHero(promo(5)), /<div class="promos promos--many">/);
-});
-
-test('the count class counts RENDERED promos, not raw input rows', () => {
-  // a title-less promo is filtered out, so the class must not claim three
-  const html = ui.promoHero([{ id: 'a', title: 'A' }, { id: 'b' }, { id: 'c', title: 'C' }]);
-  assert.match(html, /<div class="promos promos--n2">/);
-  assert.equal((html.match(/<a class="promo /g) || []).length, 2);
-});
-
-test('storefront.css defines an arrangement for every count class promoHero can emit', () => {
-  for (const cls of ['promos--n1', 'promos--n2', 'promos--n3', 'promos--many']) {
-    assert.ok(CSS.includes('.' + cls), 'storefront.css has no rule for .' + cls);
-  }
-});
-
-test('the three-promo layout spans the first slot down both rows, so no cell is left empty', () => {
-  // The hole was structural: 3 items, 2 columns, nothing occupying r2c2. The row
-  // span on the first promo is what turns that into one large + a stacked pair.
-  const rule = CSS.match(/\.promos--n3 > \.promo:first-child \{([^}]*)\}/);
-  assert.ok(rule, '.promos--n3 > .promo:first-child rule missing');
-  assert.match(rule[1], /grid-row:\s*1\s*\/\s*span 2/);
-  const grid = CSS.match(/\.promos--n3 \{([^}]*)\}/);
-  assert.ok(grid, '.promos--n3 rule missing');
-  assert.match(grid[1], /grid-template-columns:\s*2fr 1fr/);
-  assert.match(grid[1], /grid-template-rows:\s*1fr 1fr/);
-});
-
-test('the single-column mobile breakpoint releases the row span', () => {
-  // Left in place, the span would stretch the first promo over two auto rows in a
-  // one-column stack. The reset must live inside the ≤860px block.
-  const mobile = CSS.slice(CSS.indexOf('@media (max-width: 860px)'));
-  assert.match(mobile, /\.promos--n3 > \.promo:first-child \{ grid-row: auto; \}/);
-  assert.match(mobile, /\.promos--n3[^{]*\{[^}]*grid-template-columns: 1fr/);
-});
 
 test('the compact pager form is the one shown at the mobile breakpoint', () => {
   const base = CSS.slice(0, CSS.indexOf('@media (max-width: 860px)'));

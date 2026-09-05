@@ -292,6 +292,10 @@
       c.title = x.titleEn;
       if (x.subEn) c.sub = x.subEn; else delete c.sub;
       if (x.ctaEn) c.cta = x.ctaEn; else delete c.cta;
+      // The ad artwork carries its message inside the image, so `alt` is the only
+      // thing an English screen-reader user gets. Swap it here with the rest rather
+      // than leaving each renderer to re-implement the language check.
+      if (x.altEn) c.alt = x.altEn; else delete c.alt;
       out.push(c);
     });
     return out;

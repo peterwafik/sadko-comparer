@@ -21,82 +21,100 @@
    points backward against the reading direction. */
 html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 
-/* ---------- 2. promo hero ---------- */
-/* The arrangement is keyed on the count class promoHero() publishes
-   (.promos--n1 / --n2 / --n3 / --many), NOT on :has() — same reasoning as
-   .promo--noimg below: relational selectors are unsupported on the older
-   Android/Safari builds these shoppers use, and a silently-ignored :has()
-   here would put the empty cell straight back.
-   Spec S6 asks for one large slot plus a stacked pair. A bare 2fr/1fr grid
-   auto-places three promos into r1c1, r1c2, r2c1 and RESERVES r2c2 — a real
-   440x200 empty box under the second promo. --n3 spans the first promo down
-   both rows of the wide column so the pair stacks beside it and nothing is
-   left over. Keep every count covered: an owner editing promos.json can leave
-   one, two or five promos in the file. */
-.promos { display: grid; grid-template-columns: 1fr; gap: var(--sk-gap-md); margin: 0 0 var(--sk-gutter); }
-.promos--n1 { grid-template-columns: 1fr; }
-.promos--n2 { grid-template-columns: 2fr 1fr; }
-.promos--n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
-.promos--n3 > .promo:first-child { grid-row: 1 / span 2; }
-/* 4+ is beyond the arrangement the spec describes, so it degrades to an even
-   wrap rather than guessing at a hierarchy the owner did not express. auto-fill
-   over a min track keeps every slot the same size and never reserves a cell. */
-.promos--many { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-.promo { position: relative; overflow: hidden; border-radius: var(--radius); min-height: 200px;
-  display: grid; align-items: end; text-decoration: none; color: #fff;
-  box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s; }
-.promo:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-/* Scrim lives on a decorative ::before, NOT on .promo__body — .promo__body
-   must stay in-flow (position:relative) so this grid container still has a
-   real in-flow child and can grow past min-height when copy wraps to more
-   lines. The ::before is stacked above .promo__bg (the photo) and below
-   .promo__body (the text) via explicit z-index, and covers the full box so
-   the dark stops sit under the whole text block, not just its bottom edge. */
-.promo::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(to top,
-    color-mix(in srgb, var(--ink) 90%, transparent) 0%,
-    color-mix(in srgb, var(--ink) 62%, transparent) 45%,
-    transparent 100%); }
-/* No photo behind the scrim: the flat accent fill (teal/amber/ink) is already
-   a deliberate, finished background and doesn't need the photo-strength dark
-   wash — ease off so it doesn't read as a muddy smudge. Keyed on the
-   renderer-supplied .promo--noimg class (a plain class selector, universally
-   supported) rather than a relational pseudo-class keyed off .promo__bg's
-   presence, since that selector is unsupported on older Android/Safari and
-   this site's shoppers skew toward older devices. */
-.promo--noimg::before { background: linear-gradient(to top,
-    color-mix(in srgb, var(--ink) 38%, transparent) 0%,
-    color-mix(in srgb, var(--ink) 18%, transparent) 45%,
-    transparent 100%); }
-.promo__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none; z-index: 0; }
-.promo__body { position: relative; z-index: 2; padding: 20px; display: flex; flex-direction: column;
-  align-items: flex-start; gap: 6px; }
-/* typographic fallbacks — used when a promo carries no image, so each must
-   read as a deliberate, finished background on its own. */
-.promo--teal { background: var(--teal-deep); }
-.promo--amber { background: var(--amber); color: var(--ink); }
-.promo--ink { background: var(--ink); }
-.promo__sample { display: inline-block; font: 800 .72rem 'Cairo', sans-serif; letter-spacing: .02em;
-  padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, #fff 85%, transparent);
-  color: var(--ink); }
-.promo__title { font: 900 1.3rem 'Cairo', sans-serif; line-height: 1.3;
-  text-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 65%, transparent); }
-.promo__sub { font: 700 .9rem 'Cairo', sans-serif; opacity: .92;
-  text-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 55%, transparent); }
-.promo__cta { margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; font: 800 .85rem 'Cairo', sans-serif;
-  color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+/* ---------- 2. advertising ----------
+   Real SADKO campaign artwork (data/promos.json). The message is inside the image,
+   so these are picture frames, not text panels: no overlay, no scrim, nothing that
+   could sit on top of the Arabic type already printed in the artwork.
+
+   Contained, never full-bleed. The rest of the shop is capped at the page width,
+   and an ad that breaks that line reads as a takeover rather than as part of the
+   page — which is exactly the note that sent the previous full-width strap back. */
+.adhero { position: relative; margin: 0 0 var(--sk-gutter);
+  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
+  aspect-ratio: 1600 / 608; }
+.adhero__slides { position: absolute; inset: 0; }
+.adhero__slide { position: absolute; inset: 0; opacity: 0; visibility: hidden;
+  transition: opacity .5s ease; }
+.adhero__slide.is-on { opacity: 1; visibility: visible; }
+.adhero__slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.adhero__nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+  border: 0; background: color-mix(in srgb, #fff 82%, transparent); color: var(--ink);
+  font-size: 1.4rem; line-height: 1; display: grid; place-items: center; transition: background .18s; }
+.adhero__nav:hover { background: #fff; }
+.adhero__nav--prev { inset-inline-start: 12px; }
+.adhero__nav--next { inset-inline-end: 12px; }
+/* Direction-sensitive glyphs, so mirror them in LTR. */
+html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
+.adhero__dots { position: absolute; inset-inline: 0; bottom: 12px; z-index: 3;
+  display: flex; justify-content: center; gap: var(--sk-gap-xs); }
+.adhero__dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 0; background: color-mix(in srgb, #fff 62%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent);
+  transition: background .18s, width .18s; }
+.adhero__dot.is-on { background: var(--amber); width: 22px; border-radius: 999px; }
+
+/* Interleaved ad blocks, dealt out between the sections so a new one appears every
+   screen or so on the way down. 'duo' is a pair, 'solo' one wide banner. */
+.adslot { display: grid; gap: var(--sk-grid-gap); margin: 0 0 var(--sk-gutter); }
+/* The paired artwork is SQUARE, so at half of a 1352px container each ad came out
+   660px tall and dominated the page more than the products did. Cap the column and
+   centre the row: the ads stay a comfortable size and the block reads as an insert
+   between sections rather than a takeover. */
+.adslot--duo { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 420px));
+  justify-content: center; }
+.adslot--solo { grid-template-columns: 1fr; }
+.adslot__ad { display: block; border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow); background: color-mix(in srgb, var(--accent) 7%, #fff);
+  transition: transform .18s, box-shadow .18s; }
+.adslot__ad:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.adslot__ad img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* The pair is square artwork; the solo banner is wide. Fixing the ratio per layout
+   keeps a row even when the two images have different intrinsic sizes. */
+.adslot--duo .adslot__ad { aspect-ratio: 1 / 1; }
+.adslot--solo .adslot__ad { aspect-ratio: 1600 / 608; }
 
 /* ---------- 3. category / brand tiles ---------- */
-.ctiles, .btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sk-gap-sm); }
-.ctile, .btile { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+.ctiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sk-gap-sm); }
+
+/* Brand row: a circular mark over the name, the "shop by brand" pattern the big
+   retailers use. We ship no third-party logo files, so .btile__mark falls back to
+   a wordmark disc — the row looks deliberate either way, and dropping a PNG into
+   assets/img/brands/ turns it into a real logo with no code change. */
+.btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gutter); }
+.btile { display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: var(--sk-gap-sm) 6px; text-align: center;
+  text-decoration: none; color: var(--ink); }
+.btile__mark { width: 84px; height: 84px; border-radius: 50%; display: grid;
+  place-items: center; overflow: hidden; background: #fff;
+  border: 1px solid var(--line); box-shadow: var(--shadow);
+  transition: transform .18s, box-shadow .18s; }
+.btile:hover .btile__mark { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.btile__logo { width: 100%; height: 100%; object-fit: contain; padding: 12px; }
+/* The wordmark only shows when there is no logo image to show. */
+.btile__word { display: none; font: 900 .82rem 'Cairo', sans-serif; color: var(--accent);
+  padding: 0 8px; line-height: 1.2; overflow-wrap: anywhere; }
+.btile__mark--nologo { background: color-mix(in srgb, var(--accent) 8%, #fff); }
+.btile__mark--nologo .btile__word { display: block; }
+/* With no logo the disc already spells the brand out, so the caption underneath
+   would just repeat it. Keep it in the DOM for assistive tech, hide it visually. */
+.btile__mark--nologo ~ .btile__name {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.btile__name { font: 800 .82rem 'Cairo', sans-serif; line-height: 1.35; }
+.btile__count { font: 800 .74rem 'Cairo', sans-serif; color: var(--ink-soft);
+  background: color-mix(in srgb, var(--accent) 9%, #fff); border-radius: 999px; padding: 2px 9px; }
+.ctile { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   min-width: 0; overflow-wrap: anywhere;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 13px 15px; text-decoration: none; color: var(--ink);
   transition: transform .15s, box-shadow .15s, border-color .15s; }
-.ctile:hover, .btile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg);
+.ctile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg);
   border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
-.ctile__name, .btile__name { font: 800 .88rem 'Cairo', sans-serif; line-height: 1.4; }
-.ctile__count, .btile__count { flex: 0 0 auto; font: 800 .74rem 'Cairo', sans-serif; color: var(--ink-soft);
+.ctile__name { font: 800 .88rem 'Cairo', sans-serif; line-height: 1.4; }
+.ctile__count { flex: 0 0 auto; font: 800 .74rem 'Cairo', sans-serif; color: var(--ink-soft);
   background: color-mix(in srgb, var(--accent) 9%, #fff); border-radius: 999px; padding: 3px 9px; }
 
 /* ---------- 4. price bands ---------- */
@@ -150,60 +168,6 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 /* ---------- 8b. search (toolbar + hub) ---------- */
 /* Direction-agnostic on purpose: the field and its button are laid out by flex
    order, so the pill reads correctly in RTL and LTR with no mirror rule. */
-/* ---------- advertising strap ----------
-   #shop-root IS the .wrap, so the strap bleeds to the page edges simply by
-   negating the wrap's own horizontal padding. Deliberately NOT the usual
-   `width:100vw; margin-left:calc(50% - 50vw)` trick: 100vw includes the vertical
-   scrollbar, which would make the whole page scroll sideways by its width. */
-.adstrap { position: relative;
-  margin-left: calc(-1 * var(--sk-bleed-l, clamp(16px, 4vw, 48px)));
-  margin-right: calc(-1 * var(--sk-bleed-r, clamp(16px, 4vw, 48px)));
-  margin-top: 0; margin-bottom: var(--sk-gutter);
-  height: clamp(140px, 20vw, 220px); overflow: hidden;
-  background: color-mix(in srgb, var(--accent) 8%, #fff); }
-.adstrap__slides { position: absolute; inset: 0; }
-.adstrap__slide { position: absolute; inset: 0; display: flex; align-items: center;
-  text-decoration: none; color: #fff; opacity: 0; visibility: hidden;
-  transition: opacity .5s ease; }
-.adstrap__slide.is-on { opacity: 1; visibility: visible; }
-.adstrap__bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-/* A readable scrim: the promo photos are bright interiors, and white type sat
-   directly on them was hard to read. The gradient runs from the text edge, so it
-   flips with the writing direction. */
-.adstrap__slide::after { content: ''; position: absolute; inset: 0;
-  background: linear-gradient(to left, color-mix(in srgb, var(--ink) 82%, transparent) 0%,
-                              color-mix(in srgb, var(--ink) 55%, transparent) 45%, transparent 78%); }
-html[dir="ltr"] .adstrap__slide::after { background: linear-gradient(to right,
-  color-mix(in srgb, var(--ink) 82%, transparent) 0%,
-  color-mix(in srgb, var(--ink) 55%, transparent) 45%, transparent 78%); }
-.adstrap__body { position: relative; z-index: 2; display: flex; flex-direction: column;
-  align-items: flex-start; gap: var(--sk-gap-xs);
-  padding: 0 clamp(20px, 5vw, 64px); max-width: min(60ch, 70%); }
-.adstrap__sample { font: 800 .68rem 'Cairo', sans-serif; letter-spacing: .02em;
-  background: color-mix(in srgb, #fff 88%, transparent); color: var(--ink);
-  border-radius: 999px; padding: 3px 10px; }
-.adstrap__title { font: 900 clamp(1.1rem, 2.4vw, 1.8rem) 'Cairo', sans-serif; line-height: 1.3; }
-.adstrap__sub { font: 700 .9rem 'Cairo', sans-serif; opacity: .92; }
-.adstrap__cta { margin-top: 2px; font: 800 .85rem 'Cairo', sans-serif;
-  border-bottom: 2px solid var(--amber); padding-bottom: 2px; }
-.adstrap__nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
-  width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
-  border: 0; background: color-mix(in srgb, #fff 82%, transparent); color: var(--ink);
-  font-size: 1.4rem; line-height: 1; display: grid; place-items: center; transition: background .18s; }
-.adstrap__nav:hover { background: #fff; }
-.adstrap__nav--prev { inset-inline-start: 12px; }
-.adstrap__nav--next { inset-inline-end: 12px; }
-/* The chevrons are direction-sensitive glyphs, so mirror them in LTR. */
-html[dir="ltr"] .adstrap__nav i { display: block; transform: scaleX(-1); }
-.adstrap__dots { position: absolute; inset-inline: 0; bottom: 10px; z-index: 3;
-  display: flex; justify-content: center; gap: var(--sk-gap-xs); }
-.adstrap__dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; cursor: pointer;
-  border: 0; background: color-mix(in srgb, #fff 55%, transparent); transition: background .18s, width .18s; }
-.adstrap__dot.is-on { background: var(--amber); width: 22px; border-radius: 999px; }
-@media (prefers-reduced-motion: reduce) {
-  .adstrap__slide { transition: none; }
-}
-
 /* ---------- advanced search ---------- */
 .asearch { margin: 0 0 var(--sk-gutter); }
 .asearch .ssearch { flex: 1 1 100%; width: 100%; }
@@ -276,8 +240,6 @@ html[dir="ltr"] .adstrap__nav i { display: block; transform: scaleX(-1); }
    Responsive
    ========================================================================== */
 @media (max-width: 860px) {
-  .promos, .promos--n1, .promos--n2, .promos--n3, .promos--many { grid-template-columns: 1fr; grid-template-rows: auto; }
-  .promos--n3 > .promo:first-child { grid-row: auto; }
   .pager__pgs { display: none; }
   .pager__status { display: inline-flex; }
   .pager { gap: 10px; flex-wrap: nowrap; }
@@ -305,6 +267,9 @@ html[dir="ltr"] .adstrap__nav i { display: block; transform: scaleX(-1); }
    sideways on narrow phones (360px baseline). */
 @media (max-width: 480px) {
   .rail__track { grid-auto-columns: minmax(160px, 78vw); }
-  .promo__title { font-size: 1.12rem; }
+  .btiles { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  .btile__mark { width: 68px; height: 68px; }
+  /* A pair of square ads side by side is unreadable on a phone; stack them. */
+  .adslot--duo { grid-template-columns: 1fr; }
   .ctiles, .btiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }

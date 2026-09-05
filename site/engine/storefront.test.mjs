@@ -24,6 +24,50 @@ test('card renders an article.card root', () => {
   assert.match(ui.card(P, {}), /<article class="card"/);
 });
 
+/* ------------------------------------------------------- rail arrows --- */
+
+// The native scrollbar under every rail was the one piece of chrome belonging to
+// no design system. It is replaced by two arrows — and their sides are PHYSICAL:
+// "‹" left, "›" right, in Arabic and English alike, because the arrow points at
+// where the strip will travel on screen and that does not flip with the script.
+test('rail renders a slider with a left and a right arrow', () => {
+  const html = ui.rail('T', [P], '', {});
+  assert.match(html, /class="rail__slider"/, 'the track is not wrapped in a slider');
+  assert.match(html, /rail__nav--l[^>]*data-rail="-1"/, 'no left arrow, or it does not step backwards');
+  assert.match(html, /rail__nav--r[^>]*data-rail="1"/, 'no right arrow, or it does not step forwards');
+  // the glyphs, and their order in the markup
+  assert.ok(html.indexOf('rail__nav--l') < html.indexOf('rail__nav--r'));
+  assert.ok(html.includes('‹') && html.includes('›'));
+});
+
+test('the arrow sides are pinned physically, not with logical properties', () => {
+  // inset-inline-start/end would swap the arrows in Arabic; left/right must not.
+  const nav = CSS.slice(CSS.indexOf('.rail__nav--l'), CSS.indexOf('.rail__nav--l') + 200);
+  assert.match(nav, /\.rail__nav--l \{ left:/, 'the left arrow is not pinned with `left`');
+  assert.match(nav, /\.rail__nav--r \{ right:/, 'the right arrow is not pinned with `right`');
+  assert.ok(!/\.rail__nav--[lr] \{ inset-inline/.test(CSS),
+    'an arrow is pinned with a logical property — it will swap sides in Arabic');
+  // and the glyph must not inherit the LTR mirror the breadcrumb chevron uses
+  assert.match(CSS, /\.rail__nav i \{ display: block; transform: none; \}/);
+});
+
+test('the rail scrollbar is hidden in every engine', () => {
+  const track = CSS.slice(CSS.indexOf('.rail__track {'), CSS.indexOf('.rail__track > .card'));
+  assert.match(track, /scrollbar-width: none/, 'Firefox would still draw a scrollbar');
+  assert.match(track, /-ms-overflow-style: none/, 'old Edge would still draw a scrollbar');
+  assert.match(CSS, /\.rail__track::-webkit-scrollbar \{[^}]*height: 0/, 'WebKit/Blink would still draw a scrollbar');
+  // the strip must still be scrollable by wheel/touch — only the bar is gone
+  assert.match(track, /overflow-x: auto/);
+});
+
+test('the arrow labels are bilingual', () => {
+  const ar = ui.rail('T', [P], '', {});
+  assert.ok(/aria-label="حرّك لليسار"/.test(ar) && /aria-label="حرّك لليمين"/.test(ar));
+  const en = inEN(() => ui.rail('T', [P], '', {}));
+  assert.ok(/aria-label="Scroll left"/.test(en) && /aria-label="Scroll right"/.test(en));
+  assert.ok(!/حرّك/.test(en), 'Arabic label left on the English arrows');
+});
+
 /* ---------------------------------------------- card layout regressions --- */
 
 // The bug this pins: .card__row used to hold the price AND the buy link, and

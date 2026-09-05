@@ -92,7 +92,7 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/category.css?v=c2">
 <link rel="stylesheet" href="../assets/css/app.css?v=a6">
-<link rel="stylesheet" href="../assets/css/storefront.css?v=s1">
+<link rel="stylesheet" href="../assets/css/storefront.css?v=s2">
 </head>
 <body>
 <div class="wrap wrap--wide">
@@ -102,14 +102,14 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 </div>
 <footer data-footer></footer>
 <script src="../assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="../assets/js/nav.js?v=g17" defer></script>
-<script src="../assets/js/appshell.js?v=a4" defer></script>
+<script src="../assets/js/nav.js?v=g18" defer></script>
+<script src="../assets/js/appshell.js?v=a5" defer></script>
 <script src="../assets/js/specs.js?v=a4" defer></script>
 <script src="../assets/js/store.js?v=a4" defer></script>
 <script src="../assets/js/homes.js?v=a4" defer></script>
 <script src="../assets/js/prefs.js?v=a4" defer></script>
 <script src="../assets/js/shop-core.js?v=s1" defer></script>
-<script src="../assets/js/storefront.js?v=s1" defer></script>
+<script src="../assets/js/storefront.js?v=s3" defer></script>
 <script src="../assets/js/shop.js?v=s1" defer></script>
 </body>
 </html>

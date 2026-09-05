@@ -138,12 +138,106 @@
     // label and currency). A caller-supplied labels.more still wins, so the existing
     // overrides in shop.js/product.js behave exactly as before.
     var moreLabel = (labels && labels.more) || (isEN() ? 'See all' : 'شوف الكل');
+    var en = isEN();
+    // The arrows are PHYSICAL, not logical: "<" always sits on the left and moves
+    // the strip leftwards, ">" always on the right, in Arabic and in English. A
+    // reader reaches for the arrow on the side they want to travel towards; that
+    // instinct does not flip with the script. The labels do flip, since a screen
+    // reader announces them.
+    var arrows =
+      '<button type="button" class="rail__nav rail__nav--l" data-rail="-1" aria-label="' +
+        esc(en ? 'Scroll left' : 'حرّك لليسار') + '"><i aria-hidden="true">‹</i></button>' +
+      '<button type="button" class="rail__nav rail__nav--r" data-rail="1" aria-label="' +
+        esc(en ? 'Scroll right' : 'حرّك لليمين') + '"><i aria-hidden="true">›</i></button>';
     return '<section class="rail">' +
       '<div class="rail__head"><h2 class="rail__title">' + esc(title) + '</h2>' +
       (moreHref ? '<a class="rail__more" href="' + esc(moreHref) + '">' + esc(moreLabel) + '</a>' : '') +
-      '</div><div class="rail__track">' +
-      products.map(function (p) { return card(p, {}); }).join('') +
+      '</div>' +
+      '<div class="rail__slider">' +
+        '<div class="rail__track">' +
+          products.map(function (p) { return card(p, {}); }).join('') +
+        '</div>' + arrows +
       '</div></section>';
+  }
+
+  // ---- rail arrows -------------------------------------------------------
+  // Called from afterGrid(), so both surfaces that render rails (the shop hub and
+  // the product page) get this without either having to know about it.
+  //
+  // RTL is the whole reason this is not two lines. `scrollLeft` runs 0..max
+  // left-to-right in LTR, but 0..-max in RTL (negative going left) in every
+  // current engine, so a hardcoded delta scrolls the wrong way in one of the two
+  // languages. Everything below is expressed in a normalised 0..max "distance
+  // from the visual left edge" and converted at the boundary.
+  function wireRails(rootEl) {
+    if (typeof document === 'undefined') return;
+    var scope = rootEl && rootEl.querySelectorAll ? rootEl : document;
+    [].slice.call(scope.querySelectorAll('.rail__slider')).forEach(function (slider) {
+      if (slider.__skRail) return;      // afterGrid re-runs on every render
+      slider.__skRail = true;
+      var track = slider.querySelector('.rail__track');
+      if (!track) return;
+
+      var rtl = function () {
+        return window.getComputedStyle(track).direction === 'rtl';
+      };
+      // distance from the visual left edge, always 0..max
+      var pos = function () { return rtl() ? track.scrollWidth - track.clientWidth + track.scrollLeft : track.scrollLeft; };
+      var max = function () { return track.scrollWidth - track.clientWidth; };
+      // Animated by hand rather than with behavior:'smooth', for two reasons:
+      // it honours prefers-reduced-motion explicitly, and it drives scrollLeft
+      // directly, which behaves identically whichever sign convention the engine
+      // uses for an RTL container (0..max one way, 0..-max the other).
+      var anim = null;
+      var to = function (x) {
+        var m = max();
+        var target = Math.max(0, Math.min(m, x));
+        var from = pos();
+        if (anim) { cancelAnimationFrame(anim); anim = null; }
+        var reduce = false;
+        try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+        var set = function (p) { track.scrollLeft = rtl() ? p - m : p; };
+        if (reduce || from === target) { set(target); sync(); return; }
+        var t0 = 0, dur = 320;
+        var tick = function (now) {
+          if (!t0) t0 = now;
+          var k = Math.min(1, (now - t0) / dur);
+          var e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // easeInOutQuad
+          set(from + (target - from) * e);
+          if (k < 1) anim = requestAnimationFrame(tick); else { anim = null; sync(); }
+        };
+        anim = requestAnimationFrame(tick);
+      };
+      // one card plus its gap, so a click lands the next card on the edge
+      var step = function () {
+        var c = track.querySelector('.card');
+        var gap = parseFloat(window.getComputedStyle(track).columnGap || '16') || 16;
+        return c ? c.getBoundingClientRect().width + gap : Math.round(track.clientWidth * 0.8);
+      };
+
+      function sync() {
+        var m = max();
+        // Nothing to scroll (a short rail): hide the arrows rather than show two
+        // dead controls.
+        slider.classList.toggle('rail__slider--static', m < 4);
+        var p = pos();
+        slider.querySelector('.rail__nav--l').disabled = p <= 1;
+        slider.querySelector('.rail__nav--r').disabled = p >= m - 1;
+      }
+
+      slider.addEventListener('click', function (ev) {
+        var b = ev.target.closest('[data-rail]');
+        if (!b) return;
+        to(pos() + parseInt(b.getAttribute('data-rail'), 10) * step());
+      });
+      track.addEventListener('scroll', sync, { passive: true });
+      window.addEventListener('resize', sync);
+      sync();
+      // Cards arrive from an async catalogue fetch, so the first measurement can
+      // predate them; re-measure once they have landed.
+      setTimeout(sync, 400);
+      setTimeout(sync, 1500);
+    });
   }
 
   function facets(state, data, L) {
@@ -393,7 +487,8 @@
     // filtering, and it deliberately no-ops where there is no `.grid` (the hub
     // and the PDP rail), which is why those surfaces are never filtered down.
     try { if (window.skNav && window.skNav.enhanceCategoryCards) window.skNav.enhanceCategoryCards(); } catch (e) {}
+    try { wireRails(rootEl); } catch (e) {}
   }
 
-  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
+  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid, wireRails: wireRails };
 });

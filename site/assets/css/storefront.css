@@ -138,9 +138,38 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
 .rail__title { margin: 0; font: 900 1.3rem 'Cairo', sans-serif; }
 .rail__more { text-decoration: none; font: 800 .85rem 'Cairo', sans-serif; color: var(--accent); white-space: nowrap; }
 .rail__more:hover { text-decoration: underline; }
+/* The strip still scrolls — by wheel, trackpad, touch and keyboard — but the
+   native scrollbar is gone: a grey OS bar under every rail was the one piece of
+   chrome on the page that belonged to no design system. The arrows replace it. */
+.rail__slider { position: relative; }
 .rail__track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: var(--sk-grid-gap);
-  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; padding-bottom: 6px; }
+  /* `proximity`, not `mandatory`: mandatory snapping makes a free wheel or touch
+     scroll feel sticky (it refuses to rest between cards) and can fight a
+     programmatic scroll. Proximity still tidies a scroll onto a card edge. */
+  overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 2px;
+  scrollbar-width: none; -ms-overflow-style: none; }
+.rail__track::-webkit-scrollbar { width: 0; height: 0; }
 .rail__track > .card { scroll-snap-align: start; }
+
+/* PHYSICAL left/right, deliberately not inset-inline: "‹" stays on the left and
+   "›" on the right in both languages, because the arrow points at the direction
+   of travel on screen, which does not flip with the script. */
+.rail__nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 1px solid var(--line);
+  background: color-mix(in srgb, #fff 92%, transparent); color: var(--ink);
+  box-shadow: var(--shadow-lg); display: grid; place-items: center;
+  font: 400 1.5rem/1 'Cairo', sans-serif;
+  transition: background .18s, opacity .18s, transform .18s; }
+.rail__nav--l { left: -6px; }
+.rail__nav--r { right: -6px; }
+.rail__nav:hover:not(:disabled) { background: #fff; transform: translateY(-50%) scale(1.06); }
+.rail__nav:disabled { opacity: 0; pointer-events: none; }
+/* A rail with nothing to scroll shows no arrows at all. */
+.rail__slider--static .rail__nav { display: none; }
+/* The glyphs are direction-neutral here (they are pinned physically), so they
+   must NOT inherit the LTR mirror the breadcrumb chevrons use. */
+.rail__nav i { display: block; transform: none; }
+
 
 /* ---------- shop section heading (used on the shop hub between rails/tile groups) ---------- */
 /* Section headings carry the same weight as the rail titles so every band of the
@@ -254,6 +283,11 @@ html[dir="ltr"] .adhero__nav i { display: block; transform: scaleX(-1); }
    Responsive
    ========================================================================== */
 @media (max-width: 860px) {
+  /* On a phone the rail arrows sit inside the strip so they never hang off the
+     edge of the viewport. */
+  .rail__nav { width: 34px; height: 34px; font-size: 1.25rem; }
+  .rail__nav--l { left: 2px; }
+  .rail__nav--r { right: 2px; }
   .pager__pgs { display: none; }
   .pager__status { display: inline-flex; }
   .pager { gap: 10px; flex-wrap: nowrap; }

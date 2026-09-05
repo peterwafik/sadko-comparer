@@ -86,7 +86,13 @@ function mountScrollWorld(container, config) {
   const SEGMENTS = [];
   SECTIONS.forEach((s, i) => {
     const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, stillM: s.stillMobile, accent: s.accent,
-                   w: s.scroll || DIVE_W, linger: s.linger || 0 };
+                   w: s.scroll || DIVE_W, linger: s.linger || 0,
+                   // `clipEnd` plays only the FIRST part of a leg: the section's whole
+                   // scroll maps onto clip time 0..clipEnd instead of 0..1. Used to stop
+                   // a flight before it arrives — see the outro below.
+                   // NB: `clamp` is a const declared further down, so it is still in
+                   // its temporal dead zone here — clamp inline rather than call it.
+                   clipEnd: (s.clipEnd != null ? Math.min(1, Math.max(0.02, s.clipEnd)) : 1) };
     SEGMENTS.push(dive);
     s._seg = dive;
     // A connector is optional: if connectors[i] is falsy, the two dives simply
@@ -231,6 +237,98 @@ function mountScrollWorld(container, config) {
       }).catch(() => { s.loading = false; });
   }
 
+  /* ---- outro: fade the last leg out and hand off to another page ----------
+     config.outro = { href, from }. Across the last section, `from`..1 of its
+     scroll drives a full-bleed fade to the page colour; when it completes, the
+     browser goes to `href`.
+
+     Two guards, because a page that navigates itself is easy to get wrong:
+
+     1. ARMING. It only fires if the reader has been ABOVE the fade zone since
+        the page was shown. Without that, pressing Back — which restores this
+        scroll position — would re-fire instantly and trap the reader in a loop
+        they cannot escape with the Back button. `pageshow` covers the bfcache
+        restore, where no script re-runs and no state resets on its own.
+     2. DIRECTION. It fires on the way DOWN only, so scrolling back up THROUGH
+        the zone cannot trigger it. */
+  const OUTRO = config.outro && config.outro.href ? config.outro : null;
+  const outroFrom = OUTRO && OUTRO.from != null ? clamp(OUTRO.from, 0, 0.98) : 0.6;
+  let outroVeil = null, outroArmed = false, outroFired = false, lastY = -1, outroT = -1;
+  if (OUTRO) {
+    outroVeil = el('div', 'sw-outro');
+    outroVeil.setAttribute('aria-hidden', 'true');
+    container.appendChild(outroVeil);
+    // A restore from the back/forward cache does not re-run this file, so re-arm
+    // explicitly rather than relying on module state.
+    window.addEventListener('pageshow', (e) => {
+      outroArmed = false; outroFired = false;
+      // Back restores the scroll position that triggered the hand-off, which is a
+      // fully-faded screen — the reader would come back to a blank page and have
+      // to guess that scrolling up is what reveals the house again. Put them at
+      // the end of the last room instead, just above where the fade begins.
+      // Rescue only a BACK/FORWARD return, never a fresh load. Scheduling it
+      // unconditionally made a normal visit yank the reader backwards: pageshow
+      // fires at scroll 0, and the deferred attempt landed ~120ms later, by which
+      // time a quick flick had already carried them into the zone.
+      // Gating on the scroll position at pageshow does not work either — Chrome
+      // restores it AFTER this event, so it always reads 0 here. The navigation
+      // type is the one signal available at this moment that is actually correct.
+      let backForward = !!e.persisted;
+      try {
+        const nav = performance.getEntriesByType('navigation')[0];
+        if (nav && nav.type === 'back_forward') backForward = true;
+      } catch (err) {}
+      if (!backForward) return;
+      // Chrome restores the scroll position asynchronously, and on a bfcache
+      // restore it can land AFTER a single rAF — one attempt gets overwritten.
+      const rescue = () => {
+        const seg = SECTIONS[N - 1]._seg;
+        const span = seg.end - seg.start;
+        if (!span) return;
+        if ((window.scrollY - seg.start) / span >= outroFrom) {
+          window.scrollTo({ top: seg.start + span * Math.max(0, outroFrom - 0.1), behavior: 'auto' });
+          read();
+        }
+      };
+      requestAnimationFrame(rescue);
+      setTimeout(rescue, 120);
+    });
+  }
+
+  function readOutro(y) {
+    if (!OUTRO || !outroVeil) return;
+    const seg = SECTIONS[N - 1]._seg;
+    const local = clamp((y - seg.start) / (seg.end - seg.start), 0, 1);
+    const t = outroFrom >= 1 ? 0 : clamp((local - outroFrom) / (1 - outroFrom), 0, 1);
+    // Called from the rAF loop as well as from read(), so skip identical writes.
+    if (Math.abs(t - outroT) > 0.001) {
+      outroT = t;
+      outroVeil.style.opacity = t;
+      outroVeil.style.pointerEvents = t > 0.98 ? 'auto' : 'none';
+    }
+    // Armed by leaving the zone upward — either by ending up clear of it, or by
+    // scrolling up at all while inside it. The second clause matters if the
+    // reposition above ever loses its race with scroll restoration: without it a
+    // reader who came Back into the fade would find that scrolling down does
+    // nothing (unarmed) and scrolling up is the only way out, with no way to tell.
+    if (local < outroFrom - 0.02) outroArmed = true;
+    else if (lastY >= 0 && y < lastY) outroArmed = true;
+    // Not-going-UP rather than strictly going-down: one long flick, or a jump
+    // straight to the end, produces a SINGLE readOutro call, and a strict
+    // `y > lastY` left that case un-fired — a reader stranded on a blank veil with
+    // no further scroll events to retry on. Arming is what actually prevents the
+    // back-button loop; this only stops a fire while travelling upward.
+    const notGoingUp = lastY < 0 || y >= lastY;
+    lastY = y;
+    // 0.995, not 1: scroll positions are fractional, so at the exact end of the
+    // last segment t settled at 0.9990 and an `>= 1` test never fired. The veil is
+    // visually solid well before this, so the threshold costs nothing.
+    if (t >= 0.995 && outroArmed && !outroFired && notGoingUp) {
+      outroFired = true;
+      window.location.href = OUTRO.href;
+    }
+  }
+
   function read() {
     const y = window.scrollY || window.pageYOffset;
     // Portrait phones show static scene images with no camera-scrub, so the whole
@@ -244,7 +342,7 @@ function mountScrollWorld(container, config) {
       const s = SEGMENTS[i];
       if (y > s.start - 1.6 * vh && y < s.end + 1.6 * vh) loadClip(s);
       const local = clamp((y - s.start) / (s.end - s.start), 0, 1);
-      s.target = s.linger ? lingerEase(local, s.linger) : local;
+      s.target = (s.linger ? lingerEase(local, s.linger) : local) * s.clipEnd;
       let outside = 0;
       if (y < s.start) outside = s.start - y; else if (y > s.end) outside = y - s.end;
       const op = smooth(1 - outside / fade);
@@ -337,6 +435,7 @@ function mountScrollWorld(container, config) {
     if (particles) particles.style.transform = `translate3d(0, ${-y * 0.05}px, 0)`;
     // SADKO extension: let external layers (hotspots) sync to the same scroll frame.
     container.dispatchEvent(new CustomEvent('sw:frame', { detail: { y, vh } }));
+    readOutro(y);
     ticking = false;
   }
 
@@ -355,6 +454,11 @@ function mountScrollWorld(container, config) {
       const t = clamp(s.cur, 0, 0.999) * dur;
       if (Math.abs(s.video.currentTime - t) > eps) { try { s.video.currentTime = t; } catch (e) {} }
     }
+    // Drive the hand-off from here too. read() is throttled behind a `ticking`
+    // flag on scroll, so one long flick to the very bottom could leave the veil
+    // fully drawn with no further scroll event to act on — a reader stranded on a
+    // blank screen. This loop always runs, and readOutro() skips repeat writes.
+    if (OUTRO && !outroFired) readOutro(window.scrollY || window.pageYOffset);
     requestAnimationFrame(raf);
   }
 
@@ -395,7 +499,10 @@ function mountScrollWorld(container, config) {
   requestAnimationFrame(raf);
 
   // SADKO extension: expose enough state for companion layers (hotspots).
-  const api = { sections: SECTIONS, segments: SEGMENTS, isMobile, relayout: layout };
+  const api = { sections: SECTIONS, segments: SEGMENTS, isMobile, relayout: layout,
+    // QA: the hand-off is invisible until it fires, so expose why it has not.
+    outroState: () => ({ on: !!OUTRO, from: outroFrom, t: outroT,
+                         armed: outroArmed, fired: outroFired, lastY: lastY }) };
 
   // ---- helpers ----
   function el(tag, cls) { const n = document.createElement(tag); if (cls) n.className = cls; return n; }
@@ -445,6 +552,10 @@ function injectCSS() {
   .sw-pt--dot::before{background:radial-gradient(circle at 34% 30%,color-mix(in srgb,var(--sw-accent) 60%,#000),#000 82%);}
   .sw-pt--ring::before{background:transparent;border:2px solid color-mix(in srgb,var(--sw-accent) 55%,transparent);}
   @keyframes sw-drift{0%{opacity:0;transform:scale(var(--sw-sc)) translate(0,12vh) rotate(0)}12%{opacity:.5}88%{opacity:.45}100%{opacity:0;transform:scale(var(--sw-sc)) translate(4vw,-22vh) rotate(210deg)}}
+  /* Outro veil: covers the whole stage as the last leg fades out. Sits above the
+     scenes (z 120) and their copy, but below the fixed chrome, so the dock and the
+     scroll bar stay readable through the hand-off. */
+  .sw-outro{position:fixed;inset:0;z-index:125;opacity:0;pointer-events:none;background:var(--sw-bg,#f7f5f1);transition:opacity .12s linear;}
   .sw-scrollbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:60;background:color-mix(in srgb,var(--sw-accent) 14%,transparent);}
   .sw-scrollbar span{display:block;height:100%;width:100%;transform-origin:0 50%;transform:scaleX(0);background:var(--sw-accent);}
   .sw-topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:clamp(14px,2.4vw,26px) clamp(18px,5vw,64px);}

@@ -56,7 +56,13 @@ function mountGuide(container, api, sections) {
     b.innerHTML = `<em>${i + 1}</em><span>${escg(s.label || '')}</span>`;
     b.title = G.dockTitle(s.label);
     b.setAttribute('aria-label', G.dockBtnAria(s.label));
-    b.addEventListener('click', () => { if (api.enterShowcase) api.enterShowcase(i); });
+    // A section may be a LINK rather than a room: the last one hands off to the
+    // shop instead of framing a scene, so its button navigates. Everything else
+    // still glides the camera to that room's showcase frame.
+    b.addEventListener('click', () => {
+      if (s.href) { window.location.href = s.href; return; }
+      if (api.enterShowcase) api.enterShowcase(i);
+    });
     dock.appendChild(b);
     return b;
   });

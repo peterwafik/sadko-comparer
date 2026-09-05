@@ -4,17 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صادكو جروب — بيتك بالكامل</title>
-<meta name="description" content="اتجوّل جوه بيت صادكو — كل فئات الأجهزة الكهربائية فى ثلاث أوض، وأوضة العروض بتعرض أحدث العروض. اضغط على أى جهاز وتسوّق من فئته مباشرة.">
+<meta name="description" content="اتجوّل جوه بيت صادكو — كل فئات الأجهزة الكهربائية فى ثلاث أوض، وفى الآخر تدخل المتجر على طول. اضغط على أى جهاز وتسوّق من فئته مباشرة.">
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g13" defer></script>
+<script src="assets/js/scrub-engine.js?v=g22" defer></script>
 <script src="assets/js/nav.js?v=g17" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
 <script src="assets/js/hotspots.js?v=g25" defer></script>
-<script src="assets/js/posters.js?v=g8" defer></script>
-<script src="assets/js/guide.js?v=g3" defer></script>
+<script src="assets/js/guide.js?v=g4" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g14">
 </head>
 <body>
@@ -115,21 +114,32 @@ window.addEventListener('DOMContentLoaded', () => {
       ],
     },
     {
-      id: 'family', label: 'أوضة العروض',
-      still: 'assets/img/still_4.jpg',
-      stillMobile: 'assets/img/m_offers.jpg',
+      // The offers room is gone. This last section is the hand-off to the shop:
+      // the laundry flight starts, and is CUT before it arrives — clipEnd 0.30 is
+      // just under the frame where the old room's gallery wall first reads
+      // (frame 42 of 151 = 0.28), so the reader never sees a room they cannot
+      // enter. From `outro.from` the stage fades out and the browser goes to
+      // shop.html. See the outro block in scrub-engine.js for the two guards.
+      id: 'shop', label: 'المتجر',
+      href: 'shop.html',            // the dock button navigates instead of framing
+      // still_shop.jpg is leg_4 at exactly clipEnd (1.109s of 5.042s) — the doorway
+      // out of the laundry, before the offers room resolves. It MUST match the cut:
+      // the still is what shows until the clip decodes, so still_4.jpg (the offers
+      // room itself) put the deleted room straight back on screen.
+      still: 'assets/img/still_shop.jpg',
+      // Portrait has no video to cut, so it must not use the offers-room still at
+      // all — it holds the laundry frame and dissolves straight into the fade.
+      stillMobile: 'assets/img/m_laundry.jpg',
       clip: 'assets/vid/leg_4.mp4', clipMobile: 'assets/vid/leg_4-m.mp4',
+      clipEnd: 0.22,
       accent: '#8a6242',
-      scroll: 2.0, linger: 0.55,
-      copyY: 0.64,      // low: the offers board sits in the upper third
-      mCopyX: 0.50, mCopyY: 0.20,   // phone: standardized top-centre position (same in every room)
-      eyebrow: 'حكاية عيلة من 1961',
-      title: 'عروض وإعلانات',
-      showcase: 0.88,   // the gallery-wall hold
-      showcaseLabel: 'شوف العروض',
-      // No pulsing markers here: the single rotating offers board (mountPosters
-      // slots below) IS the room's interactive element — deals cycle through it
-      // with side arrows, so per-category dots would only clutter the board.
+      scroll: 1.1, linger: 0,
+      copyY: 0.5,
+      mCopyX: 0.50, mCopyY: 0.20,
+      eyebrow: 'كل اللى شوفته… وأكتر',
+      title: 'ادخل المتجر',
+      showcase: 0.22,
+      showcaseLabel: 'تسوّق كل المنتجات',
       hotspots: [],
     },
   ];
@@ -150,9 +160,9 @@ window.addEventListener('DOMContentLoaded', () => {
         // no anchor override: this room's copy sits on the bare centre wall in
         // both languages (copyX/copyY above), since both side walls are packed
         spots: ['Washing machines', 'Clothes dryers', 'Gas water heaters', 'Electric water heaters', 'Irons', 'Steam irons & steamers', 'Vacuum cleaners', 'Robot & stick vacuums', 'Sewing machines', 'Personal care'] },
-      family: { label: 'Offers Room', eyebrow: 'A family story since 1961', title: 'Offers and Advertisements',
-        showcaseLabel: 'See the offers',
-        spots: ['SADKO offers', 'Best sellers', 'Special discount'] },
+      shop: { label: 'Shop', eyebrow: 'Everything you just saw… and more', title: 'Enter the shop',
+        showcaseLabel: 'Shop all products',
+        spots: [] },
     };
     for (const s of SECTIONS) {
       const e = L[s.id]; if (!e) continue;
@@ -171,37 +181,21 @@ window.addEventListener('DOMContentLoaded', () => {
     connScroll: 0.9,
     crossfade: 0.1,
     sections: SECTIONS,
+    // Hand off to the shop at the end of the last (cut) leg. `from` is the point
+    // in that section's scroll where the fade begins; it completes at the end of
+    // the section, and that is when the browser follows `href`.
+    outro: { href: 'shop.html', from: 0.55 },
     connectors: [],            // architecture A: legs chain directly, no connectors
     connectorsMobile: [],
   });
 
   mountHotspots(document.getElementById('world'), api, SECTIONS);
 
-  // Rotating offers inside the family-room picture frames (the three blank
-  // canvases of the gallery wall at the section's settle band).
-  mountPosters(document.getElementById('world'), api, 3, {
-    at: 0.88, span: 0.40,
-    slots: [
-      { fx: 0.252, fy: 0.236, fw: 0.160, fh: 0.319 },
-      { fx: 0.426, fy: 0.236, fw: 0.150, fh: 0.319 },
-      { fx: 0.596, fy: 0.236, fw: 0.159, fh: 0.319 },
-    ],
-    // The portrait m_offers.jpg shows the gallery wall smaller/wider — its three
-    // blank panels sit at these rects (fractions of the portrait frame).
-    slotsMobile: [
-      { fx: 0.300, fy: 0.375, fw: 0.100, fh: 0.125 },
-      { fx: 0.420, fy: 0.375, fw: 0.100, fh: 0.125 },
-      { fx: 0.535, fy: 0.380, fw: 0.085, fh: 0.120 },
-    ],
-    // Phone: make the board much bigger than the panels — stretch it out to reach
-    // roughly halfway into the left and right shelves so it reads clearly.
-    boardMobile: { fx: 0.120, fy: 0.350, fw: 0.760, fh: 0.210 },
-    feeds: [
-      { href: C('173607281'), badge: EN ? 'SADKO offers' : 'عروض صادكو', categoryIds: [38022381, 38032005, 38003882, 112439376, 38003963] },
-      { href: C('195273251'), badge: EN ? 'Best sellers' : 'الأكثر مبيعاً', categoryIds: [38003882, 38022381, 40507239, 81170222, 185355010] },
-      { href: C('173607281'), badge: EN ? 'Special discount' : 'خصم خاص', categoryIds: [38003799, 38005648, 50318054, 57646037, 185364502] },
-    ],
-  });
+  // The rotating offers board used to hang on the family room's gallery wall.
+  // That room is no longer reached — the flight is cut before it — so there is
+  // nothing to mount it onto. Its content lives on in the shop's own "Hot offers"
+  // and "Best sellers" rails, which are built from the same SADKO source lists
+  // (see data/collections.json).
 
   mountGuide(document.getElementById('world'), api, SECTIONS);
   window.__swApi = api;   // exposed for QA tooling (?spots etc.)

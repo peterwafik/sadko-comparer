@@ -238,6 +238,92 @@
     '</form>';
   }
 
+  // ---- full-width advertising strap -------------------------------------
+  // Slides come from the SAME promos the hero uses (data/promos.json), so nothing
+  // new is invented here and every seeded slide keeps its sample marker. Rendered
+  // as a list of absolutely-stacked slides; shop.js drives the rotation and owns
+  // the timer. Static markup shows slide 0, so the strap is legible with JS idle.
+  function adStrap(promos) {
+    if (!promos || !Array.isArray(promos)) return '';
+    var items = promos.filter(function (x) { return x && x.title; });
+    if (!items.length) return '';
+    var en = isEN();
+    var dots = items.length > 1
+      ? '<div class="adstrap__dots" role="tablist" aria-label="' + esc(en ? 'Choose a slide' : 'اختر إعلان') + '">' +
+          items.map(function (x, i) {
+            return '<button type="button" class="adstrap__dot' + (i === 0 ? ' is-on' : '') + '"' +
+              ' role="tab" data-go="' + i + '" aria-selected="' + (i === 0 ? 'true' : 'false') + '"' +
+              ' aria-label="' + esc((en ? 'Slide ' : 'إعلان ') + (i + 1)) + '"></button>';
+          }).join('') + '</div>'
+      : '';
+    var arrows = items.length > 1
+      ? '<button type="button" class="adstrap__nav adstrap__nav--prev" data-step="-1" aria-label="' +
+          esc(en ? 'Previous ad' : 'الإعلان السابق') + '"><i aria-hidden="true">‹</i></button>' +
+        '<button type="button" class="adstrap__nav adstrap__nav--next" data-step="1" aria-label="' +
+          esc(en ? 'Next ad' : 'الإعلان التالى') + '"><i aria-hidden="true">›</i></button>'
+      : '';
+    return '<section class="adstrap" id="adStrap" aria-roledescription="carousel"' +
+        ' aria-label="' + esc(en ? 'Offers' : 'عروض') + '">' +
+      '<div class="adstrap__slides">' + items.map(function (x, i) {
+        var accent = ACCENTS[x.accent] || ACCENTS.teal;
+        return '<a class="adstrap__slide ' + accent + (i === 0 ? ' is-on' : '') + '"' +
+          ' href="' + esc(x.href || '#') + '" role="group" aria-roledescription="slide"' +
+          ' aria-label="' + esc((i + 1) + ' / ' + items.length) + '"' +
+          (i === 0 ? '' : ' aria-hidden="true" tabindex="-1"') + '>' +
+          (x.image ? '<img class="adstrap__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
+          '<span class="adstrap__body">' +
+            (x.sample ? '<span class="adstrap__sample">' + (en ? 'Sample content' : 'محتوى تجريبي') + '</span>' : '') +
+            '<span class="adstrap__title">' + esc(x.title) + '</span>' +
+            (x.sub ? '<span class="adstrap__sub">' + esc(x.sub) + '</span>' : '') +
+            (x.cta ? '<span class="adstrap__cta">' + esc(x.cta) + '</span>' : '') +
+          '</span></a>';
+      }).join('') + '</div>' + arrows + dots +
+    '</section>';
+  }
+
+  // ---- advanced search panel --------------------------------------------
+  // The text box plus the filters a shopper would otherwise have to run a search
+  // first to reach. Every option is built from LIVE catalogue data passed in by
+  // the caller — no hardcoded category or brand lists.
+  function advancedSearch(state, data, L) {
+    var en = isEN();
+    var s = state || {};
+    var d = data || {};
+    var opt = function (list, sel, blank) {
+      return '<option value="">' + esc(blank) + '</option>' + (list || []).map(function (o) {
+        return '<option value="' + esc(o.value) + '"' + (String(sel) === String(o.value) ? ' selected' : '') +
+          '>' + esc(o.label) + (o.count != null ? ' (' + o.count + ')' : '') + '</option>';
+      }).join('');
+    };
+    return '<section class="asearch">' +
+      searchBox(s.q || '', L) +
+      '<details class="asearch__more"' + (s.cat || s.min != null || s.max != null || (s.brands && s.brands.length) ? ' open' : '') + '>' +
+        '<summary class="asearch__toggle">' + esc(en ? 'Advanced search' : 'بحث متقدم') + '</summary>' +
+        '<div class="asearch__grid">' +
+          '<label class="asearch__f"><span>' + esc(en ? 'Category' : 'الفئة') + '</span>' +
+            '<select id="asCat">' + opt(d.cats, s.cat, en ? 'All categories' : 'كل الفئات') + '</select></label>' +
+          '<label class="asearch__f"><span>' + esc(en ? 'Brand' : 'الماركة') + '</span>' +
+            '<select id="asBrand">' + opt(d.brands, (s.brands || [])[0], en ? 'All brands' : 'كل الماركات') + '</select></label>' +
+          '<label class="asearch__f"><span>' + esc(en ? 'Price from' : 'السعر من') + '</span>' +
+            '<input type="number" id="asMin" inputmode="numeric" min="0" step="100" value="' + (s.min != null ? esc(s.min) : '') + '"></label>' +
+          '<label class="asearch__f"><span>' + esc(en ? 'Price to' : 'السعر إلى') + '</span>' +
+            '<input type="number" id="asMax" inputmode="numeric" min="0" step="100" value="' + (s.max != null ? esc(s.max) : '') + '"></label>' +
+          '<label class="asearch__f"><span>' + esc(en ? 'Sort' : 'الترتيب') + '</span>' +
+            '<select id="asSort">' + (d.sorts || []).map(function (o) {
+              return '<option value="' + esc(o.value) + '"' + (s.sort === o.value ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+            }).join('') + '</select></label>' +
+          '<div class="asearch__go">' +
+            '<button type="button" class="btn btn--teal btn--sm" id="asApply">' + esc(en ? 'Search' : 'ابحث') + '</button>' +
+            '<button type="button" class="btn btn--quiet btn--sm" id="asReset">' + esc(en ? 'Reset' : 'مسح') + '</button>' +
+          '</div>' +
+        '</div>' +
+        '<p class="asearch__hint">' + esc(en
+          ? 'Tips: type two words to require both · "in quotes" for an exact phrase · -word to exclude · English and Arabic both work.'
+          : 'نصايح: اكتب كلمتين عشان يظهر اللى فيه الاتنين · "بين علامتين" للجملة بالظبط · -كلمة عشان تستبعدها · بيشتغل بالعربى والإنجليزى.') + '</p>' +
+      '</details>' +
+    '</section>';
+  }
+
   function toolbar(state, total, L) {
     var sortLabels = (L && L.sorts) || {};
     var fallback = DEFAULT_SORT_LABELS[isEN() ? 'en' : 'ar'];
@@ -310,5 +396,5 @@
     try { if (window.skNav && window.skNav.enhanceCategoryCards) window.skNav.enhanceCategoryCards(); } catch (e) {}
   }
 
-  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
+  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, promoHero: promoHero, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, adStrap: adStrap, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid };
 });

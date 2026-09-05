@@ -87,8 +87,82 @@
       });
   }
 
+  // Normalising BOTH the query and the searched text is what makes Arabic search
+  // work at all. A shopper types "ثلاجه" and the catalogue says "ثلاجة"; types
+  // "اسود" where the catalogue has "أسود". Unify the alef forms, teh marbuta and
+  // alef maksura, drop harakat and tatweel, and fold Arabic-Indic digits to ASCII
+  // so "١٠ قدم" and "10 قدم" are the same search.
   function norm(s) {
-    return String(s || '').replace(/&nbsp;/g, ' ').toLowerCase();
+    return String(s || '')
+      .replace(/&nbsp;|&#160;/g, ' ')
+      .replace(/[٠-٩]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0x0660 + 48); })
+      .replace(/[۰-۹]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0x06F0 + 48); })
+      .replace(/[ً-ْـٰ]/g, '')   // harakat, sukun, tatweel, dagger alef
+      .replace(/[آأإٱ]/g, 'ا')  // آ أ إ ٱ -> ا
+      .replace(/ة/g, 'ه')                      // ة -> ه
+      .replace(/ى/g, 'ي')                      // ى -> ي
+      .replace(/ؤ/g, 'و')                      // ؤ -> و
+      .replace(/ئ/g, 'ي')                      // ئ -> ي
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Cross-language synonyms, written in ALREADY-NORMALISED form (ة->ه, ى->ي).
+  // The catalogue is Arabic; the rule-based translator turns "ثلاجة" into
+  // "Refrigerator", so an English shopper typing the everyday word "fridge" — or
+  // "tv", which the translator never produces — matched nothing. These are search
+  // aliases only: no product data is altered and nothing new is displayed.
+  var SYNONYMS = [
+    ['fridge', 'fridges', 'refrigerator', 'refrigerators', 'ثلاجه', 'ثلاجات'],
+    ['tv', 'tvs', 'television', 'televisions', 'شاشه', 'شاشات', 'تلفزيون', 'تليفزيون', 'تليفزيونات'],
+    ['washer', 'washers', 'washing', 'غساله', 'غسالات'],
+    ['dishwasher', 'dishwashers', 'اطباق'],
+    ['ac', 'aircon', 'airconditioner', 'conditioner', 'تكييف', 'تكييفات'],
+    ['oven', 'ovens', 'cooker', 'cookers', 'فرن', 'افران', 'بوتاجاز', 'بوتجاز'],
+    ['freezer', 'freezers', 'فريزر', 'فريزرات', 'ديب فريزر'],
+    ['heater', 'heaters', 'سخان', 'سخانات'],
+    ['microwave', 'microwaves', 'ميكروويف', 'ميكرويف', 'مايكروويف'],
+    ['blender', 'blenders', 'mixer', 'خلاط', 'خلاطات'],
+    ['vacuum', 'hoover', 'مكنسه', 'مكانس'],
+    ['iron', 'irons', 'مكواه', 'مكاوي'],
+    ['kettle', 'kettles', 'كاتيل', 'غلايه'],
+    ['fryer', 'airfryer', 'قلايه', 'قلايات'],
+    ['cooler', 'coolers', 'dispenser', 'مبرد', 'مبردات'],
+    ['fan', 'fans', 'مروحه', 'مراوح'],
+    ['small', 'اجهزه صغيره', 'صغيره']
+  ];
+
+  var SYN_INDEX = (function () {
+    var ix = {};
+    SYNONYMS.forEach(function (group) {
+      group.forEach(function (w) { (ix[w] = ix[w] || []).push.apply(ix[w], group); });
+    });
+    return ix;
+  })();
+
+  // Query grammar (all optional — a plain phrase still behaves as before):
+  //   two words   -> BOTH must appear, in any order and any field
+  //   "in quotes" -> that exact run of characters must appear
+  //   -word       -> products containing it are excluded
+  // Returns { must: [[variant, …], …], phrases: [str, …], not: [str, …] }.
+  function parseQuery(q) {
+    var out = { must: [], typed: [], phrases: [], not: [] };
+    var raw = String(q || '');
+    // pull quoted phrases out first so their spaces are not split on
+    raw = raw.replace(/"([^"]+)"/g, function (m, phrase) {
+      var p = norm(phrase);
+      if (p) out.phrases.push(p);
+      return ' ';
+    });
+    norm(raw).split(' ').forEach(function (word) {
+      if (!word) return;
+      if (word.charAt(0) === '-' && word.length > 1) { out.not.push(word.slice(1)); return; }
+      out.typed.push(word);
+      // the typed word first, so matchesQuery can tell it from its expansions
+      out.must.push(SYN_INDEX[word] ? [word].concat(SYN_INDEX[word].filter(function (w) { return w !== word; })) : [word]);
+    });
+    return out;
   }
 
   // `trTitle` is the OPTIONAL catalogue translator (window.skCatalogI18n.translateTitle,
@@ -99,23 +173,80 @@
   // translated (English) title. The translator is only consulted when the Arabic sides
   // miss, and a throwing translator degrades to "no English match" rather than emptying
   // the whole result set.
-  function matchesQuery(p, q, trTitle) {
-    if (!q) return true;
-    if (norm(p.title).indexOf(q) >= 0) return true;
-    if (norm(p.description).indexOf(q) >= 0) return true;
+  // One normalised haystack per product, covering everything a shopper might
+  // reasonably type: the Arabic title and description, the English title the
+  // translator produces, and the brand. Built once per product per filter pass
+  // rather than per token.
+  // TWO haystacks, deliberately:
+  //   identity — what the product IS: its title, the translated title, its brand.
+  //   full     — identity plus the marketing description.
+  // A word the shopper actually TYPED is looked for in `full`, so searching a spec
+  // phrase like "انفرتر" still works. An expanded SYNONYM is looked for only in
+  // `identity`, because a synonym asserts a product category while descriptions
+  // mention other categories in passing: with "tv" expanded against descriptions,
+  // "شاشة" (display) dragged in blenders and water coolers — 128 hits of which only
+  // 32 were televisions.
+  function haystacks(p, trTitle, specOf) {
+    var id = [norm(p.title)];
     if (trTitle) {
-      try { if (norm(trTitle(p.title)).indexOf(q) >= 0) return true; } catch (e) {}
+      try { id.push(norm(trTitle(p.title))); } catch (e) {}
     }
-    return false;
+    if (specOf) {
+      try {
+        var b = (specOf(p) || {}).brand;
+        if (b) id.push(norm(b.ar), norm(b.en), norm(b.key));
+      } catch (e) {}
+    }
+    var identity = id.join('  ');
+    return { identity: identity, full: identity + '  ' + norm(p.description) };
+  }
+
+  // Short Latin tokens ("tv", "ac", "lg") must match as whole words: a bare
+  // indexOf('tv') also lands inside any model code containing those two letters.
+  // Arabic keeps substring matching, where prefixes and clitics ("الثلاجة") make
+  // word boundaries the wrong tool.
+  function hit(hay, needle) {
+    if (/^[a-z0-9]{1,3}$/.test(needle)) {
+      return new RegExp('(^|[^a-z0-9])' + needle + '([^a-z0-9]|$)').test(hay);
+    }
+    return hay.indexOf(needle) >= 0;
+  }
+
+  // `q` accepts either a raw query string or an already-parsed query (so filter()
+  // can parse once for the whole catalogue instead of once per product).
+  function matchesQuery(p, q, trTitle, specOf) {
+    var parsed = (q && typeof q === 'object' && q.must) ? q : parseQuery(q);
+    if (!parsed.must.length && !parsed.phrases.length && !parsed.not.length) return true;
+    var hay = haystacks(p, trTitle, specOf);
+    for (var i = 0; i < parsed.not.length; i++) {
+      if (hit(hay.full, parsed.not[i])) return false;
+    }
+    for (var j = 0; j < parsed.phrases.length; j++) {
+      if (hay.full.indexOf(parsed.phrases[j]) < 0) return false;
+    }
+    // Every term must land, but any one of its synonyms counts. The typed word
+    // (always first in the variant list) searches the description too; the
+    // synonyms it expanded to are held to the identity fields.
+    for (var k = 0; k < parsed.must.length; k++) {
+      var variants = parsed.must[k], found = false;
+      for (var v = 0; v < variants.length; v++) {
+        var where = (variants[v] === parsed.typed[k]) ? hay.full : hay.identity;
+        if (hit(where, variants[v])) { found = true; break; }
+      }
+      if (!found) return false;
+    }
+    return true;
   }
 
   function filter(products, state, specOf, trTitle) {
-    var q = norm(state.q);
+    // Parse once for the whole pass, not once per product: expanding synonyms for
+    // every one of 471 products on every keystroke-free re-render is wasted work.
+    var q = parseQuery(state.q);
     return products.filter(function (p) {
       if (state.cat && String(p.categoryId) !== String(state.cat)) return false;
       if (state.min != null && !(p.price >= state.min)) return false;
       if (state.max != null && !(p.price < state.max)) return false;
-      if (!matchesQuery(p, q, trTitle)) return false;
+      if (!matchesQuery(p, q, trTitle, specOf)) return false;
       if (state.brands && state.brands.length) {
         var b = (specOf(p) || {}).brand;
         var key = (b && (b.key || b.en || b.ar)) ? String(b.key || b.en || b.ar).toLowerCase() : '__none__';
@@ -181,5 +312,5 @@
     });
   }
 
-  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate };
+  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate };
 });

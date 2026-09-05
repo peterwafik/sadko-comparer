@@ -107,6 +107,29 @@
     });
   }
 
+  // Option lists for the advanced-search panel, built from the LIVE catalogue so a
+  // category or brand can never be offered that no product actually has.
+  function advData(root, products) {
+    var sortNames = SORT_LABELS || { 'default': 'الأحدث أولاً', 'price-asc': 'الأرخص أولاً', 'price-desc': 'الأغلى أولاً' };
+    return {
+      cats: C.liveCategories(products).map(function (c) {
+        return { value: c.id, label: catNameOf(root, c.id), count: c.count };
+      }),
+      brands: C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; })
+        .map(function (b) { return { value: b.key, label: t(b.ar, b.en), count: b.count }; }),
+      sorts: ['default', 'price-asc', 'price-desc'].map(function (k) {
+        return { value: k, label: sortNames[k] };
+      })
+    };
+  }
+
+  // The advertising strap belongs to shop.html ("all products"), not to the pinned
+  // category pages, which open straight onto one category's listing.
+  function adStrapFor(root, promos) {
+    if (root.getAttribute('data-cat')) return '';
+    return U.adStrap(localizePromos(promos));
+  }
+
   function renderHub(root, products, promos) {
     var cats = C.liveCategories(products).map(function (c) {
       return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id };
@@ -123,8 +146,9 @@
     }).join('');
 
     root.innerHTML =
+      adStrapFor(root, promos) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
-      '<div class="hubsearch">' + U.searchBox('') + '</div>' +
+      U.advancedSearch({ q: '', sort: 'default' }, advData(root, products)) +
       U.promoHero(localizePromos(promos)) +
       '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
       '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
@@ -134,6 +158,8 @@
       U.priceBands(bands, bandLabels) +
       rails;
     U.afterGrid(root);
+    wireAdStrap(root);
+    wireAdvanced(root, null);
     // The hub holds no filter state, so a search from here starts a clean browse.
     wireSearch(root, function (q) {
       if (!q) return;
@@ -212,6 +238,7 @@
       // `--sk-nav-h`, with the same fallback nav.js itself uses) only while the
       // sheet is open, on the breakpoint where it goes full-screen.
       '<style>@media (max-width:860px){#facets.is-open{padding-top:calc(var(--sk-nav-h,86px) + 16px)}}</style>' +
+      adStrapFor(root, CACHE && CACHE.promos) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') },
                     { label: t('المتجر', 'Shop'), href: P('shop.html') }, { label: title }]) +
       '<div class="shopgrid">' +
@@ -233,12 +260,152 @@
         '</div>' +
       '</div>';
     U.afterGrid(root);
+    wireAdStrap(root);
     wireBrowse(root, state);
   }
 
   // Module-scoped so wireBrowse() can remove the *previous* render's Escape
   // listener before adding the new one (see the note beside its use below).
   var ESC_HANDLER = null;
+
+  // ---- advertising strap ------------------------------------------------
+  // Module-scoped for the same reason ESC_HANDLER is: render() replaces the whole
+  // of #shop-root on every facet change, so a timer started by a previous render
+  // would keep firing against detached nodes and a new one would be started beside
+  // it. Every render tears the old timer down first, so exactly one is ever live.
+  var AD_TIMER = null;
+  // The visibility listener lives on `document`, so it outlives the strap it was
+  // bound for. Held module-scoped and swapped (not merely added) on every render,
+  // exactly like ESC_HANDLER below: otherwise each facet change leaves another
+  // listener behind holding a DETACHED strap, and the next tab switch has them all
+  // call stopAdStrap() while only the live one can call start() again — the strap
+  // silently stops rotating until the shopper clicks it. Observed and fixed here.
+  var AD_VIS = null;
+
+  function stopAdStrap() {
+    if (AD_TIMER) { clearInterval(AD_TIMER); AD_TIMER = null; }
+  }
+
+  // The page content is capped at 1440px, so negating the wrap's padding alone left
+  // the strap 36px short of each edge on a wider screen. Publish the EXACT distance
+  // from the wrap's content box to each viewport edge so the strap can cancel it.
+  // Deliberately measured rather than done in pure CSS: `100vw` and `50vw` include
+  // the vertical scrollbar, so the usual full-bleed trick pushes the whole page
+  // sideways by its width. documentElement.clientWidth excludes it.
+  function syncBleed() {
+    var root = document.getElementById('shop-root');
+    if (!root) return;
+    var r = root.getBoundingClientRect();
+    var cs = window.getComputedStyle(root);
+    var vw = document.documentElement.clientWidth;
+    var l = r.left + parseFloat(cs.paddingLeft || 0);
+    var rt = vw - (r.right - parseFloat(cs.paddingRight || 0));
+    var el = document.documentElement.style;
+    el.setProperty('--sk-bleed-l', Math.max(0, l) + 'px');
+    el.setProperty('--sk-bleed-r', Math.max(0, rt) + 'px');
+  }
+  // Bound once, not per render: render() runs on every facet change and would
+  // otherwise stack a new resize listener each time.
+  window.addEventListener('resize', syncBleed);
+
+  function wireAdStrap(root) {
+    stopAdStrap();
+    var strap = root.querySelector('#adStrap');
+    var slides = strap ? [].slice.call(strap.querySelectorAll('.adstrap__slide')) : [];
+    // No strap on this render (a category page), or a single ad that never
+    // rotates: drop the document-level listener too, or it keeps a detached strap
+    // alive and goes on stopping a timer it can never restart.
+    if (!strap || slides.length < 2) {
+      if (AD_VIS) { document.removeEventListener('visibilitychange', AD_VIS); AD_VIS = null; }
+      if (strap) syncBleed();
+      return;
+    }
+    syncBleed();
+    var dots = [].slice.call(strap.querySelectorAll('.adstrap__dot'));
+    var at = 0;
+
+    function show(next) {
+      at = (next + slides.length) % slides.length;
+      slides.forEach(function (s, i) {
+        var on = i === at;
+        s.classList.toggle('is-on', on);
+        // Keep the off-screen slides out of the tab order and off the a11y tree,
+        // or a keyboard user tabs into links they cannot see.
+        if (on) { s.removeAttribute('aria-hidden'); s.removeAttribute('tabindex'); }
+        else { s.setAttribute('aria-hidden', 'true'); s.setAttribute('tabindex', '-1'); }
+      });
+      dots.forEach(function (d, i) {
+        d.classList.toggle('is-on', i === at);
+        d.setAttribute('aria-selected', i === at ? 'true' : 'false');
+      });
+    }
+
+    // Someone who has asked for less motion gets the controls but no auto-advance.
+    var still = false;
+    try { still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+    function start() {
+      if (still) return;
+      stopAdStrap();
+      AD_TIMER = setInterval(function () { show(at + 1); }, 5000);
+    }
+
+    strap.addEventListener('click', function (ev) {
+      var nav = ev.target.closest('[data-step]');
+      var dot = ev.target.closest('[data-go]');
+      if (!nav && !dot) return;
+      ev.preventDefault();                   // the slide itself is a link
+      show(nav ? at + parseInt(nav.getAttribute('data-step'), 10) : parseInt(dot.getAttribute('data-go'), 10));
+      start();                               // restart the dwell after a manual move
+    });
+    // Pause while the shopper is reading or tabbing through it.
+    strap.addEventListener('mouseenter', stopAdStrap);
+    strap.addEventListener('mouseleave', start);
+    strap.addEventListener('focusin', stopAdStrap);
+    strap.addEventListener('focusout', start);
+    // A backgrounded tab should not keep cycling. Swapped, never stacked.
+    if (AD_VIS) document.removeEventListener('visibilitychange', AD_VIS);
+    AD_VIS = function () {
+      if (document.hidden) stopAdStrap();
+      else if (document.body.contains(strap)) start();
+    };
+    document.addEventListener('visibilitychange', AD_VIS);
+
+    show(0);
+    start();
+  }
+
+  // Reads the advanced panel and turns it into one navigation. Kept beside
+  // wireSearch so both entry points into a search live together.
+  function wireAdvanced(root, state) {
+    var pick = function (id) { var el = root.querySelector(id); return el ? el.value.trim() : ''; };
+    var apply = root.querySelector('#asApply');
+    if (apply) apply.addEventListener('click', function () {
+      var brand = pick('#asBrand');
+      var min = pick('#asMin'), max = pick('#asMax');
+      var cat = pick('#asCat');
+      var qEl = root.querySelector('#q');
+      var q = qEl ? qEl.value.trim() : '';
+      go({
+        cat: cat,
+        q: q,
+        brands: brand ? [brand] : [],
+        min: min === '' ? null : parseInt(min, 10),
+        max: max === '' ? null : parseInt(max, 10),
+        sort: pick('#asSort') || 'default',
+        page: 1,
+        // `all` only means "browse everything with no criteria". Setting it
+        // alongside cat/q/price would render identically but leave a URL that
+        // contradicts itself — the same wart the Clear handler avoids.
+        all: !root.getAttribute('data-cat') && !cat && !q && !brand && min === '' && max === ''
+      });
+    });
+    var reset = root.querySelector('#asReset');
+    if (reset) reset.addEventListener('click', function () {
+      go({ cat: '', q: '', brands: [], min: null, max: null, sort: 'default', page: 1,
+           all: !root.getAttribute('data-cat') });
+    });
+  }
 
   // Every search submit re-renders the whole surface (innerHTML), which destroys
   // the input the shopper is typing in. Remember that the last navigation came

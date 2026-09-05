@@ -150,14 +150,21 @@ test('paginate on an empty list yields one page and no items', () => {
 const trTitle = s => s
   .replace('ثلاجة', 'Refrigerator')
   .replace('غسالة', 'Washing machine')
-  .replace('كريازى', 'Kiriazi');
+  .replace('كريازى', 'Kiriazi')
+  // A token ONLY the translator can produce: "refrigerator" now reaches the Arabic
+  // title through the search synonym table, and "kiriazi" reaches it through the
+  // brand, so neither can prove any more that trTitle was consulted. "foot" can.
+  .replace('قدم', 'foot');
 
 test('an English query finds Arabic-titled products through the injected translator', () => {
-  // Sanity: without the translator the same query matches nothing at all — so the
-  // assertion below cannot be satisfied by a plain Arabic substring match.
-  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=refrigerator'), specOf).map(p => p.id), []);
+  // Probes with "foot" rather than "refrigerator": the search synonym table now maps
+  // fridge/refrigerator onto "ثلاجه" directly, and "kiriazi" reaches the same
+  // products through the brand, so neither could fail the sanity check below any
+  // more. "foot" is produced ONLY by the translator, so it still proves the trTitle
+  // branch is wired.
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=foot'), specOf).map(p => p.id), []);
   assert.deepEqual(
-    core.filter(SAMPLE, core.parseState('?q=refrigerator'), specOf, trTitle).map(p => p.id),
+    core.filter(SAMPLE, core.parseState('?q=foot'), specOf, trTitle).map(p => p.id),
     ['1', '2']);
 });
 
@@ -186,8 +193,107 @@ test('a throwing translator degrades to "no English match", it does not empty th
   const boom = () => { throw new Error('translator blew up'); };
   // the Arabic side still matches …
   assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=%D8%BA%D8%B3%D8%A7%D9%84%D8%A9'), specOf, boom).map(p => p.id), ['3']);
-  // … and an English-only query simply finds nothing instead of throwing
-  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=refrigerator'), specOf, boom), []);
+  // … and a translator-only query simply finds nothing instead of throwing.
+  // "foot" for the same reason as above: no synonym entry and no brand match, so a
+  // dead translator really does mean no match.
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=foot'), specOf, boom), []);
+});
+
+/* ============================================================================
+   Advanced search
+   ========================================================================== */
+
+test('Arabic normalisation folds alef, teh marbuta and alef maksura', () => {
+  // the catalogue writes "ثلاجة"; a shopper types "ثلاجه" — and vice versa
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=%D8%AB%D9%84%D8%A7%D8%AC%D9%87'), specOf).map(p => p.id), ['1', '2']);
+  assert.equal(core.norm('أسود'), core.norm('اسود'));
+  assert.equal(core.norm('كريازى'), core.norm('كريازي'));
+  assert.equal(core.norm('ثلاجــة'), 'ثلاجه');            // tatweel stripped
+  assert.equal(core.norm('مُبَرِّد'), 'مبرد');              // harakat stripped
+});
+
+test('Arabic-Indic digits search the same as ASCII digits', () => {
+  assert.equal(core.norm('١٠ قدم'), '10 قدم');
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=10'), specOf).map(p => p.id), ['1']);
+});
+
+test('multiple words must ALL match, in any order and across fields', () => {
+  // "ثلاجة" is in the title, "kiriazi" only in the brand — both must hit
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=kiriazi%20%D8%AB%D9%84%D8%A7%D8%AC%D8%A9'), specOf).map(p => p.id),
+    ['1', '2']);
+  // order is irrelevant
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=%D8%AB%D9%84%D8%A7%D8%AC%D8%A9%20kiriazi'), specOf).map(p => p.id),
+    ['1', '2']);
+  // a second word that matches nothing narrows to empty rather than being ignored
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=kiriazi%20zzz'), specOf), []);
+});
+
+test('the brand is searchable even though it is not in the title', () => {
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=kiriazi'), specOf).map(p => p.id), ['1', '2']);
+  // product 4 has no derivable brand and must not match a brand query
+  assert.ok(!core.filter(SAMPLE, core.parseState('?q=lg'), specOf).some(p => p.id === '4'));
+});
+
+test('synonyms bridge English and Arabic without the translator', () => {
+  // the everyday words a shopper actually types
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=fridge'), specOf).map(p => p.id), ['1', '2']);
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=washer'), specOf).map(p => p.id), ['3']);
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=blender'), specOf).map(p => p.id), ['4']);
+});
+
+// Precision guard. A synonym asserts what a product IS, so it is matched only
+// against the identity fields (title, translated title, brand) — never the
+// description, where other categories get mentioned in passing. Against the real
+// catalogue, expanding "tv" into the description via "شاشة" (display) returned 128
+// products of which only 32 were televisions: blenders and water coolers included.
+test('a synonym does not match via the description, only the typed word does', () => {
+  const list = [
+    { id: 'tv', title: 'تليفزيون سامسونج 43 بوصة', description: 'جهاز عرض', price: 9000, categoryId: 'a' },
+    { id: 'blender', title: 'خلاط ميانتا 500 وات', description: 'بشاشه رقميه لعرض السرعه', price: 650, categoryId: 'b' }
+  ];
+  // "tv" expands to شاشه — which appears only in the blender's DESCRIPTION, so the
+  // blender must not come back
+  assert.deepEqual(core.filter(list, core.parseState('?q=tv'), specOf).map(p => p.id), ['tv']);
+  // …but a literal word is still searched for in the description. Probed with
+  // "رقميه", which is in no synonym group: typing "شاشه" itself would legitimately
+  // return the television too, since that word IS the group's Arabic member.
+  assert.deepEqual(core.filter(list, core.parseState('?q=%D8%B1%D9%82%D9%85%D9%8A%D9%87'), specOf).map(p => p.id), ['blender']);
+});
+
+test('a short latin token matches as a whole word, not inside a model code', () => {
+  const list = [
+    { id: 'real', title: 'تليفزيون TV سمارت', description: '', price: 9000, categoryId: 'a' },
+    { id: 'code', title: 'خلاط موديل BTVX-9', description: '', price: 650, categoryId: 'b' }
+  ];
+  assert.deepEqual(core.filter(list, core.parseState('?q=tv'), specOf).map(p => p.id), ['real']);
+});
+
+test('a quoted phrase must match as a run, not as separate words', () => {
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=%22%D8%AB%D9%84%D8%A7%D8%AC%D8%A9%20%D9%83%D8%B1%D9%8A%D8%A7%D8%B2%D9%89%22'), specOf).map(p => p.id),
+    ['1', '2']);
+  // the same two words in the wrong order are not a phrase match
+  assert.deepEqual(
+    core.filter(SAMPLE, core.parseState('?q=%22%D9%83%D8%B1%D9%8A%D8%A7%D8%B2%D9%89%20%D8%AB%D9%84%D8%A7%D8%AC%D8%A9%22'), specOf), []);
+});
+
+test('a -term excludes matching products', () => {
+  assert.deepEqual(core.filter(SAMPLE, core.parseState('?q=fridge%20-12'), specOf).map(p => p.id), ['1']);
+});
+
+test('parseQuery separates terms, phrases and exclusions', () => {
+  const q = core.parseQuery('fridge "10 قدم" -lg');
+  assert.equal(q.phrases.length, 1);
+  assert.deepEqual(q.not, ['lg']);
+  assert.ok(q.must.length === 1 && q.must[0].indexOf('ثلاجه') >= 0,
+    'fridge should expand to its Arabic synonym');
+});
+
+test('an empty or whitespace query still matches everything', () => {
+  assert.equal(core.filter(SAMPLE, core.parseState('?q=%20%20'), specOf).length, SAMPLE.length);
+  assert.equal(core.matchesQuery(SAMPLE[0], '', null, specOf), true);
 });
 
 test('the translator is never consulted when there is no query', () => {
@@ -199,7 +305,7 @@ test('the translator is never consulted when there is no query', () => {
 
 test('search composes with category, brand and price rather than replacing them', () => {
   // "Kiriazi" translates onto products 1 and 2; the price window keeps only 1.
-  const s = core.parseState('?q=kiriazi&cat=38003882&brand=kiriazi&min=9000&max=20000');
+  const s = core.parseState('?q=foot&cat=38003882&brand=kiriazi&min=9000&max=20000');
   assert.deepEqual(core.filter(SAMPLE, s, specOf, trTitle).map(p => p.id), ['1']);
 });
 

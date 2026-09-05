@@ -59,8 +59,12 @@ test('the extractor really isolated the functions it is about to assert over', (
 /* ---------------------------------------------------------------- search --- */
 
 test('the hub renders a search box and wires it', () => {
-  assert.match(renderHub, /U\.searchBox\(/, 'hub renders no search box');
+  // The hub now renders the field through U.advancedSearch(), which embeds
+  // searchBox() and adds the filter controls around it; either counts as rendering
+  // the box. storefront.test.mjs asserts advancedSearch() really does emit it.
+  assert.match(renderHub, /U\.(searchBox|advancedSearch)\(/, 'hub renders no search box');
   assert.match(renderHub, /wireSearch\(/, 'hub search box is rendered but never wired');
+  assert.match(renderHub, /wireAdvanced\(/, 'hub advanced panel is rendered but never wired');
 });
 
 test('the browse view wires the toolbar search box and tells it the current term', () => {
@@ -150,6 +154,54 @@ test('promo localisation is delegated to the tested shop-core helper', () => {
 test('price-band bucketing is delegated to shop-core so counts cannot drift from filter()', () => {
   assert.match(liveBands, /C\.bandCounts\(products\)/);
   assert.ok(!liveBands.includes('p.price >= b.min'), 'liveBands re-implements the band boundaries locally');
+});
+
+/* ------------------------------------------------------- advertising strap --- */
+
+// render() replaces the whole of #shop-root on every facet change, so anything the
+// strap binds outside that subtree — a timer, or a listener on `document` — has to
+// be torn down first. Both leaked in the first cut: the timer was fine, but a
+// per-render visibilitychange listener accumulated, and stale copies (holding a
+// DETACHED strap) stopped the live timer on the next tab switch without being able
+// to restart it. The strap then silently froze until the shopper clicked it.
+test('the ad timer is module-scoped and cleared before a new one is started', () => {
+  assert.match(code, /var AD_TIMER = null;/, 'the ad timer is no longer module-scoped');
+  const stop = functionBody(src, 'stopAdStrap');
+  assert.match(stop, /clearInterval\(AD_TIMER\)/, 'stopAdStrap does not clear the interval');
+  const wire = functionBody(src, 'wireAdStrap');
+  assert.ok(wire.trimStart().startsWith('stopAdStrap()'),
+    'wireAdStrap must clear the previous render’s timer before doing anything else');
+});
+
+test('the strap advances on a 5 second dwell', () => {
+  // [^)]* would stop at the ')' of the callback's own "function ()" — match lazily
+  // across it instead, the same trap the renderBrowse filter() test hit.
+  assert.match(functionBody(src, 'wireAdStrap'), /setInterval\([\s\S]*?,\s*5000\)/,
+    'the ad strap no longer rotates every 5000ms');
+});
+
+test('the document-level visibility listener is swapped, never stacked', () => {
+  const wire = functionBody(src, 'wireAdStrap');
+  assert.match(code, /var AD_VIS = null;/, 'the visibility handler is not module-scoped');
+  assert.match(wire, /removeEventListener\('visibilitychange', AD_VIS\)/,
+    'wireAdStrap adds a visibilitychange listener without removing the previous one');
+  // and a render with no strap (a category page) must drop it too, rather than
+  // leaving a listener behind that holds a detached element
+  assert.ok(/if \(!strap \|\| slides\.length < 2\)[\s\S]{0,220}removeEventListener\('visibilitychange'/.test(wire),
+    'a strap-less render leaves the visibility listener attached');
+});
+
+test('the strap is rendered above the breadcrumb and only on shop.html', () => {
+  const hub = functionBody(src, 'renderHub');
+  const browse = functionBody(src, 'renderBrowse');
+  for (const [name, body] of [['renderHub', hub], ['renderBrowse', browse]]) {
+    assert.ok(body.indexOf('adStrapFor(') >= 0, name + ' does not render the ad strap');
+    assert.ok(body.indexOf('adStrapFor(') < body.indexOf('U.breadcrumb('),
+      name + ' renders the strap below the breadcrumb');
+  }
+  // the pinned category pages opt out
+  assert.match(functionBody(src, 'adStrapFor'), /data-cat[\s\S]{0,40}return ''/,
+    'adStrapFor no longer excludes the pinned category pages');
 });
 
 /* ------------------------------------------- gaps the fix-wave re-review found --- */

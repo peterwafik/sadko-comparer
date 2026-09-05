@@ -70,9 +70,12 @@
 
     /* ================= render ================= */
     function render(p, s, peers) {
-      var U = window.skShopUI;
-      var en0 = !!(window.skLang && window.skLang.get() === 'en');
-      var dispTitle = (en0 && window.skCatalogI18n && window.skCatalogI18n.translateTitle)
+      const U = window.skShopUI;
+      // EN shoppers arrive here from a translated shop/category card — route the
+      // title through the same rule-based translator so the PDP title, tab
+      // title and image alt all agree with what they just clicked. Computed
+      // once here and threaded into head() so the two never diverge.
+      const dispTitle = (!!(window.skLang && window.skLang.get() === 'en') && window.skCatalogI18n && window.skCatalogI18n.translateTitle)
         ? window.skCatalogI18n.translateTitle(p.title) : p.title;
       document.title = dispTitle.replace(/&nbsp;/g, ' ').slice(0, 70) + ' — ' + t('صادكو جروب', 'SADKO Group');
       root.innerHTML =
@@ -86,7 +89,7 @@
           '<div class="pdp__media"><div class="panel pdp__frame">' +
             '<img src="' + esc(p.image) + '" alt="' + esc(dispTitle) + '">' +
           '</div></div>' +
-          '<div class="pdp__buy">' + head(p, s) + '</div>' +
+          '<div class="pdp__buy">' + head(p, s, dispTitle) + '</div>' +
         '</div>' +
         '<div class="grid2 mt24">' +
           '<div>' + suitability(p, s) + spaceCheck(p, s) + '</div>' +
@@ -102,12 +105,9 @@
     }
 
     /* ---- headline + actions ---- */
-    function head(p, s) {
+    function head(p, s, dispTitle) {
       const saved = St.saved.has(p.id);
-      const en = !!(window.skLang && window.skLang.get() === 'en');
-      const title = (en && window.skCatalogI18n && window.skCatalogI18n.translateTitle)
-        ? window.skCatalogI18n.translateTitle(p.title) : p.title;
-      return '<h1 class="pdp__title" style="font:900 clamp(1.3rem,3vw,1.9rem) Cairo,sans-serif;margin:0 0 10px;line-height:1.4">' + esc(title) + '</h1>' +
+      return '<h1 class="pdp__title" style="font:900 clamp(1.3rem,3vw,1.9rem) Cairo,sans-serif;margin:0 0 10px;line-height:1.4">' + esc(dispTitle) + '</h1>' +
         '<div class="chips mt8">' +
           (s.brand ? '<span class="chip">' + esc(t(s.brand.ar, s.brand.en)) + '</span>' : '') +
           (s.headline ? '<span class="chip chip--mute">' + A.num(s.headline.v) + ' ' + esc(t(s.headline.u, s.headline.uEn)) + '</span>' : '') +

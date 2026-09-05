@@ -1,0 +1,85 @@
+{
+  "note": "Curated product lists taken from SADKO's OWN live site, so each rail states something true. Ids not present in data/products.json are dropped at build time. Regenerate by re-running the scrape when the live site changes — these are a snapshot, not a live feed.",
+  "captured": "2026-09-05",
+  "sources": {
+    "bestSellers": "https://www.sadko-group.com/المنتجات-الاكثر-مبيعاً-c195273251",
+    "offers": "https://www.sadko-group.com/عروض-صادكو-c173607281",
+    "featured": "https://sadko-group.com/ (the special-price products SADKO features on its own homepage)"
+  },
+  "collections": {
+    "offers": {
+      "titleAr": "عروض صادكو",
+      "titleEn": "Hot offers",
+      "ids": [
+        "168109808",
+        "156794316",
+        "811599805",
+        "793198268",
+        "709191568",
+        "709195595",
+        "617346501",
+        "490519038",
+        "490524620",
+        "688079937",
+        "760778781",
+        "440021622",
+        "814969309",
+        "814404557",
+        "814943690",
+        "814943691",
+        "172487314",
+        "236631302",
+        "302014079",
+        "504574271",
+        "256743147",
+        "158319676",
+        "158319964",
+        "256734763",
+        "837495061",
+        "837495065",
+        "158320736",
+        "374165564",
+        "630410076",
+        "315526714",
+        "439374012",
+        "550275013",
+        "495163382",
+        "699248901",
+        "813158408",
+        "813168024",
+        "840915089",
+        "840915100"
+      ]
+    },
+    "featured": {
+      "titleAr": "مختارات صادكو",
+      "titleEn": "SADKO's picks",
+      "ids": [
+        "708468619",
+        "727981110",
+        "813988536",
+        "156801030",
+        "425709440",
+        "451896225",
+        "842892014",
+        "833418033",
+        "814396265",
+        "546020580",
+        "792751945",
+        "836356599",
+        "843012380"
+      ]
+    },
+    "bestSellers": {
+      "titleAr": "الأكثر مبيعاً",
+      "titleEn": "Best sellers",
+      "ids": [
+        "663214474",
+        "156760657",
+        "814402281",
+        "452207824",
+        "814969309"
+      ]
+    }
+  }
+}

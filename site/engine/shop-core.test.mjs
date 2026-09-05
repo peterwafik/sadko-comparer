@@ -417,6 +417,35 @@ test('localizePromos passes a null/non-array payload straight through', () => {
    (where the artwork came from and when), the sample marker must still be honoured
    if anyone re-seeds placeholder content, and the ban on invented commercial
    fields stays exactly as strict. */
+/* collections.json backs the "Hot offers" / "Best sellers" rails. Those names are
+   claims, and the catalogue cannot support them: products.json has no discount,
+   sales-rank or date field. They are only honest because the ids come from SADKO's
+   own live offers and best-sellers pages, so the file must record where and when,
+   must be bilingual, and must not reference a product the shop cannot render. */
+test('data/collections.json is provenanced, bilingual and resolvable', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { join, dirname } = await import('node:path');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const read = f => JSON.parse(readFileSync(join(here, '../data/' + f), 'utf8'));
+  const data = read('collections.json');
+  const known = new Set(read('products.json').products.map(p => String(p.id)));
+
+  assert.match(String(data.captured), /^\d{4}-\d{2}-\d{2}$/, 'no capture date');
+  assert.ok(data.sources && Object.keys(data.sources).length, 'no sources recorded');
+  const cols = data.collections;
+  assert.ok(cols && Object.keys(cols).length, 'no collections');
+  for (const [key, col] of Object.entries(cols)) {
+    assert.ok(data.sources[key], key + ': no source URL recorded for this claim');
+    assert.ok(col.titleAr, key + ': missing Arabic title');
+    assert.ok(col.titleEn, key + ': missing English title');
+    assert.ok(!AR_RE.test(col.titleEn), key + ': titleEn contains Arabic');
+    assert.ok(Array.isArray(col.ids) && col.ids.length, key + ': no ids');
+    const missing = col.ids.filter(id => !known.has(String(id)));
+    assert.equal(missing.length, 0, key + ': ids not in the catalogue: ' + missing.slice(0, 3));
+  }
+});
+
 test('every promo in data/promos.json carries its English counterparts', async () => {
   const { readFileSync } = await import('node:fs');
   const { fileURLToPath } = await import('node:url');

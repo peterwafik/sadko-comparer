@@ -123,6 +123,27 @@
     };
   }
 
+  // A rail built from a CURATED id list in data/collections.json rather than from a
+  // category. Those lists are scraped from SADKO's own live site — its offers page,
+  // its best-sellers page, and the products it features on its homepage — so a rail
+  // called "Hot offers" or "Best sellers" is stating something the company itself
+  // says. Nothing here is derived from the catalogue, because the catalogue has no
+  // discount, sales-rank or date fields to derive it from.
+  // Ids missing from products.json are dropped; an empty list renders nothing at all
+  // (rail() already returns '' for no products), so a stale collections.json degrades
+  // to a missing section rather than an empty frame or a wrong claim.
+  function collectionRail(products, key) {
+    var col = CACHE && CACHE.collections && CACHE.collections[key];
+    if (!col || !col.ids || !col.ids.length) return '';
+    var byId = {};
+    products.forEach(function (p) { byId[String(p.id)] = p; });
+    var items = col.ids.map(function (id) { return byId[String(id)]; })
+      .filter(Boolean).slice(0, 8);
+    // No "see all": these are curated lists, not a browsable facet, so there is no
+    // URL that would show the rest. rail() omits the link when the href is empty.
+    return U.rail(t(col.titleAr, col.titleEn), items, '', RAIL_LABELS);
+  }
+
   // Splits the promo list into the rotating hero at the top and the ads dealt out
   // between the sections below. The pinned category pages open straight onto one
   // category's listing, so the advertising belongs to shop.html only.
@@ -164,34 +185,25 @@
             ? P('assets/img/brands/') + b.key + '.png' : ''
         };
       });
-    // Rails are emitted one at a time so an ad can be dropped BETWEEN them.
-    var railList = cats.slice(0, 4).map(function (c) {
-      var items = C.sortList(products.filter(function (p) { return String(p.categoryId) === c.id; }), 'price-asc').slice(0, 8);
-      return U.rail(t('الأوفر فى ', 'Best value in ') + c.name, items, c.href, RAIL_LABELS);
-    });
     var ads = adsFor(root, promos);
     var deal = adDealer(ads.slots);
 
     root.innerHTML =
+      // The hero ad sits ABOVE the breadcrumb — it is the first thing on the page.
+      U.adHero(ads.hero) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
       U.advancedSearch({ q: '', sort: 'default' }, advData(root, products)) +
-      // Section order mirrors btech.com's shop page, measured off the live site:
-      //   hero -> brand shop -> rail -> wide ad -> categories -> rail -> ad grid -> rail
-      // Brands sit high (straight after the hero) because they are a navigation
-      // aid, not a footnote; the ads land between rails so each one arrives on its
-      // own screenful. Every block is the same width and separated by the same
-      // 48px, which is the uniformity the previous arrangement was missing.
-      U.adHero(ads.hero) +
+      // Section order: brand -> offers -> category -> picks -> best sellers, with an
+      // ad between each pair of rails so one arrives every screenful.
       '<h2 class="shop-h2">' + t('تسوّق حسب الماركة', 'Shop by brand') + '</h2>' +
       '<div class="btiles">' + brands.map(U.brandTile).join('') + '</div>' +
-      (railList[0] || '') +
+      collectionRail(products, 'offers') +
       deal(1, 'solo') +
       '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
       '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
-      (railList[1] || '') +
+      collectionRail(products, 'featured') +
       deal(4, 'grid') +
-      (railList[2] || '') +
-      (railList[3] || '');
+      collectionRail(products, 'bestSellers');
     // "Shop by price" is deliberately NOT on the hub. It is a filter, and the hub
     // is for browsing; the price facet is already in the rail on every category
     // page and on the browse view, which is where someone narrowing by price is.
@@ -600,12 +612,22 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { return (d && Array.isArray(d.logos)) ? d.logos : []; })
       .catch(function () { return []; });
+    // Curated rails (offers / picks / best sellers). Hub-only, like promos.
+    var collections = fixedPage ? Promise.resolve(null)
+      : fetch(P('data/collections.json')).then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
     Promise.all([
       window.skApp.products(),
       promos,
-      logos
+      logos,
+      collections
     ]).then(function (res) {
-      CACHE = { products: res[0], promos: (res[1] && res[1].promos) || null, logos: res[2] || [] };
+      CACHE = {
+        products: res[0],
+        promos: (res[1] && res[1].promos) || null,
+        logos: res[2] || [],
+        collections: (res[3] && res[3].collections) || null
+      };
       render();
     });
   }

@@ -221,35 +221,62 @@ test('both views render the hero, and the pinned category pages opt out', () => 
 // scroll. Assert the interleaving, not just that ads exist.
 test('the hub interleaves ad slots between the rails', () => {
   const hub = functionBody(src, 'renderHub');
-  const rails = [0, 1, 2, 3].map(i => hub.indexOf('railList[' + i + ']'));
-  rails.forEach((at, i) => assert.ok(at > 0, 'rail ' + i + ' is not rendered individually'));
+  const rails = [];
+  for (let i = hub.indexOf('collectionRail('); i !== -1; i = hub.indexOf('collectionRail(', i + 1)) rails.push(i);
+  assert.equal(rails.length, 3, 'expected three curated rails, found ' + rails.length);
   const deals = [];
   for (let i = hub.indexOf('deal('); i !== -1; i = hub.indexOf('deal(', i + 1)) deals.push(i);
   assert.ok(deals.length >= 2, 'expected at least two interleaved ad slots, found ' + deals.length);
   // The property that matters is INTERLEAVING: every ad sits strictly between two
-  // rails, so none of them can be stacked together at the top or dumped at the end.
+  // rails, so none can be stacked at the top or dumped at the end.
   for (const at of deals) {
     assert.ok(at > rails[0], 'an ad slot renders before the first rail');
     assert.ok(at < rails[rails.length - 1], 'an ad slot renders after the last rail');
   }
-  // and no two ads are adjacent with no rail between them
   for (let i = 1; i < deals.length; i++) {
     assert.ok(rails.some(r => r > deals[i - 1] && r < deals[i]),
       'two ad slots run back to back with no rail between them');
   }
 });
 
-// Section order is copied from btech.com's shop page, measured off the live site.
-// Brands sit straight after the hero; price is NOT on the hub at all.
-test('the hub follows the btech section order', () => {
+// The requested running order: the ad first (above the breadcrumb), then
+// brand -> offers -> category -> picks -> best sellers.
+test('the hub renders the hero ad above the breadcrumb', () => {
+  const hub = functionBody(src, 'renderHub');
+  const hero = hub.indexOf('U.adHero(');
+  const crumb = hub.indexOf('U.breadcrumb(');
+  assert.ok(hero > 0 && crumb > 0, 'hub is missing the hero or the breadcrumb');
+  assert.ok(hero < crumb, 'the hero ad must render above the breadcrumb');
+});
+
+test('the hub follows the requested section order', () => {
   const hub = functionBody(src, 'renderHub');
   const at = s => { const i = hub.indexOf(s); assert.ok(i > 0, 'hub is missing ' + s); return i; };
-  const hero = at('U.adHero('), brands = at('btiles'), cats = at('ctiles');
-  const rail0 = at('railList[0]'), rail1 = at('railList[1]');
-  assert.ok(hero < brands, 'the brand row should follow the hero');
-  assert.ok(brands < rail0, 'the first rail should follow the brand row');
-  assert.ok(rail0 < cats, 'the category tiles should follow the first rail');
-  assert.ok(cats < rail1, 'the second rail should follow the category tiles');
+  const order = [
+    ['brands', at('btiles')],
+    ['offers', at("collectionRail(products, 'offers')")],
+    ['categories', at('ctiles')],
+    ['picks', at("collectionRail(products, 'featured')")],
+    ['best sellers', at("collectionRail(products, 'bestSellers')")]
+  ];
+  for (let i = 1; i < order.length; i++) {
+    assert.ok(order[i - 1][1] < order[i][1],
+      order[i][0] + ' should render after ' + order[i - 1][0]);
+  }
+});
+
+// These rails make claims — "offers", "best sellers" — that the catalogue cannot
+// support on its own: products.json has no discount, sales-rank or date field.
+// They must come from the curated lists scraped off SADKO's own site, never from
+// something inferred locally.
+test('the curated rails read from collections.json, not from inferred data', () => {
+  const body = functionBody(src, 'collectionRail');
+  assert.match(body, /CACHE\.collections\[key\]/, 'collectionRail no longer reads the curated lists');
+  assert.match(body, /col\.ids/, 'collectionRail no longer resolves the curated ids');
+  // an id the catalogue does not have must be dropped, not rendered as a hole
+  assert.match(body, /\.filter\(Boolean\)/, 'collectionRail no longer drops unknown ids');
+  assert.ok(!/sortList|price-asc|scrapedAt/.test(body),
+    'collectionRail is inferring an order locally instead of using the curated list');
 });
 
 test('"shop by price" is not on the hub, but the browse facets still have it', () => {

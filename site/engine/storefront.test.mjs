@@ -341,3 +341,109 @@ test('toolbar uses supplied sort labels, defaulting to the current Arabic when o
   // Labels not overridden fall back to Arabic even when `sorts` supplies only one key.
   assert.ok(htmlCustom.includes('الترتيب الافتراضى'));
 });
+
+/* ============================================================================
+   Bilingual defaults (Task 12)
+   ----------------------------------------------------------------------------
+   Every default string this module can emit on its own — with no caller-supplied
+   label at all — must be correct in BOTH languages. Three of them were Arabic-only
+   and shipped as latent bugs: rail()'s see-all label and toolbar()'s sort options
+   were masked because every current caller happens to pass an override, and
+   promoHero()'s sample marker (deliberately not overridable) was live in English.
+   These tests remove the mask: they call each renderer with NO labels at all.
+   ========================================================================== */
+
+// isEN() reads window.skLang, so EN mode is simulated exactly the way the existing
+// card() language tests above do it — set global.window, restore it in `finally`.
+function inEN(fn) {
+  const savedWindow = global.window;
+  global.window = { skLang: { get: () => 'en' } };
+  try { return fn(); } finally {
+    if (savedWindow === undefined) delete global.window;
+    else global.window = savedWindow;
+  }
+}
+
+const AR = /[؀-ۿ]/;
+
+test('rail default see-all label is English in EN mode — no override supplied', () => {
+  const html = inEN(() => ui.rail('Best value', [P], 'shop.html?cat=38003882'));
+  const more = html.match(/<a class="rail__more"[^>]*>([^<]*)<\/a>/);
+  assert.ok(more, 'rail__more link missing');
+  assert.equal(more[1], 'See all');
+  assert.ok(!AR.test(more[1]), 'Arabic leaked into the EN see-all label');
+});
+
+test('rail default see-all label is still Arabic when no window/skLang says otherwise', () => {
+  const html = ui.rail('الأوفر', [P], 'shop.html?cat=38003882');
+  assert.ok(html.includes('شوف الكل'));
+});
+
+test('rail honours an explicit labels.more override in EN mode too', () => {
+  const html = inEN(() => ui.rail('Best value', [P], 'shop.html?cat=1', { more: 'Browse all' }));
+  assert.ok(html.includes('Browse all'));
+  assert.ok(!html.includes('See all'));
+});
+
+test('toolbar default sort labels are English in EN mode — no sorts map supplied', () => {
+  const html = inEN(() => ui.toolbar(core.parseState(''), 3, { count: n => n + ' products' }));
+  const opts = [...html.matchAll(/<option value="([a-z-]+)"[^>]*>([^<]*)<\/option>/g)]
+    .map(m => [m[1], m[2]]);
+  assert.deepEqual(opts, [
+    ['default', 'Default order'],
+    ['price-asc', 'Price: low to high'],
+    ['price-desc', 'Price: high to low'],
+  ]);
+  for (const [, label] of opts) assert.ok(!AR.test(label), 'Arabic leaked into an EN sort label: ' + label);
+});
+
+test('toolbar default sort labels stay Arabic outside EN mode', () => {
+  const html = ui.toolbar(core.parseState(''), 3, { count: n => n + ' منتج' });
+  assert.ok(html.includes('الترتيب الافتراضى'));
+  assert.ok(html.includes('السعر: من الأقل للأعلى'));
+  assert.ok(html.includes('السعر: من الأعلى للأقل'));
+});
+
+test('toolbar sorts override still wins in EN mode, per key, over the EN defaults', () => {
+  const html = inEN(() => ui.toolbar(core.parseState(''), 1,
+    { count: n => n + '', sorts: { 'price-asc': 'Cheapest first' } }));
+  assert.ok(html.includes('Cheapest first'));
+  assert.ok(!html.includes('Price: low to high'));
+  // the keys it did not override fall back to the EN defaults, not the Arabic ones
+  assert.ok(html.includes('Default order'));
+  assert.ok(html.includes('Price: high to low'));
+});
+
+test('promoHero sample marker is readable in EN — the honesty warning must not be Arabic-only', () => {
+  const html = inEN(() => ui.promoHero([{ id: 'a', title: 'Kitchen', href: 'shop.html?cat=1', sample: true }]));
+  const marker = html.match(/<span class="promo__sample">([^<]*)<\/span>/);
+  assert.ok(marker, 'sample marker missing in EN mode');
+  assert.equal(marker[1], 'Sample content');
+  assert.ok(!AR.test(marker[1]));
+});
+
+test('promoHero sample marker stays Arabic outside EN mode, and is still not caller-overridable', () => {
+  // `labels`-style keys on the promo itself must not be able to suppress or reword it
+  const html = ui.promoHero([{ id: 'a', title: 'تكييفات', href: '#', sample: true, sampleLabel: 'Deal' }]);
+  assert.ok(html.includes('<span class="promo__sample">محتوى تجريبي</span>'));
+  assert.ok(!html.includes('Deal'));
+});
+
+test('no renderer emits an Arabic default when the page language is English', () => {
+  // A single sweep over every string this module can produce with no labels at all.
+  const html = inEN(() =>
+    ui.breadcrumb([{ label: 'Home', href: '/' }, { label: 'Shop' }]) +
+    ui.promoHero([{ id: 'a', title: 'Kitchen', sub: 'Sub', cta: 'Go', href: '#', sample: true }]) +
+    ui.categoryTile({ name: 'Refrigerators', count: 76, href: '#' }) +
+    ui.brandTile({ name: 'Kiriazi', count: 58, href: '#' }) +
+    ui.priceBands([{ key: '0-5000', href: '#' }], ['Under 5,000']) +
+    ui.rail('Best value', [{ ...P, title: 'Fridge', description: 'desc' }], '#') +
+    ui.toolbar(core.parseState(''), 5, { count: n => n + ' products' }) +
+    ui.pager(1, 3, n => '?page=' + n)
+  );
+  // P's own title/description are Arabic catalogue data, not module defaults — strip
+  // the card bodies before asserting, so this test fails only on chrome we author.
+  const chrome = html.replace(/<article class="card"[\s\S]*?<\/article>/g, '');
+  assert.ok(!AR.test(chrome), 'Arabic default leaked into EN chrome: ' +
+    (chrome.match(/[^<>]*[؀-ۿ][^<>]*/) || [''])[0]);
+});

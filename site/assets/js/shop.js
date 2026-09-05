@@ -36,11 +36,11 @@
   var BAND_LABELS = [t('تحت ٥٬٠٠٠', 'Under 5,000'), t('٥٬٠٠٠ – ١٥٬٠٠٠', '5,000 – 15,000'),
                      t('١٥٬٠٠٠ – ٣٠٬٠٠٠', '15,000 – 30,000'), t('فوق ٣٠٬٠٠٠', 'Over 30,000')];
   var RAIL_LABELS = { more: t('شوف الكل', 'See all') };
-  // toolbar()'s own DEFAULT_SORT_LABELS are hardcoded Arabic, so EN pages must
-  // supply an override map keyed by shop-core's sort ids or the sort <select>
-  // would show Arabic text on an English page (the exact class of bug flagged
-  // in review of earlier tasks). Left undefined in Arabic so toolbar() falls
-  // back to its own (correct) Arabic defaults.
+  // toolbar()'s own DEFAULT_SORT_LABELS are bilingual and already pick the right
+  // language from window.skLang, so this map is no longer load-bearing — it pins
+  // the exact shop wording (identical strings to storefront.js's EN defaults) and
+  // keeps the sort labels editable from the page that owns the browse view. Left
+  // undefined in Arabic so toolbar() falls back to its own Arabic defaults.
   var SORT_LABELS = EN ? {
     'default': 'Default order',
     'price-asc': 'Price: low to high',
@@ -54,9 +54,18 @@
   // hub calls this with no active state at all (nothing to preserve yet), so
   // `base` falls back to a clean, filter-free state and hub band links stay
   // bare price-only URLs.
+  //
+  // Pinned exactly like go()'s fixed branch and pager()'s hrefFor: on a prebuilt
+  // category page the link keeps location.pathname and drops `cat` (render()
+  // reasserts it from data-cat), so narrowing by price is not the one facet that
+  // silently relocates the user off the category page onto shop.html.
   function bandHref(b, state) {
     var base = state || { cat: '', q: '', brands: [], sort: 'default', all: false };
-    return P('shop.html') + C.stateToSearch(Object.assign({}, base, { min: b.min, max: b.max, page: 1 }));
+    var root = document.getElementById('shop-root');
+    var fixed = root && root.getAttribute('data-cat');
+    var path = fixed ? location.pathname : P('shop.html');
+    return path + C.stateToSearch(Object.assign({}, base,
+      { cat: fixed ? '' : base.cat, min: b.min, max: b.max, page: 1 }));
   }
 
   function specOf(p) { return window.skSpecs ? window.skSpecs.of(p) : {}; }

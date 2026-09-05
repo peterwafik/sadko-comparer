@@ -218,7 +218,9 @@
       }
       return '<div class="note" style="border-color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,#fff)"><b>' +
         t('يناسب المساحة', 'It fits your space') + '</b>' +
-        (unknown.length ? '<br>' + t('ملاحظة: ', 'Note: ') + unknown.map(x => esc(x[2])).join('، ') + t(' مش متوفر فى بيانات المنتج.', ' not available in the product data.') : '') + '</div>';
+        // the list separator is itself localised — an Arabic comma between English
+        // dimension names ("Width، Depth") is the same leak as an untranslated label.
+        (unknown.length ? '<br>' + t('ملاحظة: ', 'Note: ') + unknown.map(x => esc(x[2])).join(t('، ', ', ')) + t(' مش متوفر فى بيانات المنتج.', ' not available in the product data.') : '') + '</div>';
     }
 
     /* ---- 3. good to know ---- */

@@ -84,11 +84,13 @@
       return '<a class="promo ' + accent + noimg + '" href="' + esc(x.href || '#') + '">' +
         (x.image ? '<img class="promo__bg" src="' + esc(x.image) + '" alt="" aria-hidden="true" onerror="this.remove()">' : '') +
         '<span class="promo__body">' +
-          // Deliberately hardcoded, not a labels.* lookup: this marker is an honesty
-          // guarantee (seeded sample content must never read as a live campaign,
-          // regardless of caller-supplied labels), not a UI string to localise. Do
-          // not "fix" this into a labels parameter.
-          (x.sample ? '<span class="promo__sample">محتوى تجريبي</span>' : '') +
+          // Deliberately NOT a labels.* lookup: this marker is an honesty guarantee
+          // (seeded sample content must never read as a live campaign, regardless of
+          // caller-supplied labels). Do not "fix" this into a labels parameter — but
+          // it is still a user-visible string, so it follows the page language the
+          // same way every other default here does. An English shopper must be able
+          // to read the warning, or the guarantee is worthless to them.
+          (x.sample ? '<span class="promo__sample">' + (isEN() ? 'Sample content' : 'محتوى تجريبي') + '</span>' : '') +
           '<span class="promo__title">' + esc(x.title) + '</span>' +
           (x.sub ? '<span class="promo__sub">' + esc(x.sub) + '</span>' : '') +
           (x.cta ? '<span class="promo__cta">' + esc(x.cta) + '</span>' : '') +
@@ -124,7 +126,10 @@
 
   function rail(title, products, moreHref, labels) {
     if (!products || !products.length) return '';
-    var moreLabel = (labels && labels.more) || 'شوف الكل';
+    // The default follows the page language (same isEN() convention as card()'s buy
+    // label and currency). A caller-supplied labels.more still wins, so the existing
+    // overrides in shop.js/product.js behave exactly as before.
+    var moreLabel = (labels && labels.more) || (isEN() ? 'See all' : 'شوف الكل');
     return '<section class="rail">' +
       '<div class="rail__head"><h2 class="rail__title">' + esc(title) + '</h2>' +
       (moreHref ? '<a class="rail__more" href="' + esc(moreHref) + '">' + esc(moreLabel) + '</a>' : '') +
@@ -158,22 +163,32 @@
     '</form>';
   }
 
-  // Default Arabic sort-option labels, keyed by shop-core's SORTS value (not by
-  // array position) so a caller-supplied `labels.sorts` map can override any
-  // subset without needing to know option order.
+  // Default sort-option labels in BOTH languages, keyed by shop-core's SORTS value
+  // (not by array position) so a caller-supplied `labels.sorts` map can override any
+  // subset without needing to know option order. The language is picked by isEN(),
+  // the same convention card()/rail() use, so a page that supplies no `sorts` map
+  // still renders a correct <select> in English.
   var DEFAULT_SORT_LABELS = {
-    'default': 'الترتيب الافتراضى',
-    'price-asc': 'السعر: من الأقل للأعلى',
-    'price-desc': 'السعر: من الأعلى للأقل'
+    ar: {
+      'default': 'الترتيب الافتراضى',
+      'price-asc': 'السعر: من الأقل للأعلى',
+      'price-desc': 'السعر: من الأعلى للأقل'
+    },
+    en: {
+      'default': 'Default order',
+      'price-asc': 'Price: low to high',
+      'price-desc': 'Price: high to low'
+    }
   };
 
   function toolbar(state, total, L) {
     var sortLabels = (L && L.sorts) || {};
+    var fallback = DEFAULT_SORT_LABELS[isEN() ? 'en' : 'ar'];
     var keys = ['default', 'price-asc', 'price-desc'];
     return '<div class="stoolbar">' +
       '<span class="stoolbar__count">' + esc(L.count(total)) + '</span>' +
       '<select class="stoolbar__sort" id="sortSel">' + keys.map(function (k) {
-        var label = sortLabels[k] || DEFAULT_SORT_LABELS[k];
+        var label = sortLabels[k] || fallback[k];
         return '<option value="' + k + '"' + (state.sort === k ? ' selected' : '') + '>' + esc(label) + '</option>';
       }).join('') + '</select></div>';
   }

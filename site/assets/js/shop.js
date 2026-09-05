@@ -274,8 +274,11 @@
     wireSearch(root, function (q) {
       // Emptying the box on shop.html means "show me everything", not "throw me
       // back to the hub" — `all` keeps the browse view alive with no filters.
-      // On a pinned category page render() forces all:false anyway.
-      go(Object.assign({}, state, { q: q, page: 1, all: state.all || !q }));
+      // A pinned category page needs none of that (render() forces all:false
+      // there), so don't set the flag: it would render identically but leave a
+      // meaningless `?all=1` in the URL, exactly the wart the Clear handler
+      // below avoids with `all: !fixed`.
+      go(Object.assign({}, state, { q: q, page: 1, all: !root.getAttribute('data-cat') && (state.all || !q) }));
     }, state.q);
 
     var form = root.querySelector('#facets');

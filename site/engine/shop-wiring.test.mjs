@@ -151,3 +151,59 @@ test('price-band bucketing is delegated to shop-core so counts cannot drift from
   assert.match(liveBands, /C\.bandCounts\(products\)/);
   assert.ok(!liveBands.includes('p.price >= b.min'), 'liveBands re-implements the band boundaries locally');
 });
+
+/* ------------------------------------------- gaps the fix-wave re-review found --- */
+
+// Nothing pinned what TR is bound to: the re-review showed that hardcoding
+// `var TR = null` passed all 398 tests while silently restoring the branch review's
+// finding 1 — an English shopper matching nothing in an Arabic-only catalogue.
+test('TR binds to the EN title translator, not to null', () => {
+  assert.match(code, /var TR = EN \? U\.translateForEN : null;/,
+    'TR is no longer bound to U.translateForEN in EN mode');
+});
+
+// The translator must reach the results list AND all three facet counts, or a facet
+// advertises a count the grid then contradicts.
+test('every filter() call is passed TR, so facet counts cannot drift from the grid', () => {
+  const body = functionBody(src, 'renderBrowse');
+  // C.filter(...) takes nested Object.assign(...) arguments, so a lazy [^)]* stops
+  // at the first inner ')' and reads the call as truncated. Balance the parens.
+  const calls = [];
+  for (let i = body.indexOf('C.filter('); i !== -1; i = body.indexOf('C.filter(', i + 1)) {
+    let j = i + 'C.filter('.length, depth = 1;
+    while (depth > 0 && j < body.length) {
+      if (body[j] === '(') depth++;
+      else if (body[j] === ')') depth--;
+      j++;
+    }
+    calls.push(body.slice(i, j));
+  }
+  assert.equal(calls.length, 4, 'expected 4 C.filter() calls in renderBrowse (results + 3 facet counts)');
+  calls.forEach(c => assert.ok(/,\s*TR\s*\)$/.test(c), 'filter() call missing the TR translator: ' + c));
+});
+
+// go()'s category pinning broke three separate times on this branch — pager hrefs,
+// price-band hrefs, and the category radio — so pin the rule itself rather than each
+// caller: on a page carrying data-cat, go() stays on location.pathname and strips
+// `cat` from the query (render() reasserts it from the attribute).
+test('go() keeps a pinned category page on its own path', () => {
+  const body = functionBody(src, 'go');
+  assert.match(body, /getAttribute\('data-cat'\)/, 'go() no longer reads data-cat');
+  assert.match(body, /fixed \? location\.pathname : P\('shop\.html'\)/,
+    'go() no longer pins a category page to its own path');
+  assert.match(body, /cat: ''/, 'go() no longer strips cat from a pinned page URL');
+});
+
+// Emptying the search box on a pinned category page must not write `?all=1`:
+// render() forces all:false there, so the flag changes nothing and only leaves a
+// URL that contradicts the cat/min/max beside it.
+test('clearing the search box does not write ?all=1 on a pinned category page', () => {
+  const body = functionBody(src, 'wireBrowse');
+  const idx = body.indexOf('wireSearch(');
+  assert.ok(idx > 0, 'wireSearch call not found in wireBrowse');
+  const handler = body.slice(idx, idx + 600);
+  assert.ok(!/all: state\.all \|\| !q/.test(handler),
+    'the unpinned `all: state.all || !q` is back — it writes ?all=1 on category pages');
+  assert.match(handler, /data-cat[\s\S]*state\.all \|\| !q/,
+    'the all flag is no longer gated on the page being unpinned');
+});

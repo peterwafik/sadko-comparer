@@ -479,3 +479,145 @@ test('every promo in data/promos.json carries its English counterparts', async (
   // and nothing is dropped when the real file is localised
   assert.equal(core.localizePromos(data.promos, true).length, data.promos.length);
 });
+
+/* ============================ typo tolerance ============================== */
+// The catalogue is the fixture: a typo test against three invented products
+// proves nothing about whether a real shopper's misspelling finds real stock.
+const CATALOGUE = require('../data/products.json').products;
+const noSpec = () => ({});
+const state = q => ({ cat: '', q, brands: [], min: null, max: null, sort: 'default', page: 1, all: false });
+const found = q => core.filter(CATALOGUE, state(q), noSpec, null).length;
+
+test('editDistance counts a transposition as one edit, not two', () => {
+  // The typo people actually make. At two edits it would need a tolerance loose
+  // enough to also match unrelated words.
+  assert.equal(core.editDistance('washnig', 'washing', 2), 1);
+  assert.equal(core.editDistance('ثلاحه', 'ثلاجه', 2), 1);
+  assert.equal(core.editDistance('abc', 'abc', 2), 0);
+});
+
+test('editDistance bails out instead of scoring beyond the cap', () => {
+  // The early exit is what makes it affordable to run per catalogue word.
+  assert.ok(core.editDistance('refrigerator', 'blender', 2) > 2);
+  assert.ok(core.editDistance('a', 'abcdefgh', 2) > 2);
+});
+
+test('a misspelt search finds the same stock as the correct spelling', () => {
+  // Each pair is one plausible slip: a swapped letter, a dropped letter, a Latin
+  // key hit by mistake, an English word spelt by ear.
+  for (const [right, typo] of [
+    ['ثلاجه', 'ثلاحه'], ['غساله', 'غسالt'], ['بوتاجاز', 'بوتجاز'],
+    ['fridge', 'fridgee'], ['washing', 'washnig'], ['refrigerator', 'refrigirator'],
+  ]) {
+    const a = found(right), b = found(typo);
+    assert.ok(a > 0, right + ' finds nothing — fixture problem, not a typo problem');
+    // Within a quarter of the correct spelling's result set: the shopper lands
+    // in the same aisle, not on an empty page.
+    assert.ok(b >= a * 0.75, typo + ' found ' + b + ' where ' + right + ' finds ' + a);
+  }
+});
+
+test('a word one edit from the catalogue vocabulary is corrected even when it had hits', () => {
+  // "تكيف" collects 6 incidental substring hits while the 30 air conditioners it
+  // means sit behind "تكييف". A zero-results test would never fire here, and 6
+  // results look answered enough that nobody retypes.
+  assert.ok(found('تكيف') > 25, 'تكيف found only ' + found('تكيف'));
+  assert.ok(found('خلات') > 25, 'خلات found only ' + found('خلات'));
+});
+
+test('spell-correction never widens a correctly spelled query', () => {
+  // "cooler" and "cooker" are ONE edit apart and mean different rooms of the
+  // house. Correcting the first into the second would put ovens in a
+  // water-cooler search — the reason correction is gated on the word being one
+  // the catalogue does not already know.
+  const cooler = found('cooler'), cooker = found('cooker');
+  assert.ok(cooler > 0 && cooker > 0);
+  assert.notEqual(cooler, cooker);
+  assert.ok(cooler < cooker / 2, 'a cooler search has drifted into cookers');
+});
+
+test('model numbers are never fuzzed into each other', () => {
+  // They are long enough for two edits of tolerance and differ by one character.
+  assert.ok(found('KH625LN') <= 3, 'a model number search widened to ' + found('KH625LN'));
+});
+
+test('a nonsense query still returns nothing', () => {
+  for (const q of ['zzzzzzzz', 'xyzzy', 'قققققق']) assert.equal(found(q), 0, q);
+});
+
+/* ========================== as-you-type suggestions ======================= */
+const CATS = [
+  { id: '38003882', name: 'ثلاجات', count: 76 },
+  { id: '38032005', name: 'تكييفات هواء', count: 33 },
+  { id: '38022381', name: 'تليفزيونات', count: 32 },
+];
+const BRANDS = [{ key: 'kiriazi', name: 'كريازى', count: 35 }];
+const sug = (q, opts) => core.suggest(q, { cats: CATS, brands: BRANDS, products: CATALOGUE },
+  Object.assign({ specOf: noSpec, limit: 8 }, opts || {}));
+
+test('one character suggests nothing — every product would qualify', () => {
+  assert.deepEqual(core.suggest('ث', { cats: CATS, brands: BRANDS, products: CATALOGUE }, { specOf: noSpec }), []);
+});
+
+test('a part-typed category name suggests the category first', () => {
+  const r = sug('ثلا');
+  assert.equal(r[0].kind, 'cat');
+  assert.equal(r[0].label, 'ثلاجات');
+  assert.equal(r[0].id, '38003882');
+});
+
+test('a part-typed brand suggests the brand first', () => {
+  const r = sug('كريا');
+  assert.equal(r[0].kind, 'brand');
+  assert.equal(r[0].key, 'kiriazi');
+});
+
+test('suggestions survive a typo in a half-typed word', () => {
+  // Mid-word is exactly where help is wanted and where plain fuzzy matching
+  // fails: a prefix is far, in edit distance, from the word it will become.
+  const r = sug('ثلاح');
+  assert.ok(r.length, 'no suggestions for a typo\'d prefix');
+  assert.ok(r.some(s => s.kind === 'cat' && s.label === 'ثلاجات'));
+});
+
+test('an English query suggests the Arabic aisle it means', () => {
+  // The catalogue is Arabic; without the synonym table an English shopper types
+  // into a shop with 76 refrigerators and is told there is nothing.
+  const r = sug('fridg');
+  assert.ok(r.some(s => s.kind === 'cat' && s.id === '38003882'),
+    'fridg suggested: ' + r.map(s => s.kind + ':' + s.label).join(', '));
+});
+
+test('a model number brings its own product to the top, above any aisle', () => {
+  const r = sug('KH625LN');
+  assert.equal(r[0].kind, 'product');
+  assert.match(r[0].label, /KH625LN/);
+});
+
+test('every suggestion leads somewhere that actually has products', () => {
+  // A suggestion that opens an empty page is worse than no suggestion. Each kind
+  // is checked against what CLICKING it does: a category and a brand navigate to
+  // that facet, a product opens its own page by id.
+  const byId = new Map(CATALOGUE.map(p => [String(p.id), p]));
+  for (const q of ['ثلا', 'غسال', 'كريا', 'تليف', 'fridg']) {
+    for (const s of sug(q)) {
+      if (s.kind === 'cat') {
+        const n = CATALOGUE.filter(p => String(p.categoryId) === String(s.id)).length;
+        assert.ok(n > 0, 'category  + s.label +  suggested for  + q +  is empty');
+        assert.equal(n, s.count, 'category  + s.label +  advertises ' + s.count + ' but holds ' + n);
+      } else if (s.kind === 'product') {
+        assert.ok(byId.has(String(s.product.id)),
+          'suggested a product that is not in the catalogue: ' + s.label);
+      } else if (s.kind === 'brand') {
+        assert.ok(s.key, 'brand suggestion carries no key to navigate with');
+      }
+    }
+  }
+});
+
+test('suggestions are capped and never duplicated', () => {
+  const r = sug('ثلاجه', { limit: 5 });
+  assert.ok(r.length <= 5);
+  const seen = new Set(r.map(s => s.kind + '|' + s.label));
+  assert.equal(seen.size, r.length);
+});

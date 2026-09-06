@@ -301,7 +301,7 @@
           '<a class="btn btn--quiet btn--sm" href="finder.html">' + t('غيّر الفئة', 'Change category') + '</a></div>' +
         '<form id="fq" class="mt16">' +
           qs.map(q => '<div class="panel" style="margin-bottom:14px"><div class="panel__h">' + esc(t(q.label.ar, q.label.en)) + '</div>' +
-            (q.hint ? '<p class="panel__sub">' + esc(t(q.hint.ar, q.hint.en)) + '</p>' : '<div style="height:6px"></div>') +
+            (q.hint ? '<p class="panel__sub">' + esc(t(q.hint.ar, q.hint.en)) + '</p>' : '') +
             (q.type === 'choice' ? q_choice(q) : q.type === 'space' ? q_space(q) : q.type === 'budget' ? q_budget()
              : q.type === 'number' ? q_number(q) : q.type === 'brands' ? q_brands() : '') +
             '</div>').join('') +

@@ -143,7 +143,17 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .band:hover { background: var(--accent); color: #fff; }
 
 /* ---------- 5. rails ---------- */
-.rail { margin: 0 0 var(--sk-section); }
+/* The shop hub's convention is that the block ABOVE owns the gap, so a rail only
+   needs a bottom margin there. The product page does not follow that convention
+   — its panels space themselves with .mt16/.mt24 top-margin utilities — so the
+   related-products rail arrived hard against the block above it. Declaring the
+   same value on both sides fixes that without loosening the hub: these are
+   adjacent siblings in normal flow, so the two margins COLLAPSE to one 48px gap
+   rather than stacking into 96px. */
+.rail { margin: var(--sk-section) 0; }
+/* ...except as the first thing in its column, where a top margin would push the
+   whole page down away from the header. */
+.rail:first-child { margin-top: 0; }
 .rail__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gap-sm); flex-wrap: wrap; }
 /* Same size/weight as .shop-h2 — a rail is a section like any other, and two
    heading scales on one page is what made the order look unsettled. */
@@ -219,7 +229,72 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .facet__clear:hover { border-color: color-mix(in srgb, var(--bad) 40%, transparent); color: var(--bad); }
 
 /* ---------- 8. sort / count toolbar ---------- */
-.stoolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gap-md); }
+/* --sk-gutter, not --sk-gap-md: this is a page-level block in the results column,
+   and the column reads as one rhythm only if every block in it steps by the same
+   value. At 18px it was the single odd gap in a stack of 28s — fine while it sat
+   directly above the grid, visibly uneven once the finder call-out and the
+   preferences bar landed between the two. */
+.stoolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gutter); }
+
+/* ---------- 8z. search suggestions ----------
+   The popup is anchored to the FORM, which is the only element that stays put
+   while the input is being typed into. It is direction-agnostic: `inset-inline`
+   pins both edges, so it fills the field's width and needs no RTL mirror. */
+.ssearch { position: relative; }
+.ssearch__pop { position: absolute; z-index: 65; top: calc(100% + 6px);
+  inset-inline-start: 0; inset-inline-end: 0;
+  max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow-lg); padding: 6px; }
+.ssearch__pop[hidden] { display: none; }
+.sgt { display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer;
+  text-align: start; font: 700 .88rem 'Cairo', sans-serif; color: var(--ink);
+  background: transparent; border: 0; border-radius: 10px; padding: 9px 10px; }
+/* Hover and keyboard selection share one appearance: the keyboard user is not a
+   second-class visitor being shown a fainter version of the same state. */
+.sgt:hover, .sgt[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.sgt[aria-selected="true"] { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: -2px; }
+.sgt__kind { flex: 0 0 auto; font: 800 .68rem 'Cairo', sans-serif; letter-spacing: .02em;
+  padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+  background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-soft); }
+.sgt__kind--cat { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.sgt__kind--brand { background: color-mix(in srgb, var(--amber) 22%, transparent); color: #8a5b12; }
+.sgt__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The matched run is what the shopper just typed — the rest of the label is the
+   part they have yet to type, so the emphasis goes on the match, not the tail. */
+.sgt__label b { color: var(--accent); font-weight: 900; }
+.sgt__n { flex: 0 0 auto; font: 800 .72rem 'Cairo', sans-serif; font-style: normal; color: var(--ink-soft); }
+/* The advanced-search panel clips its own children; the popup has to escape it. */
+.asearch, .asearch .ssearch { overflow: visible; }
+
+/* ---------- 8a. guided-finder call-out ----------
+   Moved here from nav.js's injected stylesheet, where it was authored as a
+   PAGE-width band (max-width:1440px + width:calc(100% - 2*gutter) + auto
+   margins). It renders inside the results column now, which already carries the
+   gutter, so that arithmetic applied it twice and left the box visibly narrower
+   than the toolbar above it and the cards below it. Full width of its column,
+   stepping through the same tokens as every other block in this file, and with a
+   bottom margin — the old rule set `margin: 18px auto 0`, no bottom at all,
+   which is why it sat flush against whatever followed it. */
+.sk-fcta { position: relative; display: flex; align-items: center; flex-wrap: wrap;
+  justify-content: space-between; gap: var(--sk-gap-sm) var(--sk-gap-md);
+  width: 100%; margin: 0 0 var(--sk-gutter);
+  padding: var(--sk-gap-md) clamp(16px, 4vw, 26px);
+  padding-inline-end: clamp(40px, 5vw, 52px);   /* room for the × */
+  border-radius: 18px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: linear-gradient(120deg, #eaf3f4, #fdf3e2); }
+.sk-fcta b { display: block; font-size: 1.02rem; color: var(--ink); }
+.sk-fcta p { margin: 5px 0 0; font-size: .86rem; color: var(--ink-soft); line-height: 1.65; max-width: 62ch; }
+.sk-fcta__btn { flex: 0 0 auto; font: 800 .88rem 'Cairo', sans-serif; color: #241a05; background: var(--amber);
+  text-decoration: none; padding: 11px 22px; border-radius: 999px; white-space: nowrap; }
+.sk-fcta__btn:hover { filter: brightness(1.06); }
+/* A corner control, not a flex item: pinning it keeps the text at full measure
+   and puts it where a close button is looked for, in RTL and LTR alike. */
+.sk-fcta__x { position: absolute; top: 8px; inset-inline-end: 10px; width: 30px; height: 30px;
+  display: grid; place-items: center; font: 400 21px/1 'Cairo', sans-serif; color: var(--ink-soft);
+  background: transparent; border: 0; border-radius: 50%; cursor: pointer; transition: .18s; }
+.sk-fcta__x:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
+.sk-fcta__x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* ---------- 8b. search (toolbar + hub) ---------- */
 /* Direction-agnostic on purpose: the field and its button are laid out by flex
    order, so the pill reads correctly in RTL and LTR with no mirror rule. */
@@ -308,9 +383,13 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   .stoolbar { justify-content: flex-start; }
   .ssearch { flex: 1 1 100%; }
   .shopgrid { grid-template-columns: 1fr; }
+  /* margin:0 — .shopgrid is a single column here and its own row gap already
+     separates this button from the results below it. The 14px this rule used to
+     add on top of that gap made the one seam under the Filters button 32px while
+     every other seam on the page was 18px. */
   .facets__toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     cursor: pointer; font: 800 .88rem 'Cairo', sans-serif; color: var(--ink); background: #fff;
-    border: 1.5px solid var(--line); border-radius: 999px; padding: 10px 18px; margin: 0 0 14px; }
+    border: 1.5px solid var(--line); border-radius: 999px; padding: 10px 18px; margin: 0; }
   .facets { position: fixed; inset: 0; z-index: 60; top: 0; overflow: auto; border-radius: 0;
     display: none; padding: 20px; padding-bottom: 90px; }
   .facets.is-open { display: grid; }

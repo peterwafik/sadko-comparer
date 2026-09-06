@@ -304,13 +304,60 @@
   function searchBox(value, L) {
     var d = DEFAULT_SEARCH_LABELS[isEN() ? 'en' : 'ar'];
     var lab = (L && L.search) || {};
+    /* The input is a combobox: it owns a listbox of suggestions that shop.js
+       fills as the shopper types. The ARIA wiring is here rather than added by
+       script so the control is never briefly a plain text field for a screen
+       reader — `aria-expanded` is the only part that changes at runtime. */
     return '<form class="ssearch" role="search" id="searchForm">' +
       '<input type="search" class="ssearch__input" id="q" name="q" autocomplete="off"' +
+        ' role="combobox" aria-expanded="false" aria-controls="qPop" aria-autocomplete="list"' +
         ' value="' + esc(value == null ? '' : value) + '"' +
         ' placeholder="' + esc(lab.placeholder || d.placeholder) + '"' +
         ' aria-label="' + esc(lab.label || d.label) + '">' +
       '<button type="submit" class="ssearch__btn">' + esc(lab.submit || d.submit) + '</button>' +
+      '<div class="ssearch__pop" id="qPop" role="listbox" hidden' +
+        ' aria-label="' + esc(lab.label || d.label) + '"></div>' +
     '</form>';
+  }
+
+  /* One suggestion row. `kind` decides the leading chip, because "ثلاجات" as an
+     AISLE and "ثلاجة كريازى 625 لتر" as a PRODUCT are different offers and a list
+     that renders them identically makes the shopper read every line to find out
+     which is which.
+     The matched run of text is emphasised, but only when it can be located in the
+     RAW label: matching happens on normalised text (harakat stripped, ة→ه), whose
+     offsets do not always map back onto the original string, and a highlight that
+     lands one character out is worse than none. */
+  var SUGGEST_KIND_LABEL = {
+    ar: { cat: 'قسم', brand: 'ماركة', product: 'منتج', all: 'ابحث عن' },
+    en: { cat: 'Category', brand: 'Brand', product: 'Product', all: 'Search for' }
+  };
+  function mark(label, raw) {
+    // clean() first, for the same reason card() does: 193 of the 471 catalogue
+    // titles carry entities as LITERAL text ("علوى&nbsp;11&nbsp;ك"), and a
+    // suggestion row that prints "&nbsp;" is unreadable.
+    var text = clean(label);
+    var needle = String(raw == null ? '' : raw).trim();
+    if (!needle) return esc(text);
+    var at = text.toLowerCase().indexOf(needle.toLowerCase());
+    if (at < 0) return esc(text);
+    return esc(text.slice(0, at)) + '<b>' + esc(text.slice(at, at + needle.length)) + '</b>' +
+           esc(text.slice(at + needle.length));
+  }
+  function suggestList(items, raw, L) {
+    if (!items || !items.length) return '';
+    var kinds = SUGGEST_KIND_LABEL[isEN() ? 'en' : 'ar'];
+    var lab = (L && L.suggest) || {};
+    return items.map(function (it, i) {
+      var count = (it.count != null && it.kind !== 'all')
+        ? '<em class="sgt__n">' + esc(String(it.count)) + '</em>' : '';
+      return '<button type="button" class="sgt" role="option" aria-selected="false"' +
+          ' id="sgt-' + i + '" data-i="' + i + '">' +
+        '<span class="sgt__kind sgt__kind--' + esc(it.kind) + '">' +
+          esc((lab[it.kind] || kinds[it.kind] || '')) + '</span>' +
+        '<span class="sgt__label">' + mark(it.label, raw) + '</span>' + count +
+      '</button>';
+    }).join('');
   }
 
   // ---- advertising ------------------------------------------------------
@@ -333,8 +380,16 @@
   // The hero sits INSIDE the page container (it is not full-bleed): the rest of the
   // shop is capped at the same width, and an ad that breaks that line reads as a
   // takeover rather than as part of the page. shop.js owns the rotation timer.
+  // Renders the banners it is HANDED. It used to also drop anything whose
+  // `slot` was not 'hero', which quietly made this the second place deciding what
+  // may be advertised — and the two disagreed the moment a category page started
+  // choosing its own banners by category and artwork shape rather than by slot:
+  // shop.js selected the air-conditioner campaign for the air-conditioner page,
+  // and this filter threw it away because promos.json files that campaign under
+  // slot 'slot'. Selection belongs to the caller (shop.js's adsFor); this only
+  // still drops promos with no artwork, which it cannot render at all.
   function adHero(promos) {
-    var items = (promos || []).filter(function (x) { return x && x.image && x.slot === 'hero'; });
+    var items = (promos || []).filter(function (x) { return x && x.image; });
     if (!items.length) return '';
     var en = isEN();
     var many = items.length > 1;
@@ -496,5 +551,5 @@
     try { wireRails(rootEl); } catch (e) {}
   }
 
-  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid, wireRails: wireRails };
+  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, suggestList: suggestList, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid, wireRails: wireRails };
 });

@@ -52,7 +52,14 @@ img { max-width: 100%; }
   padding: clamp(16px,2.4vw,26px); box-shadow: var(--shadow); }
 .panel + .panel { margin-top: 18px; }
 .panel__h { margin: 0 0 4px; font-size: 1.06rem; font-weight: 900; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.panel__sub { margin: 0 0 16px; color: var(--ink-soft); font-size: .88rem; line-height: 1.7; }
+.panel__sub { margin: 0 0 var(--sk-gap-md); color: var(--ink-soft); font-size: .88rem; line-height: 1.7; }
+/* A panel heading followed straight by its control (no subtitle) used to be
+   separated by a hardcoded 6px spacer <div> in finder.js, so the gap between a
+   question and its answers was 6px on questions with no hint and 16px on the
+   ones with a hint — the same relationship, two spacings, on one screen. The
+   spacer is gone; the gap now comes from here and matches the subtitle's. */
+.panel__h + .opts, .panel__h + .row, .panel__h + .field,
+.panel__h + .chips, .panel__h + .grid2 { margin-top: var(--sk-gap-md); }
 /* grid2 is the two-panel page layout, so auto-FIT is right there: two panels should
    share the full width. */
 .grid2 { display: grid; gap: var(--sk-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%,320px),1fr)); }
@@ -98,8 +105,13 @@ img { max-width: 100%; }
   background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 14px; }
 .input:focus, .select:focus, .textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; border-color: var(--accent); }
 .textarea { min-height: 96px; resize: vertical; line-height: 1.7; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row { display: flex; gap: var(--sk-gap-sm); flex-wrap: wrap; }
 .row > * { flex: 1 1 130px; }
+/* `gap` only separates fields WITHIN a row. Stacked rows (the review form, the
+   ask-a-question form) had nothing between them at all, so two lines of inputs
+   met edge to edge and read as one crowded block. Same value as the gap inside a
+   row, so the form spaces itself identically in both directions. */
+.row + .row { margin-top: var(--sk-gap-sm); }
 
 /* option pills (radio/checkbox replacement) */
 .opts { display: flex; flex-wrap: wrap; gap: 10px; }

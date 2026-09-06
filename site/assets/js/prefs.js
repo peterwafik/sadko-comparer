@@ -111,19 +111,56 @@
     return { hide, reasons };
   }
 
+  /* ---- the bar every page can drop in ----
+     DISMISSAL. The bar is an invitation, and an invitation that cannot be
+     declined is an advert. `skStore.dismiss` remembers the × across pages and
+     sessions (see store.js) — a per-render flag would be useless here, because
+     the storefront rebuilds this column on every facet click.
+
+     Closing it while the filter is ON also turns the filter OFF. That is the
+     only honest option: the bar is the sole control for a filter that HIDES
+     products, so leaving it running behind a panel the visitor just closed
+     would silently subtract rows from every grid with nothing on screen left to
+     explain why. Closing it therefore always ends with everything visible.
+
+     The way back is `sk-prefs-change`: editing the home profile un-dismisses the
+     bar, because that is the moment it stops being a pitch and starts being a
+     control the visitor asked for. */
+  const DISMISS_ID = 'prefs-bar';
+  const store = () => window.skStore;
+  const isDismissed = () => { const s = store(); return !!(s && s.dismiss.is(DISMISS_ID)); };
+
+  function closeBtn() {
+    return '<button type="button" class="skp-x" aria-label="' +
+      t('اقفل اللوحة دى', 'Close this panel') + '" title="' +
+      t('اقفل اللوحة دى', 'Close this panel') + '">&times;</button>';
+  }
+
   /* ---- the bar every page can drop in ---- */
   function mountBar(host, opts) {
     if (!host) return;
     const o = opts || {};
     const draw = () => {
       const on = enabled(), any = hasAny();
+      if (isDismissed()) { host.className = 'skp-bar is-gone'; host.innerHTML = ''; return; }
       host.className = 'skp-bar' + (on ? ' is-on' : '');
+      const wireX = () => {
+        const x = host.querySelector('.skp-x');
+        x && x.addEventListener('click', () => {
+          if (enabled()) toggle(false);          // never hide rows behind a closed panel
+          const s = store(); s && s.dismiss.set(DISMISS_ID);
+          draw();
+          if (o.onChange) o.onChange(enabled());
+        });
+      };
       if (!any) {
         host.innerHTML =
           '<div><b>' + t('فلترة حسب بيتك', 'Filter by your home') + '</b>' +
           '<p>' + t('لو قلت لنا شوية عن بيتك (عدد الأفراد، الميزانية، مقاس مكان الجهاز)، نقدر نخفى اللى مش هيناسبك من كل صفحة.',
                     'Tell us a little about your home (household size, budget, the space you have) and we can hide what will not fit, on every page.') + '</p></div>' +
-          '<a class="skp-btn" href="' + ROOT + 'account.html#home">' + t('كمّل بياناتك', 'Complete your profile') + '</a>';
+          '<a class="skp-btn" href="' + ROOT + 'account.html#home">' + t('كمّل بياناتك', 'Complete your profile') + '</a>' +
+          closeBtn();
+        wireX();
         return;
       }
       const many = (window.skAuth ? window.skAuth.homes() : []).length > 1;
@@ -138,16 +175,27 @@
           '<a class="skp-link" href="' + ROOT + 'account.html#homes">' + (many ? t('إدارة الأماكن', 'Manage places') : t('عدّل تفضيلاتى', 'Edit preferences')) + '</a>' +
           '<button type="button" class="skp-btn" aria-pressed="' + (on ? 'true' : 'false') + '">' +
             (on ? t('اقفل الفلتر', 'Turn filter off') : t('فلتر حسب مكانى', 'Filter for my place')) + '</button>' +
-        '</div>';
-      const b = host.querySelector('button');
+        '</div>' +
+        closeBtn();
+      // `.skp-btn` is the toggle; querySelector('button') would now find whichever
+      // comes first in the markup, so both controls are addressed by their class.
+      const b = host.querySelector('button.skp-btn');
       b && b.addEventListener('click', () => { toggle(!enabled()); draw(); if (o.onChange) o.onChange(enabled()); });
+      wireX();
       if (window.skHomes) window.skHomes.switcher(host.querySelector('#skpSwitch'), {
         showSummary: false,
         onChange: () => { draw(); if (o.onChange) o.onChange(enabled()); },
       });
     };
     draw();
-    document.addEventListener('sk-prefs-change', () => { if (o.onChange) o.onChange(enabled()); });
+    document.addEventListener('sk-prefs-change', () => {
+      // Editing the home profile is an explicit ask for this filter, so it
+      // outranks an earlier dismissal: bring the bar back rather than leaving
+      // the visitor with preferences and no control that acts on them.
+      const s = store(); if (s) s.dismiss.restore(DISMISS_ID);
+      draw();
+      if (o.onChange) o.onChange(enabled());
+    });
     return { redraw: draw, setCount };
   }
 
@@ -190,10 +238,29 @@
   function injectCSS() {
     if (document.getElementById('skp-css')) return;
     const css = `
-    .skp-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
-      max-width:1440px;margin:16px auto 0;width:calc(100% - 2*clamp(16px,4vw,48px));
-      padding:14px clamp(14px,3vw,22px);border-radius:16px;background:#fff;
+    /* SPACING. This bar is mounted INSIDE the storefront's results column, which
+       is already inset by the page gutter. It used to carry the page's own
+       centring (max-width:1440px + width:calc(100% - 2*gutter)), so the gutter
+       was applied a second time and the bar sat ~48px narrower than the grid it
+       labels — visibly indented from the toolbar above and the cards below.
+       Full width of its column now, with the site's rhythm tokens (app.css /
+       category.css) instead of hardcoded pixels: the missing margin-bottom is
+       why it used to touch the first row of product cards. */
+    .skp-bar{display:flex;align-items:center;justify-content:space-between;
+      gap:var(--sk-gap-sm,12px) var(--sk-gap-md,18px);flex-wrap:wrap;
+      width:100%;margin:0 0 var(--sk-gutter,26px);
+      padding:var(--sk-gap-md,18px) clamp(14px,3vw,22px);border-radius:16px;background:#fff;
       border:1px solid rgba(46,126,136,.22);box-shadow:0 2px 10px rgba(20,52,58,.05);}
+    .skp-bar.is-gone{display:none;}
+    /* The × is a corner control, not part of the flex rhythm: pinned to the panel's
+       own top-inline-end corner so the text block keeps its full measure and the
+       button lands where a close button is looked for in both RTL and LTR. */
+    .skp-bar{position:relative;padding-inline-end:clamp(40px,5vw,52px);}
+    .skp-x{position:absolute;top:8px;inset-inline-end:10px;width:30px;height:30px;line-height:1;
+      display:grid;place-items:center;font:400 21px/1 'Cairo',sans-serif;color:#7d8b8e;
+      background:transparent;border:0;border-radius:50%;cursor:pointer;transition:.18s;}
+    .skp-x:hover{background:rgba(20,52,58,.07);color:#14343a;}
+    .skp-x:focus-visible{outline:2px solid #2e7e88;outline-offset:2px;}
     .skp-bar.is-on{background:linear-gradient(120deg,#eaf3f4,#f7f5f1);border-color:rgba(46,126,136,.4);}
     .skp-bar b{display:block;font:800 .96rem 'Cairo',sans-serif;color:#14343a;}
     .skp-bar p{margin:4px 0 0;font:600 .82rem 'Cairo',sans-serif;color:#5b6b6e;}

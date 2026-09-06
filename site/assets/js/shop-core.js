@@ -238,22 +238,291 @@
     return true;
   }
 
+  /* ---- typo tolerance ------------------------------------------------------
+     Damerau-Levenshtein with an early bail: it stops as soon as the whole row
+     exceeds `max`, so comparing a query word against thousands of catalogue words
+     costs a few operations each rather than a full matrix. Transpositions count
+     as one edit because they are the typo people actually make — "ثلاحة" for
+     "ثلاجة", "refrigirator", "wahsing" — and treating those as two edits would
+     need a threshold loose enough to also match unrelated words. */
+  function editDistance(a, b, max) {
+    if (a === b) return 0;
+    var al = a.length, bl = b.length;
+    if (Math.abs(al - bl) > max) return max + 1;
+    var prev2 = [], prev = [], cur = [], i, j;
+    for (j = 0; j <= bl; j++) prev[j] = j;
+    for (i = 1; i <= al; i++) {
+      cur[0] = i;
+      var best = cur[0];
+      for (j = 1; j <= bl; j++) {
+        var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        var v = Math.min(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+        if (i > 1 && j > 1 && a.charAt(i - 1) === b.charAt(j - 2) && a.charAt(i - 2) === b.charAt(j - 1)) {
+          v = Math.min(v, prev2[j - 2] + 1);
+        }
+        cur[j] = v;
+        if (v < best) best = v;
+      }
+      if (best > max) return max + 1;          // no cell can improve from here
+      prev2 = prev.slice(); prev = cur.slice();
+    }
+    return prev[bl];
+  }
+
+  /* How wrong a word may be before it stops being the same word. Scaled by
+     length, because one edit in a 4-letter word is a different claim from one
+     edit in a 12-letter one. Words of 3 characters or fewer get NO tolerance at
+     all: at that length nearly everything is one edit from everything else
+     ("tv"/"to", "فرن"/"فرش"), and the model numbers in this catalogue would
+     start matching each other. */
+  function fuzzMax(w) { return w.length <= 3 ? 0 : (w.length <= 6 ? 1 : 2); }
+
+  // Does any WORD of the haystack read as a typo of `needle`?
+  function fuzzyHit(hay, needle) {
+    var max = fuzzMax(needle);
+    if (!max) return false;
+    var words = hay.split(/[^0-9a-z؀-ۿ]+/);
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (!w || Math.abs(w.length - needle.length) > max) continue;
+      if (editDistance(needle, w, max) <= max) return true;
+    }
+    return false;
+  }
+
+  /* The fuzzy pass is a FALLBACK, never a widening of a good result set: a search
+     that found something exactly keeps exactly what it found. Only a query that
+     returned nothing is retried with typos allowed, which is the moment the
+     shopper is staring at "no results" for a word they believe they typed. */
+  /* Typos have to reach the SYNONYM table too, not just the catalogue text.
+     The catalogue is Arabic, so "fridge" only finds anything because the table
+     maps it onto "ثلاجة" — which meant "fridgee" found nothing at all: the word
+     was one keystroke from a dictionary key, but the fuzzy pass was only ever
+     comparing it against Arabic product titles it could never be close to. Same
+     for "تكيف", a common shortening that is one edit from "تكييف".
+     Expanded once per query, not once per product: the table is ~60 keys and
+     there are 471 products. */
+  var SYN_KEYS = Object.keys(SYN_INDEX);
+  function fuzzyExpand(parsed) {
+    var out = { must: [], typed: parsed.typed, phrases: parsed.phrases, not: parsed.not };
+    parsed.must.forEach(function (variants, i) {
+      var word = parsed.typed[i];
+      var max = fuzzMax(word);
+      var extra = [];
+      if (max) {
+        SYN_KEYS.forEach(function (k) {
+          if (variants.indexOf(k) >= 0) return;
+          if (Math.abs(k.length - word.length) > max) return;
+          if (editDistance(word, k, max) > max) return;
+          SYN_INDEX[k].forEach(function (w) {
+            if (variants.indexOf(w) < 0 && extra.indexOf(w) < 0) extra.push(w);
+          });
+        });
+      }
+      out.must.push(variants.concat(extra));
+    });
+    return out;
+  }
+
+  function matchesFuzzy(p, parsed, trTitle, specOf) {
+    if (!parsed.must.length) return false;
+    var hay = haystacks(p, trTitle, specOf);
+    for (var i = 0; i < parsed.not.length; i++) if (hit(hay.full, parsed.not[i])) return false;
+    for (var k = 0; k < parsed.must.length; k++) {
+      var variants = parsed.must[k], found = false;
+      for (var v = 0; v < variants.length; v++) {
+        var where = (variants[v] === parsed.typed[k]) ? hay.full : hay.identity;
+        if (hit(where, variants[v]) || fuzzyHit(where, variants[v])) { found = true; break; }
+      }
+      if (!found) return false;
+    }
+    return true;
+  }
+
   function filter(products, state, specOf, trTitle) {
     // Parse once for the whole pass, not once per product: expanding synonyms for
     // every one of 471 products on every keystroke-free re-render is wasted work.
     var q = parseQuery(state.q);
-    return products.filter(function (p) {
+    function facets(p) {
       if (state.cat && String(p.categoryId) !== String(state.cat)) return false;
       if (state.min != null && !(p.price >= state.min)) return false;
       if (state.max != null && !(p.price < state.max)) return false;
-      if (!matchesQuery(p, q, trTitle, specOf)) return false;
       if (state.brands && state.brands.length) {
         var b = (specOf(p) || {}).brand;
         var key = (b && (b.key || b.en || b.ar)) ? String(b.key || b.en || b.ar).toLowerCase() : '__none__';
         if (state.brands.indexOf(key) < 0) return false;
       }
       return true;
+    }
+    var out = products.filter(function (p) { return facets(p) && matchesQuery(p, q, trTitle, specOf); });
+    if (!q.must.length) return out;
+    /* When to spell-correct. Not simply "when nothing matched": "تكيف" (a common
+       short spelling of تكييف) and "خلات" (خلاط) each land a handful of incidental
+       substring hits — 6 and 1 against the 30 and 31 the correct spelling finds —
+       so a zero-results test would leave the shopper on a page that looks answered
+       and is not. The rule is instead:
+
+         • the result set is thin (under 3), AND
+         • at least one typed word is one this catalogue does not KNOW — not a
+           synonym-table key, and not model-like (no digits).
+
+       Both halves matter. The "not a known word" half is what stops a correctly
+       spelled query being widened into its neighbours: "cooler" and "cooker" are
+       one edit apart, and correcting the first into the second would put ovens in
+       a water-cooler search. The "no digits" half protects model numbers, which
+       are long enough for two edits of tolerance and would otherwise start
+       matching each other. */
+    var thin = out.length < 3;
+    function correctable(w) { return !SYN_INDEX[w] && !/[0-9]/.test(w) && fuzzMax(w) > 0; }
+    var unknown = q.typed.some(correctable);
+    /* One case overrides the "thin" test: a word this catalogue does not know that
+       sits ONE edit from a word it does. That is a spelling correction against a
+       curated vocabulary, not a guess against arbitrary text, so it is trustworthy
+       even when the misspelling happened to land some incidental hits — "تكيف"
+       collects 6 substring matches while the 30 air conditioners it means sit
+       behind "تكييف", and 6 results look answered enough that nobody retypes.
+       Distance is capped at 1 here rather than the usual length-scaled tolerance:
+       at 2 edits, real words start reaching each other's meanings. */
+    var nearKnownWord = q.typed.some(function (w) {
+      if (!correctable(w) || w.length < 4) return false;
+      return SYN_KEYS.some(function (k) { return editDistance(w, k, 1) <= 1; });
     });
+    if (!nearKnownWord && (!thin || !unknown)) return out;
+    // matchesFuzzy accepts everything matchesQuery does, so this is a superset:
+    // the exact hits stay, the corrections join them.
+    var fq = fuzzyExpand(q);
+    return products.filter(function (p) { return facets(p) && matchesFuzzy(p, fq, trTitle, specOf); });
+  }
+
+  /* ---- as-you-type suggestions --------------------------------------------
+     Ranked across three kinds of answer, because "what did you mean" is rarely
+     just a product: a shopper typing "ثلاج" almost always wants the CATEGORY, and
+     one typing "كريازي" wants the BRAND. Products come last and are capped, so a
+     category never gets pushed off the list by seven of its own members.
+
+     Scoring is deliberately coarse and stable — exact, then starts-with, then
+     word-starts-with, then contains, then typo — so the order never jitters
+     between keystrokes. Ties break on how much of the label the query accounts
+     for, which floats "ثلاجات" above "ثلاجات نوفروست ديجيتال" for the query
+     "ثلاجات". Everything is matched on normalised text, so Arabic spelling
+     variants (ة/ه, ى/ي, أ/ا) and harakat cost the shopper nothing.
+
+     `sources` is prepared by the caller (it owns naming and translation):
+       { cats: [{id, name, count}], brands: [{key, name, count}], products: [...] }
+     Returns [{ kind, label, sub, count, id|key|product, score }]. */
+  function words(s) { return s.split(/[^0-9a-z؀-ۿ]+/).filter(Boolean); }
+
+  /* A suggestion list is judged mid-word, which is why this is not just the
+     search matcher again. Someone three letters into "ثلاجة" has typed a PREFIX,
+     not a word — and a prefix is far (in edit distance) from the word it will
+     become, so plain fuzzy matching finds nothing exactly when help is most
+     wanted. Every rung below therefore has a prefix form, and the typo rung
+     compares the query against the same LENGTH of each candidate word: "ثلاح"
+     against "ثلاج" of "ثلاجات", one edit, a hit. */
+  function scoreLabel(label, needle) {
+    var l = norm(label);
+    if (!l || !needle) return 0;
+    if (l === needle) return 100;
+    if (l.indexOf(needle) === 0) return 80;
+    var ws = words(l);
+    for (var i = 0; i < ws.length; i++) if (ws[i].indexOf(needle) === 0) return 60;
+    if (l.indexOf(needle) > 0) return 40;
+    var max = fuzzMax(needle);
+    if (max) {
+      for (var j = 0; j < ws.length; j++) {
+        var head = ws[j].slice(0, needle.length);
+        if (head.length >= needle.length - max && editDistance(needle, head, max) <= max) return 25;
+      }
+      if (fuzzyHit(l, needle)) return 20;
+    }
+    return 0;
+  }
+
+  /* What else the shopper might mean by what they have typed so far. The
+     catalogue is Arabic, so without this an English shopper typing "fridg" gets
+     an empty list from a shop that has 75 refrigerators. Keys are matched by
+     prefix as well as exactly, because the query is still being typed, and a
+     one-edit correction is folded in for the same reason the filter does it. */
+  function queryAliases(needle) {
+    var out = [];
+    if (needle.length < 2) return out;
+    SYN_KEYS.forEach(function (k) {
+      var near = k.indexOf(needle) === 0 || k === needle ||
+                 (needle.length >= 4 && editDistance(needle, k, 1) <= 1);
+      if (!near) return;
+      SYN_INDEX[k].forEach(function (w) { if (w !== needle && out.indexOf(w) < 0) out.push(w); });
+    });
+    return out;
+  }
+
+  function suggest(query, sources, opts) {
+    var o = opts || {};
+    var needle = norm(query);
+    if (needle.length < 2) return [];
+    var limit = o.limit || 8;
+    var aliases = queryAliases(needle);
+    // The typed text always outranks what it was expanded into, so a direct hit
+    // can never be pushed below a synonym's.
+    function best(label) {
+      var s = scoreLabel(label, needle);
+      for (var i = 0; i < aliases.length && s < 80; i++) {
+        s = Math.max(s, Math.round(scoreLabel(label, aliases[i]) * 0.75));
+      }
+      return s;
+    }
+    var out = [];
+    var seen = {};
+    function push(kind, label, score, extra) {
+      if (!score) return;
+      var key = kind + ' ' + norm(label);
+      if (seen[key]) return;
+      seen[key] = 1;
+      // Shorter labels win ties: the query accounts for more of them.
+      var tie = Math.min(19, Math.round(19 * needle.length / Math.max(needle.length, norm(label).length)));
+      /* A category outranks a product that scored the same, and a brand outranks
+         a product too. Someone typing "ثلاج" wants the aisle, not the fifth
+         refrigerator in it — and the catalogue spells some categories the way
+         products are titled ("تكيف هاير"), so on raw text score alone the aisle
+         lost to its own members. Small deliberate weights, not a hard grouping:
+         a model number still brings its product straight to the top, because no
+         category matches it at all. */
+      var kindWeight = kind === "cat" ? 12 : (kind === "brand" ? 8 : 0);
+      out.push(Object.assign({ kind: kind, label: label, score: score + tie + kindWeight }, extra || {}));
+    }
+    /* An entry's `alt` is the SAME name in the other language. This is a
+       bilingual shop in a bilingual country: people type Arabic into the English
+       site and Latin brand names into the Arabic one, all day. Both spellings are
+       searched; only `name` — the one matching the page — is ever shown, so the
+       list never answers in a language the rest of the page is not speaking. */
+    (sources.cats || []).forEach(function (c) {
+      push('cat', c.name, Math.max(best(c.name), c.alt ? best(c.alt) : 0), { id: c.id, count: c.count });
+    });
+    (sources.brands || []).forEach(function (b) {
+      push('brand', b.name, Math.max(best(b.name), b.alt ? best(b.alt) : 0), { key: b.key, count: b.count });
+    });
+    // Products are scored against the same identity text the search itself uses,
+    // so a suggestion can never be something the search would not then find.
+    var prods = [];
+    (sources.products || []).forEach(function (p) {
+      var hay = haystacks(p, o.trTitle, o.specOf);
+      var s = best(p.title);
+      if (!s && o.trTitle) { try { s = best(o.trTitle(p.title)); } catch (e) {} }
+      if (!s && hit(hay.identity, needle)) s = 30;
+      if (!s && fuzzyHit(hay.identity, needle)) s = 15;
+      if (s) prods.push({ p: p, s: s });
+    });
+    prods.sort(function (a, b) { return b.s - a.s || a.p.title.length - b.p.title.length; });
+    /* The row is labelled the way the page labels the same product elsewhere —
+       optional labelOf, so an English page suggests the English title its cards
+       are showing rather than the Arabic one underneath. Matching still happened
+       against both, above. */
+    prods.slice(0, o.productLimit || 5).forEach(function (r) {
+      var label = r.p.title;
+      if (o.labelOf) { try { label = o.labelOf(r.p) || label; } catch (e) {} }
+      push('product', label, r.s, { product: r.p });
+    });
+    out.sort(function (a, b) { return b.score - a.score; });
+    return out.slice(0, limit);
   }
 
   function sortList(list, sort) {
@@ -316,5 +585,5 @@
     });
   }
 
-  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate };
+  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate, suggest: suggest, editDistance: editDistance, fuzzyHit: fuzzyHit };
 });

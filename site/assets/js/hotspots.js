@@ -34,21 +34,51 @@ function mountHotspots(container, api, sections) {
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const smooth = x => { x = clamp(x); return x * x * (3 - 2 * x); };
   const coarse = window.matchMedia('(hover:none) and (pointer:coarse)').matches;
+  // The portrait-phone layout: a fitted room image instead of the 16:9 flight.
+  // Read live (.matches) — it changes when a phone rotates.
+  const containMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
   // --- crowding control -----------------------------------------------------
   // Two markers closer than the pulse ring's diameter read as one smudge, so a
   // relaxation pass pushes overlapping dots apart. It is capped at MAX_NUDGE of
   // the frame width, though: a marker that wanders further than that stops
   // sitting on its own appliance, which matters more than perfect spacing.
-  const DOT_R    = coarse ? 8 : 9;     // dot radius (matches the CSS box) — small markers
-  const RING_R   = DOT_R + 5;          // + the pulse ring
+  /* The portrait-phone SCENE — the fitted room image with its own marker
+     coordinates — is chosen by a media query, not by the input device, so the
+     markers drawn over it have to be chosen the same way. Keyed on the pointer
+     alone, every phone rule was silently skipped anywhere the layout was a
+     phone but the pointer was not: a narrow desktop window, DevTools device
+     mode, and the project's own side-by-side preview harness, whose phone
+     frame is a real 393px viewport driven by a mouse. Reviewing mobile there
+     showed desktop markers over portrait artwork.
+
+     Recomputed rather than fixed at mount, because the layout half can change
+     under a running page: rotating a phone or dragging a window across the
+     breakpoint. remeasure() calls this on resize and orientationchange. */
   const LBL_GAP  = 12;                 // dot edge -> label (matches the CSS)
   const PAD      = 5;                  // breathing room demanded around a label
-  const MIN_GAP  = coarse ? 38 : 2 * RING_R;   // px wanted between dot centres
-  const MAX_NUDGE = 0.014;             // × frame width — the "stay on the appliance" cap
+  let DOT_R, RING_R, MIN_GAP, MAX_NUDGE;
+  function tuneForSurface() {
+    const phone = coarse || containMQ.matches;
+    // Dot radius MUST match the CSS box: labels, the screen-edge margin and the
+    // crowding maths are all measured from it.
+    DOT_R = phone ? 6 : 9;
+    RING_R = DOT_R + 5;                     // + the pulse ring
+    MIN_GAP = phone ? 44 : 2 * RING_R;      // px wanted between dot centres
+    /* × frame width — the "stay on the appliance" cap. A finger is not a
+       cursor: the kitchen's small appliances stand shoulder to shoulder along
+       one counter and their markers came out 17px apart, where a tap lands on
+       whichever of three the thumb covers. 1.4% of the frame width is ~6px of
+       travel, so the solver was capped into doing nothing; 4.5% (~20px) lets
+       neighbours reach the 44px a fingertip needs while keeping each marker
+       within about half an appliance of its product. A mouse never needed it. */
+    MAX_NUDGE = phone ? 0.045 : 0.014;
+  }
   // Flight visibility is capped to a tight half-band around each marker's anchor
   // so a marker fades out the instant scrolling drifts it off its appliance, and
   // only pops back when the appliance is framed again. (Scene spans stay wider
   // for the label/showcase timing; this only governs the dot's on-screen life.)
+  tuneForSurface();
+
   const VIS_HALF = 0.15;
 
   injectHotspotCSS();
@@ -137,33 +167,11 @@ function mountHotspots(container, api, sections) {
 
   const copies = container.querySelectorAll('.sw-copy');
 
-  // A small, always-on-screen eye toggle to show/hide the marker TITLES across
-  // every scene. Off by default (dots stay uncluttered, titles on hover); when
-  // on, every currently-framed marker shows its label. It never forces a hidden
-  // marker open — a spot faded out by the flight band stays hidden.
-  let forceLabels = false;
-  const EYE_ON = `<svg class="hs-eye__ic" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
-  const EYE_OFF = `<svg class="hs-eye__ic" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.1A9.6 9.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3 3.6M6.2 6.2A16.7 16.7 0 0 0 2 12s3.6 7 10 7a9.5 9.5 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m3 3 18 18"/></svg>`;
-  const eyeBtn = document.createElement('button');
-  eyeBtn.type = 'button';
-  eyeBtn.className = 'hs-eye';
-  function paintEye() {
-    eyeBtn.classList.toggle('is-on', forceLabels);
-    eyeBtn.innerHTML = forceLabels ? EYE_ON : EYE_OFF;
-    const t = forceLabels
-      ? (HS_EN ? 'Hide appliance titles' : 'إخفاء أسماء الأجهزة')
-      : (HS_EN ? 'Show appliance titles' : 'إظهار أسماء الأجهزة');
-    eyeBtn.setAttribute('aria-label', t); eyeBtn.title = t;
-    eyeBtn.setAttribute('aria-pressed', forceLabels ? 'true' : 'false');
-    layer.classList.toggle('hs-layer--labels', forceLabels);
-  }
-  // Turning the titles on puts every label on screen at once, so the sides have
-  // to be re-solved against each other rather than against the dots alone.
-  eyeBtn.addEventListener('click', () => {
-    forceLabels = !forceLabels; paintEye(); layoutLabels(true); dismissCoach();
-  });
-  container.appendChild(eyeBtn);
-  paintEye();
+  // There was a fixed eye button here that turned every marker's TITLE on across
+  // all scenes. It has been removed from the home page: it was a permanent piece
+  // of furniture floating over the artwork in every room, on every device, to
+  // serve an option most visitors never touched. Titles behave as they always did
+  // otherwise — revealed on hover or keyboard focus, one at a time.
 
   // ---- one-time coach toast ----------------------------------------------
   const COACH_KEY = 'sadko-hs-coach-v1';
@@ -182,8 +190,8 @@ function mountHotspots(container, api, sections) {
     coach.setAttribute('role', 'status');
     const small = window.matchMedia('(max-width: 600px)').matches;
     const msg = HS_EN
-      ? 'The pulsing markers over the appliances are shop categories — click any marker to open a page with all its products. Use the <b>eye button</b> to show or hide their titles.'
-      : 'العلامات النابضة فوق الأجهزة فئات تسوّق — اضغط على أى علامة تفتح صفحة كل منتجاتها. واستخدم <b>زرار العين</b> عشان تظهر أو تخفى أسماء الأجهزة.';
+      ? 'The pulsing markers over the appliances are shop categories — <b>tap any marker</b> to open a page with all its products.'
+      : 'العلامات النابضة فوق الأجهزة فئات تسوّق — <b>اضغط على أى علامة</b> تفتح صفحة كل منتجاتها.';
     coach.innerHTML =
       `<i class="hs-coach__dot"></i><p>${msg}</p>` +
       `<button type="button" class="hs-coach__x" aria-label="${HS_EN ? 'Close' : 'إغلاق'}">&times;</button>`;
@@ -205,17 +213,40 @@ function mountHotspots(container, api, sections) {
     const n = parseFloat(v);
     return isNaN(n) ? 0.42 : n / 100;
   }
+  // The portrait punch-in, owned by scrub-engine's stylesheet (--sw-mzoom). Read
+  // live rather than cached: it is declared inside a media query, so it changes
+  // when the phone rotates or the window crosses the breakpoint, and place() runs
+  // per frame anyway. A missing or unparseable value means no zoom.
+  function mZoom() {
+    const n = parseFloat(getComputedStyle(container).getPropertyValue('--sw-mzoom'));
+    return (isFinite(n) && n > 0) ? n : 1;
+  }
   // Portrait phones show a DIFFERENT scene: the bespoke portrait image
   // (m_<room>.jpg, ~1080×1610), object-fit:contain and centred. So there the
   // mapping uses that image's aspect + contain + centre, and markers read from
   // each spot's mfx/mfy. Desktop/landscape keeps the 16:9 video, cover + objY.
-  const MFRAME_W = 1080, MFRAME_H = 2160;
-  const containMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
+  /* The portrait ROOM frames and the portrait CONNECTOR clips between them are
+     now the same footage — each room image IS an endpoint frame of the walk that
+     leads into or out of it — so one frame geometry describes both, and a marker
+     cannot shift when the still hands over to the video. 822x1920 is the clips'
+     native size; the room images are cut from them at exactly that size.
+     This MUST match the assets. It is the whole reason a marker stays welded to
+     its appliance while the viewport changes: every position is a fraction of
+     this frame, mapped through the same cover-fit the CSS applies, so resizing,
+     rotating or zooming rescales the marker and the appliance together. When the
+     constant and the artwork disagree, the two scale differently and the markers
+     walk away from the products — which is what a 1080x2160 constant did to
+     822x1920 footage. */
+  const MFRAME_W = 822, MFRAME_H = 1920;
   function metrics() {
     const r = stageEl.getBoundingClientRect();
     if (containMQ.matches) {
-      // cover (fill the screen) — mirrors the scene's object-fit:cover
-      const s = Math.max(r.width / MFRAME_W, r.height / MFRAME_H);
+      // cover (fill the screen) — mirrors the scene's object-fit:cover — then the
+      // stylesheet's portrait punch-in, read from the same custom property the
+      // CSS uses so the two can never disagree. Scaling about the centre is
+      // exactly what `transform:scale()` with a centred origin does, which is why
+      // the markers stay welded to their appliances through the zoom.
+      const s = Math.max(r.width / MFRAME_W, r.height / MFRAME_H) * mZoom();
       const dw = MFRAME_W * s, dh = MFRAME_H * s;
       return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * 0.5 };
     }
@@ -236,15 +267,17 @@ function mountHotspots(container, api, sections) {
       const seg = sections[gr.si]._seg;
       const sc = gr.si === showSi;
       // Until the clip paints its first frame the engine shows the STILL with a
-      // ken-burns transform (translateX((stageX-2)vw) scale(1.03+t*0.14), origin
-      // center). Mirror it, or markers sit visibly off on slow loads / mobile.
+      // ken-burns zoom (scale(1 + t*0.14), origin center). Mirror it, or markers
+      // sit visibly off on slow loads / mobile. Must stay in step with
+      // scrub-engine.js's read(): the zoom now starts at IDENTITY and carries no
+      // horizontal offset, so poster and clip frame the room identically and the
+      // markers do not move when the video takes over.
       let still = null;
       if (seg && seg.el && !seg.el.classList.contains('has-clip') && !containMQ.matches) {
         const local = clamp((lastY - seg.start) / (seg.end - seg.start), 0, 1);
-        const stageX = window.innerWidth > 860 ? 4 : 0;
         still = {
-          sc: reduceSc ? 1 : 1.03 + local * 0.14,
-          tx: (stageX - 2) / 100 * window.innerWidth,
+          sc: reduceSc ? 1 : 1 + local * 0.14,
+          tx: 0,
           cx: m.r.left + m.r.width / 2,
           cy: m.r.top + m.r.height / 2,
         };
@@ -275,7 +308,16 @@ function mountHotspots(container, api, sections) {
   function declutter(pts, cap) {
     const live = pts.filter(p => p.it.op > 0.02);
     if (live.length < 2) return;
-    for (let iter = 0; iter < 8; iter++) {
+    const lb = layer.getBoundingClientRect();
+    const edge = RING_R + 3;
+    /* More passes on touch. Each pass now ends by clamping to the appliance and
+       to the screen, so a push is routinely undone and has to be re-made from the
+       new position — a row of fifteen kitchen markers needs several rounds to
+       settle against those limits. Eight was tuned for the unclamped solver and
+       left pairs sitting on top of each other. It is a handful of arithmetic
+       operations over at most ~15 live markers, so the extra passes cost nothing
+       measurable even running per frame. */
+    for (let iter = 0, MAX = coarse ? 24 : 8; iter < MAX; iter++) {
       let moved = false;
       for (let i = 0; i < live.length; i++) {
         for (let j = i + 1; j < live.length; j++) {
@@ -293,12 +335,35 @@ function mountHotspots(container, api, sections) {
           moved = true;
         }
       }
+      /* Both limits are applied INSIDE the loop, so the next iteration solves
+         within them instead of against them. Applied only at the end, the screen
+         clamp could shove two markers back onto the same edge pixel and undo the
+         very separation this function exists for — measured: two laundry markers
+         3px apart after being spread. Constrained here, a pair pinned against the
+         right edge separates vertically instead. */
+      live.forEach(pt => {
+        // 1. stay near the appliance you were authored on
+        const dx = pt.x - pt.bx, dy = pt.y - pt.by, d = Math.hypot(dx, dy);
+        if (d > cap) { pt.x = pt.bx + dx / d * cap; pt.y = pt.by + dy / d * cap; moved = true; }
+      });
+      /* 2. stay on the screen. Clamped in the space these numbers are USED in,
+         not the space they were computed in: p.x/p.y end up as
+         `transform: translate(...)` on a marker inside .hs-layer, so they are
+         layer-local. Clamping against the stage's viewport rect let a marker sit
+         a whole layer-offset past the edge — 399px on a 393px phone. */
+      live.forEach(pt => {
+        const nx = Math.min(Math.max(pt.x, edge), lb.width - edge);
+        const ny = Math.min(Math.max(pt.y, edge), lb.height - edge);
+        /* A clamp counts as movement. Pulling a marker back from the edge can
+           push it INTO a neighbour, and if the pairwise pass that round had
+           nothing else to do the loop would break on `!moved` and leave the two
+           sitting 3px apart — exactly the collision this function exists to
+           prevent, manufactured by its own last step. Marking it keeps the loop
+           alive for another round, which separates them. */
+        if (nx !== pt.x || ny !== pt.y) { pt.x = nx; pt.y = ny; moved = true; }
+      });
       if (!moved) break;
     }
-    live.forEach(p => {
-      const dx = p.x - p.bx, dy = p.y - p.by, d = Math.hypot(dx, dy);
-      if (d > cap) { p.x = p.bx + dx / d * cap; p.y = p.by + dy / d * cap; }
-    });
   }
 
   // --- label side solver ----------------------------------------------------
@@ -400,10 +465,11 @@ function mountHotspots(container, api, sections) {
     const vw = window.innerWidth, vh = window.innerHeight;
     const dots = live.map(it => ({ x1: it.x - RING_R, y1: it.y - RING_R,
                                    x2: it.x + RING_R, y2: it.y + RING_R, it }));
-    // Every label is on screen at once only in forced-titles mode (the eye
-    // toggle) now — on touch, labels stay hidden until then — so they must dodge
-    // each other exactly when forceLabels is on; otherwise only the dots matter.
-    const allOpen = forceLabels;
+    // Labels are revealed one at a time (hover / focus), never all at once, so
+    // they only ever have to dodge the DOTS and the copy panel — not each other.
+    // The all-at-once case existed for the removed eye toggle; the solver still
+    // takes the flag so the behaviour is one edit away if a room ever needs it.
+    const allOpen = false;
     const copyBox = readCopyBox(force);
 
     // Solve the most hemmed-in markers first — they have the fewest options.
@@ -472,9 +538,16 @@ function mountHotspots(container, api, sections) {
       }
       // Portrait phones show a STATIC scene image, so there is no per-appliance
       // flight band — every marker in the room is live the whole time that room is
-      // on screen. (Labels still default hidden; the eye toggle reveals them.)
+      // on screen. (Labels stay hidden on touch; there is no hover to reveal them.)
       if (containMQ.matches) {
-        const on = seg.visible && gr.si === act;
+        // ...but only while the ROOM is what is on screen. Between two rooms a
+        // portrait phone now plays a connector clip — a walk from one to the
+        // next — and the room being left is still technically `visible` at the
+        // tail of its cross-fade, which pinned its markers over footage of a
+        // corridor, each one nowhere near its appliance. Gate on the room's scene
+        // actually holding the screen instead of merely being non-zero.
+        const roomOp = parseFloat(seg.el.style.opacity) || 0;
+        const on = seg.visible && gr.si === act && roomOp > 0.5;
         gr.items.forEach(it => { it.el.style.opacity = on ? 1 : 0; it.el.style.pointerEvents = on ? 'auto' : 'none'; it.vis = on; it.op = on ? 1 : 0; });
         gr.on = on;
         gr.el.style.opacity = on ? 1 : 0;
@@ -526,6 +599,7 @@ function mountHotspots(container, api, sections) {
   // Cached label sizes only go stale when the type does: a resize (the pill
   // wraps nothing, but its font-size is viewport-driven) or a late webfont.
   function remeasure() {
+    tuneForSurface();   // the breakpoint may have been crossed
     groups.forEach(gr => gr && gr.items.forEach(it => { it.lw = 0; it.lh = 0; }));
     place();
     layoutLabels(true);
@@ -548,6 +622,53 @@ function mountHotspots(container, api, sections) {
   // in guide.js, the engine's own nav) can land users on a room's showcase view.
   api.enterShowcase = enterShowcase;
   api.exitShowcase = exitShowcase;
+
+  /* ---- open ON a room's showcase frame -----------------------------------
+     A section may declare `openShowcase: true` to say "this page starts here".
+     It is the same call the room dock makes, so the landing view is by
+     construction identical to what its button produces.
+
+     Why the home page needs it: marker coordinates are authored against ONE
+     frame of the flight — for the living room, the settle at clip time 0.46s,
+     which is its `showcase` progress (0.03), a mere ~73px down the track. Landing
+     at raw scroll 0 put the camera just before that frame, so the markers were
+     measurably off their appliances and only half the room's markers were inside
+     their visibility band. Every visitor had to click "غرفة المعيشة" to see the
+     room as it was designed. Now that is where the page opens.
+
+     Guarded three ways, because a page that scrolls itself is easy to get wrong:
+       • only from at or above the opening frame, so a reload deep in the page is
+         left where it was;
+       • never on a back/forward restore, which comes back with its own position;
+       • after a frame, so the engine's layout has real segment geometry to glide
+         to (before it, seg.start/end are still zero and the glide is a no-op).
+
+     The first guard used to be "scroll is 0". That broke on any reload, because a
+     reload RESTORES the scroll position — and the language toggle is a reload
+     (nav.js sets the language then calls location.reload()). So switching AR/EN on
+     the landing view came back at the opening frame with showcase off. The zone
+     test below covers both: a fresh load at 0 and a reload restored to the opening
+     frame both re-open, while a reload from further down does not. */
+  const openSi = sections.findIndex(s => s && s.openShowcase);
+  if (openSi >= 0) {
+    let restored = false;
+    try {
+      const nav = performance.getEntriesByType('navigation')[0];
+      restored = !!(nav && nav.type === 'back_forward');
+    } catch (e) {}
+    if (!restored) {
+      requestAnimationFrame(() => {
+        const sec = sections[openSi], seg = sec && sec._seg;
+        if (!seg) return;
+        const span = seg.end - seg.start;
+        if (!span) return;
+        const openAt = seg.start + span * (sec.showcase != null ? sec.showcase : 0);
+        // A little tolerance past the frame itself, so a reload that lands a few
+        // pixels off (or a browser that restores approximately) still counts.
+        if ((window.scrollY || window.pageYOffset) <= openAt + 0.06 * span) enterShowcase(openSi);
+      });
+    }
+  }
 
   function esch(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 }
@@ -592,12 +713,49 @@ function injectHotspotCSS() {
     --hs-bx:-50%;--hs-by:0px;--hs-ox:0px;--hs-oy:-4px;}
   .hs-spot:hover .hs-spot__label,.hs-spot:focus-visible .hs-spot__label{--hs-ox:0px;--hs-oy:0px;opacity:1;}
   .hs-spot:hover .hs-spot__dot{background:var(--hs-accent);}
-  @media (hover:none) and (pointer:coarse){
-    /* Titles stay HIDDEN by default on touch (no hover to reveal them one at a
-       time) — they light up only when the eye toggle turns them on, via
-       .hs-layer--labels below. Dots alone keep the scene uncluttered. */
+  /* A media query LIST: coarse pointer OR the portrait-phone layout. The second
+     half is the one that makes this visible in a narrow window, in DevTools
+     device mode and in the project's preview harness — all of which lay the page
+     out as a phone while driving it with a mouse, and so were skipping every rule
+     below and showing desktop markers over portrait artwork. */
+  @media (hover:none) and (pointer:coarse), (max-width:860px) and (orientation:portrait){
+    /* Titles stay hidden on touch: there is no hover to reveal them, and the eye
+       toggle that used to show them all at once has been removed. A marker is a
+       point you tap to open its category — the room dock and the showcase button
+       carry the naming, and the one-time coach toast says so in words. */
     .hs-spot__label{font-size:.78rem;padding:6px 11px;}
-    .hs-spot{width:16px;height:16px;margin:-8px 0 0 -8px;}
+    /* Smaller and see-through on a phone. The scene is the product photography —
+       a marker's job is to say "there is something here", not to sit on top of
+       the thing it is pointing at. 11px of mostly-transparent ring leaves the
+       appliance readable underneath while staying findable against both the pale
+       walls and the dark furniture.
+       The transparency is in the COLOURS, deliberately, not in an opacity on the
+       marker: the flight fades markers in and out through an inline
+       style.opacity, so a CSS opacity here would be overwritten every frame.
+       (No backticks in this comment — the whole stylesheet is a template
+       literal, and one would end it.) */
+    .hs-spot{width:12px;height:12px;margin:-6px 0 0 -6px;}
+    .hs-spot__dot{background:color-mix(in srgb, var(--hs-accent) 16%, transparent);
+      border:1.2px solid rgba(255,255,255,.55);
+      box-shadow:0 1px 4px rgba(0,0,0,.18);}
+    /* a small bright centre keeps it locatable once the ring went this faint */
+    .hs-spot__dot::before{inset:3px;background:rgba(255,255,255,.8);}
+    .hs-spot__dot::after{inset:-4px;border-width:1.2px;
+      border-color:color-mix(in srgb, var(--hs-accent) 28%, transparent);}
+    /* Showcase — the state the home page LANDS in — paints every dot solid accent,
+       which handed the phone fully opaque markers exactly when all of them are on
+       screen at once. That rule is declared LATER in this stylesheet, so matching
+       its specificity was not enough to beat it; the extra .hs-layer makes this
+       win on weight instead of on position, which is what keeps it working if
+       either block moves. A touch more present than the resting dot, because that
+       mode means "show me everything", but still see-through. */
+    .hs-layer .hs-group--showcase .hs-spot__dot{
+      background:color-mix(in srgb, var(--hs-accent) 24%, transparent);}
+    /* The DOT shrinks; the thing you have to HIT does not. A transparent pad that
+       paints nothing keeps the tap target at 41px — about what a fingertip
+       actually covers — so making the marker discreet cannot make it harder to
+       press. Sized off the 11px dot, not the old 16px one. */
+    .hs-spot::before{content:"";position:absolute;inset:-15px;border-radius:50%;}
   }
   @media (prefers-reduced-motion:reduce){ .hs-spot__dot::after{animation:none;display:none;} }
 
@@ -629,18 +787,6 @@ function injectHotspotCSS() {
     border-radius:999px;padding:3px 9px;}
   @media (prefers-reduced-motion:reduce){ .hs-scbtn__dot::after{animation:none;display:none;} }
 
-  /* ---- fixed eye toggle: show/hide marker titles across every scene ---- */
-  .hs-eye{position:fixed;z-index:42;bottom:calc(20px + env(safe-area-inset-bottom));right:clamp(14px,3vw,28px);
-    width:46px;height:46px;border-radius:50%;cursor:pointer;pointer-events:auto;display:grid;place-items:center;
-    color:var(--sw-ink,#14343a);background:color-mix(in srgb,#fff 82%,transparent);backdrop-filter:blur(10px);
-    border:1px solid color-mix(in srgb,var(--sw-accent,#2e7e88) 40%,transparent);
-    box-shadow:0 6px 20px rgba(20,52,58,.16);transition:background .2s,color .2s,transform .2s,box-shadow .2s;}
-  .hs-eye:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(20,52,58,.22);}
-  .hs-eye.is-on{background:var(--sw-accent,#2e7e88);color:#fff;border-color:var(--sw-accent,#2e7e88);}
-  .hs-eye__ic{display:block;}
-  /* forced-labels mode reveals the label of every currently-framed marker
-     (hidden markers keep opacity 0, so their labels stay hidden too) */
-  .hs-layer--labels .hs-spot__label{opacity:1;--hs-ox:0px;--hs-oy:0px;}
 
   /* ---- one-time coach toast ---- */
   .hs-coach{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,16px);

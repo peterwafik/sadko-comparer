@@ -16,7 +16,7 @@
    a real, working share link that needs no server. Multi-device sync, cross-user
    voting and push alerts genuinely require a backend and are NOT faked here.
 
-     skStore.saved / plans / owned / profile / qa / reviews
+     skStore.saved / plans / owned / profile / qa / reviews / dismiss
      document event 'sk-store-change' fires on every write.
    ========================================================================== */
 (function () {
@@ -29,6 +29,7 @@
     profile: 'sadko-profile-v1',
     qa:      'sadko-qa-v1',
     reviews: 'sadko-reviews-v1',
+    hidden:  'sadko-dismissed-v1',
   };
 
   function read(key, fallback) {
@@ -264,6 +265,25 @@
     },
   };
 
+  /* ---- panels the visitor has closed --------------------------------------
+     Every standing invitation on the site (the guided-finder call-out, the
+     "filter by your home" bar) carries a close button, and a panel closed on one
+     page must stay closed on the next one — otherwise the × reads as a bug: it
+     works for a second and the panel is back after the first filter click, since
+     the storefront re-renders its whole column on every facet change.
+
+     Keyed by a stable panel id rather than by page, and stored beside the rest of
+     the visitor's local state so `scopeNote()` already describes where it lives.
+     `restore()` exists because dismissal must never be a one-way door: the
+     preferences bar brings itself back when someone edits the home profile it is
+     there to advertise (see prefs.js), which is the moment it becomes useful
+     again. */
+  const dismiss = {
+    is(id) { return !!read(K.hidden, {})[id]; },
+    set(id) { const all = read(K.hidden, {}); all[id] = nowISO(); return write(K.hidden, all); },
+    restore(id) { const all = read(K.hidden, {}); delete all[id]; return write(K.hidden, all); },
+  };
+
   const EN = () => !!(window.skLang && window.skLang.get() === 'en');
   function scopeNote() {
     return EN()
@@ -271,5 +291,5 @@
       : 'محفوظ على هذا الجهاز فقط — من غير حساب. لو مسحت بيانات المتصفح هيتمسح.';
   }
 
-  window.skStore = { saved, plans, owned, profile, qa, reviews, encodePlan, decodePlan, scopeNote, STATUS, uid, keys: K };
+  window.skStore = { saved, plans, owned, profile, qa, reviews, dismiss, encodePlan, decodePlan, scopeNote, STATUS, uid, keys: K };
 })();

@@ -36,8 +36,16 @@ function functionBody(source, name) {
 // prose the bugs it fixed, so a raw grep for the old code would match the comment
 // explaining why that code is gone. Only /* */ blocks and full-line // comments are
 // removed; shop.js contains no "//" inside a string literal (asserted below).
-const code = src.replace(/\/\*[\s\S]*?\*\//g, '')
-                .split(/\r?\n/).filter(l => !/^\s*\/\//.test(l)).join('\n');
+//
+// ORDER IS LOAD-BEARING. Line comments go first, because shop.js's prose mentions
+// paths like /category/*.html — inside a // comment, that "/*" opens a block the
+// naive regex then closes at the next real "*/", silently deleting everything
+// between them. That is not hypothetical: it swallowed 100 lines of real code
+// (including `var TR = …`) the first time a block comment was added below one of
+// those sentences, and the test it broke had nothing to do with either. Stripping
+// whole-line // comments first removes the fake opener before it can do that.
+const code = src.split(/\r?\n/).filter(l => !/^\s*\/\//.test(l)).join('\n')
+                .replace(/\/\*[\s\S]*?\*\//g, '');
 
 const renderHub = functionBody(src, 'renderHub');
 const renderBrowse = functionBody(src, 'renderBrowse');
@@ -206,14 +214,99 @@ test('the document-level visibility listener is swapped, never stacked', () => {
     'a strap-less render leaves the visibility listener attached');
 });
 
-test('both views render the hero, and the pinned category pages opt out', () => {
+test('both views render the ad hero', () => {
   const hub = functionBody(src, 'renderHub');
   const browse = functionBody(src, 'renderBrowse');
   for (const [name, body] of [['renderHub', hub], ['renderBrowse', browse]]) {
     assert.ok(body.indexOf('adHero(') >= 0, name + ' does not render the ad hero');
   }
-  assert.match(functionBody(src, 'adsFor'), /data-cat[\s\S]{0,80}hero: \[\], slots: \[\]/,
-    'adsFor no longer excludes the pinned category pages');
+});
+
+// ---------------------------------------------------------------------------
+// Category advertising. adsFor() and promoCats() are pure — everything they read
+// is passed in — so unlike the rest of this file these are REAL behavioural
+// tests: the two functions are lifted out of the IIFE and run against the actual
+// data/promos.json. That matters here because the rules are about what must NOT
+// appear (another category's campaign, square artwork in the wide frame), and a
+// source-text assertion cannot check an absence.
+function adSelector() {
+  const body =
+    'var localizePromos = function (p) { return p || []; };\n' +
+    'function promoCats(x, products) {' + functionBody(src, 'promoCats') + '}\n' +
+    'function adsFor(promos, cat, products) {' + functionBody(src, 'adsFor') + '}\n' +
+    'return { adsFor: adsFor, promoCats: promoCats };';
+  return new Function(body)();
+}
+const PROMOS = JSON.parse(readFileSync(new URL('../data/promos.json', import.meta.url), 'utf8')).promos;
+const ACS = '38032005', FRIDGES = '38003882';
+const ids = list => list.map(x => x.id);
+
+test('the hub still splits promos into hero + interleaved slots', () => {
+  const { adsFor } = adSelector();
+  const ads = adsFor(PROMOS, '', []);
+  assert.deepEqual(ids(ads.hero), PROMOS.filter(p => p.slot === 'hero').map(p => p.id));
+  assert.deepEqual(ids(ads.slots), PROMOS.filter(p => p.slot !== 'hero').map(p => p.id));
+});
+
+test('a category page leads with its own campaign, then brand-wide ones', () => {
+  const { adsFor } = adSelector();
+  const ads = adsFor(PROMOS, ACS, []);
+  // "summer" targets air conditioners through its own href (shop.html?cat=…),
+  // so it must come FIRST on that category — not merely be present.
+  assert.equal(ids(ads.hero)[0], 'summer',
+    'the air-conditioner campaign does not lead on the air-conditioner page');
+  assert.ok(ads.hero.length > 1, 'brand-wide banners do not follow the targeted one');
+});
+
+test('a category never shows another category\'s campaign', () => {
+  const { adsFor } = adSelector();
+  const hero = ids(adsFor(PROMOS, FRIDGES, []).hero);
+  assert.ok(!hero.includes('summer'),
+    'the air-conditioner campaign is advertised on the refrigerator page');
+  assert.ok(hero.length > 0, 'a category with no campaign of its own gets no banner at all');
+});
+
+test('the wide frame is never filled with square artwork', () => {
+  const { adsFor } = adSelector();
+  const byId = Object.fromEntries(PROMOS.map(p => [p.id, p]));
+  for (const cat of [ACS, FRIDGES, '38003963']) {
+    for (const id of ids(adsFor(PROMOS, cat, []).hero)) {
+      assert.equal(byId[id].art, 'wide',
+        'promo "' + id + '" (' + byId[id].art + ' artwork) was put in the 1600x608 banner');
+    }
+  }
+});
+
+test('a category page carries no interleaved ad slots', () => {
+  const { adsFor } = adSelector();
+  assert.deepEqual(adsFor(PROMOS, FRIDGES, []).slots, [],
+    'ads are dealt between the rows of a results list');
+});
+
+// The selector and the renderer are separately correct and were still wrong
+// together: adsFor() picked the air-conditioner campaign for the air-conditioner
+// page and adHero() silently dropped it again, because promos.json files it under
+// slot 'slot' and adHero used to re-filter on slot. Nothing above catches that —
+// adsFor's tests never render, and the renderer's never select. This one runs the
+// real pair end to end and asserts the artwork reaches the HTML.
+test('the banner adsFor picks for a category actually reaches the page', async () => {
+  const { createRequire } = await import('node:module');
+  const ui = createRequire(import.meta.url)('../assets/js/storefront.js');
+  const { adsFor } = adSelector();
+  const html = ui.adHero(adsFor(PROMOS, ACS, []).hero);
+  assert.ok(html.includes('hero-summer.jpg'),
+    'the air-conditioner campaign was selected but never rendered');
+  assert.ok(!ui.adHero(adsFor(PROMOS, FRIDGES, []).hero).includes('hero-summer.jpg'),
+    'the air-conditioner campaign rendered on the refrigerator page');
+});
+
+test('a single-product promo is filed under that product\'s category', () => {
+  const { promoCats } = adSelector();
+  const products = [{ id: 837495061, categoryId: FRIDGES }];
+  const promo = PROMOS.find(p => p.id === 'kiriazi-solitaire');
+  assert.deepEqual(promoCats(promo, products), [FRIDGES]);
+  // and with no catalogue to resolve against it is brand-wide rather than wrong
+  assert.deepEqual(promoCats(promo, []), []);
 });
 
 // The whole point of the redesign: ads are DEALT OUT between the sections rather

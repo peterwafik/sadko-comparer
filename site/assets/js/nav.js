@@ -38,9 +38,6 @@
       orders: 'الطلبات', showrooms: 'المعارض', call: 'اتصل 19140', cartAria: 'سلة التسوق',
       finder: 'ساعدنى أختار', plan: 'خطط التجهيز', guides: 'أدلة الشراء', care: 'خدمة العملاء',
       savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
-      finderCtaH: 'مش عارف تختار إيه؟',
-      finderCtaP: 'جاوب على كام سؤال عن بيتك واستخدامك، ونرشّح لك ٣ أجهزة من الفئة دى مع سبب واضح لكل ترشيح.',
-      finderCtaB: 'ساعدنى أختار',
       more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
       grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
       pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ اتضافت', langBtn: 'EN', langTitle: 'Switch to English' },
@@ -48,9 +45,6 @@
       orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
       finder: 'Help me choose', plan: 'Shopping plans', guides: 'Buying guides', care: 'Customer care',
       savedAria: 'Saved products', acctAria: 'My account', details: 'Details & size',
-      finderCtaH: 'Not sure which one to pick?',
-      finderCtaP: 'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category — each with a clear reason.',
-      finderCtaB: 'Help me choose',
       more: 'More', appliances: 'My appliances', account: 'My account', saved: 'Saved', cart: 'Cart',
       grpBefore: 'Plan your purchase', grpAfter: 'After buying', menu: 'Menu', close: 'Close',
       pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
@@ -119,7 +113,7 @@
   window.skCart = skCart;
   // The storefront re-renders its grid on every facet change, so it needs to
   // re-run these over the new cards. Additive only; existing pages are unaffected.
-  window.skNav = { enhanceCategoryCards, injectFinderCta };
+  window.skNav = { enhanceCategoryCards };
 
   /* ================= header ================= */
   function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
@@ -190,8 +184,14 @@
           `<button type="button" class="sk-link sk-shop__btn${active === 'shop' ? ' is-active' : ''}" aria-haspopup="true" aria-expanded="false">${N.shop} <i class="sk-caret"></i></button>` +
           `<div class="sk-menu sk-glass" role="menu">${shopMenuInner}</div>` +
         `</div>` +
-        A('finder', N.finder, 'finder.html', 'sk-link--cta') +
-        A('compare', N.compare, 'compare.html') +
+        // The amber pill marks the ONE thing the strap is arguing for, so it goes
+        // on the price comparer — the feature no other Egyptian appliance site
+        // offers — rather than on the guided finder, which every storefront has a
+        // version of. Only one link may carry it; two amber pills is no emphasis.
+        // It also takes the middle slot, where the eye lands first in a five-item
+        // strap, so position and colour say the same thing.
+        A('compare', N.compare, 'compare.html', 'sk-link--cta') +
+        A('finder', N.finder, 'finder.html') +
         `<div class="sk-more">` +
           `<button type="button" class="sk-link sk-more__btn" aria-haspopup="true" aria-expanded="false">${N.more} <i class="sk-caret"></i></button>` +
           `<div class="sk-morepanel sk-glass" role="menu">` +
@@ -245,8 +245,10 @@
           `<button type="button" class="sk-dlink sk-dacc__btn" aria-expanded="false"><span>${N.shop}</span><i class="sk-caret"></i></button>` +
           `<div class="sk-dacc__body"><div class="sk-dmenu">${shopMenuInner}</div></div>` +
         `</div>` +
-        dLink('finder', N.finder, 'finder.html', 'sk-dlink--cta') +
-        dLink('compare', N.compare, 'compare.html') +
+        // Same order and same pill as the desktop strap above — the drawer must not
+        // disagree with it about which feature the site is leading with.
+        dLink('compare', N.compare, 'compare.html', 'sk-dlink--cta') +
+        dLink('finder', N.finder, 'finder.html') +
         MORE.map(g => `<div class="sk-dgroup"><h4>${esc(g.t)}</h4>` +
           g.items.map(it => dLink(it[0], it[1], it[2])).join('') + `</div>`).join('') +
       `</nav>` +
@@ -348,7 +350,6 @@
     paintSaved();
 
     if (ROOT && document.querySelector('article.card')) enhanceCategoryCards();
-    if (ROOT) injectFinderCta();
     if (ROOT && LANG === 'en') translateCategoryPage();
     ensureFooter();
   }
@@ -438,22 +439,16 @@
   }
 
   /* ---- add-to-cart buttons on the static category pages ---- */
-  /* The brief asks for the guided finder at the top of every category page.
-     Injecting it here means the 30 pre-built category pages stay untouched. */
-  function injectFinderCta() {
-    const cid = (location.pathname.split('/').pop() || '').replace('.html', '');
-    if (!/^\d+$/.test(cid)) return;
-    const hero = document.querySelector('.hero');
-    const host = document.querySelector('.wrap') || document.querySelector('main');
-    if (!hero && !host) return;
-    const box = document.createElement('aside');
-    box.className = 'sk-fcta';
-    box.innerHTML =
-      `<div><b>${esc(N.finderCtaH)}</b><p>${esc(N.finderCtaP)}</p></div>` +
-      `<a class="sk-fcta__btn" href="${P('finder.html')}?cat=${encodeURIComponent(cid)}">${esc(N.finderCtaB)}</a>`;
-    if (hero) hero.insertAdjacentElement('afterend', box);
-    else host.prepend(box);
-  }
+  /* The guided-finder call-out used to be injected from here, into `.wrap` and
+     therefore ABOVE the breadcrumb — outside `#shop-root` so that shop.js's
+     re-render on every facet click could not wipe it. Now that the category
+     pages ARE the storefront, that placement is what made it read as a stray
+     banner: the page announced a promotion before it said which category the
+     visitor was even on, and the box carried the page's own gutter a second time
+     so it sat inset from every block around it. It lives in shop.js's own markup
+     now (renderBrowse), which puts it in the results column, in reading order,
+     re-rendered with everything else, and identical on `shop.html?cat=` — where
+     this injection never fired at all. */
 
   /* data/products.json is ~500 KB and compare-server.mjs serves it with
      cache-control: no-cache, so the browser re-downloads it in full every time.
@@ -535,7 +530,10 @@
       });
       if (already) return resolve();
       const s = document.createElement('script');
-      s.src = url + '?v=a4'; s.defer = false; s.setAttribute('data-sk', src);
+      /* One cache-bust for all five modules: it only has to CHANGE when any of
+         them does, and it reaches only pages that carry no tag of their own (the
+         `already` check above strips the query, so a page's own ?v= wins). */
+      s.src = url + '?v=a5'; s.defer = false; s.setAttribute('data-sk', src);
       s.onload = resolve; s.onerror = resolve;
       document.head.appendChild(s);
     });
@@ -735,16 +733,9 @@
     .sk-detbtn{font:700 .78rem 'Cairo',sans-serif;color:#2e7e88;background:#eaf3f4;text-decoration:none;
       border:1px solid rgba(46,126,136,.28);padding:7px 13px;border-radius:999px;transition:.18s;}
     .sk-detbtn:hover{background:#2e7e88;color:#fff;}
-    /* guided-finder call-out injected at the top of every category page */
-    .sk-fcta{max-width:1440px;margin:18px auto 0;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-      justify-content:space-between;padding:18px clamp(16px,4vw,26px);border-radius:18px;
-      background:linear-gradient(120deg,#eaf3f4,#fdf3e2);border:1px solid rgba(46,126,136,.22);
-      width:calc(100% - 2*clamp(16px,4vw,48px));}
-    .sk-fcta b{display:block;font-size:1.02rem;color:#14343a;}
-    .sk-fcta p{margin:5px 0 0;font-size:.86rem;color:#5b6b6e;line-height:1.65;max-width:62ch;}
-    .sk-fcta__btn{flex:0 0 auto;font:800 .88rem 'Cairo',sans-serif;color:#241a05;background:#fe9800;
-      text-decoration:none;padding:11px 22px;border-radius:999px;white-space:nowrap;}
-    .sk-fcta__btn:hover{filter:brightness(1.06);}
+    /* .sk-fcta (the guided-finder call-out) now lives with the rest of the shop's
+       visual layer, in assets/css/storefront.css — the file that owns every other
+       block in that column and the spacing tokens they all step through. */
     /* keep page content clear of the sticky glass bar on sub-pages */
     .sk-nav--solid+*{margin-top:6px;}
     /* Mid width: the desktop pill still fits (only 5 items now), but its own

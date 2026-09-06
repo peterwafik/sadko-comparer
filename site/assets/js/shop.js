@@ -102,8 +102,24 @@
   // path waiting for the first untranslated campaign. A dropped promo is
   // reported to the console so the omission is diagnosable rather than silent.
   function localizePromos(promos) {
-    return C.localizePromos(promos, EN, function (x) {
+    var list = C.localizePromos(promos, EN, function (x) {
       try { console.warn('[sadko] promo "' + (x && x.id) + '" has no titleEn — hidden in English.'); } catch (e) {}
+    });
+    if (!list || !Array.isArray(list)) return list;
+    /* promos.json stores SITE-ROOT-relative paths ("assets/img/promos/x.jpg",
+       "shop.html?all=1"), which is correct for shop.html and wrong by one level
+       for the 30 pages under /category/ — there they resolve to
+       /category/assets/… and 404 into an empty banner frame. Nothing caught this
+       before because category pages carried no advertising at all. Resolved here,
+       the one place every promo passes through, rather than in the renderers,
+       because P() is shop.js's: storefront.js is deliberately DOM-only and has no
+       idea how deep the page it is rendering into sits. Absolute URLs, tel:,
+       mailto: and #anchors are left exactly as the owner wrote them. */
+    return list.map(function (x) {
+      var c = Object.assign({}, x);
+      if (c.image) c.image = P(c.image);
+      if (c.href && !/^([a-z]+:|\/\/|\/|#)/i.test(c.href)) c.href = P(c.href);
+      return c;
     });
   }
 
@@ -144,16 +160,59 @@
     return U.rail(t(col.titleAr, col.titleEn), items, '', RAIL_LABELS);
   }
 
-  // Splits the promo list into the rotating hero at the top and the ads dealt out
-  // between the sections below. The pinned category pages open straight onto one
-  // category's listing, so the advertising belongs to shop.html only.
-  function adsFor(root, promos) {
-    if (root.getAttribute('data-cat')) return { hero: [], slots: [] };
+  // Which categories a promo belongs to. Explicit `cats` in promos.json wins;
+  // otherwise the promo's own destination says it — `shop.html?cat=NNN` names a
+  // category outright, and a promo for a single product (`product.html?id=NNN`)
+  // belongs in that product's aisle. An empty result means BRAND-WIDE (the
+  // instalments, delivery and best-seller banners), which is honest anywhere.
+  function promoCats(x, products) {
+    if (x.cats && x.cats.length) return x.cats.map(String);
+    var href = String(x.href || '');
+    var m = href.match(/[?&]cat=(\d+)/);
+    if (m) return [m[1]];
+    m = href.match(/product\.html\?id=(\d+)/);
+    if (m) {
+      var id = m[1], hit = null;
+      (products || []).some(function (p) { if (String(p.id) === id) { hit = p; return true; } return false; });
+      if (hit && hit.categoryId != null) return [String(hit.categoryId)];
+    }
+    return [];
+  }
+
+  // Splits the promo list into the rotating banner at the top and the ads dealt
+  // out between the sections below.
+  //
+  // The hub (no category) is unchanged: `slot:'hero'` fills the banner, the rest
+  // are interleaved down the page.
+  //
+  // A CATEGORY page gets a banner too — someone deep in one aisle should still
+  // meet the campaign that belongs to it. What it may show is narrow on purpose:
+  //   • only `art:'wide'` artwork, because the frame is 1600/608 and object-fit
+  //     cover, so a 900x900 tile would lose two thirds of its own printed message;
+  //   • the campaigns targeted at THIS category first, then the brand-wide ones,
+  //     so a category with its own artwork leads with it and one without still
+  //     gets a real SADKO offer rather than an empty frame;
+  //   • never a campaign aimed at a DIFFERENT category — advertising fridges on
+  //     the washing-machine page is the one thing worse than no banner at all.
+  // No interleaved slots here: a category page is a results list, and ads dealt
+  // between rows of it would break the grid the shopper came to read.
+  function adsFor(promos, cat, products) {
     var all = localizePromos(promos) || [];
-    return {
-      hero: all.filter(function (x) { return x && x.slot === 'hero'; }),
-      slots: all.filter(function (x) { return x && x.slot !== 'hero'; })
-    };
+    if (!cat) {
+      return {
+        hero: all.filter(function (x) { return x && x.slot === 'hero'; }),
+        slots: all.filter(function (x) { return x && x.slot !== 'hero'; })
+      };
+    }
+    var wide = all.filter(function (x) { return x && x.art === 'wide'; });
+    var mine = [], any = [];
+    wide.forEach(function (x) {
+      var cs = promoCats(x, products);
+      if (!cs.length) any.push(x);
+      else if (cs.indexOf(String(cat)) >= 0) mine.push(x);
+    });
+    // Three is the whole rotation: past that the strap outlives the visit.
+    return { hero: mine.concat(any).slice(0, 3), slots: [] };
   }
 
   // Deal the interleaved ads out down the page, a couple at a time, so a shopper
@@ -186,7 +245,7 @@
             ? P('assets/img/brands/') + CACHE.logos[b.key] : ''
         };
       });
-    var ads = adsFor(root, promos);
+    var ads = adsFor(promos, '', products);
     var deal = adDealer(ads.slots);
 
     root.innerHTML =
@@ -230,6 +289,42 @@
     var path = fixed ? location.pathname : P('shop.html');
     history.pushState(null, '', path + C.stateToSearch(fixed ? Object.assign({}, state, { cat: '' }) : state));
     render();
+  }
+
+  // ---- guided-finder call-out ------------------------------------------
+  // Was injected by nav.js into `.wrap`, which put it above the breadcrumb and
+  // gave it the page gutter twice over. It belongs to this column: it is an
+  // invitation to narrow down the very list it sits on, it needs the category
+  // the visitor is actually looking at, and it must be re-rendered with the rest
+  // of the column on every facet change. Only ever shown when there IS a
+  // category — "help me choose" needs one to ask questions about.
+  var FCTA_ID = 'finder-cta';
+  function fctaDismissed() {
+    return !!(window.skStore && window.skStore.dismiss.is(FCTA_ID));
+  }
+  function finderCta(cat) {
+    if (!cat || fctaDismissed()) return '';
+    var close = U.esc(t('اقفل اللوحة دى', 'Close this panel'));
+    return '<aside class="sk-fcta" id="skFcta">' +
+      '<div><b>' + U.esc(t('مش عارف تختار إيه؟', 'Not sure which one to pick?')) + '</b>' +
+      '<p>' + U.esc(t('جاوب على كام سؤال عن بيتك واستخدامك، ونرشّح لك ٣ أجهزة من الفئة دى مع سبب واضح لكل ترشيح.',
+        'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category — each with a clear reason.')) + '</p></div>' +
+      '<a class="sk-fcta__btn" href="' + P('finder.html') + '?cat=' + encodeURIComponent(cat) + '">' +
+        U.esc(t('ساعدنى أختار', 'Help me choose')) + '</a>' +
+      '<button type="button" class="sk-fcta__x" aria-label="' + close + '" title="' + close + '">&times;</button>' +
+    '</aside>';
+  }
+  function wireFinderCta(root) {
+    var x = root.querySelector('.sk-fcta__x');
+    if (!x) return;
+    x.addEventListener('click', function () {
+      // Remembered across pages and sessions (store.js): this column is rebuilt
+      // on every facet click, so a flag that lived on the node would put the
+      // panel straight back the first time the visitor touched a filter.
+      if (window.skStore) window.skStore.dismiss.set(FCTA_ID);
+      var box = root.querySelector('#skFcta');
+      if (box) box.remove();
+    });
   }
 
   function renderBrowse(root, state, products) {
@@ -289,7 +384,7 @@
       // `--sk-nav-h`, with the same fallback nav.js itself uses) only while the
       // sheet is open, on the breakpoint where it goes full-screen.
       '<style>@media (max-width:860px){#facets.is-open{padding-top:calc(var(--sk-nav-h,86px) + 16px)}}</style>' +
-      U.adHero(adsFor(root, CACHE && CACHE.promos).hero) +
+      U.adHero(adsFor(CACHE && CACHE.promos, state.cat, products).hero) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') },
                     { label: t('المتجر', 'Shop'), href: P('shop.html') }, { label: title }]) +
       '<div class="shopgrid">' +
@@ -299,6 +394,12 @@
         '</aside>' +
         '<div class="shopgrid__main">' +
           U.toolbar(state, pg.total, { count: function (n) { return t(n + ' منتج', n + ' products'); }, sorts: SORT_LABELS }) +
+          // Before the grid, after the count: an aside about the list, not a
+          // banner over it. nav.js's preference bar inserts itself immediately
+          // before `.grid`, so the two invitations end up stacked here in the
+          // order they matter — the detour first, then the filter that acts on
+          // the rows right below it.
+          finderCta(state.cat) +
           (pg.total ? '<div class="grid">' + pg.items.map(function (p) { return U.card(p, {}); }).join('') + '</div>'
                     : '<p class="empty">' + emptyMsg + '</p>') +
           U.pager(pg.page, pg.pages, function (n) {
@@ -312,6 +413,7 @@
       '</div>';
     U.afterGrid(root);
     wireAdStrap(root);
+    wireFinderCta(root);
     wireBrowse(root, state);
   }
 
@@ -478,11 +580,141 @@
       FOCUS_SEARCH = true;
       onSubmit(q);
     });
+    wireSuggest(form, input, onSubmit);
     if (FOCUS_SEARCH && input) {
       FOCUS_SEARCH = false;
       input.focus();
       try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
     }
+  }
+
+  /* ---- as-you-type suggestions -------------------------------------------
+     The ranking lives in shop-core (pure, tested); this is only the keyboard,
+     the pointer and the DOM.
+
+     Everything is computed locally against the catalogue already in memory —
+     there is no suggest endpoint and no request per keystroke. That is why the
+     debounce is short: 90ms is enough to skip work between fast keystrokes on a
+     471-product scan, and long enough to not run it twice per character. */
+  var SUGGEST_DEBOUNCE = 90;
+  function wireSuggest(form, input, onSubmit) {
+    if (!form || !input) return;
+    var pop = form.querySelector('#qPop');
+    if (!pop || !C.suggest) return;
+    var items = [], active = -1, timer = null;
+
+    function close() {
+      pop.hidden = true; pop.innerHTML = '';
+      items = []; active = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    }
+    function paintActive() {
+      var rows = pop.querySelectorAll('.sgt');
+      for (var i = 0; i < rows.length; i++) {
+        var on = (i === active);
+        rows[i].setAttribute('aria-selected', on ? 'true' : 'false');
+        if (on) {
+          input.setAttribute('aria-activedescendant', rows[i].id);
+          // Keyboard paging through a scrolled list must bring the row with it.
+          if (rows[i].scrollIntoView) rows[i].scrollIntoView({ block: 'nearest' });
+        }
+      }
+      if (active < 0) input.removeAttribute('aria-activedescendant');
+    }
+    // What a chosen row DOES. A category and a brand are places, so they
+    // navigate; a product opens its page; the first row is the raw text, which
+    // runs the search the shopper was already typing.
+    function choose(it) {
+      if (!it) return;
+      if (it.kind === 'cat') { location.href = P('shop.html?cat=') + encodeURIComponent(it.id); return; }
+      if (it.kind === 'brand') { location.href = P('shop.html?brand=') + encodeURIComponent(it.key); return; }
+      if (it.kind === 'product') { location.href = P('product.html?id=') + encodeURIComponent(it.product.id); return; }
+      close();
+      FOCUS_SEARCH = true;
+      onSubmit(String(it.label || '').trim());
+    }
+    function build() {
+      var raw = input.value.trim();
+      if (raw.length < 2 || !CACHE || !CACHE.products) { close(); return; }
+      var root = document.getElementById('shop-root');
+      var products = CACHE.products;
+      // `alt` carries each name in the OTHER language so an Arabic word still
+      // finds its aisle on the English site and vice versa — see suggest().
+      // appshell's CATS is the bilingual pair; the displayed name still comes
+      // from catNameOf(), which prefers a category page's own data-cat-name.
+      var CATS = (window.skApp && window.skApp.CATS) || {};
+      var list = C.suggest(raw, {
+        cats: C.liveCategories(products).map(function (c) {
+          var pair = CATS[String(c.id)] || {};
+          var shown = catNameOf(root, c.id);
+          var other = EN ? pair.ar : pair.en;
+          return { id: c.id, name: shown, alt: (other && other !== shown) ? other : '', count: c.count };
+        }),
+        brands: C.brandsOf(products, specOf)
+          .filter(function (b) { return b.key !== '__none__'; })
+          .map(function (b) {
+            return { key: b.key, name: t(b.ar, b.en), alt: EN ? b.ar : b.en, count: b.count };
+          }),
+        products: products
+      }, {
+        specOf: specOf, trTitle: TR, limit: 8, productLimit: 5,
+        // Label each product the way its card is labelled on this page, so the
+        // list does not answer an English page in Arabic.
+        labelOf: function (p) { return EN ? U.translateForEN(p.title) : p.title; }
+      });
+      // The typed text always leads the list, so Enter is predictable whether or
+      // not anything was suggested and whether or not the shopper looked down.
+      items = [{ kind: 'all', label: raw }].concat(list);
+      pop.innerHTML = U.suggestList(items, raw, {
+        suggest: { all: t('ابحث عن', 'Search for'), cat: t('قسم', 'Category'),
+                   brand: t('ماركة', 'Brand'), product: t('منتج', 'Product') }
+      });
+      active = -1;
+      pop.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      paintActive();
+    }
+
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(build, SUGGEST_DEBOUNCE);
+    });
+    input.addEventListener('focus', function () { if (input.value.trim().length >= 2) build(); });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') { close(); return; }
+      if (pop.hidden || !items.length) return;
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        /* The cycle runs over n+1 positions, not n: "nothing highlighted" is a
+           real stop on the way round, so arrowing past the last row hands the
+           text back to the shopper to keep typing instead of trapping the
+           highlight inside the list. Counted in `pos` = active + 1 (0..n) so the
+           modulo never has to reason about -1. */
+        var n = items.length;
+        var pos = (active + 1 + (ev.key === 'ArrowDown' ? 1 : -1) + (n + 1)) % (n + 1);
+        active = pos - 1;
+        paintActive();
+        return;
+      }
+      // Enter with a row highlighted takes that row; Enter with nothing
+      // highlighted falls through to the form's own submit, unchanged.
+      if (ev.key === 'Enter' && active >= 0) { ev.preventDefault(); choose(items[active]); }
+    });
+    // `mousedown` rather than `click`: the input's blur would otherwise close the
+    // list out from under the pointer before the click ever landed on a row.
+    pop.addEventListener('mousedown', function (ev) {
+      var row = ev.target.closest ? ev.target.closest('.sgt') : null;
+      if (!row) return;
+      ev.preventDefault();
+      choose(items[Number(row.getAttribute('data-i'))]);
+    });
+    input.addEventListener('blur', function () { setTimeout(close, 120); });
+    // A click anywhere else is a dismissal. Bound to the form's own document so
+    // it is torn down with the page, not accumulated per render: the listener is
+    // attached to the popup's owner document only once per input instance, and
+    // every render builds a fresh input, so nothing outlives its markup.
+    form.addEventListener('submit', close);
   }
 
   function wireBrowse(root, state) {
@@ -598,12 +830,14 @@
   window.addEventListener('popstate', render);
 
   function boot() {
-    // A category page (data-cat) always renders renderBrowse, never renderHub
-    // — the only consumer of promos — so fetching promos.json there is pure
-    // wasted work; skip the request entirely instead of fetching and discarding.
-    var fixedPage = document.getElementById('shop-root').getAttribute('data-cat');
-    var promos = fixedPage ? Promise.resolve(null)
-      : fetch(P('data/promos.json')).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    // promos.json is now fetched everywhere. It used to be skipped on the pinned
+    // category pages because only the hub advertised; those pages carry a banner
+    // of their own now (see adsFor), so skipping the fetch there would leave the
+    // top of every category page empty. It is a small file, it is requested once
+    // per load, and a failure still resolves to null — which renders no banner
+    // rather than breaking the page.
+    var promos = fetch(P('data/promos.json'))
+      .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     // Which brands actually have a logo file. Asking for every brand's logo and
     // letting the missing ones 404 into the wordmark fallback worked, but cost one
     // failed request per brand on every load — 12 of them with nothing shipped yet.
@@ -626,7 +860,10 @@
         return (l && typeof l === 'object') ? l : {};
       })
       .catch(function () { return {}; });
-    // Curated rails (offers / picks / best sellers). Hub-only, like promos.
+    // Curated rails (offers / picks / best sellers). Genuinely hub-only —
+    // renderBrowse never calls collectionRail() — so a pinned category page
+    // still skips this request. (promos.json no longer can: see above.)
+    var fixedPage = document.getElementById('shop-root').getAttribute('data-cat');
     var collections = fixedPage ? Promise.resolve(null)
       : fetch(P('data/collections.json')).then(function (r) { return r.ok ? r.json() : null; })
         .catch(function () { return null; });

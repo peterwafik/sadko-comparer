@@ -95,12 +95,32 @@ function mountScrollWorld(container, config) {
                    clipEnd: (s.clipEnd != null ? Math.min(1, Math.max(0.02, s.clipEnd)) : 1) };
     SEGMENTS.push(dive);
     s._seg = dive;
-    // A connector is optional: if connectors[i] is falsy, the two dives simply
-    // crossfade directly (no fly-over). Lets a page complete even when a
-    // connector can't be generated (e.g. a content-filter false-positive).
-    if (i < N - 1 && CONNECTORS[i]) {
-      SEGMENTS.push({ kind: 'conn', si: i, clip: CONNECTORS[i], clipM: CONNECTORS_M[i],
-                      still: SECTIONS[i + 1].still, accent: SECTIONS[i + 1].accent, w: CONN_W });
+    /* A connector is optional: if neither clip exists, the two dives simply
+       crossfade directly (no fly-over). Lets a page complete even when a
+       connector can't be generated (e.g. a content-filter false-positive).
+
+       A connector may also exist for ONE orientation only. A portrait phone shows
+       each room as a fitted portrait image rather than the 16:9 flight, so a
+       landscape connector is useless there and a portrait one is useless on the
+       desktop — the two need different footage, and a page may legitimately ship
+       just one of them. `portraitOnly` connectors are collapsed to zero scroll
+       everywhere else (see layout()), so they cost a desktop visitor nothing:
+       no scroll length, no fetch, no scene. */
+    const cDesk = CONNECTORS[i], cMob = CONNECTORS_M[i];
+    if (i < N - 1 && (cDesk || cMob)) {
+      SEGMENTS.push({ kind: 'conn', si: i, clip: cDesk, clipM: cMob,
+                      portraitOnly: !cDesk,
+                      // A connector plays end to end. This has to be stated: read()
+                      // computes `target = local * clipEnd`, so leaving it undefined
+                      // made the target NaN, the seek test `|currentTime - NaN| > eps`
+                      // always false, and the clip sat frozen on frame 0 — a
+                      // connector that loaded, painted and never moved.
+                      clipEnd: 1,
+                      // The poster a connector holds until its own clip paints is
+                      // the room it is flying INTO — in whichever shape that
+                      // orientation is actually showing.
+                      still: (!cDesk && SECTIONS[i + 1].stillMobile) || SECTIONS[i + 1].still,
+                      accent: SECTIONS[i + 1].accent, w: CONN_W });
     }
   });
   const NSEG = SEGMENTS.length;
@@ -148,8 +168,25 @@ function mountScrollWorld(container, config) {
     // desktop-still; the desktop path is untouched.
     let mimg = null;
     if (s.stillM) {
-      mimg = el('img', 'sw-scene__mstill'); mimg.alt = ''; mimg.decoding = 'async'; mimg.loading = 'lazy';
-      mimg.src = s.stillM; scene.appendChild(mimg);
+      /* NOT lazy, and the src is attached by warmPortraitStills() rather than
+         here. On a portrait phone these four images ARE the experience — there is
+         no video on that path at all — so `loading="lazy"` marked the page's only
+         real content as deferrable: Chrome fetches lazy images at LOW priority,
+         behind the fonts, the scripts and each other. On a fast connection that is
+         invisible; on a phone it meant scrolling into a room whose picture had not
+         arrived, so the dissolve faded to nothing and the transition looked broken
+         until enough reloads had warmed the HTTP cache.
+         Desktop must still not pay for them (they are display:none there), which
+         is what `loading="lazy"` was really buying — so the fetch is now gated on
+         the portrait media query instead, which says exactly that and says it
+         once. */
+      mimg = el('img', 'sw-scene__mstill'); mimg.alt = '';
+      mimg.decoding = 'async'; mimg.loading = 'eager';
+      mimg.addEventListener('load', () => { s.mready = true; read(); });
+      scene.appendChild(mimg);
+      // Marks this as a scene the portrait breakpoint replaces with a fitted
+      // image; the CSS there keys off it so connector scenes keep their video.
+      scene.classList.add('sw-scene--m');
     }
     const img = el('img', 'sw-scene__still'); img.alt = ''; img.decoding = 'async'; img.loading = 'lazy';
     // On a real touch phone with a bespoke portrait image, the desktop still is
@@ -159,7 +196,36 @@ function mountScrollWorld(container, config) {
     scene.appendChild(img); stage.appendChild(scene);
     s.el = scene; s.img = img; s.mimg = mimg; s.video = null; s.hasClip = false;
     s.loading = false; s.ready = false; s.cur = 0; s.target = 0; s.visible = false;
+    // Portrait readiness is tracked separately from `ready` (which means "the
+    // video has metadata"): the portrait path never loads a video, so it could
+    // never use that flag.
+    s.mready = false;
   });
+
+  /* Attach the portrait scene images. Called as soon as the portrait query
+     matches — at mount, or on a rotation into portrait — and never on desktop,
+     where the images are display:none and would be pure waste.
+     The first room is marked high priority because it is what the visitor is
+     looking at while the rest arrive; the others are ordinary (not lazy) fetches,
+     which is enough for them to be decoded long before a thumb can scroll to
+     them. Idempotent: an already-attached image is left alone, so a rotation
+     back and forth cannot restart the downloads. */
+  function warmPortraitStills() {
+    SEGMENTS.forEach((s, i) => {
+      if (!s.mimg || s.mimg.getAttribute('src')) return;
+      if (i === 0 && 'fetchPriority' in s.mimg) s.mimg.fetchPriority = 'high';
+      s.mimg.src = s.stillM;
+      // A cached image can finish before the load listener above is reached on
+      // some engines; complete/naturalWidth is the authoritative check.
+      if (s.mimg.complete && s.mimg.naturalWidth > 0) s.mready = true;
+    });
+  }
+  if (portraitMQ.matches) warmPortraitStills();
+  // Rotating a phone from landscape into portrait switches the whole scene layer
+  // over to these images, so they have to exist by then.
+  const onPortraitChange = () => { if (portraitMQ.matches) { warmPortraitStills(); read(); } };
+  if (portraitMQ.addEventListener) portraitMQ.addEventListener('change', onPortraitChange);
+  else if (portraitMQ.addListener) portraitMQ.addListener(onPortraitChange);
 
   // per-section copy / route / nav
   const copies = [], dots = [];
@@ -191,15 +257,28 @@ function mountScrollWorld(container, config) {
   // (where the copy peaks) and moves quicker near the seams. L=0 linear, L=1 full
   // mid-scene pause. f(0)=0, f(1)=1 always, so seam frames are untouched.
   const lingerEase = (x, L) => { L = clamp(L); const c = x - 0.5; return (1 - L) * x + L * (4 * c * c * c + 0.5); };
-  let vh = window.innerHeight, stageX = 0, totalW = 0, activeIndex = -1, ticking = false;
+  let vh = window.innerHeight, totalW = 0, activeIndex = -1, ticking = false;
   let laidOutW = window.innerWidth;   // width the current layout was computed at (see onResize)
 
   function layout() {
     vh = window.innerHeight;
     laidOutW = window.innerWidth;
-    stageX = window.innerWidth > 860 ? 4 : 0;
     let off = 0;
-    SEGMENTS.forEach(s => { s.start = off * vh; off += s.w; s.end = off * vh; });
+    /* `dead` segments take no scroll and are never drawn. That is how an
+       orientation-specific connector disappears completely on the orientation it
+       was not made for — recomputed here rather than fixed at mount, so rotating
+       a phone adds or removes the connector's scroll length correctly (layout()
+       re-runs on every width change).
+       Zero-width segments must never reach read(): its progress is
+       (y - start) / (end - start), which would be a division by zero, and its
+       opacity would compute to a fully-visible scene sitting on top of the real
+       one. So they are skipped outright there. */
+    SEGMENTS.forEach(s => {
+      s.dead = !!s.portraitOnly && !portraitMQ.matches;
+      const w = s.dead ? 0 : s.w;
+      s.start = off * vh; off += w; s.end = off * vh;
+      if (s.dead) { s.el.style.opacity = 0; s.visible = false; }
+    });
     totalW = off;
     track.style.height = (totalW * vh + vh) + 'px';   // +1vh so the last flight completes
     read();
@@ -211,15 +290,22 @@ function mountScrollWorld(container, config) {
   }
 
   function loadClip(s) {
-    // Portrait phones use the bespoke portrait scene image and cross-dissolve
-    // between rooms — no video is fetched or scrubbed there at all.
+    if (s.dead) return;
+    // Portrait phones show each ROOM as a fitted portrait image, so a room's own
+    // 16:9 flight is never fetched or scrubbed there. The CONNECTORS between
+    // rooms are the exception: those carry the movement from one room to the next
+    // and have portrait footage of their own (no stillM), so they load normally.
     if (portraitMQ.matches && s.stillM) return;
     // Under prefers-reduced-motion we never load the clips at all — the stills stay up
     // and simply cross-dissolve as you scroll. No scrubbed video motion, no decode cost.
-    if (reduce || s.loading || !s.clip) return;
+    if (reduce || s.loading) return;
+    // Serve the lighter mobile encode on phones when one was provided. A segment
+    // may have ONLY a mobile clip (a portrait-only connector), so the source is
+    // resolved before the "is there anything to load" test rather than after it —
+    // testing `s.clip` alone silently skipped those.
+    const url = (isMobile() && s.clipM) ? s.clipM : (s.clip || s.clipM);
+    if (!url) return;
     s.loading = true;
-    // Serve the lighter mobile encode on phones when one was provided.
-    const url = (isMobile() && s.clipM) ? s.clipM : s.clip;
     fetch(url).then(r => r.ok ? r.blob() : Promise.reject(new Error('404')))
       .then(blob => {
         const v = document.createElement('video');
@@ -228,10 +314,34 @@ function mountScrollWorld(container, config) {
         v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
         v.src = URL.createObjectURL(blob);
         v.addEventListener('loadedmetadata', () => { s.ready = true; read(); });
-        // Reveal the video (hide the still poster) only once a real frame has
-        // painted — on iOS a seeked-but-never-played muted video stays blank, so
-        // hiding the still on metadata alone would flash an empty scene.
-        v.addEventListener('seeked', () => { s.el.classList.add('has-clip'); }, { once: true });
+        /* Reveal the video (hide the still poster) only once a real frame has
+           painted — on iOS a seeked-but-never-played muted video stays blank, so
+           hiding the still on metadata alone would flash an empty scene.
+
+           `seeked` ALONE could not deliver that at the top of the page. The scrub
+           loop only writes currentTime when it differs from the target by more
+           than `eps`, and at scroll 0 the target IS 0 and the video is already at
+           0 — so no seek is ever issued, `seeked` never fires, and the first room
+           stayed on its still indefinitely. That still is a different frame from
+           the clip's, shown under a ken-burns zoom, and hotspots.js mirrors that
+           zoom, so every marker in the room sat off its appliance until something
+           finally moved the scroll: the reason the living room only "snapped into
+           place" after clicking its dock button (which glides 58px).
+
+           So: prefer requestVideoFrameCallback, which fires exactly when a frame
+           has been PRESENTED — the guarantee the iOS note above is really asking
+           for — and where it does not exist, nudge the clip off zero once so the
+           existing `seeked` path fires. The nudge is a hair over frame 0, well
+           inside `eps`, so the scrub loop leaves it alone. */
+        const reveal = () => s.el.classList.add('has-clip');
+        v.addEventListener('seeked', reveal, { once: true });
+        if (typeof v.requestVideoFrameCallback === 'function') {
+          try { v.requestVideoFrameCallback(reveal); } catch (e) {}
+        } else {
+          v.addEventListener('loadeddata', () => {
+            if (v.currentTime === 0) { try { v.currentTime = 0.001; } catch (e) {} }
+          }, { once: true });
+        }
         v.addEventListener('loadeddata', () => { try { v.pause(); } catch (e) {} if (userReady) primeVideo(v); });
         s.el.appendChild(v); s.video = v; s.hasClip = true;
       }).catch(() => { s.loading = false; });
@@ -334,24 +444,65 @@ function mountScrollWorld(container, config) {
     // Portrait phones show static scene images with no camera-scrub, so the whole
     // transition between rooms IS the crossfade — widen it there into a clear,
     // gentle dissolve rather than the tight seam the video flight used.
-    const fade = (portraitMQ.matches ? 0.5 : CROSSFADE) * vh;
+    const portrait = portraitMQ.matches;
+    const fade = (portrait ? 0.5 : CROSSFADE) * vh;
     let ci = 0;
     for (let i = 0; i < NSEG; i++) if (y >= SEGMENTS[i].start) ci = i;
 
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
+      if (s.dead) continue;                 // collapsed to zero scroll — see layout()
       if (y > s.start - 1.6 * vh && y < s.end + 1.6 * vh) loadClip(s);
       const local = clamp((y - s.start) / (s.end - s.start), 0, 1);
       s.target = (s.linger ? lingerEase(local, s.linger) : local) * s.clipEnd;
       let outside = 0;
       if (y < s.start) outside = s.start - y; else if (y > s.end) outside = y - s.end;
-      const op = smooth(1 - outside / fade);
+      let op = smooth(1 - outside / fade);
+      // An <img> that has not arrived paints nothing, so fading one in is fading
+      // the screen OUT. Keep an unloaded portrait scene at zero and let the
+      // hold-over below decide what stays on screen instead.
+      if (portrait && s.mimg && !s.mready) op = 0;
       s.el.style.opacity = op; s.visible = op > 0.001;
       s.el.style.zIndex = (i === ci) ? '120' : String(100 + Math.round(op * 10));
       if (!s.hasClip || !s.ready) {
-        if (portraitMQ.matches) { s.img.style.transform = 'none'; }
-        else { const sc = reduce ? 1 : 1.03 + local * 0.14;
-          s.img.style.transform = `translateX(${stageX - 2}vw) scale(${sc.toFixed(3)})`; }
+        // '' not 'none': in portrait this element is a CONNECTOR's poster, and the
+        // stylesheet's punch-in (--sw-mzoom) has to reach it. An inline 'none'
+        // would win the cascade and leave the poster un-zoomed under a zoomed
+        // clip — the scene would jump the moment the walk decoded.
+        if (portrait) { s.img.style.transform = ''; }
+        else {
+          /* The poster's ken-burns starts at IDENTITY, so the still and the clip
+             frame it stands in for are laid out the same way and the swap to
+             video is invisible. It used to start at `translateX(2vw) scale(1.03)`
+             — a constant offset the video never had — so the moment a clip
+             painted, the whole room jumped sideways by 2vw and shrank by 3%,
+             taking every marker with it (measured: 13–76px per marker). That is
+             what made the living room look like it "settled into place" a beat
+             after opening. The 2vw came from `stageX`, a leftover from a stage
+             that used to be inset; .sw-stage is `inset:0` now, so there was
+             nothing left for it to compensate for. */
+          const sc = reduce ? 1 : 1 + local * 0.14;
+          s.img.style.transform = `scale(${sc.toFixed(3)})`;
+        }
+      }
+    }
+
+    /* Hold-over. If the room the visitor has scrolled INTO has not finished
+       downloading, the room they came from is on its way to opacity 0 and nothing
+       is replacing it — the copy would be left floating over the page colour,
+       which is the "the transition is broken" symptom on a slow phone. Pin the
+       nearest room that IS loaded at full opacity underneath until the real one
+       is ready (its `load` handler calls read() again). The cost of a slow
+       connection becomes a late transition instead of an empty screen.
+       Only the portrait path needs this: everywhere else the desktop still is
+       already painted under the video and covers the same gap. */
+    if (portrait) {
+      const cur = SEGMENTS[ci];
+      if (cur && cur.mimg && !cur.mready) {
+        let hold = null;
+        for (let i = ci - 1; i >= 0 && !hold; i--) if (SEGMENTS[i].mready) hold = SEGMENTS[i];
+        for (let i = ci + 1; i < NSEG && !hold; i++) if (SEGMENTS[i].mready) hold = SEGMENTS[i];
+        if (hold) { hold.el.style.opacity = 1; hold.visible = true; hold.el.style.zIndex = '119'; }
       }
     }
 
@@ -443,7 +594,7 @@ function mountScrollWorld(container, config) {
     const eps = isMobile() ? 0.02 : 0.008;   // coarser seek step on phones = fewer decodes
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
-      if (!s.hasClip || !s.ready || !s.video) continue;
+      if (s.dead || !s.hasClip || !s.ready || !s.video) continue;
       // Never queue a seek while the decoder is still resolving the last one.
       // On phones a fast flick would otherwise pile up seeks and freeze the clip;
       // cur keeps lerping, so we snap to the latest target the moment it's free.
@@ -601,9 +752,30 @@ function injectCSS() {
   .sw-route__dot.is-active i{background:var(--sw-accent);transform:scale(1.4);box-shadow:0 0 0 5px color-mix(in srgb,var(--sw-accent) 22%,transparent);}
   .sw-route__label{position:absolute;right:24px;top:50%;transform:translateY(-50%) translateX(6px);white-space:nowrap;font-size:.78rem;font-weight:600;color:var(--sw-ink);background:color-mix(in srgb,#fff 85%,transparent);backdrop-filter:blur(6px);padding:5px 11px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;border:1px solid color-mix(in srgb,var(--sw-accent) 14%,transparent);}
   .sw-route__dot:hover .sw-route__label,.sw-route__dot.is-active .sw-route__label{opacity:1;transform:translateY(-50%) translateX(0);}
-  .sw-hint{position:fixed;left:50%;bottom:26px;z-index:30;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sw-ink-soft);transition:opacity .3s;}
-  .sw-hint i{width:22px;height:34px;border-radius:12px;border:2px solid color-mix(in srgb,var(--sw-ink) 28%,transparent);position:relative;}
-  .sw-hint i::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:7px;border-radius:2px;background:var(--sw-accent);transform:translateX(-50%);animation:sw-wheel 1.7s ease-in-out infinite;}
+  /* The one instruction on the page, so it has to survive being read over a
+     photograph. It used to be .76rem of --sw-ink-soft in uppercase with .14em of
+     tracking and nothing behind it: thin, low-contrast, and — because the default
+     copy is Arabic — actively broken, since letter-spacing pulls apart the joins
+     that make an Arabic word a word, and text-transform does nothing for it at
+     all. Now white, bigger, and carried by shadow rather than by a panel — it sits
+     directly on the scene so nothing is drawn over the artwork. */
+  .sw-hint{position:fixed;left:50%;bottom:26px;z-index:30;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:11px;
+    font-size:clamp(1.02rem,1.9vw,1.22rem);font-weight:400;line-height:1.3;color:#fff;
+    /* No panel behind it, so the shadow IS the legibility: these rooms are bright
+       cream interiors, and white on cream with nothing under it disappears. Two
+       stacked shadows — a tight dark one to define the letterforms, a wide soft
+       one to lift them off whatever is behind — keep it readable on the light
+       floors and the dark furniture alike, without putting a box on the artwork. */
+    text-shadow:0 1px 3px rgba(10,26,29,.55), 0 3px 16px rgba(10,26,29,.45);
+    transition:opacity .3s;}
+  /* The mouse: white to match the words, and thick enough to hold up against a
+     busy scene. drop-shadow (not box-shadow) so the glow follows the rounded
+     outline rather than boxing it. */
+  .sw-hint i{width:25px;height:39px;border-radius:13px;
+    border:2.5px solid #fff;position:relative;
+    filter:drop-shadow(0 1px 3px rgba(10,26,29,.5)) drop-shadow(0 3px 12px rgba(10,26,29,.4));}
+  .sw-hint i::after{content:"";position:absolute;left:50%;top:7px;width:4px;height:9px;border-radius:2px;background:#fff;transform:translateX(-50%);animation:sw-wheel 1.7s ease-in-out infinite;}
   @keyframes sw-wheel{0%{opacity:0;top:6px}40%{opacity:1}100%{opacity:0;top:17px}}
   .sw-track{position:relative;z-index:1;width:100%;pointer-events:none;}
   @media (max-width:860px){
@@ -623,9 +795,41 @@ function injectCSS() {
   /* Portrait phones use the bespoke portrait scene image (m_<room>.jpg): show it
      whole (contain, plain letterbox) and hide the desktop video/still entirely.
      Rooms cross-dissolve as you scroll — no camera-scrub here. */
+  /* Scoped to .sw-scene--m — the scenes that HAVE a portrait image of their own,
+     i.e. the rooms. It used to hide every video on the portrait breakpoint, which
+     also silenced the connector clips that carry the movement BETWEEN rooms and
+     left portrait phones with nothing but a cross-dissolve from one static room
+     to the next. A connector scene has no portrait still (its footage is already
+     portrait), so it keeps its video here and plays it. */
   @media (max-width:860px) and (orientation:portrait){
-    .sw-scene__mstill{display:block;}
-    .sw-scene__video,.sw-scene__still,.sw-scene__bg{display:none !important;}
+    .sw-scene--m .sw-scene__mstill{display:block;}
+    .sw-scene--m .sw-scene__video,.sw-scene--m .sw-scene__still,.sw-scene--m .sw-scene__bg{display:none !important;}
+    /* A room image and the connector clip it hands over to are the same footage
+       here, so they must also be FRAMED the same: centred, like the room image
+       (and like the portrait mapping hotspots.js uses to place markers). The
+       landscape breakpoint above anchors video at 46% for the 16:9 flight; left
+       in place it would shift the walk 4% of a screen against the room it walks
+       out of, and every marker with it. */
+    .sw-scene__video,.sw-scene__still{object-position:center center;}
+
+    /* PORTRAIT PUNCH-IN. The walk footage is framed wide — the appliances live in
+       the middle third and the rest is ceiling and floor — so on a phone every
+       product was small. This scales the scene up about its centre and lets the
+       edges crop.
+
+       --sw-mzoom is the single source of truth: hotspots.js reads this same
+       custom property (as it already does for --sw-objy) and multiplies its
+       marker mapping by it, so the picture and the points scale together and a
+       marker cannot drift off its appliance. Change it here and both follow.
+
+       1.12 is the ceiling, not a taste call. It is set by the outermost markers:
+       the laundry's personal-care shelf at 0.914 and the kitchen's microwave at
+       0.088 sit almost at the frame edges, and past 1.12 their pulse rings start
+       leaving the screen on a 360px phone. Zooming further would enlarge the
+       appliances by hiding the ones on the sides. */
+    :where(.sw-root),.sw-root{--sw-mzoom:1.12;}
+    .sw-scene__video,.sw-scene__mstill,.sw-scene__still{
+      transform:scale(var(--sw-mzoom));transform-origin:center center;}
   }
   /* Touch: give the route dots a finger-sized hit area without growing the visible dot. */
   @media (hover:none) and (pointer:coarse){

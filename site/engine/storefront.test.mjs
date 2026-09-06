@@ -637,6 +637,80 @@ test('the compact pager form is the one shown at the mobile breakpoint', () => {
   assert.match(mobile, /\.pager__status \{ display: inline-flex; \}/);
 });
 
+/* ------------------------------------------------ phone: brand strip --- */
+
+const CAT_CSS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../assets/css/category.css'), 'utf8');
+const NAV_JS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../assets/js/nav.js'), 'utf8');
+
+// A wrapping grid only ever fit two brand marks across a 360-400px phone, so a
+// dozen brands cost six rows of scrolling before the first product appeared.
+test('on phones the brand row is one swipeable strip of three', () => {
+  const i = CSS.indexOf('@media (max-width: 640px)');
+  assert.ok(i > CSS.indexOf('@media (max-width: 480px)'),
+    'the phone brand block must come AFTER the 480px block or that one wins');
+  const phone = CSS.slice(i);
+  assert.match(phone, /\.btiles \{[^}]*grid-auto-flow: column/,
+    'the brand row still wraps instead of scrolling sideways');
+  assert.match(phone, /grid-auto-columns: calc\(\(100% - 2 \* var\(--sk-gap-sm\)\) \/ 3\)/,
+    'the column width no longer resolves to exactly three across the viewport');
+  assert.match(phone, /\.btiles \{[^}]*overflow-x: auto/);
+  // no scrollbar — the swipe is the affordance, same as the product rails
+  assert.match(phone, /\.btiles \{[^}]*scrollbar-width: none/);
+  assert.match(phone, /\.btiles::-webkit-scrollbar \{[^}]*height: 0/);
+  // and the 480px block must no longer re-grid .btiles underneath it
+  const narrow = CSS.slice(CSS.indexOf('@media (max-width: 480px)'), i);
+  assert.ok(!/\.btiles/.test(narrow),
+    'the 480px block still sets .btiles — two rules fighting over the same row');
+});
+
+// The hidden label is position:absolute; with no positioned ancestor it resolves
+// against the initial containing block, escapes the strip's clip, and lands
+// ~1400px out — which dragged the whole document into horizontal scroll.
+test('the brand tile is a containing block for its visually-hidden label', () => {
+  const tile = CSS.slice(CSS.indexOf('.btile {'), CSS.indexOf('.btile__mark {'));
+  assert.match(tile, /position: relative/,
+    '.btile is not positioned — the hidden .btile__name will escape the strip');
+  assert.match(CSS, /\.btile__mark--nologo ~ \.btile__name \{\s*position: absolute/,
+    'this test guards an absolutely-positioned label that no longer exists');
+});
+
+/* ------------------------------------------------- phone: card actions --- */
+
+// flex-wrap has to change WITH the direction: in a column container the main axis
+// is vertical, so the primary button's `flex: 1 1 100%` claimed the row's whole
+// height and pushed the two quiet links into a second column, off the side of a
+// 160px card. Only the amber button was visible.
+test('on phones the three card actions stack and stay inside the card', () => {
+  const phone = CAT_CSS.slice(CAT_CSS.indexOf('@media (max-width: 640px)'));
+  assert.match(phone, /\.card__row \{[^}]*flex-direction: column/);
+  assert.match(phone, /\.card__row \{[^}]*flex-wrap: nowrap/,
+    'a column flex container that still wraps pushes the extra actions sideways');
+  assert.match(phone, /\.card__row \.sk-addbtn,\s*\.card__row \.sk-detbtn,\s*\.card__row \.card__buy \{ flex: 0 0 auto/,
+    'the row-direction flex sizing is not reset, so an action can still claim the height');
+  // and the primary shrinks — it is no longer carrying the row on its own
+  const base = CAT_CSS.slice(0, CAT_CSS.indexOf('@media (max-width: 640px)'));
+  const basePad = /\.card__row \.sk-addbtn \{[^}]*padding: (\d+)px/.exec(base);
+  const phonePad = /\.card__row \.sk-addbtn \{ font-size: [^;]+; padding: (\d+)px/.exec(phone);
+  assert.ok(basePad && phonePad, 'could not read the primary button padding on both sides');
+  assert.ok(Number(phonePad[1]) < Number(basePad[1]),
+    'the phone primary button is not smaller than the desktop one');
+});
+
+/* ---------------------------------------------- phone: nav clearance --- */
+
+// Two rules cleared the same fixed strap: a margin AND a padding whose fallback
+// nav height (86px) is only right on desktop. On a phone that stacked 64 + 106px
+// of dead space above a 62px strap.
+test('the phone strap is cleared once, not twice', () => {
+  const mobile = NAV_JS.slice(NAV_JS.indexOf('@media (max-width:1080px){'));
+  const rule = /\.sk-nav--solid\+\*\{margin-top:64px;padding-top:(\d+)px!important;\}/.exec(mobile);
+  assert.ok(rule, 'the phone rule no longer pins its own padding, so the 86px desktop fallback returns');
+  // the gap above the first block should read like the rhythm below it, not like
+  // a second strap's worth of margin
+  assert.ok(Number(rule[1]) <= 32,
+    'the phone clearance padding is back above the section rhythm (' + rule[1] + 'px)');
+});
+
 /* ============================================================================
    One English name per category (finding 6)
    ----------------------------------------------------------------------------

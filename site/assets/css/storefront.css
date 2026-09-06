@@ -96,7 +96,13 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
    assets/img/brands/ turns it into a real logo with no code change. */
 .btiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: var(--sk-gap-sm); margin: 0 0 var(--sk-section); }
-.btile { display: flex; flex-direction: column; align-items: center; gap: 6px;
+/* position:relative anchors the visually-hidden .btile__name below. Without a
+   positioned ancestor it resolves against the initial containing block and escapes
+   any clipping — harmless while the row wrapped inside the page, but once the row
+   scrolls sideways on a phone the hidden labels landed ~1400px out and dragged the
+   whole document into horizontal scroll. */
+.btile { position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: var(--sk-gap-sm) 6px; text-align: center;
   text-decoration: none; color: var(--ink); }
 .btile__mark { width: 84px; height: 84px; border-radius: 50%; display: grid;
@@ -323,11 +329,28 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
    sideways on narrow phones (360px baseline). */
 @media (max-width: 480px) {
   .rail__track { grid-auto-columns: minmax(160px, 78vw); }
-  .btiles { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
-  .btile__mark { width: 68px; height: 68px; }
   /* A pair of square ads side by side is unreadable on a phone; stack them. */
   .adslot--duo { grid-template-columns: 1fr; }
   /* four square ads across is unreadable on a phone; two is the floor. */
   .adslot--grid { grid-template-columns: repeat(2, 1fr); }
-  .ctiles, .btiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .ctiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+
+/* ---------- phones: the brand row becomes one swipeable strip ----------
+   A wrapping grid could only ever fit TWO marks across a 360-400px phone, so the
+   dozen brands cost six rows of scrolling before the first product. One row that
+   swipes sideways instead, sized so exactly three marks sit inside the viewport
+   and the next one peeks in at the edge to advertise that there is more.
+   Placed after the 480px block on purpose: it has to win at phone widths. */
+@media (max-width: 640px) {
+  .btiles { grid-auto-flow: column; grid-template-columns: none;
+    /* three columns plus the two gaps between them == the visible width exactly */
+    grid-auto-columns: calc((100% - 2 * var(--sk-gap-sm)) / 3);
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+    /* no scrollbar, same as the product rails — the swipe is the affordance */
+    scrollbar-width: none; -ms-overflow-style: none; }
+  .btiles::-webkit-scrollbar { height: 0; width: 0; }
+  .btile { scroll-snap-align: start; }
+  .btile__mark { width: 74px; height: 74px; }
 }

@@ -757,7 +757,14 @@
     @media (max-width:1080px){
       .sk-nav{position:fixed;justify-content:center;min-height:60px;padding:8px clamp(10px,3vw,18px);}
       .sk-nav--solid{position:fixed;}
-      .sk-nav--solid+*{margin-top:64px;}
+      /* ONE clearance, not two. The desktop rule further up also pads this block by
+         (--sk-nav-h + 20px), and --sk-nav-h is only measured on the overlay nav, so
+         subpages fell back to 86px — 64 + 106 = 170px of clearance above a strap
+         that is 62px tall on a phone. The margin alone clears the strap; the
+         padding then sets the gap, matched to the section rhythm below the first
+         block so the space above the shop's top ad reads the same as the space
+         under it. */
+      .sk-nav--solid+*{margin-top:64px;padding-top:26px!important;}
       .sk-burger{display:flex;position:absolute;left:clamp(10px,3vw,18px);top:50%;transform:translateY(-50%);}
       .sk-nav__logo{margin:0;}
       .sk-nav__logo img{height:46px;}

@@ -161,5 +161,19 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
   .top__nav a { padding: 8px 10px; font-size: .85rem; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr)); }
   .card__imgwrap { padding: 8px; }
-  .card__row { flex-direction: column; align-items: stretch; text-align: center; }
+  /* Stacked actions on a phone: one small primary button, the two quiet links
+     under it. `flex-wrap` MUST go with the direction change — in a column
+     container the main axis is vertical, so the primary button's `flex:1 1 100%`
+     asked it to fill the row's whole height and pushed the two links into a
+     SECOND COLUMN, off the side of a 160px card where nothing could see them.
+     That is why only the amber button appeared. */
+  .card__row { flex-direction: column; flex-wrap: nowrap; align-items: stretch; text-align: center; }
+  .card__row .sk-addbtn,
+  .card__row .sk-detbtn,
+  .card__row .card__buy { flex: 0 0 auto; width: 100%; }
+  /* The primary no longer has to carry the row on its own, so it drops to the
+     height of an ordinary button instead of a block filling the card. */
+  .card__row .sk-addbtn { font-size: .8rem; padding: 8px 10px; border-radius: 10px; }
+  .card__row .sk-detbtn,
+  .card__row .card__buy { font-size: .74rem; padding: 7px 6px; }
 }

@@ -381,6 +381,17 @@ function htmlHarvest(html, domain) {
 }
 
 /* ================= store adapters ================= */
+/* Amazon renders sponsored cards with the ad label baked into the SAME
+   aria-label/alt attribute that carries the product title — "الإعلان المدعوم -
+   غسالة تحميل أمامي…" / "Sponsored Ad - Samsung Washing Machine…". Left in, it
+   is shown to shoppers as if it were the product's name, and — because it
+   becomes the leading, hard-required product-type token — a shopper who pastes
+   such a title back into the comparer matches nothing at all. */
+function stripSponsoredLabel(title) {
+  return String(title)
+    .replace(/^\s*(?:ال[أإا]علان\s+المدعوم|[أإا]علان\s+مدعوم|sponsored(?:\s+ad)?)\s*[-–—:]+\s*/iu, '')
+    .trim();
+}
 const ADAPTERS = {
   /* Magento 2 public GraphQL — no HTML parsing at all (2B, Raneen, ElAraby…) */
   async gql(store, q) {
@@ -486,6 +497,7 @@ const ADAPTERS = {
       if (!title) { const h2 = c.match(/<h2[^>]*>([\s\S]{0,400}?)<\/h2>/); title = h2 ? decodeEntities(h2[1]) : ''; }
       const price = parsePrice(normDigits((c.match(/a-price-whole"[^>]*>([\d.,٠-٩]+)/) || [])[1] || ''));
       if (!price || title.length < 6) continue;
+      title = stripSponsoredLabel(title);
       if (brand && !title.toLowerCase().startsWith(brand.toLowerCase())) title = brand + ' ' + title;
       seen.add(asin);
       items.push({ title: title.slice(0, 140), price, url: `https://www.amazon.eg/dp/${asin}?language=${lng}` });
@@ -776,6 +788,20 @@ const SIZE_UNIT_ALIAS = {
    attrs.brand becomes the only authoritative brand; (2) the 60% word-overlap
    check is judged against attrs' short canonical query_en/query_ar instead
    of the raw, marketing-copy-laden pasted title. */
+/* Does this title name a model number of its own? Used by isRelevant's
+   stated-model gate to tell a CONTRADICTION ("this is the -DMN trim") apart
+   from SILENCE ("no code printed"), which must not disqualify. A model-shaped
+   token mixes letters and digits and is not simply a measurement — 1400rpm,
+   850w and 8.5kg are specs, not identities. */
+const MEASURE_RE = /^\d+(?:\.\d+)?(?:gb|tb|mb|kg|g|ml|l|ltr|liter|litre|liters|mm|cm|m|hz|khz|ghz|w|kw|watt|watts|v|volt|hp|rpm|bar|k|inch|inches|in|ft|feet|ah|mah|cc|btu)$/;
+function titleStatesModel(title) {
+  for (const raw of normAr(title).split(/[^a-z0-9]+/)) {
+    if (raw.length < 4 || !/\d/.test(raw) || !/[a-z]/.test(raw)) continue;
+    if (MEASURE_RE.test(raw)) continue;
+    return true;
+  }
+  return false;
+}
 function isRelevant(title, q, attrs) {
   const toks = queryTokens(q);
   if (!toks.length) return true;
@@ -812,6 +838,48 @@ function isRelevant(title, q, attrs) {
     const key = SIZE_UNIT_ALIAS[ai.size_unit.trim().toLowerCase()];
     if (key && tUnitValues[key] !== undefined && tUnitValues[key] !== ai.size_value) return false;
   }
+  /* ---- stated-model gate ----
+     A pasted marketplace title usually names an exact model (FMW-25KC-SW,
+     GR-RT468WE-PMN(49)-PRO, Q6F). Stores answer with the NEIGHBOURING model
+     from the same family — FMW-25MC-SW is the mechanical sibling of the
+     digital FMW-25KC-SW, -DMN is a different trim of -PMN — and those word
+     overlaps sail past every rule below, so a different product at a
+     different price was being returned as "the" match. Worse, admitting one
+     made searchStore's attempt ladder stop at attempt 1, so the bare
+     model-number attempt (which does find the exact unit) never ran.
+
+     Same asymmetry the unit rules above use: a CONTRADICTION disqualifies,
+     SILENCE does not. If the title states no model of its own it stays a
+     candidate — most Egyptian listings never print one.
+
+     Matching is done on the squashed strings, exactly as offerFlags() does,
+     so "AY-XP18UHE" == "AYXP18UHE" and a model embedded in a longer store SKU
+     ("QA55Q6F" for "Q6F") still counts as the same unit. */
+  const qModel = (ai && ai.model_number ? String(ai.model_number) : null) || modelToken(q);
+  const squashModel = s => normAr(s).replace(/[^a-z0-9]/g, '');
+  const wantModel = qModel ? squashModel(qModel) : '';
+  if (wantModel.length >= 3 && /\d/.test(wantModel) && /[a-z]/.test(wantModel) &&
+      !squashModel(title).includes(wantModel) && titleStatesModel(title)) return false;
+  /* An exact model hit IS the identity match. The 60% word-overlap below
+     cannot bridge scripts — an Arabic pasted title against a store's English
+     listing of the very same unit shares almost no tokens — so without this
+     the genuine row was dropped whenever the AI layer (which supplies a
+     cross-language canonical string) timed out. A printed model number is the
+     strongest identity signal available, and it is what offerFlags() already
+     trusts to decide what may be crowned.
+
+     Acceptance is deliberately stricter than the rejection above (5 chars, not
+     3): acting on a CONTRADICTION is safe, whereas a short code could appear
+     inside an unrelated string by chance. The hard disqualifiers — accessory,
+     unit contradiction — have already run and still win. */
+  if (wantModel.length >= 5 && /\d/.test(wantModel) && /[a-z]/.test(wantModel) &&
+      squashModel(title).includes(wantModel) &&
+      // "Remote Control FOR <model>" carries the model but is not the product.
+      // The accessory rule at the top of this function stands down when the
+      // QUERY also names the accessory word — and a pasted marketplace title
+      // routinely lists "جهاز تحكم عن بعد" among its features — so this
+      // shortcut has to re-check the title's leading segment on its own.
+      !ACCESSORY.some(accessoryIn(leadingSegment(t)))) return true;
   const word = [...new Set(toks.filter(x => !/^\d+$/.test(x)))];
   if (!word.length) return true;
   // spec-critical unit words are non-negotiable too (كيلو/بوصة/لتر/قدم/حصان…)
@@ -828,7 +896,16 @@ function isRelevant(title, q, attrs) {
   // elsewhere in the query text is no longer required in the title.
   if (ai && typeof ai.brand === 'string' && ai.brand.trim()) {
     const req = normAr(ai.brand.trim());
-    if (req && !tokenInTitle(t, req) && !t.includes(req)) return false;
+    // Absence can only disqualify when absence is KNOWABLE. tokenInTitle
+    // bridges EN↔AR only for brands carried in BRANDS/SYN_RAW; for anything
+    // outside that hand-maintained table the AI answers "Tefal" while the
+    // listing says «تيفال», the literal match fails, and a byte-identical row
+    // gets dropped. So an untabulated brand is treated as UNKNOWN rather than
+    // absent, and the rules below decide — the same silence-is-not-a-
+    // contradiction asymmetry used for units and model numbers. attrs.brand
+    // stays the only brand enforced, so the compatibility-mention fix holds.
+    const verifiable = SYN_BY_TOKEN.has(req);
+    if (req && verifiable && !tokenInTitle(t, req) && !t.includes(req)) return false;
   } else {
     for (const names of Object.values(BRANDS))
       if (names.some(n => qn.includes(normAr(n))) && !names.some(n => t.includes(normAr(n)))) return false;
@@ -889,6 +966,8 @@ async function searchStore(store, q, variants, attrs) {
     for (const attempt of attempts) {
       const raw = (await fn(store, attempt)) || [];
       const items = raw.filter(it => it.price && isRelevant(it.title, q, attrs));
+      if (process.env.DEBUG_STORES) console.log('[try]', store.domain, JSON.stringify(attempt).slice(0,70), 'raw=' + raw.length, 'kept=' + items.length);
+      if (process.env.DEBUG_STORES === '2') for (const rt of raw.slice(0,8)) console.log('        raw:', isRelevant(rt.title, q, attrs) ? 'KEEP' : 'drop', String(rt.price), String(rt.title).slice(0,70));
       if (items.length) {
         store.lastOk = Date.now(); store.failN = 0; saveRegistrySoon();
         return { store, status: 'ok', items: items.slice(0, 12) };

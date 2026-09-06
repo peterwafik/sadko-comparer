@@ -27,6 +27,15 @@
        ],
        connectors: [clipUrl, …],          // length = sections.length - 1 (nulls allowed)
        connectorsMobile: [clipUrl, …],    // optional lighter connectors for phones (same length)
+       transitionsMobile: [clipUrl, …],   // PORTRAIT phones: a scrubbed room→room camera
+                                          // walk per seam (length = sections.length - 1).
+                                          // Clip i runs from section i to section i+1 and
+                                          // must be frame-locked to their stillMobile
+                                          // images. Encode 9:21 (taller than any handset)
+                                          // so `cover` trims only ceiling and floor.
+       mTransScroll: 1.2,                 // viewport-heights each walk spans. It is BORROWED
+                                          // from the rooms either side, not added, so the
+                                          // page height and desktop layout are unchanged.
 
    MOBILE (the clipMobile/connectorsMobile variants are the opt-in "mobile beta";
    the rest of the phone handling below is always on)
@@ -76,6 +85,11 @@ function mountScrollWorld(container, config) {
   const DIVE_W = config.diveScroll || 1.3;
   const CONN_W = config.connScroll || 0.9;
   const CROSSFADE = (config.crossfade != null) ? config.crossfade : 0.12;  // seam dissolve width (vh)
+  // Portrait-phone room→room transitions. One clip per seam (length = N-1); clip i
+  // runs from section i to section i+1, its first/last frames matching those rooms'
+  // stillMobile images, so the walk starts and ends exactly on the resting scene.
+  const MTRANS_URLS = config.transitionsMobile || [];
+  const MTRANS_W = config.mTransScroll || 1.2;   // viewport-heights each transition spans
   const N = SECTIONS.length;
   if (!N) return;
 
@@ -98,6 +112,18 @@ function mountScrollWorld(container, config) {
     }
   });
   const NSEG = SEGMENTS.length;
+
+  // ---- portrait room→room transitions -------------------------------------
+  // These are NOT segments: they don't consume their own slice of the scroll
+  // track (that would change the desktop layout and the page height). Each one
+  // straddles the boundary between two rooms, borrowing MTRANS_W/2 viewport-
+  // heights from the tail of the room before it and the head of the room after.
+  // So the portrait page scrolls exactly as far as it always did; what used to be
+  // a cross-dissolve at that boundary is now a scrubbed camera walk.
+  const MTRANS = MTRANS_URLS.map((url, i) => ({
+    i, url, video: null, hasClip: false, ready: false, loading: false,
+    cur: 0, target: 0, visible: false, start: 0, end: 0,
+  }));
 
   // ---- DOM ----
   const sky = el('div', 'sw-sky');
@@ -137,9 +163,14 @@ function mountScrollWorld(container, config) {
   SEGMENTS.forEach(s => {
     const scene = el('div', 'sw-scene'); scene.style.setProperty('--sw-accent', s.accent || '');
     // Portrait phones use a bespoke, portrait-shaped scene image per room instead
-    // of the desktop 16:9 video flight — the scenes simply cross-dissolve as you
-    // scroll (no camera-scrub). CSS shows this in portrait and hides the video/
-    // desktop-still; the desktop path is untouched.
+    // of the desktop 16:9 video flight. CSS shows this in portrait and hides the
+    // video/desktop-still; the desktop path is untouched.
+    // The image is a 9:21 tall scene — taller than the narrowest phone — drawn
+    // object-fit:cover. Because it is TALLER than any handset, `cover` can only
+    // ever trim its top and bottom, never its sides, and the room itself sits in
+    // the middle with generated ceiling above and floor below. So every appliance
+    // survives on any aspect from 9:16 down to a 21:9 Xperia, and the old blurred
+    // filler band (sw-scene__mbg) is gone — the picture covers the screen itself.
     let mimg = null;
     if (s.stillM) {
       mimg = el('img', 'sw-scene__mstill'); mimg.alt = ''; mimg.decoding = 'async'; mimg.loading = 'lazy';
@@ -153,6 +184,14 @@ function mountScrollWorld(container, config) {
     scene.appendChild(img); stage.appendChild(scene);
     s.el = scene; s.img = img; s.mimg = mimg; s.video = null; s.hasClip = false;
     s.loading = false; s.ready = false; s.cur = 0; s.target = 0; s.visible = false;
+  });
+
+  // Portrait transition layer: one <div> per seam, sitting above every scene so
+  // the walk covers both rooms while it plays. Hidden outside portrait by CSS.
+  MTRANS.forEach(t => {
+    const holder = el('div', 'sw-mtrans');
+    stage.appendChild(holder);
+    t.el = holder;
   });
 
   // per-section copy / route / nav
@@ -186,6 +225,7 @@ function mountScrollWorld(container, config) {
   // mid-scene pause. f(0)=0, f(1)=1 always, so seam frames are untouched.
   const lingerEase = (x, L) => { L = clamp(L); const c = x - 0.5; return (1 - L) * x + L * (4 * c * c * c + 0.5); };
   let vh = window.innerHeight, stageX = 0, totalW = 0, activeIndex = -1, ticking = false;
+  let mtransActive = false;   // true while a portrait room→room walk is on screen
   let laidOutW = window.innerWidth;   // width the current layout was computed at (see onResize)
 
   function layout() {
@@ -195,6 +235,33 @@ function mountScrollWorld(container, config) {
     let off = 0;
     SEGMENTS.forEach(s => { s.start = off * vh; off += s.w; s.end = off * vh; });
     totalW = off;
+    // Centre each portrait transition on the boundary between its two rooms. The
+    // midpoint of (room A end, room B start) is that boundary whether or not a
+    // desktop connector sits between them, so this holds for both architectures.
+    MTRANS.forEach(t => {
+      const a = SECTIONS[t.i] && SECTIONS[t.i]._seg, b = SECTIONS[t.i + 1] && SECTIONS[t.i + 1]._seg;
+      if (!a || !b) { t.start = t.end = -1; return; }
+      const mid = (a.end + b.start) / 2, half = MTRANS_W * vh / 2;
+      t.start = mid - half; t.end = mid + half;
+    });
+    // Each room's CLEAR DWELL: its scroll band minus the transition bands that
+    // overlap it, expressed as progress (0..1) within the band. This is the part
+    // of the room's scroll where the room itself is actually on screen, so it is
+    // where the room dock lands (hotspots.js showcaseTop) AND where the copy must
+    // peak — otherwise the title reads at a different scroll point than the button
+    // takes you to. Desktop ignores these and keeps the authored copyAt.
+    SECTIONS.forEach(s => {
+      const seg = s._seg, span = seg.end - seg.start;
+      let lo = seg.start, hi = seg.end;
+      MTRANS.forEach(t => {
+        if (t.start < 0 || t.end <= seg.start || t.start >= seg.end) return;
+        if (t.start <= seg.start) lo = Math.max(lo, t.end); else hi = Math.min(hi, t.start);
+      });
+      if (!(hi > lo)) { lo = seg.start; hi = seg.end; }
+      s._mLo = span ? clamp((lo - seg.start) / span) : 0;
+      s._mHi = span ? clamp((hi - seg.start) / span) : 1;
+      s._mAt = (s._mLo + s._mHi) / 2;
+    });
     track.style.height = (totalW * vh + vh) + 'px';   // +1vh so the last flight completes
     read();
   }
@@ -231,11 +298,29 @@ function mountScrollWorld(container, config) {
       }).catch(() => { s.loading = false; });
   }
 
+  // Portrait room→room walk. Loaded as a Blob like the desktop clips, so seeking
+  // never depends on the host honouring byte-range requests.
+  function loadTrans(t) {
+    if (!portraitMQ.matches || reduce || t.loading || !t.url) return;
+    t.loading = true;
+    fetch(t.url).then(r => r.ok ? r.blob() : Promise.reject(new Error('404')))
+      .then(blob => {
+        const v = document.createElement('video');
+        v.muted = true; v.playsInline = true; v.preload = 'auto';
+        v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+        v.src = URL.createObjectURL(blob);
+        v.addEventListener('loadedmetadata', () => { t.ready = true; read(); });
+        v.addEventListener('loadeddata', () => { try { v.pause(); } catch (e) {} if (userReady) primeVideo(v); });
+        t.el.appendChild(v); t.video = v; t.hasClip = true;
+      }).catch(() => { t.loading = false; });
+  }
+
   function read() {
     const y = window.scrollY || window.pageYOffset;
-    // Portrait phones show static scene images with no camera-scrub, so the whole
-    // transition between rooms IS the crossfade — widen it there into a clear,
-    // gentle dissolve rather than the tight seam the video flight used.
+    // On portrait the still-to-still dissolve is only the understudy: it runs
+    // underneath the room→room walk (sw-mtrans) so that when the walk fades out at
+    // the end of its band, the next room's still is already fully up behind it.
+    // Keep it wide enough to complete inside the walk's band (MTRANS_W).
     const fade = (portraitMQ.matches ? 0.5 : CROSSFADE) * vh;
     let ci = 0;
     for (let i = 0; i < NSEG; i++) if (y >= SEGMENTS[i].start) ci = i;
@@ -257,14 +342,68 @@ function mountScrollWorld(container, config) {
       }
     }
 
+    // ---- portrait room→room walks ----
+    // Each one owns the scroll band straddling its seam. Inside that band the clip
+    // is scrubbed by scroll and covers both rooms; outside it, it is fully hidden
+    // and the resting still shows through.
+    if (MTRANS.length) {
+      const portrait = portraitMQ.matches;
+      let anyActive = false;
+      for (let i = 0; i < MTRANS.length; i++) {
+        const t = MTRANS[i];
+        if (!portrait || t.start < 0) {
+          if (t.el && t.visible) { t.el.style.opacity = '0'; t.visible = false; }
+          continue;
+        }
+        if (y > t.start - 1.5 * vh && y < t.end + 1.5 * vh) loadTrans(t);
+        t.target = clamp((y - t.start) / (t.end - t.start), 0, 1);
+        // Hold the walk fully opaque through the middle and dissolve it in/out over
+        // the first/last 12% of the band. Those edges are where the clip's own end
+        // frames meet the resting stills, and the dissolve absorbs the few pixels of
+        // drift the renderer leaves between a rendered frame and its start/end image.
+        let op = 0;
+        if (t.hasClip && t.ready && y > t.start && y < t.end) {
+          op = smooth(t.target / 0.12) * smooth((1 - t.target) / 0.12);
+        }
+        t.visible = op > 0.001;
+        if (t.visible) anyActive = true;
+        if (t.el) t.el.style.opacity = op.toFixed(3);
+      }
+      // Markers/posters are pinned to the resting still, so they must not float over
+      // a moving room. hotspots.js and posters.js fade out on this class.
+      if (anyActive !== mtransActive) {
+        mtransActive = anyActive;
+        container.classList.toggle('sw-mtransing', anyActive);
+      }
+    }
+
     for (let i = 0; i < N; i++) {
       const seg = SECTIONS[i]._seg;
       const pr = clamp((y - seg.start) / (seg.end - seg.start), 0, 1);
       const before = y < seg.start, after = y > seg.end;
+      // On portrait the copy peaks exactly where the room dock lands — the middle
+      // of the room's clear dwell (_mAt, from layout()) — so the title is at full
+      // strength at the moment the button takes you to, not a scroll later. The
+      // first room still greets at full opacity on landing (plateau from the top
+      // to _mAt) and the last still holds its CTA once reached.
+      const mp = portraitMQ.matches && SECTIONS[i]._mAt != null;
+      const mAt = mp ? SECTIONS[i]._mAt : 0, mLo = mp ? SECTIONS[i]._mLo : 0, mHi = mp ? SECTIONS[i]._mHi : 1;
       let cop;
-      if (i === 0) cop = after ? 0 : smooth(1 - pr / 0.62);            // greets on landing
-      else if (i === N - 1) cop = before ? 0 : smooth(pr / 0.4);       // holds CTA at the end
+      if (i === 0) {
+        cop = after ? 0
+            : mp ? (pr <= mAt ? 1 : smooth((mHi - pr) / Math.max(0.001, mHi - mAt)))
+                 : smooth(1 - pr / 0.62);                              // greets on landing
+      }
+      else if (i === N - 1) {
+        cop = before ? 0
+            : mp ? (pr >= mAt ? 1 : smooth((pr - mLo) / Math.max(0.001, mAt - mLo)))
+                 : smooth(pr / 0.4);                                   // holds CTA at the end
+      }
       else if (before || after) cop = 0;
+      else if (mp) {
+        cop = pr < mAt ? smooth((pr - mLo) / Math.max(0.001, mAt - mLo))
+                       : smooth((mHi - pr) / Math.max(0.001, mHi - mAt));
+      }
       else {
         // The copy peaks at `copyAt` — the scroll progress where this room is
         // actually FRAMED (normally its `showcase` frame, i.e. the view the room
@@ -355,6 +494,19 @@ function mountScrollWorld(container, config) {
       const t = clamp(s.cur, 0, 0.999) * dur;
       if (Math.abs(s.video.currentTime - t) > eps) { try { s.video.currentTime = t; } catch (e) {} }
     }
+    // Portrait room→room walks scrub on exactly the same terms: lerp toward the
+    // scroll target, and never queue a seek while the decoder is still resolving
+    // the last one (a fast flick would otherwise pile seeks up and freeze the clip).
+    for (let k = 0; k < MTRANS.length; k++) {
+      const tr = MTRANS[k];
+      if (!tr.hasClip || !tr.ready || !tr.video) continue;
+      if (tr.video.seeking) continue;
+      if (!tr.visible && Math.abs(tr.cur - tr.target) < 0.002) continue;
+      tr.cur += (tr.target - tr.cur) * (reduce ? 1 : 0.18);
+      const tdur = tr.video.duration || 1;
+      const tt = clamp(tr.cur, 0, 0.999) * tdur;
+      if (Math.abs(tr.video.currentTime - tt) > eps) { try { tr.video.currentTime = tt; } catch (e) {} }
+    }
     requestAnimationFrame(raf);
   }
 
@@ -372,6 +524,7 @@ function mountScrollWorld(container, config) {
     if (userReady) return;
     userReady = true;
     SEGMENTS.forEach(s => primeVideo(s.video));
+    MTRANS.forEach(t => primeVideo(t.video));
   }
   window.addEventListener('pointerdown', onFirstGesture, { once: true, passive: true });
   window.addEventListener('touchstart', onFirstGesture, { once: true, passive: true });
@@ -395,7 +548,7 @@ function mountScrollWorld(container, config) {
   requestAnimationFrame(raf);
 
   // SADKO extension: expose enough state for companion layers (hotspots).
-  const api = { sections: SECTIONS, segments: SEGMENTS, isMobile, relayout: layout };
+  const api = { sections: SECTIONS, segments: SEGMENTS, mtrans: MTRANS, isMobile, relayout: layout };
 
   // ---- helpers ----
   function el(tag, cls) { const n = document.createElement(tag); if (cls) n.className = cls; return n; }
@@ -462,7 +615,14 @@ function injectCSS() {
   .sw-scene__bg{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
   /* Portrait-phone scene image: hidden on desktop, shown (whole, letterboxed) in
      the portrait block below where it replaces the video/desktop-still entirely. */
-  .sw-scene__mstill{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;z-index:2;}
+  .sw-scene__mstill{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;z-index:3;}
+  /* Portrait room→room walk: sits above every scene so it covers both rooms while
+     it plays. Same 9:21 framing as the stills, so the seam frames line up. */
+  .sw-mtrans{display:none;position:absolute;inset:0;z-index:300;opacity:0;overflow:hidden;will-change:opacity;pointer-events:none;}
+  .sw-mtrans video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;}
+  /* The room is moving during a walk, so the markers and the deal board — both
+     pinned to the resting still — fade out rather than float over it. */
+  .sw-root.sw-mtransing .hs-layer,.sw-root.sw-mtransing .ps-layer{opacity:0 !important;pointer-events:none !important;}
   .sw-copylayer{position:fixed;inset:0;z-index:20;pointer-events:none;}
   .sw-copylayer::before{content:"";position:absolute;inset:0;width:min(58vw,780px);background:linear-gradient(90deg,var(--sw-bg) 0%,color-mix(in srgb,var(--sw-bg) 82%,transparent) 34%,color-mix(in srgb,var(--sw-bg) 40%,transparent) 62%,transparent 100%);}
   /* RTL (Arabic): the over-constrained scrim auto-anchors to the right edge; only
@@ -509,11 +669,19 @@ function injectCSS() {
     .sw-hint{bottom:calc(20px + env(safe-area-inset-bottom));}
     .sw-route{gap:16px;right:6px;} .sw-route__label{display:none;}
   }
-  /* Portrait phones use the bespoke portrait scene image (m_<room>.jpg): show it
-     whole (contain, plain letterbox) and hide the desktop video/still entirely.
-     Rooms cross-dissolve as you scroll — no camera-scrub here. */
+  /* Portrait phones use the bespoke 9:21 scene image (m_<room>_tall.jpg): show it
+     cover (it is taller than the phone, so only ceiling/floor are trimmed) and hide
+     the desktop video/still entirely. Between rooms a scrubbed camera walk plays
+     (sw-mtrans) instead of the old cross-dissolve. */
   @media (max-width:860px) and (orientation:portrait){
+    /* The room itself: whole, undistorted, centred — this rect is exactly what
+       hotspots.js / posters.js map their mfx/mfy against, so a marker sits on
+       its appliance at every phone size. */
     .sw-scene__mstill{display:block;}
+    /* No filler band any more: the scene image is 9:21 — taller than the tallest
+       handset — so object-fit:cover trims only its top and bottom, and those bands
+       are generated ceiling and floor with no appliance in them. */
+    .sw-mtrans{display:block;}
     .sw-scene__video,.sw-scene__still,.sw-scene__bg{display:none !important;}
   }
   /* Touch: give the route dots a finger-sized hit area without growing the visible dot. */

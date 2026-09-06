@@ -1,0 +1,13 @@
+process.env.SADKO_NO_SERVE='1';
+const { ADAPTERS, isRelevant, understandQuery } = await import('file:///D:/SADKO/site/compare-server.mjs');
+const fs = await import('node:fs');
+const q = JSON.parse(fs.readFileSync('cases.json','utf8'))[7].title;
+const attrs = await understandQuery(q);
+console.log('attrs =', JSON.stringify(attrs));
+const store={domain:'amazon.eg',platform:'amazon',needsHeadless:true};
+const raw = (await ADAPTERS.amazon(store,'VG4130EE'))||[];
+console.log(`\nattempt "VG4130EE" raw=${raw.length}`);
+for (const x of raw) console.log(`  ${isRelevant(x.title,q,attrs)?'KEEP':'drop'} [${x.price}] ${x.title.slice(0,70)}`);
+console.log('\nwithout attrs (rule-based only):');
+for (const x of raw) console.log(`  ${isRelevant(x.title,q,null)?'KEEP':'drop'} [${x.price}] ${x.title.slice(0,70)}`);
+process.exit(0);

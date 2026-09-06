@@ -237,3 +237,136 @@ test('AI attrs: existing regression guards are unaffected when attrs is supplied
   const attrs = { brand: 'Sharp', query_en: 'Sharp TV 75 inch 4K', query_ar: 'شاشة شارب 75 بوصة 4K', compatible_brands: [] };
   assert.equal(isRelevant(t, q, attrs), false);
 });
+
+/* ---------------------------------------------------------------------------
+   Model-number gate (2026-08-29). A shopper pastes a marketplace title that
+   names an exact model; stores answer with a NEIGHBOURING model from the same
+   family (FMW-25KC-SW → FMW-25MC-SW, GR-RT468WE-PMN → -DMN, Q6F → QN70H).
+   Those are different products at different prices, so they must not satisfy
+   the query. Crucially, admitting one made searchStore's attempt ladder stop
+   at attempt 1, so the bare-model-number attempt — which DOES find the exact
+   product on Amazon — was never run.
+
+   Asymmetry, as everywhere else in this engine: a CONTRADICTION disqualifies,
+   SILENCE does not. A listing that states no model at all is still a candidate.
+
+   The four MICRO_* cases below are deliberately identical apart from the model
+   segment, so they isolate this gate from the unrelated lead-token/60%-overlap
+   rules (a cross-language title would fail those for reasons of its own).
+   --------------------------------------------------------------------------- */
+const MICRO_Q = 'ميكروويف ديجيتال 25 لتر فضي من فريش FMW-25KC-SW';
+const MICRO_ATTRS = { model_number: 'FMW-25KC-SW' };
+
+test('model gate: the exact model is accepted', () => {
+  const t = 'ميكروويف ديجيتال 25 لتر فضي من فريش طراز FMW-25KC-SW';
+  assert.equal(isRelevant(t, MICRO_Q, MICRO_ATTRS), true);
+});
+
+test('model gate: a neighbouring model in the same family is rejected', () => {
+  const t = 'ميكروويف ديجيتال 25 لتر فضي من فريش طراز FMW-25MC-SW';
+  assert.equal(isRelevant(t, MICRO_Q, MICRO_ATTRS), false);
+});
+
+test('model gate: SILENCE is not a contradiction — a listing naming no model is kept', () => {
+  const t = 'ميكروويف ديجيتال 25 لتر فضي من فريش';
+  assert.equal(isRelevant(t, MICRO_Q, MICRO_ATTRS), true);
+});
+
+test('model gate: pure measurement tokens are not mistaken for a stated model', () => {
+  const t = 'ميكروويف ديجيتال 25 لتر فضي من فريش 850 وات 1400rpm';
+  assert.equal(isRelevant(t, MICRO_Q, MICRO_ATTRS), true);
+});
+
+test('model gate: differing trim code is rejected (PMN vs DMN)', () => {
+  const q = 'ثلاجة GR-RT468WE-PMN(49)-PRO، بتقنية الإنفرتر، ومنطقة تبريد';
+  const t = 'ثلاجة طراز GR-RT468WE-DMN (49) بفلتر بيولوجي نقي من توشيبا';
+  assert.equal(isRelevant(t, q, { model_number: 'RT468WE-PMN(49)-PRO' }), false);
+});
+
+test('model gate: a short model code that differs is rejected (Q6F vs QN70H)', () => {
+  const q = 'تلفزيون ذكي بشاشة QLED 55 بوصة، Q6F، معالج Q4 لايت';
+  const t = 'شاشة تلفزيون سمارت QLED 55 بوصة من سامسونج، معالج نيورال كوانتوم QN70H';
+  assert.equal(isRelevant(t, q, { model_number: 'Q6F' }), false);
+});
+
+test('model gate: the model embedded in a longer store SKU still matches (QA55Q6F)', () => {
+  const q = 'تلفزيون ذكي بشاشة QLED 55 بوصة، Q6F، معالج Q4 لايت';
+  const t = 'Delightful Samsung 55 Inch QLED Smart TV QA55Q6F';
+  assert.equal(isRelevant(t, q, { model_number: 'Q6F' }), true);
+});
+
+test('model gate: no model in the query leaves behaviour unchanged', () => {
+  const q = 'سخان مياه كهربائي ريلاكس من فريش 50 لتر';
+  const t = 'سخان مياه كهربائي ريلاكس من فريش 50 لتر موديل ABC-123XY';
+  assert.equal(isRelevant(t, q, { model_number: null }), true);
+});
+
+/* ---------------------------------------------------------------------------
+   Exact-model acceptance (2026-08-29). A shopper pastes an ARABIC marketplace
+   title; the same unit is listed in ENGLISH on another store (or on Amazon
+   under ?language=en_AE). The 60% word-overlap cannot bridge scripts, so the
+   genuine listing was dropped whenever the AI layer was unavailable — the
+   engine silently lost Amazon's exact row on any AI timeout.
+
+   A printed model number is stronger identity evidence than fuzzy word
+   overlap — it is the same signal offerFlags() already trusts to decide what
+   may be crowned — so an exact model hit satisfies identity on its own. The
+   hard disqualifiers above (accessory, unit contradiction) still run first,
+   and acceptance demands a longer code than rejection does: a contradiction
+   is safe to act on, an acceptance needs to be specific.
+   --------------------------------------------------------------------------- */
+const FAN_Q = 'مروحة ستاند سايلنس فورس VG4130EE من تيفال، تقنية الصمت، جهاز تحكم عن بعد، مؤقت 8 ساعات، 6 شفرات، ارتفاع قابل للتعديل، اسود';
+
+test('exact model: English listing of an Arabic-pasted query is kept without AI', () => {
+  const t = 'Tefal VG4130EE Silence Force, Stand Fan, Silent Technology, Remote Control, 16 Inch';
+  assert.equal(isRelevant(t, FAN_Q, null), true);
+});
+
+test('exact model: a neighbouring model is still rejected without AI', () => {
+  const t = 'Tefal VG4135EE Silence Force, Stand Fan, Anti-Mosquito, Silent Technology';
+  assert.equal(isRelevant(t, FAN_Q, null), false);
+});
+
+test('exact model: an ACCESSORY carrying the model number is still dropped', () => {
+  const t = 'Remote Control for Tefal VG4130EE Silence Force Stand Fan';
+  assert.equal(isRelevant(t, FAN_Q, null), false);
+});
+
+test('exact model: a unit contradiction still outranks the model match', () => {
+  const q = 'غسالة سامسونج 7 كيلو WW70T4020';
+  const t = 'Samsung Washing Machine 9 kg WW70T4020';
+  assert.equal(isRelevant(t, q, null), false);
+});
+
+/* ---------------------------------------------------------------------------
+   Unverifiable AI brand (2026-08-29). attrs.brand is authoritative — that is
+   what stops a COMPATIBILITY mention ("for iPhone, Samsung and More") being
+   read as the product's own brand. But it was enforced by matching the AI's
+   string against the title literally, and the EN↔AR bridge only exists for
+   brands hand-listed in BRANDS. For anything outside that table — Tefal,
+   Kenwood, Moulinex, Braun — the AI answers "Tefal" while the listing says
+   «تيفال», the literal match fails, and the row is dropped. A BYTE-IDENTICAL
+   listing was being rejected this way; Amazon's exact row disappeared from
+   the comparison whenever the AI named an untabulated brand.
+
+   Absence can only disqualify when absence is knowable. For a brand the
+   engine can match in both scripts, a missing brand still disqualifies; for
+   one it cannot, brand is simply unknown and the remaining rules decide.
+   --------------------------------------------------------------------------- */
+const TEFAL_T = 'مروحة ستاند سايلنس فورس VG4130EE من تيفال، تقنية الصمت، جهاز تحكم عن بعد، مؤقت 8 ساعات';
+
+test('unverifiable AI brand: an identical Arabic listing is not rejected over a Latin brand', () => {
+  const attrs = { brand: 'Tefal', model_number: 'VG4130EE', compatible_brands: [] };
+  assert.equal(isRelevant(TEFAL_T, TEFAL_T, attrs), true);
+});
+
+test('unverifiable AI brand: matches the AI-off path for the same pair', () => {
+  const attrs = { brand: 'Tefal', model_number: 'VG4130EE', compatible_brands: [] };
+  assert.equal(isRelevant(TEFAL_T, TEFAL_T, attrs), isRelevant(TEFAL_T, TEFAL_T, null));
+});
+
+test('verifiable AI brand: a wrong brand IS still rejected (Sharp is tabulated)', () => {
+  const q = 'تكييف سبليت من شارب 2.25 حصان';
+  const t = 'تكييف سبليت من ال جي 2.25 حصان';
+  assert.equal(isRelevant(t, q, { brand: 'Sharp', compatible_brands: [] }), false);
+});

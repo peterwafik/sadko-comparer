@@ -9,11 +9,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g13" defer></script>
+<script src="assets/js/scrub-engine.js?v=g16" defer></script>
 <script src="assets/js/nav.js?v=g17" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="assets/js/hotspots.js?v=g25" defer></script>
-<script src="assets/js/posters.js?v=g8" defer></script>
+<script src="assets/js/hotspots.js?v=g29" defer></script>
+<script src="assets/js/posters.js?v=g10" defer></script>
 <script src="assets/js/guide.js?v=g3" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g14">
 </head>
@@ -30,7 +30,7 @@ window.addEventListener('DOMContentLoaded', () => {
     {
       id: 'living', label: 'غرفة المعيشة',
       still: 'assets/img/still_1.jpg',
-      stillMobile: 'assets/img/m_living.jpg',   // bespoke portrait scene for phones
+      stillMobile: 'assets/img/m_living_tall.jpg?v=4',   // bespoke portrait scene for phones
       clip: 'assets/vid/leg_1.mp4', clipMobile: 'assets/vid/leg_1-m.mp4',
       accent: '#2e7e88',
       scroll: 1.9, linger: 0.5,
@@ -39,21 +39,27 @@ window.addEventListener('DOMContentLoaded', () => {
       eyebrow: 'بيتك بالكامل من صادكو',
       title: 'أهلاً بيك فى بيت صادكو',
       showcase: 0.03,   // the landing frame — the whole entertainment + climate room
-      // fx/fy = desktop 16:9 frame; mfx/mfy = the portrait m_living.jpg (same appliances)
+      // fx/fy = desktop 16:9 frame; mfx/mfy = the portrait m_living_tall.jpg — each one
+      // measured on the appliance itself in that picture, so the marker rides the
+      // product (the image is drawn cover + centred; being 9:21 it is taller than any
+      // phone, so only its ceiling/floor are trimmed and no appliance is ever cut).
       hotspots: [       // coords measured on the settle frame (sc_living @0.46s)
-        { fx: 0.500, fy: 0.514, at: 0.06, span: 0.30, mfx: 0.490, mfy: 0.485, label: 'تليفزيونات', href: C('38022381') },
-        { fx: 0.413, fy: 0.606, at: 0.06, span: 0.30, mfx: 0.655, mfy: 0.550, label: 'أنظمة صوت وترفيه', href: OFFERS },
-        { fx: 0.885, fy: 0.167, at: 0.06, span: 0.30, mfx: 0.910, mfy: 0.345, label: 'تكييفات هواء', href: C('38032005') },
-        { fx: 0.619, fy: 0.648, at: 0.12, span: 0.32, sfx: 0.619, sfy: 0.648, mfx: 0.815, mfy: 0.660, label: 'مراوح ومبردات هواء', href: C('50318054') },
-        { fx: 0.773, fy: 0.815, at: 0.12, span: 0.32, sfx: 0.773, sfy: 0.815, mfx: 0.610, mfy: 0.740, label: 'دفايات', href: OFFERS },
-        { fx: 0.060, fy: 0.690, at: 0.20, span: 0.32, sfx: 0.060, sfy: 0.690, mfx: 0.685, mfy: 0.575, label: 'تنقية وترطيب الهواء', href: OFFERS },
-        { fx: 0.371, fy: 0.597, at: 0.20, span: 0.32, sfx: 0.371, sfy: 0.597, mfx: 0.310, mfy: 0.525, label: 'مبردات مياه', href: C('102858075') },
+        { fx: 0.500, fy: 0.514, at: 0.06, span: 0.30, mfx: 0.510, mfy: 0.484, label: 'تليفزيونات', href: C('38022381') },
+        { fx: 0.413, fy: 0.606, at: 0.06, span: 0.30, mfx: 0.518, mfy: 0.534, label: 'أنظمة صوت وترفيه', href: OFFERS },
+        { fx: 0.885, fy: 0.167, at: 0.06, span: 0.30, mfx: 0.873, mfy: 0.379, label: 'تكييفات هواء', href: C('38032005') },
+        { fx: 0.619, fy: 0.648, at: 0.12, span: 0.32, sfx: 0.619, sfy: 0.648, mfx: 0.747, mfy: 0.597, label: 'مراوح ومبردات هواء', href: C('50318054') },
+        { fx: 0.773, fy: 0.815, at: 0.12, span: 0.32, sfx: 0.773, sfy: 0.815, mfx: 0.620, mfy: 0.672, label: 'دفايات', href: OFFERS },
+        { fx: 0.060, fy: 0.690, at: 0.20, span: 0.32, sfx: 0.060, sfy: 0.690, mfx: 0.161, mfy: 0.567, label: 'تنقية وترطيب الهواء', href: OFFERS },
+        { fx: 0.371, fy: 0.597, at: 0.20, span: 0.32, sfx: 0.371, sfy: 0.597, mfx: 0.340, mfy: 0.525, label: 'مبردات مياه', href: C('102858075') },
       ],
+      // portrait spots, in the order above: wall TV · soundbar under it · split AC
+      // top-right · pedestal fan · oil radiator · diffuser on the left console ·
+      // water dispenser beside the dining table.
     },
     {
       id: 'kitchen', label: 'المطبخ',
       still: 'assets/img/still_2.jpg',
-      stillMobile: 'assets/img/m_kitchen.jpg',
+      stillMobile: 'assets/img/m_kitchen_tall.jpg?v=4',
       clip: 'assets/vid/leg_2.mp4', clipMobile: 'assets/vid/leg_2-m.mp4',
       accent: '#c97b12',
       scroll: 2.1, linger: 0.5,
@@ -65,28 +71,33 @@ window.addEventListener('DOMContentLoaded', () => {
       eyebrow: 'قلب البيت',
       title: 'مطبخ فيه كل حاجة… حرفيًا',
       showcase: 0.92,   // the settle: full counter line-up + cooker wall + cold corner
+      // mfx/mfy read off m_kitchen_tall.jpg: the back-counter line-up runs left→right
+      // exactly as it does on the desktop counter (microwave · island blender ·
+      // coffee machine · air fryer · toaster · stand mixer · food processor ·
+      // juicer · grill press), then dishwasher, range, hood, the cold corner on
+      // the right, and the two big gadgets standing on the near island.
       hotspots: [
-        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.070, mfy: 0.556, label: 'ميكروييف', href: C('57646037') },
-        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.090, mfy: 0.710, label: 'خلاطات', href: C('68782006') },
-        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.220, mfy: 0.532, label: 'كاتيل وماكينات قهوة', href: C('185355010') },
-        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, mfx: 0.290, mfy: 0.526, label: 'قلايات', href: C('185364502') },
-        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.350, mfy: 0.524, label: 'أجهزة صغيرة', href: C('112439376') },
-        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, mfx: 0.400, mfy: 0.520, label: 'عجانات', href: C('68782006') },
-        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.500, mfy: 0.525, label: 'محضرات طعام', href: C('68782006') },
-        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.550, mfy: 0.512, label: 'عصارات', href: C('112439376') },
-        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.620, mfy: 0.538, label: 'جريل وتوستر', href: C('112439376') },
-        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, mfx: 0.330, mfy: 0.585, label: 'غسالات أطباق', href: C('38022354') },
-        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, mfx: 0.490, mfy: 0.588, label: 'أفران وبوتاجازات', href: C('38003799') },
-        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, mfx: 0.470, mfy: 0.452, label: 'شفاطات', href: C('38003799') },
-        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.840, mfy: 0.505, label: 'ثلاجات', href: C('38003882') },
-        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.915, mfy: 0.680, label: 'حلل كهربائية ومفارم', href: C('112439376') },
-        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, mfx: 0.795, mfy: 0.560, label: 'فريزرات', href: C('38005648') },
+        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.108, mfy: 0.543, label: 'ميكروييف', href: C('57646037') },
+        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.139, mfy: 0.634, label: 'خلاطات', href: C('68782006') },
+        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.250, mfy: 0.509, label: 'كاتيل وماكينات قهوة', href: C('185355010') },
+        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, mfx: 0.325, mfy: 0.518, label: 'قلايات', href: C('185364502') },
+        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.366, mfy: 0.527, label: 'أجهزة صغيرة', href: C('112439376') },
+        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, mfx: 0.430, mfy: 0.509, label: 'عجانات', href: C('68782006') },
+        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.498, mfy: 0.515, label: 'محضرات طعام', href: C('68782006') },
+        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.548, mfy: 0.504, label: 'عصارات', href: C('112439376') },
+        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.605, mfy: 0.525, label: 'جريل وتوستر', href: C('112439376') },
+        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, mfx: 0.341, mfy: 0.567, label: 'غسالات أطباق', href: C('38022354') },
+        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, mfx: 0.509, mfy: 0.565, label: 'أفران وبوتاجازات', href: C('38003799') },
+        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, mfx: 0.501, mfy: 0.477, label: 'شفاطات', href: C('38003799') },
+        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.773, mfy: 0.511, label: 'ثلاجات', href: C('38003882') },
+        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.719, mfy: 0.645, label: 'حلل كهربائية ومفارم', href: C('112439376') },
+        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, mfx: 0.833, mfy: 0.577, label: 'فريزرات', href: C('38005648') },
       ],
     },
     {
       id: 'laundry', label: 'غرفة الغسيل',
       still: 'assets/img/still_3.jpg',
-      stillMobile: 'assets/img/m_laundry.jpg',
+      stillMobile: 'assets/img/m_laundry_tall.jpg',
       clip: 'assets/vid/leg_3.mp4', clipMobile: 'assets/vid/leg_3-m.mp4',
       accent: '#3d7f9e',
       scroll: 1.8, linger: 0.45,
@@ -99,25 +110,28 @@ window.addEventListener('DOMContentLoaded', () => {
       title: 'غسيل وتجفيف ونضافة… وكل حاجة معاها',
       showcase: 0.50,   // the full-room view: fabric care, cleaning trio, heaters, shelves
       // Coords read off the actual showcase frame (leg_3.mp4 @ 4.02s, 1920×1080).
-      // The portrait m_laundry.jpg has ONE machine: washer + dryer markers both sit
+      // The portrait m_laundry_tall.jpg has ONE machine: washer + dryer markers both sit
       // on it, side by side (the user's request).
+      // Portrait order: the machine's left half · its right half · gas boiler ·
+      // electric water heater · iron on the board · steamer head · canister
+      // vacuum · robot vacuum on the floor · sewing machine · hair dryer.
       hotspots: [
-        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.600, mfy: 0.620, label: 'غسالات ملابس', href: C('38003963') },
-        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.710, mfy: 0.620, label: 'مجففات ملابس', href: C('38005652') },
-        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, mfx: 0.720, mfy: 0.340, label: 'سخانات غاز', href: C('48143206') },
-        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, mfx: 0.850, mfy: 0.260, label: 'سخانات كهرباء', href: C('48149056') },
-        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, mfx: 0.140, mfy: 0.550, label: 'مكاوى', href: C('81167227') },
-        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, mfx: 0.290, mfy: 0.440, label: 'مكاوى بخار وستيمر', href: C('81167227') },
-        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, mfx: 0.440, mfy: 0.635, label: 'مكانس', href: C('81170222') },
-        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, mfx: 0.340, mfy: 0.720, label: 'مكانس روبوت وعمودية', href: C('81170222') },
-        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, mfx: 0.900, mfy: 0.545, label: 'ماكينات خياطة', href: OFFERS },
-        { fx: 0.747, fy: 0.546, at: 0.50, span: 0.28, mfx: 0.670, mfy: 0.530, label: 'عناية شخصية', href: C('112439376') },
+        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.614, mfy: 0.603, label: 'غسالات ملابس', href: C('38003963') },
+        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.716, mfy: 0.603, label: 'مجففات ملابس', href: C('38005652') },
+        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, mfx: 0.710, mfy: 0.391, label: 'سخانات غاز', href: C('48143206') },
+        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, mfx: 0.839, mfy: 0.322, label: 'سخانات كهرباء', href: C('48149056') },
+        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, mfx: 0.201, mfy: 0.525, label: 'مكاوى', href: C('81167227') },
+        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, mfx: 0.333, mfy: 0.429, label: 'مكاوى بخار وستيمر', href: C('81167227') },
+        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, mfx: 0.428, mfy: 0.604, label: 'مكانس', href: C('81170222') },
+        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, mfx: 0.406, mfy: 0.645, label: 'مكانس روبوت وعمودية', href: C('81170222') },
+        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, mfx: 0.843, mfy: 0.510, label: 'ماكينات خياطة', href: OFFERS },
+        { fx: 0.747, fy: 0.546, at: 0.50, span: 0.28, mfx: 0.903, mfy: 0.525, label: 'عناية شخصية', href: C('112439376') },
       ],
     },
     {
       id: 'family', label: 'أوضة العروض',
       still: 'assets/img/still_4.jpg',
-      stillMobile: 'assets/img/m_offers.jpg',
+      stillMobile: 'assets/img/m_offers_tall.jpg',
       clip: 'assets/vid/leg_4.mp4', clipMobile: 'assets/vid/leg_4-m.mp4',
       accent: '#8a6242',
       scroll: 2.0, linger: 0.55,
@@ -173,6 +187,16 @@ window.addEventListener('DOMContentLoaded', () => {
     sections: SECTIONS,
     connectors: [],            // architecture A: legs chain directly, no connectors
     connectorsMobile: [],
+    // Portrait phones: a real room→room camera walk between each pair of rooms,
+    // scrubbed by scroll (replaces the old cross-dissolve). Each clip is 9:21 and
+    // frame-locked to the tall stills either side of it — clip N runs from
+    // sections[N] to sections[N+1], so this array is sections.length - 1 long.
+    transitionsMobile: [
+      'assets/vid/m_conn1.mp4?v=4',   // living  → kitchen
+      'assets/vid/m_conn2.mp4?v=4',   // kitchen → laundry
+      'assets/vid/m_conn3.mp4',   // laundry → offers
+    ],
+    mTransScroll: 1.2,           // viewport-heights of scroll each transition spans
   });
 
   mountHotspots(document.getElementById('world'), api, SECTIONS);
@@ -186,16 +210,16 @@ window.addEventListener('DOMContentLoaded', () => {
       { fx: 0.426, fy: 0.236, fw: 0.150, fh: 0.319 },
       { fx: 0.596, fy: 0.236, fw: 0.159, fh: 0.319 },
     ],
-    // The portrait m_offers.jpg shows the gallery wall smaller/wider — its three
-    // blank panels sit at these rects (fractions of the portrait frame).
+    // The portrait m_offers_tall.jpg frames the same gallery wall — its three blank
+    // canvases sit at these rects (fractions of the portrait picture).
     slotsMobile: [
-      { fx: 0.300, fy: 0.375, fw: 0.100, fh: 0.125 },
-      { fx: 0.420, fy: 0.375, fw: 0.100, fh: 0.125 },
-      { fx: 0.535, fy: 0.380, fw: 0.085, fh: 0.120 },
+      { fx: 0.291, fy: 0.312, fw: 0.140, fh: 0.166 },
+      { fx: 0.435, fy: 0.311, fw: 0.136, fh: 0.167 },
+      { fx: 0.575, fy: 0.310, fw: 0.120, fh: 0.168 },
     ],
     // Phone: make the board much bigger than the panels — stretch it out to reach
     // roughly halfway into the left and right shelves so it reads clearly.
-    boardMobile: { fx: 0.120, fy: 0.350, fw: 0.760, fh: 0.210 },
+    boardMobile: { fx: 0.145, fy: 0.377, fw: 0.711, fh: 0.156 },
     feeds: [
       { href: C('173607281'), badge: EN ? 'SADKO offers' : 'عروض صادكو', categoryIds: [38022381, 38032005, 38003882, 112439376, 38003963] },
       { href: C('195273251'), badge: EN ? 'Best sellers' : 'الأكثر مبيعاً', categoryIds: [38003882, 38022381, 40507239, 81170222, 185355010] },

@@ -116,6 +116,29 @@ function mountHotspots(container, api, sections) {
     })();
   }
 
+  // Where a room's "show me everything" view actually sits on the scroll track.
+  //
+  // Desktop scrubs the room's clip, so the tuned `showcase` progress is the frame
+  // where the flight settles on the full appliance line-up — use it as authored.
+  //
+  // Portrait phones show a STATIC tall still instead, so that fraction describes
+  // nothing here; worse, a room→room transition borrows scroll from the head and
+  // tail of every room's band, and some showcase fractions land inside one. The
+  // walk then covers the room and its markers fade (.sw-mtransing), which is
+  // exactly the "button jumps somewhere with no appliances" symptom — kitchen's
+  // 0.92 landed mid-transition. So on portrait, aim at the middle of the room's
+  // CLEAR dwell: its band minus whatever the neighbouring transitions overlap.
+  function showcaseTop(s, seg) {
+    if (!containMQ.matches) return seg.start + (seg.end - seg.start) * s.showcase;
+    let lo = seg.start, hi = seg.end;
+    (api.mtrans || []).forEach(t => {
+      if (t.start < 0 || t.end <= seg.start || t.start >= seg.end) return;  // no overlap
+      if (t.start <= seg.start) lo = Math.max(lo, t.end);   // transition over this room's head
+      else hi = Math.min(hi, t.start);                      // ... or over its tail
+    });
+    return (hi > lo) ? lo + (hi - lo) * 0.5 : seg.start + (seg.end - seg.start) * 0.5;
+  }
+
   function enterShowcase(si) {
     const s = sections[si], seg = s._seg;
     if (!seg || s.showcase == null) return;
@@ -124,7 +147,7 @@ function mountHotspots(container, api, sections) {
     layer.classList.add('hs-layer--showcase');
     groups.forEach(gr => gr && gr.el.classList.toggle('hs-group--showcase', gr.si === si));
     place();
-    glideTo(seg.start + (seg.end - seg.start) * s.showcase);
+    glideTo(showcaseTop(s, seg));
     dismissCoach();
   }
   function exitShowcase() {
@@ -205,18 +228,27 @@ function mountHotspots(container, api, sections) {
     const n = parseFloat(v);
     return isNaN(n) ? 0.42 : n / 100;
   }
-  // Portrait phones show a DIFFERENT scene: the bespoke portrait image
-  // (m_<room>.jpg, ~1080×1610), object-fit:contain and centred. So there the
-  // mapping uses that image's aspect + contain + centre, and markers read from
-  // each spot's mfx/mfy. Desktop/landscape keeps the 16:9 video, cover + objY.
-  const MFRAME_W = 1080, MFRAME_H = 2160;
+  // Portrait phones show a DIFFERENT scene: the bespoke portrait room image
+  // (assets/img/m_<room>_tall.jpg), a 9:21 frame drawn object-fit:cover +
+  // object-position:center. Because that image is TALLER than any handset, cover
+  // can only ever trim its top and bottom — never its sides — and those bands are
+  // generated ceiling and floor, so the room and every appliance in it always
+  // survive. The mapping therefore mirrors that COVER rect (note dh > r.height, so
+  // oy goes negative — that overflow is exactly the cropped ceiling). It reads the
+  // image's real pixel size off the <img> itself rather than a hardcoded frame, so
+  // swapping the artwork for a different size or aspect keeps every marker on its
+  // appliance. Markers read mfx/mfy here; desktop/landscape keeps the 16:9 video,
+  // cover + objY.
+  const MFRAME_W = 1320, MFRAME_H = 3080;   // fallback only, until the image decodes
   const containMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
-  function metrics() {
+  function metrics(sceneEl) {
     const r = stageEl.getBoundingClientRect();
     if (containMQ.matches) {
-      // cover (fill the screen) — mirrors the scene's object-fit:cover
-      const s = Math.max(r.width / MFRAME_W, r.height / MFRAME_H);
-      const dw = MFRAME_W * s, dh = MFRAME_H * s;
+      const im = sceneEl && sceneEl.querySelector('.sw-scene__mstill');
+      const iw = (im && im.naturalWidth) || MFRAME_W;
+      const ih = (im && im.naturalHeight) || MFRAME_H;
+      const s = Math.max(r.width / iw, r.height / ih);            // cover
+      const dw = iw * s, dh = ih * s;
       return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * 0.5 };
     }
     const s = Math.max(r.width / FRAME_W, r.height / FRAME_H);
@@ -229,11 +261,14 @@ function mountHotspots(container, api, sections) {
     return { x: m.ox + fx * m.dw, y: m.oy + fy * m.dh };
   }
   function place() {
-    const m = metrics();
+    const m0 = metrics();
     const reduceSc = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     groups.forEach(gr => {
       if (!gr) return;
       const seg = sections[gr.si]._seg;
+      // Portrait: each room carries its own image, so measure the rect against
+      // THAT room's <img> — rooms of different pixel sizes still line up.
+      const m = containMQ.matches ? metrics(seg && seg.el) : m0;
       const sc = gr.si === showSi;
       // Until the clip paints its first frame the engine shows the STILL with a
       // ken-burns transform (translateX((stageX-2)vw) scale(1.03+t*0.14), origin
@@ -259,7 +294,10 @@ function mountHotspots(container, api, sections) {
                          y: still.cy + (p.y - still.cy) * still.sc };
         return { it, x: p.x, y: p.y, bx: p.x, by: p.y };
       });
-      declutter(pts, MAX_NUDGE * m.dw);
+      // The portrait room rect is only a phone-width wide, so the same fraction
+      // of frame width is a much smaller nudge in px — allow a little more room
+      // to ease crowded dots apart while still keeping them on their appliance.
+      declutter(pts, (containMQ.matches ? 0.026 : MAX_NUDGE) * m.dw);
       pts.forEach(p => {
         p.it.x = p.x; p.it.y = p.y;
         p.it.el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`;
@@ -539,6 +577,13 @@ function mountHotspots(container, api, sections) {
   container.querySelectorAll('.sw-scene').forEach(sc =>
     clipWatch.observe(sc, { attributes: true, attributeFilter: ['class'] }));
 
+  // The portrait room images decode asynchronously and the portrait mapping
+  // reads their real pixel size, so re-project the moment each one lands.
+  container.querySelectorAll('.sw-scene__mstill').forEach(im => {
+    if (im.complete && im.naturalWidth) return;
+    im.addEventListener('load', place, { once: true });
+  });
+
   window.addEventListener('resize', remeasure);
   window.addEventListener('orientationchange', remeasure);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure).catch(() => {});
@@ -638,6 +683,15 @@ function injectHotspotCSS() {
   .hs-eye:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(20,52,58,.22);}
   .hs-eye.is-on{background:var(--sw-accent,#2e7e88);color:#fff;border-color:var(--sw-accent,#2e7e88);}
   .hs-eye__ic{display:block;}
+  /* Phones don't get the titles toggle: the portrait scene already holds every
+     marker of the room open, and the button competed with the room dock for the
+     same bottom corner. Tapping a marker still reveals its own title.
+     The second rule matters for a desktop→phone resize: the toggle could
+     otherwise be left ON with no button left to switch it back off. */
+  @media (max-width:860px){
+    .hs-eye{display:none !important;}
+    .hs-layer--labels .hs-spot__label{opacity:0;}
+  }
   /* forced-labels mode reveals the label of every currently-framed marker
      (hidden markers keep opacity 0, so their labels stay hidden too) */
   .hs-layer--labels .hs-spot__label{opacity:1;--hs-ox:0px;--hs-oy:0px;}

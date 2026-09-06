@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SADKO — desktop vs portrait phone (dev only)</title>
+<!--
+  THROWAWAY DEV HARNESS — not part of the site, do not link or deploy.
+
+  Why iframes instead of two browser windows:
+   1. A real Chrome window cannot be resized narrow enough to trigger the home
+      page's `(max-width:860px) and (orientation:portrait)` media queries — the
+      viewport floors around 967px, so a resized tab silently shows the DESKTOP
+      render and the portrait work looks like it never landed.
+   2. At 125% display scaling a 1536px screen is only ~1229 CSS px wide, so a real
+      desktop viewport (>860) and a 393px phone cannot both fit side by side.
+  An <iframe> has its own viewport for media-query evaluation, and CSS `scale()`
+  shrinks how much SCREEN it takes without changing the viewport it reports. So the
+  left frame genuinely believes it is 1280px wide and the right one genuinely
+  believes it is a portrait phone — both correct, both visible at once.
+
+  Caveat: `pointer:coarse` still won't match (desktop pointer), so marker labels are
+  hover-hidden rather than touch-hidden. Expected; does not affect scene rendering.
+-->
+<style>
+  :root{ --bg:#0e1013; --panel:#181c22; --ink:#eef1f5; --soft:#94a0ae;
+         --line:#2a3039; --accent:#2e7e88; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);overflow:hidden;
+    font:13px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    display:flex;flex-direction:column}
+  header{padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel);
+    display:flex;gap:14px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+  h1{font-size:14px;margin:0;font-weight:650;white-space:nowrap}
+  .tag{font-size:10.5px;color:var(--soft);border:1px solid var(--line);padding:2px 7px;border-radius:999px}
+  .devices{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+  button{font:inherit;font-size:11.5px;color:var(--soft);background:transparent;
+    border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
+  button:hover{color:var(--ink);border-color:#3a424e}
+  button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  main{flex:1 1 auto;display:flex;gap:14px;padding:10px;min-height:0;
+       justify-content:center;align-items:flex-start}
+  .pane{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+  .cap{font-size:11px;color:var(--soft);margin-bottom:6px;white-space:nowrap}
+  .cap b{color:var(--ink)}
+  /* Each viewport is rendered at TRUE pixel size, then scaled down purely visually.
+     transform:scale() does not change the viewport the iframe reports.
+     NOTE: no flex growth here — JS sets exact px, and flex:1 would override it. */
+  .box{position:relative;overflow:hidden;flex:0 0 auto}
+  .box iframe{border:0;transform-origin:0 0;display:block;background:#f6f3ee}
+  .desk iframe{box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:5px}
+  .phone{background:#000;border-radius:30px;padding:7px;box-shadow:0 14px 44px rgba(0,0,0,.55)}
+  .phone iframe{border-radius:24px}
+  .crop{font-size:10.5px;margin-top:7px;text-align:center}
+  .ok{color:#54c27e}.warn{color:#e0a33c}
+</style>
+</head>
+<body>
+<header>
+  <h1>SADKO — desktop vs portrait phone</h1>
+  <span class="tag">dev harness · each frame reports its own true viewport</span>
+  <div class="devices" id="devices"></div>
+</header>
+
+<main>
+  <div class="pane">
+    <div class="cap">DESKTOP · viewport <b>1280 × 800</b> (&gt; 860 breakpoint)</div>
+    <div class="box desk"><iframe id="d" src="/index.html" width="1280" height="800"></iframe></div>
+  </div>
+  <div class="pane">
+    <div class="cap">PORTRAIT PHONE · <b id="mdim">393 × 852</b> · aspect <b id="masp">0.461</b></div>
+    <div class="box"><div class="phone" id="ph"><iframe id="m" src="/index.html" width="393" height="852"></iframe></div></div>
+    <div class="crop" id="crop"></div>
+  </div>
+</main>
+
+<script>
+  // Shipped portrait scene is 9:21 (1320x3080). Cover maths mirrored from scrub-engine.js.
+  const IMG_W = 1320, IMG_H = 3080;
+  const DEVICES = [
+    ['iPhone 15', 393, 852], ['15 Pro Max', 430, 932], ['iPhone SE', 375, 667],
+    ['Pixel 9 XL', 448, 998], ['S24 Ultra', 384, 832], ['Xperia 21:9', 411, 960],
+    ['Z Fold cover', 344, 882],
+  ];
+  const d = document.getElementById('d'), m = document.getElementById('m'),
+        ph = document.getElementById('ph'), bar = document.getElementById('devices');
+  let mw = 393, mh = 852;
+
+  function fit() {
+    const avail = Math.max(240, document.querySelector('main').clientHeight - 30);
+    const totalW = window.innerWidth - 52;          // page padding + gap
+
+    // Size the PHONE first (it is the thing being reviewed) by fitting its height,
+    // then give the desktop frame whatever width is left. Sizing both from fixed
+    // percentage shares let the desktop overrun and push the phone off-screen.
+    const pw = mw + 14, phh = mh + 14;              // + bezel padding
+    const ms = Math.min(avail / phh, (totalW * 0.42) / pw);
+    ph.style.transform = 'scale(' + ms + ')';
+    ph.style.transformOrigin = '0 0';
+    const phoneW = Math.round(pw * ms);
+    ph.parentElement.style.width  = phoneW + 'px';
+    ph.parentElement.style.height = Math.round(phh * ms) + 'px';
+
+    const remaining = Math.max(200, totalW - phoneW);
+    const ds = Math.min(avail / 800, remaining / 1280);
+    d.style.transform = 'scale(' + ds + ')';
+    d.parentElement.style.width  = Math.round(1280 * ds) + 'px';
+    d.parentElement.style.height = Math.round(800  * ds) + 'px';
+  }
+
+  function apply(w, h, btn) {
+    mw = w; mh = h; m.width = w; m.height = h;
+    document.getElementById('mdim').textContent = w + ' × ' + h;
+    document.getElementById('masp').textContent = (w / h).toFixed(3);
+    const s = Math.max(w / IMG_W, h / IMG_H);
+    const side = Math.round(IMG_W * s - w), tb = Math.round(IMG_H * s - h);
+    document.getElementById('crop').innerHTML = side < 1
+      ? '<span class="ok">✓ 0px side crop</span> · ' + tb + 'px trimmed top/bottom (ceiling + floor)'
+      : '<span class="warn">' + side + 'px side crop</span> · into generated margin, not the room';
+    [...bar.children].forEach(b => b.classList.toggle('on', b === btn));
+    fit();
+  }
+
+  DEVICES.forEach(([n, w, h], i) => {
+    const b = document.createElement('button');
+    b.textContent = n; b.onclick = () => apply(w, h, b);
+    bar.appendChild(b);
+    if (i === 0) setTimeout(() => apply(w, h, b), 0);
+  });
+  addEventListener('resize', fit);
+</script>
+</body>
+</html>

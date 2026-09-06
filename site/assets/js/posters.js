@@ -149,15 +149,23 @@ function mountPosters(container, api, si, config) {
     const n = parseFloat(v);
     return isNaN(n) ? 0.42 : n / 100;
   }
-  // Portrait phones show the bespoke portrait offers image (m_offers.jpg,
-  // 1080×2160, object-fit:cover centred) with its own panel rects (slotsMobile).
-  const MFRAME_W = 1080, MFRAME_H = 2160;
+  // Portrait phones show the bespoke portrait offers image (m_offers_tall.jpg):
+  // a 9:21 frame drawn object-fit:cover, centred. It is taller than any handset,
+  // so cover only ever trims its top and bottom (generated ceiling and floor) and
+  // the gallery wall is never cropped. Mirror that COVER rect — reading the
+  // image's real pixel size off the <img>, so the board keeps hugging the wall
+  // whatever size the artwork is — and use its own rects (slotsMobile /
+  // boardMobile). Same convention as hotspots.js.
+  const MFRAME_W = 1320, MFRAME_H = 3080;   // fallback only, until the image decodes
   const containMQ = window.matchMedia('(max-width: 860px) and (orientation: portrait)');
   function metrics() {
     const r = stageEl.getBoundingClientRect();
     if (containMQ.matches) {
-      const s = Math.max(r.width / MFRAME_W, r.height / MFRAME_H);   // cover
-      const dw = MFRAME_W * s, dh = MFRAME_H * s;
+      const im = section._seg.el && section._seg.el.querySelector('.sw-scene__mstill');
+      const iw = (im && im.naturalWidth) || MFRAME_W;
+      const ih = (im && im.naturalHeight) || MFRAME_H;
+      const s = Math.max(r.width / iw, r.height / ih);   // cover
+      const dw = iw * s, dh = ih * s;
       return { dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * 0.5 };
     }
     const s = Math.max(r.width / FRAME_W, r.height / FRAME_H);
@@ -187,6 +195,11 @@ function mountPosters(container, api, si, config) {
     visible = op > 0.35;
     layer.style.pointerEvents = op > 0.5 ? 'auto' : 'none';
   });
+  // The portrait offers image decodes asynchronously and the portrait mapping
+  // reads its real pixel size, so re-place the board once it lands.
+  const mim = section._seg.el && section._seg.el.querySelector('.sw-scene__mstill');
+  if (mim && !(mim.complete && mim.naturalWidth)) mim.addEventListener('load', place, { once: true });
+
   window.addEventListener('resize', place);
   window.addEventListener('orientationchange', place);
   place();

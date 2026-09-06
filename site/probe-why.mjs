@@ -1,0 +1,15 @@
+process.env.SADKO_NO_SERVE='1';
+const { isRelevant, understandQuery } = await import('file:///D:/SADKO/site/compare-server.mjs');
+const fs = await import('node:fs');
+const q = JSON.parse(fs.readFileSync('cases.json','utf8'))[7].title;
+const t = 'مروحة ستاند سايلنس فورس VG4130EE من تيفال، تقنية الصمت، جهاز تحكم عن بعد، مؤقت 8 ساعات، 6 شفرات، ارتفاع قابل للتعديل، اسود';
+console.log('q === t ?', q === t);
+console.log('q len', q.length, '| t len', t.length);
+console.log('q:', JSON.stringify(q));
+console.log('t:', JSON.stringify(t));
+const attrs = await understandQuery(q);
+console.log('\nattrs:', JSON.stringify(attrs));
+console.log('isRelevant(t,q,attrs) =', isRelevant(t,q,attrs));
+console.log('isRelevant(t,q,null)  =', isRelevant(t,q,null));
+console.log('isRelevant(q,q,null)  =', isRelevant(q,q,null));
+process.exit(0);

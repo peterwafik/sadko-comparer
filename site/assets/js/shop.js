@@ -179,10 +179,11 @@
           key: b.key, count: b.count, name: t(b.ar, b.en),
           href: P('shop.html?brand=') + encodeURIComponent(b.key),
           // Only brands listed in assets/img/brands/logos.json get a logo request;
-          // everyone else renders the wordmark disc. See brandTile() and the folder's
-          // README for how to add one.
-          logo: (CACHE && CACHE.logos || []).indexOf(b.key) >= 0
-            ? P('assets/img/brands/') + b.key + '.png' : ''
+          // everyone else renders the wordmark disc. The manifest carries the file
+          // name, not just the key, because the logos do not all arrive in the same
+          // format. See brandTile() and the folder's README.
+          logo: ((CACHE && CACHE.logos) || {})[b.key]
+            ? P('assets/img/brands/') + CACHE.logos[b.key] : ''
         };
       });
     var ads = adsFor(root, promos);
@@ -610,8 +611,21 @@
     // reviewable edit. A missing or broken manifest simply means no logos.
     var logos = fetch(P('assets/img/brands/logos.json'))
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { return (d && Array.isArray(d.logos)) ? d.logos : []; })
-      .catch(function () { return []; });
+      .then(function (d) {
+        var l = d && d.logos;
+        // The manifest was a list of keys, each implying "<key>.png". It is now a
+        // key -> filename map, because the logos do not all come in one format —
+        // Kiriazi publishes an SVG on its own site while the rest arrived as PNG.
+        // The old shape is still read so a stale manifest degrades to the old
+        // behaviour rather than to no logos at all.
+        if (Array.isArray(l)) {
+          var m = {};
+          l.forEach(function (k) { m[k] = k + '.png'; });
+          return m;
+        }
+        return (l && typeof l === 'object') ? l : {};
+      })
+      .catch(function () { return {}; });
     // Curated rails (offers / picks / best sellers). Hub-only, like promos.
     var collections = fixedPage ? Promise.resolve(null)
       : fetch(P('data/collections.json')).then(function (r) { return r.ok ? r.json() : null; })
@@ -625,7 +639,7 @@
       CACHE = {
         products: res[0],
         promos: (res[1] && res[1].promos) || null,
-        logos: res[2] || [],
+        logos: res[2] || {},
         collections: (res[3] && res[3].collections) || null
       };
       render();

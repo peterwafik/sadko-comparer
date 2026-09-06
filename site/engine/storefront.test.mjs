@@ -1,6 +1,6 @@
 // site/engine/storefront.test.mjs
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
@@ -311,6 +311,38 @@ test('brandTile shows its real count and hrefs the brand filter', () => {
   assert.ok(html.includes('12'));
   assert.ok(html.includes('كريازى'));
   assert.ok(html.includes('href="shop.html?brand=kiriazi"'));
+});
+
+// The brand row sits high on the page — on a phone it is the first band under the
+// search box — so the marks that are on screen when it renders must not wait on an
+// intersection. The ones past the visible strip still do.
+test('the first brand marks load eagerly and the rest stay lazy', () => {
+  const b = { key: 'kiriazi', name: 'كريازى', count: 12, href: '#', logo: 'assets/img/brands/kiriazi.svg' };
+  assert.ok(!/loading="lazy"/.test(ui.brandTile(b, 0)), 'the first mark is lazy — it will pop in');
+  assert.ok(!/loading="lazy"/.test(ui.brandTile(b, 3)));
+  assert.match(ui.brandTile(b, 4), /loading="lazy"/, 'every mark is eager — the whole row downloads up front');
+  // called without an index (a direct caller, not .map) it must not go lazy either
+  assert.ok(!/loading="lazy"/.test(ui.brandTile(b)));
+  // a brand with no logo still renders the wordmark disc and asks for nothing
+  assert.match(ui.brandTile({ key: 'x', name: 'X', count: 1, href: '#' }, 0), /btile__mark--nologo/);
+  assert.ok(!/<img/.test(ui.brandTile({ key: 'x', name: 'X', count: 1, href: '#' }, 0)));
+});
+
+// The manifest is what stops the row asking for twelve logos that are not there.
+// If it names a file that was never committed, the tile 404s into the wordmark
+// fallback and nobody notices until someone looks at the shop.
+test('every logo the manifest names is actually committed', () => {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '../assets/img/brands');
+  const manifest = JSON.parse(readFileSync(join(dir, 'logos.json'), 'utf8'));
+  assert.equal(typeof manifest.logos, 'object');
+  assert.ok(!Array.isArray(manifest.logos), 'the manifest is back to a bare key list — file names are lost');
+  const keys = Object.keys(manifest.logos);
+  assert.ok(keys.length >= 12, 'expected a logo per brand tile, got ' + keys.length);
+  for (const k of keys) {
+    const f = manifest.logos[k];
+    assert.match(f, /^[a-z0-9._-]+\.(png|svg|webp)$/i, k + ' names something that is not a plain image file: ' + f);
+    assert.ok(existsSync(join(dir, f)), 'logos.json lists ' + f + ' for "' + k + '" but that file is not committed');
+  }
 });
 
 // priceBands' contract: entries must be caller-built {key, label?, href} objects,

@@ -106,9 +106,15 @@
   // <img> removes itself and the wordmark underneath shows through, so the row
   // looks deliberate whether or not the logos have been supplied yet. We ship no
   // third-party logo files — see assets/img/brands/README.md.
-  function brandTile(b) {
+  // `i` arrives free from `brands.map(brandTile)`. The brand row sits high on the
+  // page — on a phone it is the first band under the search box — and the first
+  // few marks are on screen the moment it renders, so lazy-loading them only buys
+  // a pop-in. The tiles past the visible three (the phone strip shows three and
+  // swipes for the rest) keep loading lazily, which is where lazy actually pays.
+  function brandTile(b, i) {
     var logo = b.logo
-      ? '<img class="btile__logo" src="' + esc(b.logo) + '" alt="" loading="lazy"' +
+      ? '<img class="btile__logo" src="' + esc(b.logo) + '" alt="" decoding="async"' +
+        ((i || 0) < 4 ? '' : ' loading="lazy"') +
         ' onerror="this.parentNode.classList.add(\'btile__mark--nologo\');this.remove()">'
       : '';
     return '<a class="btile" href="' + esc(b.href) + '" title="' + esc(b.name) + '">' +

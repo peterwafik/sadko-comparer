@@ -733,6 +733,61 @@ If that last command prints HTML, the comparer's JS-rendered stores (B.TECH,
 Carrefour, Amazon) will work. If it hangs or errors, Chrome is the problem, not
 the app — check you installed the `.deb` and not the snap.
 
+### 5G.9a Give the VM its own pull access (private repo)
+
+`setup-vm.sh` clones over HTTPS, which works once — interactively, with a
+credential you type. Nothing persists, so the *next* `deploy/update.sh` dies on
+`fatal: could not read Username for 'https://github.com'` and the live site
+quietly stays on the build it launched with. Fix it once, with a **read-only
+deploy key** rather than a personal token: it is scoped to this one repository,
+cannot push, and is revoked from the repo's own settings page.
+
+```bash
+# on the VM — a key the app user owns, no passphrase (systemd cannot type one)
+sudo -u sadko mkdir -p /opt/sadko/.ssh
+sudo -u sadko ssh-keygen -t ed25519 -N "" -f /opt/sadko/.ssh/id_ed25519 -q
+sudo cat /opt/sadko/.ssh/id_ed25519.pub
+```
+
+Register that public key on GitHub — *Settings → Deploy keys → Add*, **leave
+"Allow write access" unchecked** — or from a machine with `gh` logged in:
+
+```bash
+gh repo deploy-key add key.pub --repo <owner>/<repo> --title "sadko-vm (read-only)"
+```
+
+Then point the checkout at SSH and tell it which key to use. `core.sshCommand`
+is set on the repository, so it applies no matter who runs `git` there, and
+`UserKnownHostsFile` is spelled out because `sudo -u` does not reliably move
+`HOME`:
+
+```bash
+sudo -u sadko git -C /opt/sadko/repo remote set-url origin git@github.com:<owner>/<repo>.git
+sudo -u sadko git -C /opt/sadko/repo config core.sshCommand \
+  'ssh -i /opt/sadko/.ssh/id_ed25519 -o UserKnownHostsFile=/opt/sadko/.ssh/known_hosts -o StrictHostKeyChecking=accept-new'
+sudo -u sadko git -C /opt/sadko/repo fetch --prune     # should print a ref update
+```
+
+**`site/data/stores.json` will block the pull.** The engine rewrites it as
+stores are discovered and health-checked, so the working tree is always dirty
+there and `git pull --ff-only` aborts rather than overwrite it. Stash it — do
+not `checkout --` it, which throws the live registry away with no copy:
+
+```bash
+sudo -u sadko git -C /opt/sadko/repo stash push -m vm-local-stores -- site/data/stores.json
+sudo bash /opt/sadko/repo/deploy/update.sh
+```
+
+The committed file is normally the newer of the two (it carries whatever the
+last development run discovered), but check before dropping the stash:
+
+```bash
+sudo -u sadko sh -c "cd /opt/sadko/repo
+  git show 'stash@{0}:site/data/stores.json' | grep -o '\"domain\": *\"[^\"]*\"' | cut -d'\"' -f4 | sort -u > /tmp/sv.txt
+  grep -o '\"domain\": *\"[^\"]*\"' site/data/stores.json | cut -d'\"' -f4 | sort -u > /tmp/sn.txt
+  comm -23 /tmp/sv.txt /tmp/sn.txt"      # prints stores the VM had and the new build does not
+```
+
 ### 5G.10 Day-two operations
 
 ```bash

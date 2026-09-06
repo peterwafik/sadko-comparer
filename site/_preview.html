@@ -63,9 +63,25 @@
      transform:scale() does not change the viewport the iframe reports.
      NOTE: no flex growth here — JS sets exact px, and flex:1 would override it. */
   .box{position:relative;overflow:hidden;flex:0 0 auto}
-  .box iframe{border:0;transform-origin:0 0;display:block;background:#f6f3ee}
+  .box iframe{border:0;display:block;background:#f6f3ee}
+  /* The scale goes on a WRAPPER, never on the <iframe> element itself. Chrome
+     intermittently fails to raster a directly-transformed iframe and paints it
+     blank — the DOM inside is complete and reports the right viewport, there is
+     simply nothing on screen, which reads as "the whole page is broken". The phone
+     pane already scaled its .phone bezel rather than its iframe; .scaler gives the
+     desktop pane the same shape.
+
+     `will-change:transform` is the part that actually keeps them painted. Without
+     it Chrome rasters the scaled layer once — while the iframe inside is still
+     empty — and never re-rasters it when the frame's document paints, so you get a
+     correctly sized BLANK panel with a complete DOM behind it. Promoting the
+     wrapper to its own live layer makes the frame composite independently, and
+     late arrivals (the room still, lazy card images, video frames) show up on
+     their own instead of needing a style change to force a repaint. */
+  .scaler{transform-origin:0 0;width:1280px;height:800px;will-change:transform}
   .desk iframe{box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:5px}
-  .phone{background:#000;border-radius:30px;padding:7px;box-shadow:0 14px 44px rgba(0,0,0,.55)}
+  .phone{background:#000;border-radius:30px;padding:7px;box-shadow:0 14px 44px rgba(0,0,0,.55);
+    transform-origin:0 0;will-change:transform}
   .phone iframe{border-radius:24px}
   .crop{font-size:10.5px;margin-top:7px;text-align:center;min-height:15px}
   .crop a{color:#6f7c8a}
@@ -101,7 +117,7 @@
 <main>
   <div class="pane">
     <div class="cap">DESKTOP &middot; nominal <b>1280 &times; 800</b> &middot; reports <span class="live" id="dlive">&hellip;</span></div>
-    <div class="box desk"><iframe id="d" src="index.html" width="1280" height="800"></iframe></div>
+    <div class="box desk"><div class="scaler" id="dsc"><iframe id="d" src="index.html" width="1280" height="800"></iframe></div></div>
     <div class="crop"><a id="dopen" href="index.html" target="_blank">open this page full-size &#8599;</a></div>
   </div>
   <div class="pane">
@@ -182,7 +198,7 @@
 
   var LANG_KEY = 'sadko-lang';
   var d = document.getElementById('d'), m = document.getElementById('m'),
-      ph = document.getElementById('ph'),
+      dsc = document.getElementById('dsc'), ph = document.getElementById('ph'),
       devBar = document.getElementById('devices'),
       pageBar = document.getElementById('pages'),
       langBar = document.getElementById('langs'),
@@ -201,17 +217,17 @@
     // percentage shares let the desktop overrun and push the phone off-screen.
     var pw = mw + 14, phh = mh + 14;                // + bezel padding
     var ms = Math.min(avail / phh, (totalW * 0.42) / pw);
+    ph.style.width = pw + 'px'; ph.style.height = phh + 'px';
     ph.style.transform = 'scale(' + ms + ')';
-    ph.style.transformOrigin = '0 0';
     var phoneW = Math.round(pw * ms);
     ph.parentElement.style.width  = phoneW + 'px';
     ph.parentElement.style.height = Math.round(phh * ms) + 'px';
 
     var remaining = Math.max(200, totalW - phoneW);
     var ds = Math.min(avail / 800, remaining / 1280);
-    d.style.transform = 'scale(' + ds + ')';
-    d.parentElement.style.width  = Math.round(1280 * ds) + 'px';
-    d.parentElement.style.height = Math.round(800  * ds) + 'px';
+    dsc.style.transform = 'scale(' + ds + ')';
+    d.parentElement.parentElement.style.width  = Math.round(1280 * ds) + 'px';
+    d.parentElement.parentElement.style.height = Math.round(800  * ds) + 'px';
   }
 
   // Read back what each frame actually believes its viewport is. Same origin, so
@@ -225,8 +241,23 @@
     }
     read(d, 'dlive'); read(m, 'mlive');
   }
-  d.addEventListener('load', reportViewports);
-  m.addEventListener('load', reportViewports);
+
+  // Belt and braces for the raster problem described in the CSS: re-assert the
+  // scale once the frame's document is in, which invalidates the wrapper's layer.
+  // `will-change` alone has held in testing; this costs nothing and covers the
+  // case where the compositor still hands back a stale empty tile.
+  function nudge() {
+    [dsc, ph].forEach(function (el) {
+      var t = el.style.transform;
+      if (!t) return;
+      el.style.transform = 'none';
+      void el.offsetWidth;                          // force the style/layout flush
+      el.style.transform = t;
+    });
+  }
+  function onFrameLoad() { reportViewports(); nudge(); }
+  d.addEventListener('load', onFrameLoad);
+  m.addEventListener('load', onFrameLoad);
 
   function cropReadout() {
     var el = document.getElementById('crop');

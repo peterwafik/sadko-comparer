@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openCatalog } from './catalog.mjs';
-import { rankOffers } from './serve.mjs';
+import { rankOffers, mergeLiveRows } from './serve.mjs';
+import { identify } from './matcher.mjs';
 import { CATEGORIES } from './categories.mjs';
 
 function seeded() {
@@ -463,4 +464,137 @@ test('removing a unit override widens the result set', async () => {
   assert.ok(wide.results.length > narrow.results.length,
     'clearing the kg filter must return both capacities');
   c.close();
+});
+
+/* ---------------------------------------------------------------------------
+   mergeLiveRows — the catalog is a PARTIAL mirror.
+
+   scripts/crawl-m1.mjs fills catalog.db from product sitemaps, so it only ever
+   holds the stores that publish one. amazon.eg, carrefouregypt.com and every
+   other headless/JS-only store are absent from it by construction, and the
+   live fan-out is the only code path that ever queries them. A confident
+   catalog match therefore is not a complete answer, and crowning a "cheapest"
+   from it alone hides real, cheaper offers: the reported case was a Midea
+   MF-CY85WK air fryer crowned at 6,498 from Sharaf DG while Amazon Egypt
+   listed the same model at 5,800.
+   --------------------------------------------------------------------------- */
+
+const catRow = (domain, price, rank) => ({
+  store: domain, domain, type: 'local', title: 'Midea Airfryer MF-CY85WK',
+  price, effectivePrice: price, currency: 'EGP', url: `https://${domain}/p`,
+  checkedAt: 1, flags: [], rank, verified: false,
+});
+const liveRow = (domain, price, flags = []) => ({
+  store: domain, domain, type: 'mega', title: 'Midea Airfryer MF-CY85WK',
+  price, effectivePrice: price, currency: 'EGP', url: `https://${domain}/dp`,
+  checkedAt: 2, flags, tier: 1, rank: flags.length ? undefined : 1,
+});
+
+test('a live store the catalog cannot cover is added and can take the crown', () => {
+  const merged = mergeLiveRows([catRow('egypt.sharafdg.com', 6498, 1)],
+                               [liveRow('amazon.eg', 5800)]);
+  assert.equal(merged.length, 2, 'the Amazon offer must survive the merge');
+  const crown = merged.find(r => r.rank === 1);
+  assert.equal(crown.domain, 'amazon.eg', 'the genuinely cheapest offer must be crowned');
+  assert.equal(crown.price, 5800);
+  assert.equal(merged.find(r => r.domain === 'egypt.sharafdg.com').rank, 2);
+});
+
+test('the merged list stays price-ascending', () => {
+  const merged = mergeLiveRows([catRow('a.com', 6498, 1), catRow('b.com', 7000, 2)],
+                               [liveRow('amazon.eg', 5800)]);
+  assert.deepEqual(merged.map(r => r.price), [5800, 6498, 7000]);
+});
+
+test('a live row from a domain the catalog already matched is dropped', () => {
+  // the catalog cleared sameProduct's identity check; the live fan-out only
+  // cleared isRelevant. On a domain both cover, the stricter one wins rather
+  // than letting a looser match undercut it.
+  const merged = mergeLiveRows([catRow('jumia.com.eg', 6498, 1)],
+                               [liveRow('jumia.com.eg', 4000)]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].price, 6498);
+});
+
+test('a flagged live row is shown but never crowned, even when cheapest', () => {
+  const merged = mergeLiveRows([catRow('a.com', 6498, 1)],
+                               [liveRow('amazon.eg', 3000, ['variant'])]);
+  assert.equal(merged.length, 2);
+  assert.equal(merged[0].price, 3000, 'it is still shown, price-sorted');
+  assert.equal(merged[0].rank, undefined, 'but an uncertain match cannot be the winner');
+  assert.equal(merged.find(r => r.domain === 'a.com').rank, 1);
+});
+
+test('an uncrownable catalog row stays uncrowned after the merge', () => {
+  // rank undefined = rankOffers refused to crown it (weak match, or out of stock)
+  const merged = mergeLiveRows([catRow('a.com', 100, undefined)],
+                               [liveRow('amazon.eg', 5800)]);
+  assert.equal(merged[0].price, 100);
+  assert.equal(merged[0].rank, undefined);
+  assert.equal(merged.find(r => r.domain === 'amazon.eg').rank, 1);
+});
+
+test('no live rows is an identity operation — order and ranks are untouched', () => {
+  const rows = [catRow('a.com', 6498, 1), catRow('b.com', 7000, 2)];
+  const merged = mergeLiveRows(rows, []);
+  assert.deepEqual(merged.map(r => [r.domain, r.price, r.rank]),
+                   [['a.com', 6498, 1], ['b.com', 7000, 2]]);
+});
+
+test('crowning stops at five', () => {
+  const cat = [catRow('a.com', 100, 1)];
+  const live = [200, 300, 400, 500, 600, 700].map((p, i) => liveRow('s' + i + '.com', p));
+  const merged = mergeLiveRows(cat, live);
+  assert.equal(merged.filter(r => r.rank != null).length, 5);
+  assert.deepEqual(merged.slice(0, 5).map(r => r.rank), [1, 2, 3, 4, 5]);
+  assert.equal(merged[5].rank, undefined);
+});
+
+test('a live accessory FOR the product is dropped, not crowned', () => {
+  // the real regression: isRelevant let a 165 EGP fridge divider through, and
+  // being cheapest it took the crown over a genuine 16,333 EGP Toshiba fridge
+  const q = 'ثلاجة توشيبا';
+  const want = identify(q);
+  const cat = [{ ...catRow('awadserag.com', 16333, 1), title: 'ثلاجه توشيبا 296 لتر 2 باب سلفر GR-EF31-SL' }];
+  const live = [{ ...liveRow('elarabygroup.com', 165), title: 'حاجز أدوية ثلاجة توشيبا و تورنيدو 351 لتر شفاف' }];
+  const merged = mergeLiveRows(cat, live, q, want);
+  assert.equal(merged.length, 1, 'the accessory must not appear at all');
+  assert.equal(merged[0].domain, 'awadserag.com');
+  assert.equal(merged[0].rank, 1, 'the real fridge keeps the crown');
+});
+
+test('a live row for a different brand is dropped', () => {
+  const q = 'ثلاجة توشيبا';
+  const want = identify(q);
+  const cat = [{ ...catRow('awadserag.com', 16333, 1), title: 'ثلاجه توشيبا 296 لتر 2 باب سلفر GR-EF31-SL' }];
+  const live = [{ ...liveRow('x.com', 9000), title: 'ثلاجة سامسونج 300 لتر' }];
+  const merged = mergeLiveRows(cat, live, q, want);
+  assert.equal(merged.length, 1, 'a Samsung fridge is not an answer to a Toshiba query');
+});
+
+test('a genuine live offer still merges and crowns once the gate is on', () => {
+  const q = 'Midea Airfryer MF-CY85WK';
+  const want = identify(q);
+  const merged = mergeLiveRows([catRow('egypt.sharafdg.com', 6498, 1)],
+                               [liveRow('amazon.eg', 5800)], q, want);
+  assert.equal(merged.length, 2, 'the gate must not reject the real Amazon listing');
+  assert.equal(merged.find(r => r.rank === 1).domain, 'amazon.eg');
+});
+
+test('a regional model suffix is shown and flagged, never dropped', () => {
+  // sameProduct compares model strings exactly, so TW-BJ100M4EG reads as a
+  // 'model mismatch' against TW-BJ100M4. Dropping on that hid Amazon's 22,620
+  // listing of exactly the washer the shopper typed.
+  const q = 'Toshiba Washing Machine TW-BJ100M4';
+  const want = identify(q);
+  const cat = [{ ...catRow('kenzz.com', 22800, 1),
+    title: 'Toshiba Automatic Washing Machine - 8 Kg - Morandi Gray- Tw-Bk90Gf4Eg(SK)' }];
+  const live = [{ ...liveRow('amazon.eg', 22620),
+    title: 'TOSHIBA Washing Machine - Silver - 9Kg - Inverter - TW-BJ100M4EG' }];
+  const merged = mergeLiveRows(cat, live, q, want);
+  const am = merged.find(r => r.domain === 'amazon.eg');
+  assert.ok(am, 'the cheaper Amazon listing must be visible to the shopper');
+  assert.equal(am.price, 22620);
+  assert.ok(am.flags.includes('variant'), 'flagged, because the engine is not certain');
+  assert.equal(am.rank, undefined, 'and never crowned on an uncertain identity');
 });

@@ -85,10 +85,16 @@ function browseContradicts(want, got, def) {
    segment of the title is inspected (capped at 50 chars, split on the first
    comma/dash/pipe/paren) — feature bullets deep in a real product's title
    routinely mention "stand" or "cover" without the product BEING one. */
+/* Kept to stems that are long enough to be safe as an Arabic substring test —
+   'رف' (shelf) and 'درج' (drawer) are genuine accessory words but would fire
+   inside ordinary ones ('شرف' — Sharaf DG's own name — 'معرفة', 'مدرج'), so
+   they are deliberately absent. 'حاجز' (divider/barrier) earns its place: a
+   fridge shelf divider listed at 165 EGP was being crowned as the cheapest
+   Toshiba fridge over a real 16,333 EGP one. */
 const ACCESSORY_WORDS = [
-  'حمايه', 'حماية', 'جراب', 'كفر', 'كاڤر', 'حافظه', 'غطاء', 'حامل', 'واقي', 'ستاند', 'فريم',
+  'حمايه', 'حماية', 'جراب', 'كفر', 'كاڤر', 'حافظه', 'غطاء', 'حامل', 'واقي', 'ستاند', 'فريم', 'حاجز',
   'protector', 'case', 'cover', 'pouch', 'sleeve', 'holder', 'stand', 'mount', 'guard', 'skin',
-  'screen protector',
+  'screen protector', 'divider', 'organizer',
 ];
 
 /* Real catalog titles from this crawl are routinely "SKU-CODE-Arabic
@@ -388,4 +394,78 @@ export async function rankOffers(catalog, query, opts = {}) {
     // never fall through to the live fan-out that actually stocks the item.
     confident: cheapest !== null,
   };
+}
+
+/* Fold the live fan-out's rows into a catalog answer and re-crown across both.
+
+   catalog.db is a PARTIAL mirror: scripts/crawl-m1.mjs fills it from product
+   sitemaps, so it holds only the stores that publish one. amazon.eg,
+   carrefouregypt.com and the other headless/JS-only stores are absent from it
+   by construction and can only ever be reached by the live fan-out. A
+   confident catalog match is therefore an answer about ~10 stores, not about
+   the market, and crowning its cheapest row as *the* cheapest states something
+   the engine has not checked. Reported case: a Midea MF-CY85WK air fryer
+   crowned at 6,498 from Sharaf DG while Amazon Egypt listed the same model at
+   5,800 — a real, cheaper offer the shopper was never shown.
+
+   Two rules, both deliberately conservative:
+
+   - A live row is added only for a domain the catalog answer does not already
+     cover. Both pipelines can return the same store, but they qualify a match
+     differently: the catalog cleared sameProduct's identity check, the live
+     row only cleared isRelevant. Where they overlap the stricter one wins,
+     so a looser live match can never undercut a verified catalog price.
+
+   - Crowning is recomputed over the union, and a row may be crowned only if
+     the pipeline that produced it had already crowned it (`rank` set —
+     'exact'/'strong' and in stock on the catalog side, unflagged on the live
+     side). Merging must not promote a row neither pipeline was willing to
+     stand behind; uncrownable rows stay visible and price-sorted, exactly as
+     they are today. */
+export function mergeLiveRows(catalogRows, liveRows = [], query = '', want = null) {
+  const covered = new Set(catalogRows.map(r => r.domain));
+  const crownable = new Set();
+
+  // Catalog rows arrive already identity-checked by the pass above; their
+  // crownability was decided by the crowning gate and is taken as given.
+  const merged = catalogRows.map(r => {
+    const copy = { ...r };
+    if (r.rank != null) crownable.add(copy);
+    return copy;
+  });
+
+  for (const row of liveRows) {
+    if (covered.has(row.domain)) continue;
+    const copy = { ...row };
+    let ok = row.rank != null;          // the live pipeline was willing to crown it
+    if (want) {
+      const got = identify(row.title || '');
+      // Wrong category, wrong brand, or an accessory FOR the product is not an
+      // answer to the query at any price, and is dropped exactly as
+      // offerAllowed drops it on the catalog side. Without this the live
+      // pipeline's looser filter picks the winner: isRelevant does not know
+      // "حاجز أدوية ثلاجة توشيبا" is a 165 EGP shelf divider rather than a
+      // fridge, and it was crowned cheapest over a real 16,333 EGP Toshiba.
+      if (!offerAllowed(want, got, query, row.title || '')) continue;
+      /* Crowning, though, is all the identity verdict decides — it does not
+         decide visibility. sameProduct compares model strings exactly, so the
+         Egyptian retail suffix makes TW-BJ100M4EG read as a "model mismatch"
+         against a query for TW-BJ100M4 even though it is the same washer;
+         dropping on that verdict hid Amazon's 22,620 EGP listing of exactly
+         the machine the shopper typed. Same-brand, same-category offers are
+         therefore kept and price-sorted, flagged 'variant' so the UI says the
+         engine is not certain they are the same unit, and left uncrowned —
+         the rule 'weak' offers already follow throughout this module. */
+      const confidence = directedConfidence(want, got, query);
+      ok = ok && !!confidence && CROWNABLE.has(confidence);
+      if (!ok && !copy.flags?.includes('variant')) copy.flags = [...(copy.flags || []), 'variant'];
+    }
+    if (ok) crownable.add(copy);
+    merged.push(copy);
+  }
+
+  merged.sort((a, b) => a.price - b.price);
+  let n = 0;
+  for (const r of merged) r.rank = crownable.has(r) && n < 5 ? ++n : undefined;
+  return merged;
 }

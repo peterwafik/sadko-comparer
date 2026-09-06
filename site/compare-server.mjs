@@ -52,7 +52,7 @@ import { renderPage, headlessAvailable } from './headless.mjs';
 import { parsePrice, decodeEntities, isProductOffer, UI_TITLE, BAD_URL } from './engine/offer-gate.mjs';
 import { extractUnits } from './engine/units.mjs';
 import { openCatalog } from './engine/catalog.mjs';
-import { rankOffers } from './engine/serve.mjs';
+import { rankOffers, mergeLiveRows } from './engine/serve.mjs';
 import { extractProduct } from './engine/extract.mjs';
 import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
@@ -1409,6 +1409,47 @@ function parseOverride(sp) {
   return override;
 }
 
+/* Rows from the live fan-out, for a query the catalog has already answered.
+
+   Never awaits the sweep: it joins a running job or starts one and returns
+   whatever has landed so far (plus anything the saved index still holds), so
+   the catalog answer is not delayed by a store that takes 32s. The caller
+   reports `refreshing` and the client polls back for the rest.
+
+   Shaped by buildResponse so live rows arrive in exactly the response shape
+   the catalog rows already use — bestPerDomain applied, offerFlags computed,
+   min/max honoured, store name localised — rather than being mapped a second,
+   subtly different way here. */
+async function liveSupplement(q, discover, min, max, lang) {
+  try {
+    await loadIndex(); await loadRegistry();
+    const qk = qkey(q);
+    const idx = INDEX.queries[qk] || INDEX.queries[(INDEX.alias || {})[qk]];
+    let job = JOBS.get(qk);
+    if (!job && !(idx && Date.now() - idx.t < FRESH_MS)) job = startJob(q, qk, discover);
+    const offers = job && job.offers.length ? job.offers : (idx ? idx.offers : []);
+    const rows = buildResponse(q, offers, {}, job ? job.ai : null,
+      min, max, lang, false, 'live', 0).results;
+    return { rows, refreshing: !!(job && !job.done) };
+  } catch {
+    return { rows: [], refreshing: false };   // the catalog answer still stands
+  }
+}
+
+/* The shopper-facing name of a store, in their language.
+
+   The catalog stores a domain and nothing else, so the catalog path used to
+   label its rows with the bare domain ("egypt.sharafdg.com"). That was merely
+   ugly while those rows sat alone; now that live rows — which buildResponse
+   labels properly — are merged into the same list, an unresolved row reads as
+   a different, less trustworthy kind of result sitting next to a real one.
+   Falls back to the domain for a store the registry has never seen. */
+function storeLabel(domain, lang) {
+  const s = (REGISTRY?.stores || []).find(x => x.domain === domain);
+  if (!s) return domain;
+  return (lang === 'en' ? (s.nameEn || s.name) : s.name) || domain;
+}
+
 async function compare(q, min, max, discover, lang, override) {
   const cat = catalog();
   if (cat) {
@@ -1423,28 +1464,54 @@ async function compare(q, min, max, discover, lang, override) {
     // garbage-match review).
     if (r.results.length && (r.browse || r.confident)) {
       const filtered = r.results.filter(x => (!min || x.price >= min) && (!max || x.price <= max));
+      await loadRegistry();          // cached; needed for storeLabel below
       const results = filtered.map(x => ({
-        store: x.domain, domain: x.domain, type: 'local', title: x.title,
+        store: storeLabel(x.domain, lang), domain: x.domain, type: 'local', title: x.title,
         price: x.price, effectivePrice: x.price, currency: x.currency, url: x.url,
         checkedAt: x.checkedAt, flags: x.confidence === 'weak' ? ['variant'] : [],
         rank: x.rank, verified: x.verified,
       }));
-      // derive cheapest from the MAPPED and price-FILTERED rows: rankOffers'
-      // own `cheapest` carries `domain` but not `store`, and predates the
-      // min/max filter, so using it directly would render an undefined store
-      // name and could crown a row the shopper's price filter excluded
-      const cheapest = results.find(x => x.rank === 1) || null;
-      const sadko = results.find(x => x.domain === 'sadko-group.com');
+      /* The catalog is a partial mirror — see mergeLiveRows in engine/serve.mjs.
+         It can identify the product but it cannot price the whole market, so its
+         answer ships immediately (it is the fast path, and that is the point)
+         while the live fan-out runs in the background for the stores it cannot
+         cover. `refreshing` makes assets/js/compare.js poll every 6s and re-render,
+         so Amazon/Carrefour prices appear a few seconds later without the shopper
+         waiting on a 32s headless sweep up front.
+
+         Browse listings are deliberately excluded: a bare category browse is not a
+         question about one product, and sweeping every store for it would spend a
+         full live fan-out per category page for no identity to merge on. Note the
+         browse branch of rankOffers reports `confident: true` while crowning
+         nothing — there, "confident" means "this browse is a real answer", not
+         "this is the product" — so the gate has to exclude `browse` explicitly
+         rather than lean on `confident` alone. */
+      let merged = results, refreshing = false;
+      if (r.confident && !r.browse) {
+        const sup = await liveSupplement(q, discover, min, max, lang);
+        // r.interpretation is the `want` rankOffers matched the catalog against
+        // (parsed identity + any shopper override), so the live rows are held to
+        // the same reading of the query the catalog rows were.
+        merged = mergeLiveRows(results, sup.rows, q, r.interpretation);
+        refreshing = sup.refreshing;
+      }
+      // derive cheapest from the MERGED and price-FILTERED rows: rankOffers'
+      // own `cheapest` carries `domain` but not `store`, predates the min/max
+      // filter, and now also predates the live merge — so using it directly
+      // would render an undefined store name, could crown a row the shopper's
+      // price filter excluded, and would miss a cheaper live store entirely
+      const cheapest = merged.find(x => x.rank === 1) || null;
+      const sadko = merged.find(x => x.domain === 'sadko-group.com');
       return {
         mode: 'catalog', query: q,
-        results,
+        results: merged,
         cheapest,
         concierge: cheapest ? {
           cheapestStore: cheapest.store, cheapestPrice: cheapest.price,
           sadkoHasIt: !!sadko, sadkoPrice: sadko ? sadko.price : null,
           pitch: 'validation+shipping+maintenance', hotline: '19140',
         } : null,
-        refreshing: false,
+        refreshing,
         stats: { ...r.stats, src: 'catalog', headless: headlessAvailable(), ai: !!NVIDIA_KEY },
         links: storeLinks(q, lang),
         interpretation: r.interpretation,

@@ -10,10 +10,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="assets/js/scrub-engine.js?v=g29" defer></script>
-<script src="assets/js/nav.js?v=g22" defer></script>
+<script src="assets/js/nav.js?v=g23" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
 <script src="assets/js/hotspots.js?v=g44" defer></script>
-<script src="assets/js/guide.js?v=g5" defer></script>
+<script src="assets/js/guide.js?v=g6" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g14">
 </head>
 <body>
@@ -22,8 +22,43 @@
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   const C = id => `category/${id}.html`;
-  const OFFERS = C('173607281');   // fallback shop page for world-categories SADKO
-                                   // doesn't list yet (soundbars, heaters, …)
+
+  /* Marker destinations, named rather than repeated as raw ids.
+
+     The scraped catalogue files every product under a COARSE category id, but
+     build-category-pages.mjs generated a fine-grained page per menu entry — so
+     pages like ميكروييف (57646037), غسالات ملابس (38003963), سخانات غاز
+     (48143206), مكاوى (81167227) and مكانس (81170222) exist, are correctly
+     titled, and hold nothing: their id appears on no product. Eighteen of the
+     thirty-one markers pointed at one of those, or at عروض صادكو (173607281)
+     which is empty too — so tapping an appliance opened a shop page with no
+     appliances on it.
+
+     Each marker now points at the category its products are actually filed
+     under. Verified by rendering every page and counting cards rather than by
+     reading ids: the ten below render a full page, the ones they replaced
+     render zero.
+
+     The fine-grained ids are deliberately NOT kept as a fallback — an empty
+     page is worse than a broader one. If the catalogue is re-scraped with
+     finer categoryIds, point these constants back at them. */
+  const TVS        = C('38022381');    // تليفزيونات — 32
+  const AC         = C('38032005');    // تكييفات هواء — 35
+  const CLIMATE    = C('50318054');    // مبردات هواء ومراوح — 28, incl. the oil heater and the hoods
+  const WATER_DISP = C('102858075');   // مبردات مياه — 10
+  const SMALL      = C('112439376');   // أجهزة صغيرة — 157: microwaves 12, blenders 26,
+                                       // kettles/coffee 18, fryers 4, irons 14, vacuums 14…
+  const COOKING    = C('38003799');    // أفران وبوتاجازات — 35
+  const FRIDGES    = C('38003882');    // ثلاجات — 76
+  const FREEZERS   = C('38005648');    // فريزرات — 22
+  const LAUNDRY    = C('38005652');    // غسالات — 49, incl. 8 dishwashers and the dryers
+  const WATER_HEAT = C('40507239');    // سخانات مياه — 27: 9 gas, 11 electric
+
+  /* Three labels have NO matching product anywhere in the catalogue: sound
+     systems, air purifiers/humidifiers and sewing machines. They now open the
+     nearest stocked neighbour — entertainment, air treatment, small appliances
+     — rather than an empty page, but that IS an approximation. Stock those
+     lines, or drop those three markers, and this note stops being true. */
 
   const SECTIONS = [
     {
@@ -58,13 +93,13 @@ window.addEventListener('DOMContentLoaded', () => {
         // cooler drifts off by 2.4s. Anchoring them together is what makes the room
         // read correctly on its own, without depending on showcase mode being on —
         // so a reload, a language switch or a Back all still show the full room.
-        { fx: 0.500, fy: 0.514, at: 0.03, span: 0.30, mfx: 0.510, mfy: 0.490, label: 'تليفزيونات', href: C('38022381') },
-        { fx: 0.413, fy: 0.606, at: 0.03, span: 0.30, mfx: 0.617, mfy: 0.531, label: 'أنظمة صوت وترفيه', href: OFFERS },
-        { fx: 0.885, fy: 0.167, at: 0.03, span: 0.30, mfx: 0.869, mfy: 0.388, label: 'تكييفات هواء', href: C('38032005') },
-        { fx: 0.619, fy: 0.648, at: 0.03, span: 0.32, sfx: 0.619, sfy: 0.648, mfx: 0.687, mfy: 0.555, label: 'مراوح ومبردات هواء', href: C('50318054') },
-        { fx: 0.773, fy: 0.815, at: 0.03, span: 0.32, sfx: 0.773, sfy: 0.815, mfx: 0.614, mfy: 0.672, label: 'دفايات', href: OFFERS },
-        { fx: 0.060, fy: 0.690, at: 0.03, span: 0.32, sfx: 0.060, sfy: 0.690, mfx: 0.163, mfy: 0.564, label: 'تنقية وترطيب الهواء', href: OFFERS },
-        { fx: 0.371, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.371, sfy: 0.597, mfx: 0.343, mfy: 0.531, label: 'مبردات مياه', href: C('102858075') },
+        { fx: 0.500, fy: 0.514, at: 0.03, span: 0.30, mfx: 0.510, mfy: 0.490, label: 'تليفزيونات', href: TVS },
+        { fx: 0.413, fy: 0.606, at: 0.03, span: 0.30, mfx: 0.617, mfy: 0.531, label: 'أنظمة صوت وترفيه', href: TVS },
+        { fx: 0.885, fy: 0.167, at: 0.03, span: 0.30, mfx: 0.869, mfy: 0.388, label: 'تكييفات هواء', href: AC },
+        { fx: 0.619, fy: 0.648, at: 0.03, span: 0.32, sfx: 0.619, sfy: 0.648, mfx: 0.687, mfy: 0.555, label: 'مراوح ومبردات هواء', href: CLIMATE },
+        { fx: 0.773, fy: 0.815, at: 0.03, span: 0.32, sfx: 0.773, sfy: 0.815, mfx: 0.614, mfy: 0.672, label: 'دفايات', href: CLIMATE },
+        { fx: 0.060, fy: 0.690, at: 0.03, span: 0.32, sfx: 0.060, sfy: 0.690, mfx: 0.163, mfy: 0.564, label: 'تنقية وترطيب الهواء', href: CLIMATE },
+        { fx: 0.371, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.371, sfy: 0.597, mfx: 0.343, mfy: 0.531, label: 'مبردات مياه', href: WATER_DISP },
       ],
     },
     {
@@ -83,21 +118,21 @@ window.addEventListener('DOMContentLoaded', () => {
       title: 'مطبخ فيه كل حاجة… حرفيًا',
       showcase: 0.92,   // the settle: full counter line-up + cooker wall + cold corner
       hotspots: [
-        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.088, mfy: 0.539, label: 'ميكروييف', href: C('57646037') },
-        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.146, mfy: 0.625, label: 'خلاطات', href: C('68782006') },
-        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.240, mfy: 0.523, label: 'كاتيل وماكينات قهوة', href: C('185355010') },
-        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, mfx: 0.331, mfy: 0.514, label: 'قلايات', href: C('185364502') },
-        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.381, mfy: 0.517, label: 'أجهزة صغيرة', href: C('112439376') },
-        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, mfx: 0.426, mfy: 0.512, label: 'عجانات', href: C('68782006') },
-        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.505, mfy: 0.512, label: 'محضرات طعام', href: C('68782006') },
-        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.547, mfy: 0.509, label: 'عصارات', href: C('112439376') },
-        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.600, mfy: 0.520, label: 'جريل وتوستر', href: C('112439376') },
-        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, mfx: 0.349, mfy: 0.540, label: 'غسالات أطباق', href: C('38022354') },
-        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, mfx: 0.507, mfy: 0.536, label: 'أفران وبوتاجازات', href: C('38003799') },
-        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, mfx: 0.501, mfy: 0.469, label: 'شفاطات', href: C('38003799') },
-        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.817, mfy: 0.521, label: 'ثلاجات', href: C('38003882') },
-        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.870, mfy: 0.630, label: 'حلل كهربائية ومفارم', href: C('112439376') },
-        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, mfx: 0.884, mfy: 0.560, label: 'فريزرات', href: C('38005648') },
+        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.088, mfy: 0.539, label: 'ميكروييف', href: SMALL },
+        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.146, mfy: 0.625, label: 'خلاطات', href: SMALL },
+        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.240, mfy: 0.523, label: 'كاتيل وماكينات قهوة', href: SMALL },
+        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, mfx: 0.331, mfy: 0.514, label: 'قلايات', href: SMALL },
+        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.381, mfy: 0.517, label: 'أجهزة صغيرة', href: SMALL },
+        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, mfx: 0.426, mfy: 0.512, label: 'عجانات', href: SMALL },
+        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.505, mfy: 0.512, label: 'محضرات طعام', href: SMALL },
+        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.547, mfy: 0.509, label: 'عصارات', href: SMALL },
+        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.600, mfy: 0.520, label: 'جريل وتوستر', href: SMALL },
+        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, mfx: 0.349, mfy: 0.540, label: 'غسالات أطباق', href: LAUNDRY },
+        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, mfx: 0.507, mfy: 0.536, label: 'أفران وبوتاجازات', href: COOKING },
+        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, mfx: 0.501, mfy: 0.469, label: 'شفاطات', href: COOKING },
+        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.817, mfy: 0.521, label: 'ثلاجات', href: FRIDGES },
+        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.870, mfy: 0.630, label: 'حلل كهربائية ومفارم', href: SMALL },
+        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, mfx: 0.884, mfy: 0.560, label: 'فريزرات', href: FREEZERS },
       ],
     },
     {
@@ -119,15 +154,15 @@ window.addEventListener('DOMContentLoaded', () => {
       // The portrait m_laundry.jpg has ONE machine: washer + dryer markers both sit
       // on it, side by side (the user's request).
       hotspots: [
-        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.659, mfy: 0.599, label: 'غسالات ملابس', href: C('38003963') },
-        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.700, mfy: 0.548, label: 'مجففات ملابس', href: C('38005652') },
-        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, mfx: 0.699, mfy: 0.380, label: 'سخانات غاز', href: C('48143206') },
-        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, mfx: 0.851, mfy: 0.323, label: 'سخانات كهرباء', href: C('48149056') },
-        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, mfx: 0.215, mfy: 0.529, label: 'مكاوى', href: C('81167227') },
-        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, mfx: 0.334, mfy: 0.432, label: 'مكاوى بخار وستيمر', href: C('81167227') },
-        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, mfx: 0.456, mfy: 0.573, label: 'مكانس', href: C('81170222') },
-        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, mfx: 0.410, mfy: 0.630, label: 'مكانس روبوت وعمودية', href: C('81170222') },
-        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, mfx: 0.845, mfy: 0.518, label: 'ماكينات خياطة', href: OFFERS },
+        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.659, mfy: 0.599, label: 'غسالات ملابس', href: LAUNDRY },
+        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.700, mfy: 0.548, label: 'مجففات ملابس', href: LAUNDRY },
+        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, mfx: 0.699, mfy: 0.380, label: 'سخانات غاز', href: WATER_HEAT },
+        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, mfx: 0.851, mfy: 0.323, label: 'سخانات كهرباء', href: WATER_HEAT },
+        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, mfx: 0.215, mfy: 0.529, label: 'مكاوى', href: SMALL },
+        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, mfx: 0.334, mfy: 0.432, label: 'مكاوى بخار وستيمر', href: SMALL },
+        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, mfx: 0.456, mfy: 0.573, label: 'مكانس', href: SMALL },
+        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, mfx: 0.410, mfy: 0.630, label: 'مكانس روبوت وعمودية', href: SMALL },
+        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, mfx: 0.845, mfy: 0.518, label: 'ماكينات خياطة', href: SMALL },
       ],
     },
     {

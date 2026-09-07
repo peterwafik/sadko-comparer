@@ -251,8 +251,13 @@ function mountGuide(container, api, sections) {
 function injectGuideCSS() {
   if (document.getElementById('gd-css')) return;
   const css = `
+  /* How far the dock floats off the bottom edge. The scroll hint and the coach
+     bubble are pinned to the dock rather than to the viewport, so they are
+     expressed as this plus their own gap — move the dock and they follow,
+     instead of drifting into it the next time this number is tuned. */
+  :root{--gd-lift:32px;}
   /* ---- room dock (iOS frosted glass, centred) ---- */
-  .gd-dock{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  .gd-dock{position:fixed;left:50%;bottom:calc(var(--gd-lift) + env(safe-area-inset-bottom));transform:translateX(-50%);
     z-index:55;display:flex;align-items:center;gap:2px;padding:6px;direction:rtl;max-width:96vw;
     background:rgba(252,251,248,.58);
     -webkit-backdrop-filter:blur(22px) saturate(1.9);backdrop-filter:blur(22px) saturate(1.9);
@@ -283,11 +288,11 @@ function injectGuideCSS() {
   .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#2e7e88);color:#fff;}
 
   /* ---- make room for the dock in the existing chrome ---- */
-  .sw-hint{bottom:calc(84px + env(safe-area-inset-bottom));}
-  @media (min-width:861px){ .hs-coach{bottom:calc(88px + env(safe-area-inset-bottom));} }
+  .sw-hint{bottom:calc(var(--gd-lift) + 68px + env(safe-area-inset-bottom));}
+  @media (min-width:861px){ .hs-coach{bottom:calc(var(--gd-lift) + 72px + env(safe-area-inset-bottom));} }
   @media (max-width:860px){
-    .sw-hint{bottom:calc(76px + env(safe-area-inset-bottom));}
-    .sw-copy{bottom:calc(clamp(104px,18vh,160px) + env(safe-area-inset-bottom));}
+    .sw-hint{bottom:calc(var(--gd-lift) + 66px + env(safe-area-inset-bottom));}
+    .sw-copy{bottom:calc(clamp(120px,18vh,176px) + env(safe-area-inset-bottom));}
   }
   /* Phones name every room, exactly as the desktop bar does. The rule this
      replaces hid every label but the active one, so the bar read as one word
@@ -301,8 +306,8 @@ function injectGuideCSS() {
      narrowest phones still in use; the ceilings stop it outgrowing the desktop
      bar as the viewport approaches the 700px breakpoint. */
   @media (max-width:700px){
-    .gd-dock{gap:clamp(1px,.45vw,4px);padding:clamp(4px,1.1vw,7px);max-width:98vw;
-      bottom:calc(10px + env(safe-area-inset-bottom));}
+    :root{--gd-lift:26px;}
+    .gd-dock{gap:clamp(1px,.45vw,4px);padding:clamp(4px,1.1vw,7px);max-width:98vw;}
     .gd-dock__btn{font-size:clamp(8.5px,2.45vw,12.5px);gap:clamp(3px,1.1vw,7px);
       padding:clamp(5px,1.5vw,9px) clamp(6px,1.9vw,11px);}
     .gd-dock__btn em{width:clamp(13px,3.5vw,18px);height:clamp(13px,3.5vw,18px);

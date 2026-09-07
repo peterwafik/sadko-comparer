@@ -177,7 +177,12 @@
       `<button type="button" class="sk-burger sk-glass" aria-label="${N.menu}" aria-expanded="false" aria-controls="sk-drawer">` +
         `<span></span><span></span><span></span>` +
       `</button>` +
-      `<a class="sk-nav__logo" href="${P('index.html')}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
+      /* The brand mark opens the full catalogue, not the home page. Home is the
+         scroll-through house — something you walk once, not a place to land back
+         on mid-shop — and "الرئيسية" is already the first link in the strap right
+         beside it for anyone who does want it. aria-label/title say where it
+         goes, since a brand mark otherwise reads as "back to home" by convention. */
+      `<a class="sk-nav__logo" href="${P('shop.html')}" aria-label="${N.all}" title="${N.all}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
       `<nav class="sk-nav__links sk-glass" aria-label="${N.pagesAria}">` +
         A('home', N.home, 'index.html') +
         `<div class="sk-shop">` +
@@ -231,7 +236,7 @@
       `<a class="sk-dlink${cls ? ' ' + cls : ''}${active === k ? ' is-active' : ''}" href="${P(href)}">${esc(label)}</a>`;
     drawer.innerHTML =
       `<div class="sk-drawer__top">` +
-        `<a class="sk-drawer__logo" href="${P('index.html')}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
+        `<a class="sk-drawer__logo" href="${P('shop.html')}" aria-label="${N.all}" title="${N.all}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
         `<button type="button" class="sk-drawer__x" aria-label="${N.close}">&times;</button>` +
       `</div>` +
       `<div class="sk-drawer__icons">` +

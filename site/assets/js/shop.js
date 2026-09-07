@@ -35,7 +35,7 @@
 
   var BAND_LABELS = [t('تحت ٥٬٠٠٠', 'Under 5,000'), t('٥٬٠٠٠ – ١٥٬٠٠٠', '5,000 – 15,000'),
                      t('١٥٬٠٠٠ – ٣٠٬٠٠٠', '15,000 – 30,000'), t('فوق ٣٠٬٠٠٠', 'Over 30,000')];
-  var RAIL_LABELS = { more: t('شوف الكل', 'See all') };
+  var RAIL_LABELS = { more: t('عرض الكل', 'See all') };
   // toolbar()'s own DEFAULT_SORT_LABELS are bilingual and already pick the right
   // language from window.skLang, so this map is no longer load-bearing — it pins
   // the exact shop wording (identical strings to storefront.js's EN defaults) and
@@ -304,10 +304,10 @@
   }
   function finderCta(cat) {
     if (!cat || fctaDismissed()) return '';
-    var close = U.esc(t('اقفل اللوحة دى', 'Close this panel'));
+    var close = U.esc(t('أغلق هذه اللوحة', 'Close this panel'));
     return '<aside class="sk-fcta" id="skFcta">' +
-      '<div><b>' + U.esc(t('مش عارف تختار إيه؟', 'Not sure which one to pick?')) + '</b>' +
-      '<p>' + U.esc(t('جاوب على كام سؤال عن بيتك واستخدامك، ونرشّح لك ٣ أجهزة من الفئة دى مع سبب واضح لكل ترشيح.',
+      '<div><b>' + U.esc(t('لا تعرف ماذا تختار؟', 'Not sure which one to pick?')) + '</b>' +
+      '<p>' + U.esc(t('أجب عن بضعة أسئلة عن منزلك واستخدامك، ونرشّح لك ٣ أجهزة من هذه الفئة مع سبب واضح لكل ترشيح.',
         'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category — each with a clear reason.')) + '</p></div>' +
       '<a class="sk-fcta__btn" href="' + P('finder.html') + '?cat=' + encodeURIComponent(cat) + '">' +
         U.esc(t('ساعدنى أختار', 'Help me choose')) + '</a>' +
@@ -371,7 +371,7 @@
     // conflating them (as before) mislabels the 20 legitimately-empty
     // category pages, which never had a search to retry.
     var emptyMsg = state.q
-      ? t('مفيش نتايج للبحث ده — جرّب كلمة تانية.', 'No results — try another search.')
+      ? t('لا توجد نتائج لهذا البحث — جرّب كلمة أخرى.', 'No results — try another search.')
       : t('لا يوجد منتجات فى هذا القسم حاليًا.', 'No products in this category yet.');
 
     root.innerHTML =

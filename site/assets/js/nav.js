@@ -40,7 +40,7 @@
       savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
       more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
       grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
-      pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ اتضافت', langBtn: 'EN', langTitle: 'Switch to English' },
+      pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ أُضيف', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
       orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
       finder: 'Help me choose', plan: 'Shopping plans', guides: 'Buying guides', care: 'Customer care',
@@ -415,7 +415,7 @@
         [tt('عن صادكو', 'About SADKO'), 'about.html'], [tt('قيمنا', 'Our Values'), 'values.html'],
         [tt('تواصل معنا', 'Contact us'), 'contact.html'],
         [tt('المعارض', 'Showrooms'), 'showrooms.html'], [tt('حسابى', 'My account'), 'account.html'] ] },
-      { h: tt('قبل ما تشترى', 'Before you buy'), items: [
+      { h: tt('قبل الشراء', 'Before you buy'), items: [
         [tt('ساعدنى أختار', 'Help me choose'), 'finder.html'], [tt('أدلة الشراء', 'Buying guides'), 'guides.html'],
         [tt('قارن الأسعار', 'Compare prices'), 'compare.html'], [tt('خطط التجهيز', 'Shopping plans'), 'plan.html'] ] },
       { h: tt('بعد الشراء', 'After you buy'), items: [
@@ -433,12 +433,12 @@
       '<div class="foot__inner"><div class="foot__cols">' +
       groups.map(c => '<div><h4>' + esc(c.h) + '</h4><ul>' +
         c.items.map(i => '<li><a href="' + P(i[1]) + '">' + esc(i[0]) + '</a></li>').join('') + '</ul></div>').join('') +
-      '<div><h4>' + tt('كلّمنا', 'Talk to us') + '</h4><ul>' +
+      '<div><h4>' + tt('اتصل بنا', 'Talk to us') + '</h4><ul>' +
         '<li><a href="tel:19140" dir="ltr">19140</a></li>' +
         '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li></ul>' +
         '<p class="foot__tag">' + tt('مجموعة صادكو — من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group — since 1986, sole distributor of Kiriazi.') + '</p></div>' +
       '</div><p class="foot__legal">' +
-        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وممكن تتغير — الرجاء التأكد قبل الشراء. مقارنة الأسعار بتغطى متاجر مدعومة محددة. الضمان والتركيب والاسترجاع بيقدمهم البائع المذكور فى العرض.',
+        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وقد تتغير — يُرجى التأكد قبل الشراء. وتغطى مقارنة الأسعار متاجر مدعومة محددة. أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض.',
            'Prices and specifications are taken from product pages at the last update and may change — please confirm before buying. Price comparison covers a specific list of supported stores. Warranty, installation and returns are provided by the seller named on each offer.') +
         '<br>© ' + tt('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }

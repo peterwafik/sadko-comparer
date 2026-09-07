@@ -21,7 +21,7 @@
       if (!list.length) {
         root.innerHTML =
           '<div class="panel">' + A.empty(
-            t('لسه مفيش منتجات محفوظة. احفظ اللى بتفكر فيه عشان تقارنه براحتك وترجعله بعدين.',
+            t('لا توجد منتجات محفوظة بعد. احفظ ما تفكر فيه لتقارنه على مهلك وتعود إليه لاحقاً.',
               'Nothing saved yet. Save the products you are weighing up so you can compare them and come back later.'),
             t('ابدأ من ساعدنى أختار', 'Start with Help me choose'), A.P('finder.html')) + '</div>';
         return;
@@ -33,7 +33,7 @@
             t('المنتجات المحفوظة', 'Saved products') + ' <span class="badge">' + A.num(list.length) + '</span></h2>' +
             '<button class="btn btn--quiet btn--sm" id="clearAll">' + t('امسح الكل', 'Clear all') + '</button></div>' +
           '<div class="note note--soft small mt8">' + esc(St.scopeNote()) + ' ' +
-            t('بنقارن السعر الحالى فى الكتالوج بالسعر وقت ما حفظت المنتج. عشان تشوف عروض المتاجر التانية استخدم مقارنة الأسعار.',
+            t('نقارن السعر الحالى فى الكتالوج بالسعر وقت حفظك للمنتج. ولمعرفة عروض المتاجر الأخرى، استخدم مقارنة الأسعار.',
               'We compare the current catalogue price with the price when you saved it. To see other stores\' offers, use price comparison.') + '</div>' +
           '<div class="grid3 mt16">' + list.map(s => card(s, byId[s.id])).join('') + '</div>';
         wire();
@@ -47,8 +47,8 @@
       let badge = '';
       if (diff != null && diff < 0) badge = '<span class="chip chip--ok">' + t('نزل ', 'Down ') + A.money(-diff) + '</span>';
       else if (diff != null && diff > 0) badge = '<span class="chip chip--warn">' + t('زاد ', 'Up ') + A.money(diff) + '</span>';
-      else if (diff === 0) badge = '<span class="chip chip--mute">' + t('السعر زى ما هو', 'Unchanged') + '</span>';
-      else badge = '<span class="chip chip--mute">' + t('مش فى الكتالوج دلوقتى', 'Not in the catalogue now') + '</span>';
+      else if (diff === 0) badge = '<span class="chip chip--mute">' + t('السعر كما هو', 'Unchanged') + '</span>';
+      else badge = '<span class="chip chip--mute">' + t('غير موجود فى الكتالوج حالياً', 'Not in the catalogue now') + '</span>';
 
       const hitTarget = (s.targetPrice && now != null && now <= s.targetPrice);
 
@@ -63,9 +63,9 @@
             ? window.skShopUI.clean(s.title)
             : String(s.title == null ? '' : s.title).replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&')) + '</h3>' +
           '<div class="between"><span class="pcard__p">' + A.money(now != null ? now : was) + '</span>' + badge + '</div>' +
-          (hitTarget ? '<div class="note note--info small">' + t('وصل للسعر اللى حددته (', 'It reached your target price (') + A.money(s.targetPrice) + ').</div>' : '') +
-          '<label class="field small" style="margin:0"><span class="field__l">' + t('نبّهنى لو نزل عن', 'Remind me if it drops below') + '</span>' +
-            '<input class="input" type="number" inputmode="numeric" min="0" step="100" data-target="' + esc(s.id) + '" value="' + (s.targetPrice || '') + '" placeholder="' + t('السعر اللى يناسبك', 'your price') + '">' +
+          (hitTarget ? '<div class="note note--info small">' + t('بلغ السعر الذى حددته (', 'It reached your target price (') + A.money(s.targetPrice) + ').</div>' : '') +
+          '<label class="field small" style="margin:0"><span class="field__l">' + t('نبّهنى إذا انخفض عن', 'Remind me if it drops below') + '</span>' +
+            '<input class="input" type="number" inputmode="numeric" min="0" step="100" data-target="' + esc(s.id) + '" value="' + (s.targetPrice || '') + '" placeholder="' + t('السعر الذى يناسبك', 'your price') + '">' +
             '<span class="field__hint">' + t('تذكير ليك على الجهاز ده — مش بنبعت إيميل ولا إشعار.', 'A reminder for you on this device — we do not send email or push notifications.') + '</span></label>' +
           '<div class="pcard__row">' +
             '<a class="btn btn--teal btn--sm" href="' + A.P('product.html') + '?id=' + encodeURIComponent(s.id) + '">' + t('التفاصيل', 'Details') + '</a>' +

@@ -75,7 +75,7 @@
   function offlineMsg() {
     return EN()
       ? 'Accounts are not available on this deployment — the site is being served without its server. You can still browse, compare, save products and build plans; ordering needs sign-in.'
-      : 'الحسابات مش متاحة على النسخة دى — الموقع شغال من غير السيرفر بتاعه. تقدر تتصفّح وتقارن وتحفظ منتجات وتعمل خطط، لكن الطلب محتاج تسجيل دخول.';
+      : 'الحسابات غير متاحة فى هذه النسخة — فالموقع يعمل دون الخادم الخاص به. ويمكنك التصفح والمقارنة وحفظ المنتجات وإنشاء الخطط، غير أن تقديم الطلب يتطلب تسجيل الدخول.';
   }
 
   const skAuth = {
@@ -165,7 +165,7 @@
     async addHome(data) {
       if (cached) { const d = await call('auth/homes', { method: 'POST', body: data }); if (d.ok) { cached = d.user; emit(); } return d; }
       const h = Object.assign({ id: 'g' + Math.random().toString(36).slice(2, 9), createdAt: new Date().toISOString(),
-                                name: data.name || 'بيتى', icon: data.icon || '🏠', scope: data.scope === 'room' ? 'room' : 'home' }, data);
+                                name: data.name || 'منزلى', icon: data.icon || '🏠', scope: data.scope === 'room' ? 'room' : 'home' }, data);
       const list = guestHomes(); list.push(h);
       saveGuest(list, h.id); emit();
       return { ok: true, home: h, local: true };

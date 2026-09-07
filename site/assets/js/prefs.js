@@ -31,9 +31,9 @@
   /* Budget bands, in EGP. Deliberately wide: a band is a hint, not a wall. */
   const BUDGET_BANDS = {
     low:    { max: 10000,  ar: 'أقل من ١٠ آلاف',        en: 'under 10,000' },
-    mid:    { max: 25000,  ar: 'من ١٠ لـ ٢٥ ألف',        en: '10,000–25,000' },
-    high:   { max: 60000,  ar: 'من ٢٥ لـ ٦٠ ألف',        en: '25,000–60,000' },
-    open:   { max: 0,      ar: 'مفيش حد أقصى',           en: 'no limit' },
+    mid:    { max: 25000,  ar: 'من ١٠ إلى ٢٥ ألفاً',        en: '10,000–25,000' },
+    high:   { max: 60000,  ar: 'من ٢٥ إلى ٦٠ ألفاً',        en: '25,000–60,000' },
+    open:   { max: 0,      ar: 'بلا حد أقصى',           en: 'no limit' },
   };
 
   const prof = () => (window.skAuth ? window.skAuth.profile() : (window.skStore ? window.skStore.profile.get() : {})) || {};
@@ -63,7 +63,7 @@
     const band = BUDGET_BANDS[p.budgetBand];
     if (band && band.max && s.price > band.max) {
       hide = true;
-      reasons.push({ k: 'no', text: t('أغلى من الميزانية اللى حددتها (' + band.ar + ').',
+      reasons.push({ k: 'no', text: t('أغلى من الميزانية التى حددتها (' + band.ar + ').',
                                       'Above your stated budget (' + band.en + ').') });
     }
 
@@ -72,7 +72,7 @@
     const door = Number(p.doorwayW) || 0;
     if (door && s.dims && s.dims.w && s.dims.w > door) {
       hide = true;
-      reasons.push({ k: 'no', text: t('أعرض من أضيق باب عندك (' + s.dims.w + ' سم مقابل ' + door + ' سم) — مش هيعدى.',
+      reasons.push({ k: 'no', text: t('أعرض من أضيق باب عندك (' + s.dims.w + ' سم مقابل ' + door + ' سم) — لن يمر.',
                                       'Wider than your narrowest doorway (' + s.dims.w + ' cm vs ' + door + ' cm) — it will not get in.') });
     }
 
@@ -84,14 +84,14 @@
     if (slot && s.dims && s.dims.w) {
       if (s.dims.w > slot) {
         hide = true;
-        reasons.push({ k: 'no', text: t('أعرض من المساحة اللى عندك (' + s.dims.w + ' سم مقابل ' + slot + ' سم).',
+        reasons.push({ k: 'no', text: t('أعرض من المساحة المتاحة لديك (' + s.dims.w + ' سم مقابل ' + slot + ' سم).',
                                         'Wider than your space (' + s.dims.w + ' cm vs ' + slot + ' cm).') });
       } else {
         reasons.push({ k: 'ok', text: t('يدخل فى مساحتك (' + s.dims.w + ' سم).', 'Fits your space (' + s.dims.w + ' cm).') });
       }
     } else if (slot) {
       // unknown width must never hide the product
-      reasons.push({ k: 'hm', text: t('عرض الجهاز مش متوفر — اتأكد منه قبل الشراء.', 'Width not stated — confirm before buying.') });
+      reasons.push({ k: 'hm', text: t('عرض الجهاز غير متوفر — تأكد منه قبل الشراء.', 'Width not stated — confirm before buying.') });
     }
 
     // brands — a preference, never a filter on its own
@@ -100,7 +100,7 @@
     }
     // energy priority — surfaced, not enforced
     if (p.energyPriority === 'high') {
-      if (s.energy && (s.energy.cls === 'A' || s.energy.inverter)) reasons.push({ k: 'ok', text: t('موفر للكهربا.', 'Energy efficient.') });
+      if (s.energy && (s.energy.cls === 'A' || s.energy.inverter)) reasons.push({ k: 'ok', text: t('موفّر للكهرباء.', 'Energy efficient.') });
     }
     // household size — informational
     if (p.people && s.headline && window.skSpecs) {
@@ -132,8 +132,8 @@
 
   function closeBtn() {
     return '<button type="button" class="skp-x" aria-label="' +
-      t('اقفل اللوحة دى', 'Close this panel') + '" title="' +
-      t('اقفل اللوحة دى', 'Close this panel') + '">&times;</button>';
+      t('أغلق هذه اللوحة', 'Close this panel') + '" title="' +
+      t('أغلق هذه اللوحة', 'Close this panel') + '">&times;</button>';
   }
 
   /* ---- the bar every page can drop in ---- */
@@ -155,8 +155,8 @@
       };
       if (!any) {
         host.innerHTML =
-          '<div><b>' + t('فلترة حسب بيتك', 'Filter by your home') + '</b>' +
-          '<p>' + t('لو قلت لنا شوية عن بيتك (عدد الأفراد، الميزانية، مقاس مكان الجهاز)، نقدر نخفى اللى مش هيناسبك من كل صفحة.',
+          '<div><b>' + t('تصفية حسب منزلك', 'Filter by your home') + '</b>' +
+          '<p>' + t('إذا أخبرتنا قليلاً عن منزلك (عدد الأفراد، والميزانية، ومقاس موضع الجهاز)، أمكننا إخفاء ما لا يناسبك من كل صفحة.',
                     'Tell us a little about your home (household size, budget, the space you have) and we can hide what will not fit, on every page.') + '</p></div>' +
           '<a class="skp-btn" href="' + ROOT + 'account.html#home">' + t('كمّل بياناتك', 'Complete your profile') + '</a>' +
           closeBtn();
@@ -165,16 +165,16 @@
       }
       const many = (window.skAuth ? window.skAuth.homes() : []).length > 1;
       host.innerHTML =
-        '<div><b>' + t('فلترة حسب مكانك', 'Filter by your place') + '</b>' +
-        '<p id="skpCount">' + (on ? t('شغّالة — بنخفى اللى مش هيناسبك.', 'On — hiding what will not suit you.')
-                                  : t('مقفولة — بنعرض كل المنتجات.', 'Off — showing everything.')) + '</p></div>' +
+        '<div><b>' + t('تصفية حسب مكانك', 'Filter by your place') + '</b>' +
+        '<p id="skpCount">' + (on ? t('مُفعَّلة — نخفى ما لا يناسبك.', 'On — hiding what will not suit you.')
+                                  : t('مُعطَّلة — نعرض كل المنتجات.', 'Off — showing everything.')) + '</p></div>' +
         '<div class="skp-actions">' +
           // When someone keeps several places, changing which one is active is
           // the fastest way to re-filter — so the switcher lives right here.
           '<span id="skpSwitch" class="skp-switch"></span>' +
           '<a class="skp-link" href="' + ROOT + 'account.html#homes">' + (many ? t('إدارة الأماكن', 'Manage places') : t('عدّل تفضيلاتى', 'Edit preferences')) + '</a>' +
           '<button type="button" class="skp-btn" aria-pressed="' + (on ? 'true' : 'false') + '">' +
-            (on ? t('اقفل الفلتر', 'Turn filter off') : t('فلتر حسب مكانى', 'Filter for my place')) + '</button>' +
+            (on ? t('أوقف التصفية', 'Turn filter off') : t('صفِّ حسب مكانى', 'Filter for my place')) + '</button>' +
         '</div>' +
         closeBtn();
       // `.skp-btn` is the toggle; querySelector('button') would now find whichever
@@ -203,8 +203,8 @@
     const el = document.getElementById('skpCount');
     if (!el) return;
     el.textContent = enabled()
-      ? t('بنعرض ' + shown + ' من ' + total + ' حسب تفضيلاتك.', 'Showing ' + shown + ' of ' + total + ' that suit you.')
-      : t('مقفولة — بنعرض كل المنتجات (' + total + ').', 'Off — showing all ' + total + ' products.');
+      ? t('نعرض ' + shown + ' من ' + total + ' وفق تفضيلاتك.', 'Showing ' + shown + ' of ' + total + ' that suit you.')
+      : t('مُعطَّلة — نعرض كل المنتجات (' + total + ').', 'Off — showing all ' + total + ' products.');
   }
 
   /* ---- legacy category/shop grids: filter `article.card` in place ---- */

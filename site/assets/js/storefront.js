@@ -143,7 +143,7 @@
     // The default follows the page language (same isEN() convention as card()'s buy
     // label and currency). A caller-supplied labels.more still wins, so the existing
     // overrides in shop.js/product.js behave exactly as before.
-    var moreLabel = (labels && labels.more) || (isEN() ? 'See all' : 'شوف الكل');
+    var moreLabel = (labels && labels.more) || (isEN() ? 'See all' : 'عرض الكل');
     var en = isEN();
     // The arrows are PHYSICAL, not logical: "<" always sits on the left and moves
     // the strip leftwards, ">" always on the right, in Arabic and in English. A
@@ -473,7 +473,7 @@
         '</div>' +
         '<p class="asearch__hint">' + esc(en
           ? 'Tips: type two words to require both · "in quotes" for an exact phrase · -word to exclude · English and Arabic both work.'
-          : 'نصايح: اكتب كلمتين عشان يظهر اللى فيه الاتنين · "بين علامتين" للجملة بالظبط · -كلمة عشان تستبعدها · بيشتغل بالعربى والإنجليزى.') + '</p>' +
+          : 'إرشادات: اكتب كلمتين ليظهر ما يجمع بينهما · "بين علامتى تنصيص" للعبارة بنصها · -كلمة لاستبعادها · ويعمل بالعربية والإنجليزية.') + '</p>' +
       '</details>' +
     '</section>';
   }

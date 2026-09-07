@@ -7,7 +7,7 @@
      window.mountGuides(rootEl)   the page (index, filters, article view)
      window.skGuides.forCategory(categoryId) -> Promise<[{slug,title,dek,…}]>
                                   so product/category pages can embed
-                                  "اقرأ كمان" links without loading this page.
+                                  "اقرأ أيضاً" links without loading this page.
 
    Notes on the data contract (see data/guides.json):
      article = { id, slug, title{ar,en}, dek{ar,en}, minutes, tags[],
@@ -167,7 +167,7 @@
           '<div class="between">' +
             '<div><h2 class="panel__h">' + esc(t('كل الأدلة', 'All guides')) + '</h2>' +
             '<p class="panel__sub" style="margin-bottom:0">' + esc(t(
-              'شرح عملى مكتوب بلغة بسيطة: مقاسات، وكفاءة طاقة، وضمان، وتركيب، وصيانة. مفيش ترشيح موديلات هنا — بس الأساس اللى يخليك تختار بنفسك.',
+              'شرح عملى بلغة ميسّرة: مقاسات، وكفاءة طاقة، وضمان، وتركيب، وصيانة. ولا ترشيح لطُرُز هنا — بل الأساس الذى يمكّنك من الاختيار بنفسك.',
               'Practical explanations in plain language: sizing, energy efficiency, warranty, installation and maintenance. No model recommendations here — just the basics that let you decide for yourself.'
             )) + '</p></div>' +
             '<span class="badge" data-count>' + esc(countLabel(visible().length)) + '</span>' +
@@ -176,14 +176,14 @@
           '<div class="grid3 mt24" data-list>' + cards(visible()) + '</div>' +
         '</section>' +
         '<div class="note note--soft mt16">' + esc(t(
-          'الأدلة دى معلومات عامة بتساعدك تسأل الأسئلة الصح. الأرقام اللى موصوفة بإنها تقريبية هى قواعد إرشادية، والرقم الرسمى لأى جهاز موجود فى كتيّبه أو على ملصقه.',
+          'هذه الأدلة معلومات عامة تساعدك على طرح الأسئلة الصحيحة. والأرقام الموصوفة بأنها تقريبية قواعد إرشادية، والرقم الرسمى لأى جهاز مذكور فى دليله أو على ملصقه.',
           'These guides are general information to help you ask the right questions. Any figure described as approximate is a rule of thumb; the official number for a given appliance is in its manual or on its label.'
         )) + '</div>';
     }
 
     function cards(list) {
       if (!list.length) {
-        return '<div class="empty"><p>' + esc(t('مفيش أدلة فى الموضوع ده لسه.', 'No guides on this topic yet.')) + '</p></div>';
+        return '<div class="empty"><p>' + esc(t('لا توجد أدلة فى هذا الموضوع بعد.', 'No guides on this topic yet.')) + '</p></div>';
       }
       return list.map(a =>
         '<article class="panel" style="display:flex;flex-direction:column;gap:10px">' +
@@ -198,12 +198,12 @@
           '<div class="between" style="margin-top:auto">' +
             '<span class="muted small">' + esc(mins(a.minutes)) + '</span>' +
             '<a class="btn btn--ghost btn--sm" data-nav href="' + esc(hrefFor(a.slug)) + '">' +
-              esc(t('اقرا الدليل', 'Read guide')) + '</a>' +
+              esc(t('اقرأ الدليل', 'Read guide')) + '</a>' +
           '</div>' +
         '</article>').join('');
     }
 
-    const mins = m => t(num(m) + ' دقايق قراية', m + ' min read');
+    const mins = m => t(num(m) + ' دقائق قراءة', m + ' min read');
 
     /* "دليل مناسب لك" — shown on the index when a category page linked here. */
     function crossLinks() {
@@ -215,14 +215,14 @@
       return '<section class="panel" style="border-color:color-mix(in srgb, var(--accent) 32%, transparent)">' +
         '<h2 class="panel__h">' + esc(t('دليل مناسب لك', 'A guide for you')) +
           (nm ? ' <span class="badge">' + esc(nm) + '</span>' : '') + '</h2>' +
-        '<p class="panel__sub">' + esc(t('اخترنا لك الأدلة اللى ليها علاقة مباشرة بالفئة اللى بتتفرج عليها.',
+        '<p class="panel__sub">' + esc(t('اخترنا لك الأدلة المتصلة مباشرةً بالفئة التى تتصفحها.',
           'These guides relate directly to the category you were browsing.')) + '</p>' +
         '<ul class="specs">' + list.map(a =>
           '<li><span class="k"><a data-nav href="' + esc(hrefFor(a.slug)) + '">' + esc(L(a.title)) + '</a></span>' +
           '<span class="v">' + esc(mins(a.minutes)) + '</span></li>').join('') + '</ul>' +
         (A() ? '<div class="row mt16" style="justify-content:flex-start">' +
           '<a class="btn btn--teal btn--sm" style="flex:0 0 auto" href="' + esc(A().catHref(cid)) + '">' +
-          esc(t('ارجع لـ ', 'Back to ') + nm) + '</a></div>' : '') +
+          esc(t('العودة إلى ', 'Back to ') + nm) + '</a></div>' : '') +
         '</section>';
     }
 
@@ -269,7 +269,7 @@
         case 'tip':
           return '<div class="note note--info mt16"><strong>' + esc(t('نصيحة', 'Tip')) + ':</strong> ' + esc(L(b)) + '</div>';
         case 'warn':
-          return '<div class="note note--warn mt16"><strong>' + esc(t('خد بالك', 'Careful')) + ':</strong> ' + esc(L(b)) + '</div>';
+          return '<div class="note note--warn mt16"><strong>' + esc(t('انتبه', 'Careful')) + ':</strong> ' + esc(L(b)) + '</div>';
         default:
           return '';
       }
@@ -284,15 +284,15 @@
         P('finder.html') + (first ? '?cat=' + encodeURIComponent(first) : '')]);
       cats.slice(0, 2).forEach(c => {
         if (!A()) return;
-        btns.push(['btn--teal', t('شوف ', 'Browse ') + A().catName(c), A().catHref(c)]);
+        btns.push(['btn--teal', t('اطّلع على ', 'Browse ') + A().catName(c), A().catHref(c)]);
       });
       btns.push(['btn--ghost', t('قارن الأسعار', 'Compare prices'), P('compare.html')]);
       btns.push(['btn--ghost', t('خطط التجهيز', 'Shopping plans'), P('plan.html')]);
 
       return '<section class="panel mt16">' +
-        '<h3 class="panel__h">' + esc(t('الخطوة الجاية', 'Your next step')) + '</h3>' +
+        '<h3 class="panel__h">' + esc(t('الخطوة التالية', 'Your next step')) + '</h3>' +
         '<p class="panel__sub">' + esc(t(
-          'خد اللى قريته وطبّقه على الكتالوج: رشّح جهاز على مقاسك، أو اتفرّج على الفئة، أو قارن نفس الموديل عند أكتر من بائع.',
+          'طبّق ما قرأته على الكتالوج: رشّح جهازاً على مقاسك، أو تصفّح الفئة، أو قارن الطراز نفسه لدى أكثر من بائع.',
           'Take what you just read into the catalogue: get a shortlist for your home, browse the category, or compare the same model across sellers.'
         )) + '</p>' +
         '<div class="chips">' + btns.map(b =>
@@ -301,7 +301,7 @@
     }
 
     function notFound(slug) {
-      const msg = t('مفيش دليل بالاسم ده: ', 'No guide found with that name: ') + slug;
+      const msg = t('لا يوجد دليل بهذا الاسم: ', 'No guide found with that name: ') + slug;
       return (A() ? A().empty(msg, t('كل الأدلة', 'All guides'), P('guides.html'))
         : '<div class="empty"><p>' + esc(msg) + '</p></div>');
     }

@@ -78,9 +78,9 @@
   }
 
   var REASONS = [
-    { k: 'price', ar: 'السعر غالى شوية', en: 'Price is a bit high' },
+    { k: 'price', ar: 'السعر مرتفع بعض الشىء', en: 'Price is a bit high' },
     { k: 'shipping', ar: 'مصاريف الشحن/التركيب', en: 'Delivery / installation cost' },
-    { k: 'thinking', ar: 'لسه بفكّر', en: 'Still thinking it over' },
+    { k: 'thinking', ar: 'ما زلت أفكر', en: 'Still thinking it over' },
     { k: 'comparing', ar: 'بقارن بأماكن تانية', en: 'Comparing other options' },
     { k: 'details', ar: 'محتاج تفاصيل أكتر', en: 'Need more details' },
     { k: 'payment', ar: 'طريقة الدفع/التوصيل', en: 'Payment / delivery method' },

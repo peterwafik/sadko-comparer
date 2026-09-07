@@ -8,7 +8,7 @@
    "type": "mega",
    "t": 1,
    "platform": "local",
-   "lastOk": 1788788824904,
+   "lastOk": 1788800584456,
    "failN": 0
   },
   {
@@ -19,7 +19,7 @@
    "t": 1,
    "platform": "gql",
    "gqlHost": "2b.com.eg",
-   "lastOk": 1788785258059,
+   "lastOk": 1788800585091,
    "failN": 0,
    "lastFail": 1788015188572
   },
@@ -30,9 +30,9 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1788788828577,
+   "lastOk": 1788800586771,
    "failN": 0,
-   "lastFail": 1788707437857
+   "lastFail": 1788800309652
   },
   {
    "domain": "elarabygroup.com",
@@ -41,7 +41,7 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1788787925197,
+   "lastOk": 1788800584635,
    "failN": 0
   },
   {
@@ -84,7 +84,7 @@
    "t": 1,
    "platform": "btech",
    "needsHeadless": true,
-   "lastOk": 1788787931078,
+   "lastOk": 1788800592877,
    "failN": 0,
    "lastFail": 1788677712506
   },
@@ -96,7 +96,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1788789727607,
+   "lastOk": 1788800595602,
    "failN": 0,
    "lastFail": 1788526332254
   },
@@ -369,7 +369,7 @@
    "platform": "woo",
    "failN": 0,
    "lastFail": 1788706516600,
-   "lastOk": 1788786143565
+   "lastOk": 1788800589324
   },
   {
    "domain": "aghezty.com",
@@ -408,8 +408,9 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 9,
-   "lastFail": 1788427063339
+   "failN": 0,
+   "lastFail": 1788427063339,
+   "lastOk": 1788800611479
   },
   {
    "domain": "najm.store",
@@ -459,8 +460,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 17,
-   "lastFail": 1788708334289
+   "failN": 18,
+   "lastFail": 1788799580880
   },
   {
    "domain": "azmyco.com",
@@ -905,7 +906,7 @@
    "t": 4,
    "platform": "jsonld:/?s=",
    "addedBy": "discovery",
-   "lastOk": 1788786148668,
+   "lastOk": 1788800588845,
    "failN": 0,
    "lastFail": 1788015227600
   },
@@ -1004,8 +1005,8 @@
    "t": 4,
    "platform": "shopify",
    "addedBy": "tavily",
-   "lastOk": 1788426170718,
-   "failN": 2,
+   "lastOk": 1788800589494,
+   "failN": 0,
    "lastFail": 1788677683937
   },
   {
@@ -1015,7 +1016,8 @@
    "t": 4,
    "platform": "shopify",
    "addedBy": "discovery",
-   "lastOk": 1788785268348
+   "lastOk": 1788800589680,
+   "failN": 0
   },
   {
    "domain": "iplusegypt.com",
@@ -1024,7 +1026,8 @@
    "t": 4,
    "platform": "shopify",
    "addedBy": "discovery",
-   "lastOk": 1788785268179
+   "lastOk": 1788800589784,
+   "failN": 0
   }
  ]
 }

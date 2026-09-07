@@ -321,9 +321,15 @@ function jsonLdProducts(html, domain) {
       // rejects it as navigation, and a real product is silently dropped —
       // after which the caller's crude price scrape can return a junk number.
       const href = node.url || node['@id'] || offers[0]?.url || '';
+      // Carry the currency the page states. Discovery reaches .com domains, so
+      // a page can legitimately price in USD or AED; without this the number
+      // reached the response and was printed as جنيه. Left undefined when the
+      // page says nothing, which pricedInEgp() reads as "unstated", not "foreign".
+      const currency = offers[0]?.priceCurrency ?? node.priceCurrency ?? undefined;
       // skip listings the store itself marks unavailable — dead prices poison the ranking
       if (price && !/OutOfStock|SoldOut|Discontinued/i.test(avail))
-        out.push({ title: decodeEntities(node.name), price, url: absUrl(href, domain) });
+        out.push({ title: decodeEntities(node.name), price, url: absUrl(href, domain),
+                   currency: currency == null ? undefined : String(currency).trim() });
     }
     if (node.item) walk(node.item);
     if (node.mainEntity) walk(node.mainEntity);          // CollectionPage → ItemList (Jumia)
@@ -945,6 +951,29 @@ function isRelevant(title, q, attrs) {
   return hits / denom >= 0.6;
 }
 
+/* Every price this engine prints is labelled جنيه, so a price the page states
+   in another currency must never reach the response.
+
+   Discovery admits any .com/.net/.shop/.store domain, which is how a search for
+   an Instant Pot surfaced instantpot.com and instantpotme.com — and their $110
+   and AED 499 were rendered as "110 جنيه" and "499 جنيه", i.e. a ~5,400 EGP
+   cooker advertised at a tenth of its price. Wrong by a factor of fifty is
+   worse than absent.
+
+   Silence stays unknown, the same asymmetry the unit and model rules use:
+   extract.mjs already defaults an unstated currency to EGP, and the store
+   adapters parse bare numbers off Egyptian pages and carry no currency at all,
+   so this only rejects a page that EXPLICITLY names a foreign currency. */
+const EGP_CURRENCY = /^(egp|e\.?£|£e|le|ج\.?\s*م|جنيه)$/i;
+// Any EGP marker appearing in page text — used to decide whether a DISCOVERED
+// domain prices in Egyptian pounds at all. Deliberately not "LE", which is far
+// too common a letter pair in English copy to mean anything on its own.
+const EGP_MARK = /EGP|ج\.?\s*م\b|جنيه/i;
+function pricedInEgp(it) {
+  const c = String(it && it.currency || '').trim();
+  return !c || EGP_CURRENCY.test(c);
+}
+
 // hard per-store deadline so no single slow/hung store can stall the request
 function withTimeout(promise, ms, onTimeout) {
   return Promise.race([promise, new Promise(res => setTimeout(() => res(onTimeout), ms))]);
@@ -1196,11 +1225,14 @@ async function runJob(job, discover) {
     }
     job.stats.responded++;
     const at = Date.now();
-    for (const it of w.items) job.offers.push({
-      title: it.title.slice(0, 140), price: it.price, url: it.url,
-      domain: w.store.domain, sname: w.store.name, snameEn: w.store.nameEn || w.store.name,
-      stype: w.store.type || 'local', tier: w.store.t || 3, checkedAt: at,
-    });
+    for (const it of w.items) {
+      if (!pricedInEgp(it)) { job.stats.foreignCurrency = (job.stats.foreignCurrency || 0) + 1; continue; }
+      job.offers.push({
+        title: it.title.slice(0, 140), price: it.price, url: it.url,
+        domain: w.store.domain, sname: w.store.name, snameEn: w.store.nameEn || w.store.name,
+        stype: w.store.type || 'local', tier: w.store.t || 3, checkedAt: at,
+      });
+    }
   };
 
   const discP = discover ? discoveryWave(job, reg, collect) : Promise.resolve();
@@ -1239,16 +1271,27 @@ async function discoveryWave(job, reg, collect) {
   })(), 10000, null));
   const candidates = unknown.slice(0, 5);
   const waves = await pool(candidates, 3, c => withTimeout((async () => {
+    let html;
+    try { html = await fetchPage(c.url); } catch { return { status: 'unreachable', items: [] }; }
+    /* A discovered domain has to prove it sells in Egyptian pounds before the
+       engine will quote it. The TLD cannot decide this — btech.com and
+       raneen.com are Egyptian, instantpot.com and walmart.com are not — and
+       the currency check on the offer only catches pages that state one in
+       JSON-LD, which the HTML-scrape path never does. So the page itself must
+       carry an EGP marker somewhere; a genuine Egyptian storefront always
+       prints one. Without it we neither quote the domain nor add it to the
+       registry, where it would be searched on every future comparison. */
+    if (!EGP_MARK.test(html)) {
+      job.stats.nonEgyptian = (job.stats.nonEgyptian || 0) + 1;
+      return { status: 'foreign', items: [] };
+    }
     // 1) the search hit itself is usually a product page — lift its JSON-LD
-    try {
-      const html = await fetchPage(c.url);
-      const items = jsonLdProducts(html, c.domain).filter(it => it.price && isRelevant(it.title, job.q));
-      if (items.length) {
-        const store = { domain: c.domain, name: c.domain.split('.')[0], type: 'local', t: 4,
-          platform: 'auto', addedBy: 'discovery', lastOk: Date.now() };
-        return { store, status: 'ok', items: items.slice(0, 6) };
-      }
-    } catch {}
+    const items = jsonLdProducts(html, c.domain).filter(it => it.price && isRelevant(it.title, job.q));
+    if (items.length) {
+      const store = { domain: c.domain, name: c.domain.split('.')[0], type: 'local', t: 4,
+        platform: 'auto', addedBy: 'discovery', lastOk: Date.now() };
+      return { store, status: 'ok', items: items.slice(0, 6) };
+    }
     // 2) otherwise probe the domain's platform and try its search endpoint
     return searchStore(await probeDomain(c.domain), job.q);
   })(), 10000, { status: 'timeout', items: [] }));

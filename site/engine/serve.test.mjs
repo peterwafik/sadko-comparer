@@ -598,3 +598,46 @@ test('a regional model suffix is shown and flagged, never dropped', () => {
   assert.ok(am.flags.includes('variant'), 'flagged, because the engine is not certain');
   assert.equal(am.rank, undefined, 'and never crowned on an uncertain identity');
 });
+
+/* ---------------------------------------------------------------------------
+   Browse vs. product search.
+
+   A pasted marketplace title names a category too, and with no brand or model
+   the engine recognises it took the bare-category browse path: a search for
+   "Instant Pot Duo 6 Qt 7-in-1 Electric Pressure Cooker…" answered with 225
+   Egyptian gas cookers from 500 EGP, and — because compare() skips the live
+   fan-out for a browse — never asked a single store about the actual product.
+   --------------------------------------------------------------------------- */
+
+test('a bare category query still browses', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'غسالة سامسونج 9 كيلو', price: 15000 });
+  const r = await rankOffers(c, 'غسالة', { verify: async () => null });
+  assert.equal(r.browse, true, 'the washer aisle is a browse');
+  assert.equal(r.results.length, 2);
+  c.close();
+});
+
+test('a category name plus one qualifier still browses', async () => {
+  const c = openCatalog();
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'غسالة توشيبا 7 كيلو', price: 11000 });
+  const r = await rankOffers(c, 'غسالة اوتوماتيك', { verify: async () => null });
+  assert.equal(r.browse, true, 'one extra word is still the aisle, not a product');
+  c.close();
+});
+
+test('a pasted product title that merely NAMES a category is not a browse', async () => {
+  const c = openCatalog();
+  // the catalogue's cookers — none of them an Instant Pot
+  c.upsertOffer({ domain: 'a.com', url: 'https://a.com/1', title: 'بوتجاز مسطح 4 شعلة سوبر كلاسيك', price: 500 });
+  c.upsertOffer({ domain: 'b.com', url: 'https://b.com/2', title: 'بوتجاز يونيون 60*90 استانلس', price: 4083 });
+  const q = 'Instant Pot Duo 6 Qt 7-in-1 Electric Pressure Cooker, Stainless Steel | multicooker, ' +
+            '6 quart, slow cook, rice, steam, sauté, yogurt, sterilizer, keep warm, app with guided recipes, family';
+  const r = await rankOffers(c, q, { verify: async () => null });
+  assert.equal(r.browse, false, 'a pasted title is a product search, not the cooker aisle');
+  assert.equal(r.confident, false, 'and the catalogue cannot identify it, so the caller must fall through');
+  assert.ok(!r.results.some(x => /بوتجاز/.test(x.title)),
+    'a gas cooker must never be offered as an answer to an Instant Pot query');
+  c.close();
+});

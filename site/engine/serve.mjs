@@ -224,6 +224,35 @@ function directedConfidence(want, got, query) {
   return want.brand || want.category ? null : 'weak';
 }
 
+/* Is this query ASKING for a category, or merely mentioning one?
+
+   "غسالة" is a browse: the shopper wants the washer aisle, cheapest first.
+   A pasted marketplace title is not, even though it names a category too —
+   "Instant Pot Duo 6 Qt 7-in-1 Electric Pressure Cooker, Stainless Steel |
+   multicooker, 6 quart, slow cook, rice…" detects category `cooker`, and with
+   no brand or model the engine recognises (Instant Pot is not in the Egyptian
+   BRANDS table) it took the browse path and answered with 225 gas cookers
+   from 500 EGP — while never running the live fan-out, because compare()
+   deliberately skips it for a browse. The shopper searched for a multicooker
+   and got بوتجاز.
+
+   The test is what is LEFT after the category's own names, pure numbers and
+   the unit words the query used to state a size: nothing left means the query
+   was the category; anything left is something specific the shopper asked for
+   and must be matched, not browsed. One leftover token is tolerated so a
+   phrasing like "غسالة اوتوماتيك" still browses. */
+const BROWSE_SLACK = 1;
+function isBareCategoryQuery(query, category) {
+  const def = CATEGORIES[category];
+  if (!def) return false;
+  const nameWords = new Set(def.names.flatMap(n => normText(n).split(/\s+/)).filter(Boolean));
+  const unitWords = new Set(Object.values(CATEGORIES)
+    .flatMap(d => d.units || []).flatMap(u => [u, normText(u)]));
+  const rest = distinctiveTokens(query).filter(w =>
+    !nameWords.has(w) && !unitWords.has(w) && !/^\d+([.,]\d+)?$/.test(w));
+  return rest.length <= BROWSE_SLACK;
+}
+
 export async function rankOffers(catalog, query, opts = {}) {
   const { verify = async () => null, verifyTop = 10, limit = 200, override = {} } = opts;
 
@@ -255,7 +284,7 @@ export async function rankOffers(catalog, query, opts = {}) {
   // ranking/crowning entirely: pull every offer in the category, drop only
   // the ones that contradict a unit/spec the query DID state, sort by
   // price, and crown nothing — there is no "this is the product" to crown.
-  if (want.category && !want.brand && !want.model) {
+  if (want.category && !want.brand && !want.model && isBareCategoryQuery(query, want.category)) {
     const def = CATEGORIES[want.category];
     const catOffers = catalog.offersForCategory(want.category);
     const results = [];

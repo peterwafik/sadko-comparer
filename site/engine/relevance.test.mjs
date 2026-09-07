@@ -370,3 +370,31 @@ test('verifiable AI brand: a wrong brand IS still rejected (Sharp is tabulated)'
   const t = 'تكييف سبليت من ال جي 2.25 حصان';
   assert.equal(isRelevant(t, q, { brand: 'Sharp', compatible_brands: [] }), false);
 });
+
+/* ---------------------------------------------------------------------------
+   Currency. Every price the engine prints is labelled جنيه, and discovery
+   admits .com domains — so a search for an Instant Pot reached instantpot.com
+   and instantpotme.com and rendered $110 and AED 499 as "110 جنيه" and
+   "499 جنيه". A price wrong by a factor of fifty is worse than no price.
+   --------------------------------------------------------------------------- */
+const { jsonLdProducts } = await import('../compare-server.mjs');
+
+const ld = cur => '<script type="application/ld+json">' + JSON.stringify({
+  '@type': 'Product', name: 'Instant Pot Duo 6QT Pressure Cooker',
+  offers: { '@type': 'Offer', price: '110.00', priceCurrency: cur, url: 'https://x.test/p' },
+}) + '</script>';
+
+test('an offer carries the currency its page states', () => {
+  assert.equal(jsonLdProducts(ld('USD'), 'x.test')[0].currency, 'USD');
+  assert.equal(jsonLdProducts(ld('AED'), 'x.test')[0].currency, 'AED');
+  assert.equal(jsonLdProducts(ld('EGP'), 'x.test')[0].currency, 'EGP');
+});
+
+test('a page that states no currency leaves it unset, not guessed', () => {
+  const html = '<script type="application/ld+json">' + JSON.stringify({
+    '@type': 'Product', name: 'ثلاجة كريازى', offers: { '@type': 'Offer', price: '15000', url: 'https://x.test/p' },
+  }) + '</script>';
+  const it = jsonLdProducts(html, 'x.test')[0];
+  assert.ok(!it.currency, 'silence must stay unknown — the Egyptian adapters carry no currency at all');
+  assert.equal(it.price, 15000);
+});

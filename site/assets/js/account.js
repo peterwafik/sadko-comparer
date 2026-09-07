@@ -50,12 +50,12 @@
     }
 
     function offline() {
-      return '<div class="panel"><h2 class="panel__h">' + t('الحسابات مش متاحة دلوقتى', 'Accounts are unavailable right now') + '</h2>' +
+      return '<div class="panel"><h2 class="panel__h">' + t('الحسابات غير متاحة حالياً', 'Accounts are unavailable right now') + '</h2>' +
         '<div class="note note--warn">' + esc(Au.offlineMsg()) + '</div>' +
-        '<p class="muted small mt16">' + t('باقى الموقع شغّال: المقارنة، ساعدنى أختار، الخطط، والمحفوظات. وتقدر كمان تعرّفنا على بيتك من غير حساب — هيتحفظ على جهازك.',
+        '<p class="muted small mt16">' + t('وبقية الموقع تعمل: المقارنة، وساعدنى أختار، والخطط، والمحفوظات. ويمكنك أيضاً أن تعرّفنا بمنزلك دون حساب — وسيُحفظ على جهازك.',
           'The rest of the site still works: comparison, the finder, plans and saved products. You can even describe your home without an account — it is kept on your device.') + '</div>' +
         '<div class="chips mt16"><a class="btn btn--teal" href="' + A.P('finder.html') + '">' + t('ساعدنى أختار', 'Help me choose') + '</a>' +
-        '<a class="btn btn--ghost" href="tel:19140">' + t('اطلب بالتليفون 19140', 'Order by phone 19140') + '</a></div></div>' +
+        '<a class="btn btn--ghost" href="tel:19140">' + t('اطلب هاتفياً 19140', 'Order by phone 19140') + '</a></div></div>' +
         homesPanel(null);
     }
 
@@ -71,15 +71,15 @@
             '<img src="' + A.P('assets/img/sadko-logo.png') + '" alt="صادكو جروب"></a>' +
           '<div class="sk-auth__card">' +
             '<h1 id="authTitle">' + t('أهلاً بيك تانى', 'Welcome back') + '</h1>' +
-            '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك تكمّل طلبك وتتابعه، وتلاقى ترشيحاتك على مقاس بيتك.',
+            '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك لتُتم طلبك وتتابعه، ولتجد ترشيحاتك على مقاس منزلك.',
               'Sign in to complete and track your orders, and get suggestions sized to your home.') + '</p>' +
 
             socialRow() +
-            '<div class="sk-auth__or"><span>' + t('أو بالإيميل', 'or with email') + '</span></div>' +
+            '<div class="sk-auth__or"><span>' + t('أو بالبريد الإلكترونى', 'or with email') + '</span></div>' +
 
             // login form
             '<form id="loginForm" class="sk-authform">' +
-              field('email', 'email', t('الإيميل', 'Email'), '', 'username') +
+              field('email', 'email', t('البريد الإلكترونى', 'Email'), '', 'username') +
               field('password', 'password', t('كلمة السر', 'Password'), '', 'current-password') +
               '<div id="loginErr"></div>' +
               '<button class="btn btn--teal btn--block mt8" type="submit">' + t('دخول', 'Sign in') + '</button>' +
@@ -90,8 +90,8 @@
             // signup form (hidden until toggled)
             '<form id="regForm" class="sk-authform" hidden>' +
               field('name', 'text', t('الاسم', 'Full name'), '', 'name') +
-              field('email', 'email', t('الإيميل', 'Email'), '', 'email') +
-              field('phone', 'tel', t('الموبايل (اختيارى)', 'Mobile (optional)'), '', 'tel') +
+              field('email', 'email', t('البريد الإلكترونى', 'Email'), '', 'email') +
+              field('phone', 'tel', t('الهاتف المحمول (اختيارى)', 'Mobile (optional)'), '', 'tel') +
               field('password', 'password', t('كلمة السر', 'Password'), t('٨ حروف على الأقل، حروف وأرقام', 'At least 8 characters, letters and numbers'), 'new-password') +
               '<div id="regErr"></div>' +
               '<button class="btn btn--primary btn--block mt8" type="submit">' + t('اعمل حساب', 'Create account') + '</button>' +
@@ -101,10 +101,10 @@
             '</form>' +
 
             '<p class="sk-auth__switch" id="authSwitch">' +
-              '<span id="switchText">' + t('لسه معندكش حساب؟', 'Don\'t have an account?') + '</span> ' +
+              '<span id="switchText">' + t('ألا تملك حساباً بعد؟', 'Don\'t have an account?') + '</span> ' +
               '<button type="button" id="authToggle">' + t('اعمل حساب', 'Sign up') + '</button></p>' +
           '</div>' +
-          '<a class="sk-auth__home" href="' + A.P('index.html') + '">' + t('← رجوع للبيت', '← Back to home') + '</a>' +
+          '<a class="sk-auth__home" href="' + A.P('index.html') + '">' + t('← العودة إلى الرئيسية', '← Back to home') + '</a>' +
         '</div></div>';
     }
 
@@ -135,7 +135,7 @@
     function guestHomesScreen() {
       return '<div class="between mt0"><div><h2 class="panel__h" style="font-size:1.25rem">' +
           t('أماكنى', 'My places') + '</h2>' +
-          '<p class="muted small" style="margin:4px 0 0">' + t('عرّفنا على بيتك عشان نفلتر المنتجات على مقاسه — من غير ما تعمل حساب.',
+          '<p class="muted small" style="margin:4px 0 0">' + t('عرّفنا بمنزلك لنصفّى المنتجات على مقاسه — دون إنشاء حساب.',
             'Tell us about your home so we filter products to fit — no account needed.') + '</p></div>' +
           '<a class="btn btn--teal btn--sm" href="' + A.P('account.html') + '">' + t('سجّل دخول', 'Sign in') + '</a></div>' +
         homesPanel(null);
@@ -175,7 +175,7 @@
       s.onerror = () => {
         const box = root.querySelector('#provErr');
         if (box) box.innerHTML = '<div class="note note--soft mt8 small">' +
-          t('مقدرناش نحمّل زرار جوجل (يمكن الشبكة). استخدم الإيميل وكلمة السر.',
+          t('تعذّر تحميل زر جوجل (ربما بسبب الشبكة). استخدم البريد الإلكترونى وكلمة المرور.',
             'We could not load the Google button (possibly the network). Please use email and password.') + '</div>';
       };
       document.head.appendChild(s);
@@ -206,7 +206,7 @@
           '<div class="panel"><h3 class="panel__h">' + t('بياناتك', 'Your details') + '</h3>' +
             '<form id="detForm">' +
               field('name', 'text', t('الاسم', 'Full name'), '', 'name', u.name) +
-              field('phone', 'tel', t('الموبايل', 'Mobile'), '', 'tel', u.phone) +
+              field('phone', 'tel', t('الهاتف المحمول', 'Mobile'), '', 'tel', u.phone) +
               '<label class="field"><span class="field__l">' + t('عنوان التوصيل', 'Delivery address') + '</span>' +
                 '<textarea class="textarea" name="address" maxlength="300" style="min-height:74px">' + esc(u.address || '') + '</textarea></label>' +
               '<div id="detMsg"></div>' +
@@ -224,7 +224,7 @@
                 '</form>'
               : '<div class="note note--soft small">' + t('حسابك بيدخل عن طريق ', 'Your account signs in with ') +
                   esc((u.providers || []).join(', ') || t('مزوّد خارجى', 'a provider')) +
-                  t('، فمفيش كلمة سر هنا. لو حبيت كلمة سر، كلّم خدمة العملاء.', ', so there is no password here. If you would like one, contact customer care.') + '</div>') +
+                  t('، فلا كلمة مرور هنا. وإن أردت كلمة مرور، فاتصل بخدمة العملاء.', ', so there is no password here. If you would like one, contact customer care.') + '</div>') +
           '</div>' +
         '</div>' +
 
@@ -232,7 +232,7 @@
           '<p class="muted small">' + t('جارى التحميل…', 'Loading…') + '</p></div>' +
 
         '<div class="panel mt16"><h3 class="panel__h">' + t('بياناتك وحقك فيها', 'Your data, and your rights over it') + '</h3>' +
-          '<p class="panel__sub">' + t('تقدر تاخد نسخة من كل حاجة مسجّلة عندنا، أو تمسح حسابك نهائياً — من غير ما تكلّم حد.',
+          '<p class="panel__sub">' + t('يمكنك أخذ نسخة من كل ما هو مسجَّل لدينا، أو حذف حسابك نهائياً — دون الحاجة إلى مخاطبة أحد.',
             'You can take a copy of everything we hold, or delete your account permanently — without having to ask anyone.') + '</p>' +
           '<div class="chips">' +
             '<a class="btn btn--ghost btn--sm" href="' + Au.exportUrl() + '" download="sadko-my-data.json">' +
@@ -250,12 +250,12 @@
       return '<div class="panel mt16" id="homesBox"><div class="between">' +
         '<div><h3 class="panel__h">' + t('أماكنى', 'My places') + ' <span class="badge">' + A.num(homes.length) + '</span></h3>' +
         '<p class="panel__sub" style="margin:6px 0 0">' + t(
-          'ممكن يكون عندك أكتر من مكان — الشقة، شاليه الساحل، أو حتى أوضة لوحدها. اختار المكان الشغّال، وكل صفحات المنتجات هتفلتر على مقاسه.',
+          'قد يكون لديك أكثر من مكان — الشقة، أو شاليه الساحل، أو حتى غرفة بمفردها. اختر المكان المُفعَّل، وستُصفَّى كل صفحات المنتجات على مقاسه.',
           'You can keep more than one place — the flat, a chalet on the coast, or even a single room. Pick the active one and every product page filters to fit it.') + '</p></div>' +
         (homes.length < 8 ? '<button class="btn btn--teal btn--sm" id="addHomeBtn">' + t('+ مكان جديد', '+ Add a place') + '</button>' : '') +
         '</div>' +
         (guest ? '<div class="note note--soft small mt16">' + t(
-          'إنت مش مسجّل دخول، فالأماكن دى محفوظة على الجهاز ده. أول ما تعمل حساب هننقلها معاك تلقائياً.',
+          'أنت غير مسجَّل الدخول، فهذه الأماكن محفوظة على هذا الجهاز. وبمجرد إنشائك حساباً سننقلها معك تلقائياً.',
           'You are not signed in, so these places live on this device. When you create an account we move them across for you.') + '</div>' : '') +
         '<div id="homesList" class="stack mt16">' +
           (homes.length ? homes.map(h => homeCard(h, active && h.id === active.id)).join('')
@@ -269,9 +269,9 @@
       return '<div class="hm-card' + (isActive ? ' is-active' : '') + '">' +
         '<div style="display:flex;gap:12px;align-items:flex-start;min-width:0">' +
           '<span class="hm-card__i">' + esc(h.icon || '🏠') + '</span>' +
-          '<div style="min-width:0"><p class="hm-card__n">' + esc(h.name || t('بيتى', 'My home')) +
+          '<div style="min-width:0"><p class="hm-card__n">' + esc(h.name || t('منزلى', 'My home')) +
             (isActive ? ' <span class="badge">' + t('الشغّال', 'active') + '</span>' : '') + '</p>' +
-            '<p class="hm-card__s">' + esc(H.summary(h) || t('لسه مفيش تفاصيل', 'no details yet')) + '</p>' +
+            '<p class="hm-card__s">' + esc(H.summary(h) || t('لا تفاصيل بعد', 'no details yet')) + '</p>' +
             '<p class="hm-card__s">' + t('مكتمل ', 'Completed ') + c.done + '/' + c.total + '</p></div></div>' +
         '<div class="chips">' +
           (isActive ? '' : '<button class="btn btn--ghost btn--sm" data-use="' + esc(h.id) + '">' + t('استخدمه', 'Use this') + '</button>') +
@@ -281,7 +281,7 @@
     }
 
     function presetPicker() {
-      return '<div class="note note--info small">' + t('ابدأ بواحد من دول، وتقدر تعدّله بعدين:', 'Start from one of these — you can edit it afterwards:') + '</div>' +
+      return '<div class="note note--info small">' + t('ابدأ بواحد من هذه، ويمكنك تعديله لاحقاً:', 'Start from one of these — you can edit it afterwards:') + '</div>' +
         '<div class="chips mt8">' + H.PRESETS().map(p =>
           '<button type="button" class="chip" data-preset="' + esc(p.key) + '">' + esc(p.icon + ' ' + p.name) + '</button>').join('') + '</div>';
     }
@@ -347,9 +347,9 @@
           $('#regForm').hidden = login;
           $('#authTitle').textContent = login ? t('أهلاً بيك تانى', 'Welcome back') : t('اعمل حساب جديد', 'Create your account');
           $('#authSub').textContent = login
-            ? t('سجّل دخولك تكمّل طلبك وتتابعه، وتلاقى ترشيحاتك على مقاس بيتك.', 'Sign in to complete and track your orders, and get suggestions sized to your home.')
-            : t('دقيقة واحدة، وتقدر تطلب وتتابع وتحفظ اللى بيعجبك.', 'A minute, and you can order, track and save what you like.');
-          $('#switchText').textContent = login ? t('لسه معندكش حساب؟', 'Don\'t have an account?') : t('عندك حساب بالفعل؟', 'Already have an account?');
+            ? t('سجّل دخولك لتُتم طلبك وتتابعه، ولتجد ترشيحاتك على مقاس منزلك.', 'Sign in to complete and track your orders, and get suggestions sized to your home.')
+            : t('دقيقة واحدة، ويمكنك بعدها أن تطلب وتتابع وتحفظ ما يعجبك.', 'A minute, and you can order, track and save what you like.');
+          $('#switchText').textContent = login ? t('ألا تملك حساباً بعد؟', 'Don\'t have an account?') : t('عندك حساب بالفعل؟', 'Already have an account?');
           toggle.textContent = login ? t('اعمل حساب', 'Sign up') : t('سجّل دخول', 'Sign in');
           const firstInput = (login ? $('#loginForm') : $('#regForm')).querySelector('input');
           firstInput && firstInput.focus();
@@ -359,7 +359,7 @@
       const gd = $('#googleDemo');
       gd && gd.addEventListener('click', () => {
         msg($('#provErr'), 'soft', t(
-          'الدخول بجوجل هيشتغل على السيرفر أول ما يتحط GOOGLE_CLIENT_ID — التفعيل مجانى. لحد ساعتها استخدم الإيميل وكلمة السر تحت.',
+          'سيعمل الدخول بجوجل على الخادم بمجرد ضبط GOOGLE_CLIENT_ID — والتفعيل مجانى. وإلى ذلك الحين استخدم البريد الإلكترونى وكلمة المرور أدناه.',
           'Google sign-in activates once GOOGLE_CLIENT_ID is set on the server — it is free to enable. Until then, use email and password below.'));
       });
 
@@ -413,9 +413,9 @@
         const box = $('#delBox');
         box.innerHTML = '<div class="note note--warn mt16">' +
           '<b>' + t('المسح نهائى', 'This cannot be undone') + '</b><br>' +
-          t('هيتمسح: حسابك، أماكنك، وسجل طلباتك عندنا. الطلبات اللى اتنفذت فعلاً ممكن تفضل فى سجلات صادكو المحاسبية.',
+          t('سيُحذف: حسابك، وأماكنك، وسجل طلباتك لدينا. أما الطلبات التى نُفِّذت فعلاً فقد تبقى فى سجلات صادكو المحاسبية.',
             'This removes your account, your places and your order history here. Orders already fulfilled may remain in SADKO\'s accounting records.') +
-          '<label class="field mt16"><span class="field__l">' + t('اكتب إيميلك للتأكيد', 'Type your email to confirm') + '</span>' +
+          '<label class="field mt16"><span class="field__l">' + t('اكتب بريدك الإلكترونى للتأكيد', 'Type your email to confirm') + '</span>' +
           '<input class="input" id="delEmail" type="email" autocomplete="off" placeholder="' + esc(user.email) + '"></label>' +
           '<div class="chips"><button class="btn btn--quiet btn--sm" id="delGo">' + t('امسح نهائياً', 'Delete permanently') + '</button>' +
           '<button class="btn btn--ghost btn--sm" id="delNo">' + t('إلغاء', 'Cancel') + '</button></div><div id="delMsg"></div></div>';
@@ -462,7 +462,7 @@
       const list = await Au.orders();
       const h = '<h3 class="panel__h">' + t('طلباتى', 'My orders') + '</h3>';
       if (!list.length) {
-        box.innerHTML = h + '<p class="muted small">' + t('لسه مفيش طلبات.', 'No orders yet.') + '</p>' +
+        box.innerHTML = h + '<p class="muted small">' + t('لا طلبات بعد.', 'No orders yet.') + '</p>' +
           '<a class="btn btn--teal btn--sm mt8" href="' + A.P('shop.html') + '">' + t('اتفضل على المتجر', 'Browse the shop') + '</a>';
         return;
       }
@@ -475,7 +475,7 @@
           '<td><span class="chip chip--mute">' + t('اتسجّل', 'Received') + '</span></td></tr>').join('') +
         '</tbody></table></div>' +
         '<div class="note note--soft small mt16">' + t(
-          'الطلب اتسجّل عندنا وخدمة العملاء هتتواصل معاك على 19140 لتأكيد التوصيل والتركيب ورسومهم. مفيش دفع أونلاين بالبطاقة على النسخة دى.',
+          'سُجِّل الطلب لدينا وستتواصل معك خدمة العملاء على 19140 لتأكيد التوصيل والتركيب ورسومهما. ولا يوجد دفع إلكترونى بالبطاقة فى هذه النسخة.',
           'Your order is recorded and customer care will contact you on 19140 to confirm delivery, installation and their charges. Online card payment is not available on this version.') + '</div>';
     }
     function payName(k) {

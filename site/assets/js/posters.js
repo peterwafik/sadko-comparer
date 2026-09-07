@@ -59,7 +59,7 @@ function mountPosters(container, api, si, config) {
     `<span class="ps-card__img"></span>` +
     `<span class="ps-card__meta"><span class="ps-card__badge"></span>` +
     `<b class="ps-card__title"></b><i class="ps-card__price"></i>` +
-    `<span class="ps-card__cta">${PS_EN ? 'Shop now' : 'اشترى دلوقتى'}</span></span>`;
+    `<span class="ps-card__cta">${PS_EN ? 'Shop now' : 'اشترِ الآن'}</span></span>`;
   const prev = document.createElement('button');
   prev.type = 'button'; prev.className = 'ps-arrow ps-arrow--prev';
   prev.setAttribute('aria-label', PS_EN ? 'Previous deal' : 'العرض السابق'); prev.innerHTML = '&#8249;';

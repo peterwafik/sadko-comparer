@@ -32,18 +32,18 @@
 <body>
 
 <section class="hero">
-  <p class="hero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ← <span data-i18n="crumb-here">الطلبات</span></p>
+  <p class="hero__crumb"><a href="index.html" data-i18n="crumb-home">الرئيسية</a> ← <span data-i18n="crumb-here">الطلبات</span></p>
   <h1 class="hero__title" data-i18n="title">طلباتك</h1>
   <p class="hero__meta" id="heroMeta"></p>
 </section>
 
 <main class="wrap">
   <div id="orders"></div>
-  <p class="empty" id="empty" hidden>مفيش طلبات محفوظة لسه — املا <a href="cart.html" data-i18n="yourcart">سلتك</a> من <a href="shop.html" data-i18n="theshop">المتجر</a> ودوس «احفظ الطلب».</p>
+  <p class="empty" id="empty" hidden>لا طلبات محفوظة بعد — املأ <a href="cart.html" data-i18n="yourcart">سلتك</a> من <a href="shop.html" data-i18n="theshop">المتجر</a> واضغط «احفظ الطلب».</p>
 
   <div class="track">
-    <a href="tel:19140"><b data-i18n="h-confirm">📞 أكّد طلبك</b><span data-i18n="p-confirm">الطلبات المحفوظة هنا بتتأكد بمكالمة واحدة على الخط الساخن 19140 — اذكر رقم الطلب.</span></a>
-    <a href="https://movex.com.eg" target="_blank" rel="noopener"><b data-i18n="h-track">🚚 تتبع شحنتك</b><span data-i18n="p-track">الشحنات المؤكدة بتتسلم لشركة موڤكس — تقدر تتبعها برقم شحنتك على movex.com.eg</span></a>
+    <a href="tel:19140"><b data-i18n="h-confirm">📞 أكّد طلبك</b><span data-i18n="p-confirm">تُؤكَّد الطلبات المحفوظة هنا بمكالمة واحدة على الخط الساخن 19140 — مع ذكر رقم الطلب.</span></a>
+    <a href="https://movex.com.eg" target="_blank" rel="noopener"><b data-i18n="h-track">🚚 تتبع شحنتك</b><span data-i18n="p-track">تُسلَّم الشحنات المؤكدة إلى شركة موڤكس — ويمكنك تتبعها برقم شحنتك على movex.com.eg</span></a>
     <a href="mailto:csupport@sadko-group.com"><b data-i18n="h-care">✉️ خدمة العملاء</b><span data-i18n="p-care">لأى استفسار عن طلب أو ضمان أو صيانة: csupport@sadko-group.com</span></a>
   </div>
 </main>
@@ -56,8 +56,8 @@
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g23" defer></script>
-<script src="assets/js/catalog-i18n.js?v=g2" defer></script>
+<script src="assets/js/nav.js?v=g24" defer></script>
+<script src="assets/js/catalog-i18n.js?v=g3" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {
   const T = {
@@ -88,10 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   // Orders saved before the status became a key still hold the Arabic sentence;
   // map it rather than print Arabic on the English page.
-  const STATUS = { 'saved-unconfirmed': ['محفوظ — لسه ما اتأكدش', 'Saved — not confirmed yet'] };
+  const STATUS = { 'saved-unconfirmed': ['محفوظ — لم يُؤكَّد بعد', 'Saved — not confirmed yet'] };
   const status = v => {
     if (STATUS[v]) return t(STATUS[v][0], STATUS[v][1]);
-    if (v === 'محفوظ — لسه ما اتأكدش') return t(v, 'Saved — not confirmed yet');
+    if (v === 'محفوظ — لم يُؤكَّد بعد') return t(v, 'Saved — not confirmed yet');
     return v;
   };
   let orders = [];

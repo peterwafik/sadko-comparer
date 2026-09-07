@@ -44,7 +44,7 @@
 <body>
 
 <section class="hero">
-  <p class="hero__crumb"><a href="index.html" data-i18n="crumb-home">البيت</a> ← <span data-i18n="crumb-here">سلة التسوق</span></p>
+  <p class="hero__crumb"><a href="index.html" data-i18n="crumb-home">الرئيسية</a> ← <span data-i18n="crumb-here">سلة التسوق</span></p>
   <h1 class="hero__title" data-i18n="title">سلة التسوق</h1>
   <p class="hero__meta" id="heroMeta"></p>
 </section>
@@ -57,14 +57,14 @@
       <div class="row"><span data-i18n="count">عدد القطع</span><b id="sCount">0</b></div>
       <div class="row total"><span data-i18n="total">الإجمالى</span><b id="sTotal">0 جنيه</b></div>
       <a class="act act--checkout" href="checkout.html" data-i18n="checkout">كمّل الطلب</a>
-      <a class="act act--call" href="tel:19140" data-i18n="byphone">أو اطلب بالتليفون — 19140</a>
-      <a class="act act--mail" id="mailBtn" href="#" data-i18n="byemail">ابعت الطلب بالإيميل</a>
+      <a class="act act--call" href="tel:19140" data-i18n="byphone">أو اطلب هاتفياً — 19140</a>
+      <a class="act act--mail" id="mailBtn" href="#" data-i18n="byemail">أرسل الطلب بالبريد</a>
       <button class="act act--save" id="saveBtn" type="button" data-i18n="save">احفظ الطلب فى «الطلبات»</button>
-      <button class="act act--clear" id="clearBtn" type="button" data-i18n="clear">فضّى السلة</button>
-      <p class="note" data-i18n="paynote">الدفع عند الاستلام أو تحويل بنكى أو فى المعرض — الدفع بالبطاقة أونلاين لسه مش متاح. رسوم التوصيل والتركيب بتتأكد معاك بالتليفون. للتقسيط اسأل خدمة العملاء على 19140.</p>
+      <button class="act act--clear" id="clearBtn" type="button" data-i18n="clear">أفرغ السلة</button>
+      <p class="note" data-i18n="paynote">الدفع عند الاستلام أو بتحويل بنكى أو فى المعرض — أما الدفع بالبطاقة عبر الإنترنت فغير متاح بعد. وتُؤكَّد رسوم التوصيل والتركيب معك هاتفياً. وللتقسيط اسأل خدمة العملاء على 19140.</p>
     </aside>
   </div>
-  <p class="empty" id="empty" hidden>سلتك فاضية — <a href="shop.html" data-i18n="toshop">اتفضل على المتجر</a> أو اتفسّح فى <a href="index.html" data-i18n="tohouse">بيت صادكو</a> ودوس على أى جهاز يعجبك.</p>
+  <p class="empty" id="empty" hidden>سلتك فارغة — <a href="shop.html" data-i18n="toshop">تفضّل إلى المتجر</a> أو تجوّل فى <a href="index.html" data-i18n="tohouse">منزل صادكو</a> واضغط على أى جهاز يعجبك.</p>
 </main>
 
 <footer class="foot">
@@ -75,8 +75,8 @@
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g23" defer></script>
-<script src="assets/js/catalog-i18n.js?v=g2" defer></script>
+<script src="assets/js/nav.js?v=g24" defer></script>
+<script src="assets/js/catalog-i18n.js?v=g3" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {
   const T = {
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('empty').hidden = items.length > 0;
     document.getElementById('heroMeta').textContent = items.length
       ? (skCart.count() + t(' قطعة — إجمالى ', ' items — total ') + fmt(skCart.total()) + t(' جنيه', ' EGP'))
-      : t('فاضية لسه', 'Still empty');
+      : t('فاضية لا شىء بعد', 'Still empty');
     box.innerHTML = '';
     items.forEach(i => {
       const el = document.createElement('div');
@@ -137,10 +137,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sTotal').textContent = fmt(skCart.total()) + t(' جنيه', ' EGP');
 
     const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ' — ' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP'));
-    const body = encodeURIComponent(t('السلام عليكم،\nعايز أطلب الأجهزة دى:\n', 'Hello,\nI would like to order these appliances:\n')).replace(/%0A/g,'%0D%0A') +
+    const body = encodeURIComponent(t('السلام عليكم،\nأود طلب هذه الأجهزة:\n', 'Hello,\nI would like to order these appliances:\n')).replace(/%0A/g,'%0D%0A') +
       encodeURIComponent(lines.join('\n')).replace(/%0A/g,'%0D%0A') +
       '%0D%0A' + encodeURIComponent(t('الإجمالى: ', 'Total: ')) + fmt(skCart.total()) +
-      encodeURIComponent(t(' جنيه\nالاسم:\nالعنوان:\nرقم الموبايل:', ' EGP\nName:\nAddress:\nMobile:')).replace(/%0A/g,'%0D%0A');
+      encodeURIComponent(t(' جنيه\nالاسم:\nالعنوان:\nرقم الهاتف:', ' EGP\nName:\nAddress:\nMobile:')).replace(/%0A/g,'%0D%0A');
     document.getElementById('mailBtn').href =
       'mailto:csupport@sadko-group.com?subject=' + encodeURIComponent(t('طلب جديد من الموقع', 'New order from the website')) + '&body=' + body;
   }

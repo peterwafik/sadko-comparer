@@ -1744,24 +1744,24 @@ async function readJson(req, limit = 40000) {
 }
 /* Error codes -> bilingual, non-leaky messages. */
 const AUTH_MSG = {
-  'bad-email':      ['اكتب إيميل صحيح.', 'Enter a valid email address.'],
+  'bad-email':      ['اكتب بريداً إلكترونياً صحيحاً.', 'Enter a valid email address.'],
   'password-short': ['كلمة السر لازم تكون ٨ حروف على الأقل.', 'Password must be at least 8 characters.'],
   'password-weak':  ['كلمة السر لازم تحتوى على حروف وأرقام.', 'Password must contain both letters and numbers.'],
   'bad-name':       ['اكتب اسمك.', 'Please enter your name.'],
-  'bad-phone':      ['رقم الموبايل مش مظبوط.', 'That mobile number does not look right.'],
-  'email-taken':    ['الإيميل ده مسجّل قبل كده — سجّل دخولك.', 'That email is already registered — sign in instead.'],
-  'bad-credentials':['الإيميل أو كلمة السر غلط.', 'Wrong email or password.'],
-  'too-many':       ['محاولات كتير. استنى شوية وجرّب تانى.', 'Too many attempts. Please wait a few minutes and try again.'],
+  'bad-phone':      ['رقم الهاتف غير صحيح.', 'That mobile number does not look right.'],
+  'email-taken':    ['هذا البريد الإلكترونى مسجَّل من قبل — سجّل دخولك.', 'That email is already registered — sign in instead.'],
+  'bad-credentials':['البريد الإلكترونى أو كلمة المرور غير صحيحة.', 'Wrong email or password.'],
+  'too-many':       ['محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.', 'Too many attempts. Please wait a few minutes and try again.'],
   'empty-cart':     ['السلة فاضية.', 'Your cart is empty.'],
   'too-many-items': ['عدد الأصناف كبير جداً.', 'Too many items in one order.'],
   'no-user':        ['لازم تسجّل دخولك الأول.', 'Please sign in first.'],
-  'no-home':        ['المكان ده مش موجود.', 'That place was not found.'],
+  'no-home':        ['هذا المكان غير موجود.', 'That place was not found.'],
   'too-many-homes': ['وصلت للحد الأقصى من الأماكن.', 'You have reached the maximum number of places.'],
-  'no-password':    ['الحساب ده بيدخل عن طريق جوجل — مفيش كلمة سر تتغيّر.', 'This account signs in with a provider — there is no password to change.'],
+  'no-password':    ['هذا الحساب يسجّل الدخول عبر جوجل — ولا توجد كلمة مرور لتغييرها.', 'This account signs in with a provider — there is no password to change.'],
   'bad-identity':   ['بيانات الدخول ناقصة.', 'Incomplete sign-in details.'],
   'bad-json':       ['طلب غير صالح.', 'Malformed request.'],
   'too-large':      ['حجم الطلب كبير جداً.', 'Request too large.'],
-  'unavailable':    ['خدمة الحسابات مش متاحة على النسخة دى.', 'Accounts are not available on this deployment.'],
+  'unavailable':    ['خدمة الحسابات غير متاحة فى هذه النسخة.', 'Accounts are not available on this deployment.'],
 };
 const authErr = (code, lang) => ({ error: code, message: (AUTH_MSG[code] || AUTH_MSG['bad-json'])[lang === 'en' ? 1 : 0] });
 
@@ -1801,7 +1801,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   if (rateLimited(clientIp(req))) {
     res.statusCode = 429;
     res.setHeader('retry-after', '60');
-    return json(429, { error: 'rate-limited', message: 'طلبات كتير أوى — استنى دقيقة. / Too many requests — please wait a minute.' });
+    return json(429, { error: 'rate-limited', message: 'طلبات كثيرة جداً — انتظر دقيقة. / Too many requests — please wait a minute.' });
   }
 
   // State-changing requests must originate from this site.
@@ -1883,7 +1883,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     const me = currentUser(req);
     if (!me) return json(401, { error: 'no-user', message: lang === 'en' ? 'Sign in first.' : 'سجّل دخولك الأول.' });
     if (!isAdminUser(me)) return json(403, { error: 'not-admin', message: lang === 'en'
-      ? 'This account is not an administrator.' : 'الحساب ده مش من المسؤولين.' });
+      ? 'This account is not an administrator.' : 'هذا الحساب ليس من المسؤولين.' });
     const actor = me.email;
 
     try {
@@ -1995,7 +1995,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (rest === 'upload' && req.method === 'POST') {
         const b = await readJson(req, 6_000_000);            // ~6MB JSON => ~4MB image
         const m = /^data:(image\/(png|jpe?g|webp|gif|avif));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.data || ''));
-        if (!m) return json(400, { error: 'bad-image', message: lang === 'en' ? 'Send a PNG/JPG/WebP image.' : 'ابعت صورة PNG/JPG/WebP.' });
+        if (!m) return json(400, { error: 'bad-image', message: lang === 'en' ? 'Send a PNG/JPG/WebP image.' : 'أرسل صورة PNG/JPG/WebP.' });
         const ext = m[2] === 'jpeg' ? 'jpg' : m[2];
         const buf = Buffer.from(m[3], 'base64');
         if (buf.length > 4_500_000) return json(413, { error: 'too-large', message: lang === 'en' ? 'Image must be under 4MB.' : 'الصورة لازم تكون أقل من ٤ ميجا.' });
@@ -2034,7 +2034,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         }
         if (req.method === 'PUT') {
           const b = await readJson(req, 2_000_000);
-          let parsed; try { parsed = JSON.parse(b.json); } catch { return json(400, { error: 'bad-json', message: lang === 'en' ? 'That is not valid JSON.' : 'ده JSON مش صحيح.' }); }
+          let parsed; try { parsed = JSON.parse(b.json); } catch { return json(400, { error: 'bad-json', message: lang === 'en' ? 'That is not valid JSON.' : 'هذا JSON غير صحيح.' }); }
           await writeFile(file, JSON.stringify(parsed, null, 2));
           cadm.log(actor, 'content.save', name, null);
           return json(200, { ok: true });
@@ -2125,7 +2125,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const r = db.signInWithIdentity(v.identity);
         if (r.error === 'email-unverified') return json(409, { error: r.error, message: lang === 'en'
           ? 'That email already has a SADKO account, and your provider has not verified the address. Sign in with your password instead.'
-          : 'الإيميل ده عليه حساب صادكو بالفعل، ومزوّد الخدمة ما أكّدش ملكيتك ليه. سجّل دخولك بكلمة السر.' });
+          : 'لهذا البريد الإلكترونى حساب فى صادكو بالفعل، ولم يؤكد مزوّد الخدمة ملكيتك له. سجّل دخولك بكلمة المرور.' });
         if (r.error) return json(400, authErr(r.error, lang));
         setSessionCookie(res, req, r.session.raw, r.session.expires);
         return json(200, { ok: true, user: r.user, created: r.created });
@@ -2180,7 +2180,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const b = await readJson(req);
         const r = db.addHome(me.id, b);
         if (r.error) return json(400, r.error === 'too-many-homes'
-          ? { error: r.error, message: lang === 'en' ? 'You can keep up to 8 places.' : 'تقدر تحتفظ بحد أقصى ٨ أماكن.' }
+          ? { error: r.error, message: lang === 'en' ? 'You can keep up to 8 places.' : 'يمكنك الاحتفاظ بثمانية أماكن كحد أقصى.' }
           : authErr(r.error, lang));
         return json(200, { ok: true, home: r.home, user: r.user });
       }
@@ -2218,7 +2218,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (String(b.confirmEmail || '').trim().toLowerCase() !== me.email)
           return json(400, { error: 'confirm-mismatch', message: lang === 'en'
             ? 'Type your account email exactly to confirm deletion.'
-            : 'اكتب إيميل حسابك بالظبط عشان نأكّد المسح.' });
+            : 'اكتب بريد حسابك الإلكترونى بالضبط لتأكيد الحذف.' });
         const r = db.deleteUser(me.id);
         if (r.error) return json(400, authErr(r.error, lang));
         clearSessionCookie(res, req);

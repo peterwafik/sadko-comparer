@@ -59,10 +59,10 @@
   function mountProduct(root) {
     const A = window.skApp, t = A.t, esc = A.esc, S = window.skSpecs, St = window.skStore;
     const id = A.qs('id', '');
-    if (!id) { root.innerHTML = A.empty(t('مفيش منتج محدد.', 'No product selected.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
+    if (!id) { root.innerHTML = A.empty(t('لم يُحدَّد منتج.', 'No product selected.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
 
     Promise.all([A.byId(id), A.products()]).then(([p, all]) => {
-      if (!p) { root.innerHTML = A.empty(t('المنتج ده مش موجود.', 'That product was not found.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
+      if (!p) { root.innerHTML = A.empty(t('هذا المنتج غير موجود.', 'That product was not found.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
       const spec = S.of(p);
       const peers = all.filter(x => String(x.categoryId) === String(p.categoryId) && String(x.id) !== String(p.id));
       render(p, spec, peers);
@@ -84,7 +84,7 @@
       document.title = dispTitle.slice(0, 70) + ' — ' + t('صادكو جروب', 'SADKO Group');
       root.innerHTML =
         U.breadcrumb([
-          { label: t('البيت', 'Home'), href: A.P('index.html') },
+          { label: t('الرئيسية', 'Home'), href: A.P('index.html') },
           { label: t('المتجر', 'Shop'), href: A.P('shop.html') },
           { label: A.catName(p.categoryId), href: A.catHref(p.categoryId) },
           { label: t('تفاصيل المنتج', 'Product details') }
@@ -102,7 +102,7 @@
         specsPanel(p, s) +
         '<div class="grid2 mt16"><div>' + reviewsPanel(p) + '</div><div>' + qaPanel(p) + '</div></div>' +
         '<div id="guidesBox"></div>' +
-        U.rail(t('منتجات مشابهة', 'Related products'), peers.slice(0, 8), A.catHref(p.categoryId), { more: t('شوف الكل', 'See all') });
+        U.rail(t('منتجات مشابهة', 'Related products'), peers.slice(0, 8), A.catHref(p.categoryId), { more: t('عرض الكل', 'See all') });
       wire(p, s, peers);
       guides(p);
       U.afterGrid(root);
@@ -147,7 +147,7 @@
       }
       if (fam === 'ac') {
         const hp = s.cap.hp;
-        rows.push([t('مساحة الأوضة المناسبة', 'Suitable room size'),
+        rows.push([t('مساحة الغرفة المناسبة', 'Suitable room size'),
           hp ? t('حوالى ' + Math.round(hp * 12) + ' – ' + Math.round(hp * 16) + ' متر مربع', 'about ' + Math.round(hp * 12) + '–' + Math.round(hp * 16) + ' m²') : null, !!hp]);
         if (s.f.coverM2) rows.push([t('التغطية حسب الشركة', 'Manufacturer coverage'), s.f.coverM2 + t(' متر مربع', ' m²'), true]);
       }
@@ -166,13 +166,13 @@
       const oversized = (() => {
         if (!prof.people || !cap) return null;
         const b = S.sizeFor(fam, Number(prof.people));
-        if (b && cap.v > b.max * 1.25) return t('حسب اللى قلته قبل كده (' + prof.people + ' أفراد)، الجهاز ده أكبر من احتياجك — هتدفع فى سعره وفى كهربته من غير ما تستفيد بالفرق.',
+        if (b && cap.v > b.max * 1.25) return t('بناءً على ما ذكرته سابقاً (' + prof.people + ' أفراد)، هذا الجهاز أكبر من حاجتك — ستدفع فى ثمنه وفى كهربائه دون أن تستفيد من الفارق.',
           'Based on what you told us (' + prof.people + ' people), this is larger than you need — you would pay for capacity and power you will not use.');
         return null;
       })();
 
       return '<div class="panel"><h2 class="panel__h">' + t('مناسب لمين؟', 'Who is it for?') + '</h2>' +
-        '<p class="panel__sub">' + t('قراءة عملية للمواصفات — مش قايمة أرقام.', 'A practical read of the specification, not a list of numbers.') + '</p>' +
+        '<p class="panel__sub">' + t('قراءة عملية للمواصفات — لا قائمة أرقام.', 'A practical read of the specification, not a list of numbers.') + '</p>' +
         '<ul class="specs">' + rows.map(r =>
           '<li><span class="k">' + esc(r[0]) + '</span><span class="v' + (r[2] ? '' : ' unknown') + '">' +
           esc(r[1] || t('غير متوفر', 'not stated')) + '</span></li>').join('') + '</ul>' +
@@ -191,7 +191,7 @@
         (known
           ? '<ul class="specs mt8"><li><span class="k">' + t('مقاس الجهاز', 'Appliance size') + '</span><span class="v">' +
               [d.w ? t('عرض ', 'W ') + d.w : '', d.h ? t('ارتفاع ', 'H ') + d.h : '', d.d ? t('عمق ', 'D ') + d.d : ''].filter(Boolean).join(' × ') + ' ' + t('سم', 'cm') + '</span></li></ul>'
-          : '<div class="note note--warn">' + t('أبعاد الجهاز مش موجودة فى بيانات المنتج — اطلبها من المعرض أو من خدمة العملاء قبل الشراء.',
+          : '<div class="note note--warn">' + t('أبعاد الجهاز غير واردة فى بيانات المنتج — اطلبها من المعرض أو من خدمة العملاء قبل الشراء.',
               'This product\'s dimensions are not in the catalogue data — ask the showroom or customer care before buying.') + '</div>') +
         '<div class="row mt16">' +
           ['maxW,' + t('العرض المتاح', 'Width available'), 'maxH,' + t('الارتفاع المتاح', 'Height available'), 'maxD,' + t('العمق المتاح', 'Depth available')]
@@ -212,19 +212,19 @@
       const tight = given.filter(x => d[x[1]] && d[x[1]] <= Number(prof[x[0]]) && (Number(prof[x[0]]) - d[x[1]]) < 5);
       if (fails.length) {
         return '<div class="note" style="border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,#fff)"><b>' +
-          t('مش هيناسب المساحة', 'It will not fit') + '</b><br>' +
+          t('لن يناسب المساحة', 'It will not fit') + '</b><br>' +
           fails.map(x => esc(x[2] + t(' الجهاز ' + d[x[1]] + ' سم والمتاح عندك ' + prof[x[0]] + ' سم.', ' is ' + d[x[1]] + ' cm but you have ' + prof[x[0]] + ' cm.'))).join('<br>') + '</div>';
       }
       if (tight.length) {
-        return '<div class="note note--warn"><b>' + t('يناسب، بس بالعافية', 'It fits — but only just') + '</b><br>' +
-          t('الفرق أقل من ٥ سم، والأجهزة دى محتاجة مساحة تهوية حواليها. راجع تعليمات التركيب.',
+        return '<div class="note note--warn"><b>' + t('يناسب، لكن بالكاد', 'It fits — but only just') + '</b><br>' +
+          t('الفارق أقل من ٥ سم، وهذه الأجهزة تحتاج مساحة تهوية حولها. راجع تعليمات التركيب.',
             'The gap is under 5 cm and these appliances need ventilation space around them. Check the installation instructions.') + '</div>';
       }
       return '<div class="note" style="border-color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,#fff)"><b>' +
         t('يناسب المساحة', 'It fits your space') + '</b>' +
         // the list separator is itself localised — an Arabic comma between English
         // dimension names ("Width، Depth") is the same leak as an untranslated label.
-        (unknown.length ? '<br>' + t('ملاحظة: ', 'Note: ') + unknown.map(x => esc(x[2])).join(t('، ', ', ')) + t(' مش متوفر فى بيانات المنتج.', ' not available in the product data.') : '') + '</div>';
+        (unknown.length ? '<br>' + t('ملاحظة: ', 'Note: ') + unknown.map(x => esc(x[2])).join(t('، ', ', ')) + t(' غير متوفر فى بيانات المنتج.', ' not available in the product data.') : '') + '</div>';
     }
 
     /* ---- 3. good to know ---- */
@@ -236,20 +236,20 @@
       if (s.family === 'washer') items.push({ k: 'hm', text: t('محتاجة خرطوم مياه وصرف قريب، ومسمار الأمان لازم يتشال قبل أول غسلة.', 'Needs a water inlet and drain nearby, and the transit bolts must be removed before the first wash.') });
       if (s.family === 'cooker') items.push({ k: 'hm', text: t('البوتاجاز محتاج وصلة غاز وفنى معتمد — متركبوش بنفسك.', 'A cooker needs a gas connection fitted by an approved technician — do not install it yourself.') });
       if (s.f.warranty) items.push({ k: 'ok', text: t('الوصف بيذكر ضمان ' + s.f.warranty + ' سنة — اطلب كارت الضمان والفاتورة وقت الاستلام.', 'The description mentions a ' + s.f.warranty + '-year warranty — ask for the warranty card and invoice on delivery.') });
-      else items.push({ k: 'hm', text: t('مدة الضمان مش مذكورة هنا — اسأل عنها قبل الشراء واحتفظ بالفاتورة.', 'Warranty length is not stated here — ask before buying and keep the invoice.') });
+      else items.push({ k: 'hm', text: t('مدة الضمان غير مذكورة هنا — اسأل عنها قبل الشراء واحتفظ بالفاتورة.', 'Warranty length is not stated here — ask before buying and keep the invoice.') });
 
       // "a cheaper model does nearly the same job" — only when it is genuinely true
       const alt = cheaperTwin(p, s, peers);
       if (alt) items.push({ k: 'ok', text: t(
-        'فيه موديل أرخص بنفس السعة تقريباً: ' + cleanTitle(alt.p.title) + ' بـ ' + A.money(alt.p.price) + ' — يوفّر ' + A.money(p.price - alt.p.price) + '.',
+        'يوجد طراز أرخص بالسعة نفسها تقريباً: ' + cleanTitle(alt.p.title) + ' بـ ' + A.money(alt.p.price) + ' — يوفّر ' + A.money(p.price - alt.p.price) + '.',
         'A cheaper model with almost the same capacity: ' + cleanTitle(alt.p.title) + ' at ' + A.money(alt.p.price) + ' — saving ' + A.money(p.price - alt.p.price) + '.'),
         href: A.P('product.html') + '?id=' + encodeURIComponent(alt.p.id) });
 
-      return '<div class="panel"><h2 class="panel__h">' + t('حاجات تحب تعرفها', 'Good to know') + '</h2>' +
-        '<p class="panel__sub">' + t('معلومات صريحة قبل ما تدفع — مش كلام تسويق.', 'Straight information before you pay — not marketing copy.') + '</p>' +
+      return '<div class="panel"><h2 class="panel__h">' + t('أمور تودّ معرفتها', 'Good to know') + '</h2>' +
+        '<p class="panel__sub">' + t('معلومات صريحة قبل أن تدفع — لا كلام تسويقى.', 'Straight information before you pay — not marketing copy.') + '</p>' +
         '<ul class="why">' + items.map(i =>
           '<li><i class="' + (i.k === 'ok' ? 'ok' : 'hm') + '">' + (i.k === 'ok' ? '✓' : 'i') + '</i><span>' + esc(i.text) +
-          (i.href ? ' <a href="' + i.href + '">' + t('شوفه', 'View') + '</a>' : '') + '</span></li>').join('') + '</ul></div>';
+          (i.href ? ' <a href="' + i.href + '">' + t('اعرضه', 'View') + '</a>' : '') + '</span></li>').join('') + '</ul></div>';
     }
 
     function cheaperTwin(p, s, peers) {
@@ -297,7 +297,7 @@
           '<input class="input" id="tariff" type="number" step="0.05" min="0.2" max="10" value="' + tariff + '">' +
           '<span class="field__hint">' + t('جنيه لكل ك.و.س — غيّره حسب شريحتك.', 'EGP per kWh — change it to match your tariff band.') + '</span></label>' +
         '<div class="note note--soft mt16 small">' + t(
-          'تقدير إرشادى بناءً على معدل استهلاك نموذجى للفئة والتعريفة اللى حددتها، ومش قيمة مضمونة للفاتورة. فاتورة الكهربا فى مصر بتتحسب بشرائح، والاستهلاك الحقيقى بيختلف حسب الاستخدام والجو.',
+          'تقدير إرشادى بناءً على معدل استهلاك نموذجى للفئة والتعريفة التى حددتها، وليس قيمة مضمونة للفاتورة. فَفاتورة الكهرباء فى مصر تُحتسب بشرائح، والاستهلاك الفعلى يختلف بحسب الاستخدام والطقس.',
           'A guide estimate based on a typical consumption rate for this category and the tariff you entered — not a guaranteed bill. Egyptian electricity is billed in tiers and real usage varies with habits and weather.') + '</div></div>';
     }
 
@@ -317,7 +317,7 @@
         [t('الضمان', 'Warranty'), s.f.warranty ? t(s.f.warranty + ' سنة', s.f.warranty + ' years') : null],
       ];
       return '<div class="panel mt16"><h2 class="panel__h">' + t('المواصفات', 'Specifications') + '</h2>' +
-        '<p class="panel__sub">' + t('مقروءة آلياً من وصف المنتج — اللى مش مذكور بنقول عليه «غير متوفر» بدل ما نخمّن.',
+        '<p class="panel__sub">' + t('مقروءة آلياً من وصف المنتج — وما لا يُذكر نصفه بـ«غير متوفر» بدلاً من تخمينه.',
           'Read automatically from the product description — anything missing is shown as "not stated" rather than guessed.') + '</p>' +
         '<ul class="specs">' + rows.map(r => '<li><span class="k">' + esc(r[0]) + '</span><span class="v' + (r[1] ? '' : ' unknown') + '">' +
           esc(r[1] == null ? t('غير متوفر', 'not stated') : r[1]) + '</span></li>').join('') + '</ul>' +
@@ -329,18 +329,18 @@
     function reviewsPanel(p) {
       const mine = St.reviews.for(p.id);
       return '<div class="panel"><h2 class="panel__h">' + t('تقييمات المستخدمين', 'Owner reviews') + '</h2>' +
-        '<p class="panel__sub">' + t('التقييم المفيد بيقول لك المدة والاستخدام، مش نجوم بس.', 'A useful review tells you how long and how it is used — not just stars.') + '</p>' +
+        '<p class="panel__sub">' + t('التقييم المفيد يذكر لك المدة والاستخدام، لا النجوم وحدها.', 'A useful review tells you how long and how it is used — not just stars.') + '</p>' +
         '<div class="note note--soft small">' + t(
-          'لسه مفيش تقييمات منشورة للمنتج ده. أى تقييم بتكتبه هنا بيتسجّل على جهازك وبيتبعت للمراجعة قبل النشر — مش بيظهر لباقى الزوار على طول.',
+          'لا توجد تقييمات منشورة لهذا المنتج بعد. وأى تقييم تكتبه هنا يُسجَّل على جهازك ويُرسَل للمراجعة قبل النشر — ولا يظهر لبقية الزوار مباشرةً.',
           'No published reviews for this product yet. Anything you write here is saved on your device and queued for moderation — it is not shown to other visitors immediately.') + '</div>' +
         '<form id="revForm" class="mt16">' +
           '<label class="field"><span class="field__l">' + t('التقييم', 'Rating') + '</span>' +
             '<div class="opts">' + [1, 2, 3, 4, 5].map(n => '<label class="opt"><input type="radio" name="stars" value="' + n + '"' + (n === 5 ? ' checked' : '') + '><span>' + '★'.repeat(n) + '</span></label>').join('') + '</div></label>' +
           '<div class="row">' +
-            '<label class="field"><span class="field__l">' + t('بقالك قد إيه بتستخدمه؟', 'How long have you owned it?') + '</span>' +
+            '<label class="field"><span class="field__l">' + t('منذ متى وأنت تستخدمه؟', 'How long have you owned it?') + '</span>' +
               '<select class="select" name="owned"><option value="">—</option>' +
               ['أقل من شهر|Under a month', 'من شهر لـ ٦ شهور|1–6 months', 'من ٦ شهور لسنة|6–12 months', 'أكتر من سنة|Over a year'].map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>'; }).join('') + '</select></label>' +
-            '<label class="field"><span class="field__l">' + t('عدد أفراد البيت', 'Household size') + '</span>' +
+            '<label class="field"><span class="field__l">' + t('عدد أفراد المنزل', 'Household size') + '</span>' +
               '<input class="input" type="number" name="people" min="1" max="15" placeholder="—"></label>' +
           '</div>' +
           '<div class="row">' +
@@ -351,9 +351,9 @@
             '<label class="field"><span class="field__l">' + t('التركيب كان سهل؟', 'Was installation easy?') + '</span>' +
               '<select class="select" name="install"><option value="">—</option>' + ['سهل|Easy', 'محتاج فنى|Needed a technician', 'صعب|Difficult'].map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>'; }).join('') + '</select></label>' +
           '</div>' +
-          '<label class="field"><span class="field__l">' + t('إيه اللى المشترى الجديد لازم يعرفه؟', 'What should another buyer know?') + '</span>' +
+          '<label class="field"><span class="field__l">' + t('ما الذى ينبغى أن يعرفه المشترى الجديد؟', 'What should another buyer know?') + '</span>' +
             '<textarea class="textarea" name="text" maxlength="600" placeholder="' + t('اكتب تجربتك بصراحة…', 'Write your honest experience…') + '"></textarea></label>' +
-          '<button class="btn btn--teal" type="submit">' + t('ابعت للمراجعة', 'Submit for review') + '</button>' +
+          '<button class="btn btn--teal" type="submit">' + t('أرسل للمراجعة', 'Submit for review') + '</button>' +
         '</form>' +
         (mine.length ? '<div class="mt16"><h3 class="small" style="font-weight:900">' + t('تقييماتك (فى انتظار المراجعة)', 'Your reviews (awaiting moderation)') + '</h3>' +
           mine.map(r => '<div class="note note--soft mt8"><b>' + '★'.repeat(Number(r.stars) || 0) + '</b> ' +
@@ -367,20 +367,20 @@
     function qaPanel(p) {
       const mine = St.qa.for(p.id);
       const seeds = [
-        t('هيعدى من باب ٧٠ سم؟', 'Will it fit through a 70 cm doorway?'),
+        t('هل يمر من باب عرضه ٧٠ سم؟', 'Will it fit through a 70 cm doorway?'),
         t('التركيب متضمن فى السعر؟', 'Is installation included in the price?'),
         t('الضمان من الشركة المصنّعة ولا من المتجر؟', 'Is the warranty from the manufacturer or the seller?'),
         t('محتاج خط كهربا خاص؟', 'Does it need a dedicated electrical circuit?'),
       ];
       return '<div class="panel"><h2 class="panel__h">' + t('أسئلة عن المنتج', 'Questions about this product') + '</h2>' +
-        '<p class="panel__sub">' + t('اسأل، وفريق صادكو أو حد اشترى المنتج يجاوب. كل إجابة بيتكتب جنبها مصدرها.',
+        '<p class="panel__sub">' + t('اسأل، ويجيبك فريق صادكو أو أحد من اشترى المنتج. ويُذكر مع كل إجابة مصدرها.',
           'Ask, and SADKO staff or a verified owner answers. Every answer is labelled with its source.') + '</p>' +
         '<div class="chips">' + seeds.map(s => '<button class="chip" type="button" data-seed="' + esc(s) + '">' + esc(s) + '</button>').join('') + '</div>' +
         '<form id="qaForm" class="mt16"><label class="field"><span class="field__l">' + t('سؤالك', 'Your question') + '</span>' +
           '<textarea class="textarea" name="q" maxlength="400" style="min-height:74px" placeholder="' + t('اكتب سؤالك هنا…', 'Type your question…') + '"></textarea></label>' +
-          '<button class="btn btn--teal" type="submit">' + t('ابعت السؤال', 'Send question') + '</button></form>' +
+          '<button class="btn btn--teal" type="submit">' + t('أرسل السؤال', 'Send question') + '</button></form>' +
         '<div class="note note--soft small mt16">' + t(
-          'مفيش أسئلة منشورة للمنتج ده لسه. سؤالك بيتسجّل على جهازك وبيروح للمراجعة — لو محتاج رد فورى كلّم 19140.',
+          'لا توجد أسئلة منشورة لهذا المنتج بعد. وسؤالك يُسجَّل على جهازك ويُرسَل للمراجعة — وإن احتجت رداً فورياً فاتصل على 19140.',
           'No published questions for this product yet. Your question is saved on your device and queued for review — for an immediate answer call 19140.') + '</div>' +
         (mine.length ? '<div class="mt16">' + mine.map(q => '<div class="note note--soft mt8">' + esc(q.text) +
           ' <span class="badge">' + t('فى انتظار الرد', 'awaiting answer') + '</span>' +
@@ -394,7 +394,7 @@
       if (!box || !window.skGuides || !window.skGuides.forCategory) return;
       Promise.resolve(window.skGuides.forCategory(String(p.categoryId))).then(list => {
         if (!list || !list.length) return;
-        box.innerHTML = '<div class="panel mt16"><h2 class="panel__h">' + t('اقرأ كمان قبل ما تشترى', 'Read this before you buy') + '</h2>' +
+        box.innerHTML = '<div class="panel mt16"><h2 class="panel__h">' + t('اقرأ أيضاً قبل الشراء', 'Read this before you buy') + '</h2>' +
           '<div class="chips mt8">' + list.map(g => '<a class="chip" href="' + A.P('guides.html') + '?g=' + encodeURIComponent(g.slug) + '">' +
             esc(t(g.title.ar, g.title.en)) + '</a>').join('') + '</div></div>';
       }).catch(() => {});

@@ -123,17 +123,17 @@
         sCap = fitRange(cap, target.min, target.max);
         const unit = spec.headline.u;
         if (sCap === 1) R.push({ k: 'ok', text: t(
-          'السعة ' + cap + ' ' + unit + ' مناسبة للاستخدام اللى وصفته (المقترح ' + target.min + '–' + target.max + ' ' + unit + ').',
+          'السعة ' + cap + ' ' + unit + ' مناسبة للاستخدام الذى وصفته (المقترح ' + target.min + '–' + target.max + ' ' + unit + ').',
           'Capacity ' + cap + ' ' + spec.headline.uEn + ' suits what you described (suggested ' + target.min + '–' + target.max + ').') });
         else if (cap < target.min) R.push({ k: 'hm', text: t(
           'السعة ' + cap + ' ' + unit + ' أقل من المقترح (' + target.min + '–' + target.max + ' ' + unit + ') — ممكن تكفى لو استخدامك خفيف.',
           'Capacity ' + cap + ' is below the suggested ' + target.min + '–' + target.max + ' — fine for light use.') });
         else R.push({ k: 'hm', text: t(
-          'أكبر من احتياجك (' + cap + ' ' + unit + ' مقابل مقترح ' + target.min + '–' + target.max + ') — هياخد مساحة وكهربا أكتر.',
+          'أكبر من احتياجك (' + cap + ' ' + unit + ' مقابل مقترح ' + target.min + '–' + target.max + ') — سيستهلك مساحة وكهرباء أكثر.',
           'Larger than you need (' + cap + ' vs suggested ' + target.min + '–' + target.max + ') — more space and power.') });
       } else if (target && cap == null) {
         sCap = 0.45;
-        R.push({ k: 'hm', text: t('السعة مش مذكورة فى بيانات المنتج — تأكد منها قبل الشراء.', 'Capacity is not stated in the product data — please confirm before buying.') });
+        R.push({ k: 'hm', text: t('السعة غير مذكورة فى بيانات المنتج — تأكد منها قبل الشراء.', 'Capacity is not stated in the product data — please confirm before buying.') });
       }
 
       let sBudget = 0.6;
@@ -149,7 +149,7 @@
         if (e.cls) R.push({ k: e.cls === 'A' ? 'ok' : 'hm', text: t('درجة كفاءة الطاقة: ' + e.cls + '.', 'Energy class: ' + e.cls + '.') });
         else if (e.inverter) R.push({ k: 'ok', text: t('انفرتر — بيوفر فى الكهربا مع التشغيل الطويل.', 'Inverter — saves power over long run times.') });
         else if (e.saving) R.push({ k: 'ok', text: t('الوصف بيذكر توفير فى استهلاك الكهربا.', 'The description mentions reduced power consumption.') });
-        else R.push({ k: 'hm', text: t('مفيش بيانات كفاءة طاقة واضحة لهذا المنتج.', 'No clear energy-efficiency data for this product.') });
+        else R.push({ k: 'hm', text: t('لا توجد بيانات واضحة لكفاءة الطاقة لهذا المنتج.', 'No clear energy-efficiency data for this product.') });
       }
 
       let sFeat = 0.7;
@@ -158,31 +158,31 @@
         sFeat = hit.length / wantFeat.length;
         hit.forEach(k => R.push({ k: 'ok', text: t('فيه ' + (FEATURE_LABEL[k] || {}).ar + '.', 'Has ' + (FEATURE_LABEL[k] || {}).en + '.') }));
         wantFeat.filter(k => !hit.includes(k)).forEach(k => R.push({ k: 'no',
-          text: t('مش متأكدين إن فيه ' + (FEATURE_LABEL[k] || {}).ar + ' — مش مذكور فى بيانات المنتج.',
+          text: t('لسنا على يقين من وجود ' + (FEATURE_LABEL[k] || {}).ar + ' — فهو غير مذكور فى بيانات المنتج.',
                   'We could not confirm ' + (FEATURE_LABEL[k] || {}).en + ' — it is not in the product data.') }));
       }
 
       let sBrand = 0.7;
       if (wantBrands.length) {
         const b = spec.brand && spec.brand.en;
-        if (b && wantBrands.includes(b)) { sBrand = 1; R.push({ k: 'ok', text: t('من الماركات اللى اخترتها (' + spec.brand.ar + ').', 'One of your preferred brands (' + b + ').') }); }
-        else { sBrand = 0.45; R.push({ k: 'hm', text: t('مش من الماركات اللى اخترتها.', 'Not one of your preferred brands.') }); }
+        if (b && wantBrands.includes(b)) { sBrand = 1; R.push({ k: 'ok', text: t('من العلامات التجارية التى اخترتها (' + spec.brand.ar + ').', 'One of your preferred brands (' + b + ').') }); }
+        else { sBrand = 0.45; R.push({ k: 'hm', text: t('ليس من العلامات التجارية التى اخترتها.', 'Not one of your preferred brands.') }); }
       }
 
       // Colour preference is a nudge only, never a filter.
       if (answers.color && answers.color !== 'any') {
-        if (spec.color && spec.color.key === answers.color) { sBrand = Math.min(1, sBrand + 0.15); R.push({ k: 'ok', text: t('اللون ' + spec.color.ar + ' زى ما تحب.', 'Finish is ' + spec.color.key + ', as you preferred.') }); }
+        if (spec.color && spec.color.key === answers.color) { sBrand = Math.min(1, sBrand + 0.15); R.push({ k: 'ok', text: t('اللون ' + spec.color.ar + ' كما تشاء.', 'Finish is ' + spec.color.key + ', as you preferred.') }); }
       }
 
       /* ---- space verdict ---- */
       if (maxW || maxH || maxD) {
-        if (!d.w && !d.h && !d.d) R.push({ k: 'hm', text: t('أبعاد المنتج مش متوفرة عندنا — قيس المكان وتأكد قبل الشراء.', 'We do not have this product\'s dimensions — measure and confirm before buying.') });
+        if (!d.w && !d.h && !d.d) R.push({ k: 'hm', text: t('أبعاد المنتج غير متوفرة لدينا — قِس المكان وتأكد قبل الشراء.', 'We do not have this product\'s dimensions — measure and confirm before buying.') });
         else {
           const bits = [];
           if (maxW && d.w) bits.push(t('العرض ' + d.w + ' سم', 'width ' + d.w + ' cm'));
           if (maxH && d.h) bits.push(t('الارتفاع ' + d.h + ' سم', 'height ' + d.h + ' cm'));
           if (maxD && d.d) bits.push(t('العمق ' + d.d + ' سم', 'depth ' + d.d + ' cm'));
-          if (bits.length) R.push({ k: 'ok', text: t('يدخل فى المساحة اللى حددتها (' + bits.join('، ') + ').', 'Fits the space you gave (' + bits.join(', ') + ').') });
+          if (bits.length) R.push({ k: 'ok', text: t('يتسع للمساحة التى حددتها (' + bits.join('، ') + ').', 'Fits the space you gave (' + bits.join(', ') + ').') });
         }
       }
 
@@ -239,7 +239,7 @@
     function boot(all, cats) {
       if (!CAT) return renderPicker(cats);
       state.list = all.filter(p => String(p.categoryId) === String(CAT));
-      if (!state.list.length) return renderPicker(cats, t('مفيش منتجات فى الفئة دى حالياً — اختار فئة تانية.', 'No products in that category yet — pick another.'));
+      if (!state.list.length) return renderPicker(cats, t('لا توجد منتجات فى هذه الفئة حالياً — اختر فئة أخرى.', 'No products in that category yet — pick another.'));
       state.family = window.skSpecs.FAMILY[String(CAT)] || '_default';
       BRANDS = [...new Set(state.list.map(p => { const s = window.skSpecs.of(p); return s.brand && s.brand.en; }).filter(Boolean))].sort();
       // reuse anything the visitor told us before
@@ -251,8 +251,8 @@
 
     function renderPicker(cats, msg) {
       root.innerHTML =
-        '<div class="panel"><h2 class="panel__h">' + t('اختار الجهاز اللى بتدور عليه', 'Pick the appliance you are shopping for') + '</h2>' +
-        '<p class="panel__sub">' + t('هنسألك ٣ لـ ٦ أسئلة بسيطة عن بيتك واستخدامك، وهنرشّح ٣ خيارات مع سبب واضح لكل واحد.',
+        '<div class="panel"><h2 class="panel__h">' + t('اختر الجهاز الذى تبحث عنه', 'Pick the appliance you are shopping for') + '</h2>' +
+        '<p class="panel__sub">' + t('سنسألك من ٣ إلى ٦ أسئلة بسيطة عن منزلك واستخدامك، ونرشّح ٣ خيارات مع سبب واضح لكل منها.',
           'We will ask 3–6 simple questions about your home and how you use it, then suggest three options — each with a clear reason.') + '</p>' +
         (msg ? '<div class="note note--warn mt16">' + esc(msg) + '</div>' : '') +
         '<div class="chips mt16">' + cats.map(c =>
@@ -283,7 +283,7 @@
         '<input class="input" type="number" inputmode="numeric" min="4" max="200" name="' + q.id + '" value="' + (answers[q.id] || '') + '"></label>';
     }
     function q_brands() {
-      if (!BRANDS.length) return '<p class="muted small">' + t('مفيش ماركات محددة فى الفئة دى.', 'No brand data in this category.') + '</p>';
+      if (!BRANDS.length) return '<p class="muted small">' + t('لا توجد علامات تجارية محددة فى هذه الفئة.', 'No brand data in this category.') + '</p>';
       const sel = answers.brand || [];
       return '<div class="opts">' + BRANDS.map(b =>
         '<label class="opt"><input type="checkbox" name="brand" value="' + esc(b) + '"' + (sel.includes(b) ? ' checked' : '') + '>' +
@@ -296,7 +296,7 @@
       root.innerHTML =
         '<div class="between mt0"><div><h2 class="panel__h" style="font-size:1.25rem">' +
           t('ساعدنى أختار: ', 'Help me choose: ') + esc(A.catName(CAT)) + '</h2>' +
-          '<p class="muted small" style="margin:4px 0 0">' + t('جاوب اللى تعرفه وسيب الباقى — كل سؤال اختيارى ما عدا الميزانية.',
+          '<p class="muted small" style="margin:4px 0 0">' + t('أجب عما تعرفه واترك الباقى — فكل سؤال اختيارى عدا الميزانية.',
             'Answer what you know and skip the rest — every question is optional except budget.') + '</p></div>' +
           '<a class="btn btn--quiet btn--sm" href="finder.html">' + t('غيّر الفئة', 'Change category') + '</a></div>' +
         '<form id="fq" class="mt16">' +
@@ -305,7 +305,7 @@
             (q.type === 'choice' ? q_choice(q) : q.type === 'space' ? q_space(q) : q.type === 'budget' ? q_budget()
              : q.type === 'number' ? q_number(q) : q.type === 'brands' ? q_brands() : '') +
             '</div>').join('') +
-          '<div class="between"><button type="submit" class="btn btn--primary">' + t('شوف الترشيحات', 'Show my matches') + '</button>' +
+          '<div class="between"><button type="submit" class="btn btn--primary">' + t('اعرض الترشيحات', 'Show my matches') + '</button>' +
           '<span class="muted small">' + t('بنقارن ', 'Comparing ') + A.num(state.list.length) + t(' منتج فى الفئة دى.', ' products in this category.') + '</span></div>' +
         '</form><div id="fres" class="mt24"></div>';
 
@@ -329,16 +329,16 @@
       const host = root.querySelector('#fres');
       if (!out.ranked.length) {
         host.innerHTML = '<div class="panel"><div class="note note--warn">' +
-          t('مفيش منتج مطابق للشروط دى. جرّب ترفع الميزانية شوية أو توسّع المقاسات.',
+          t('لا يوجد منتج مطابق لهذه الشروط. جرّب رفع الميزانية قليلاً أو توسيع المقاسات.',
             'Nothing matches those limits. Try raising the budget or relaxing the measurements.') + '</div>' +
           excludedNote(out) + '</div>';
         host.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
       const cards = [
-        ['value', t('أقل سعر مناسب', 'Lowest suitable price'), t('أرخص خيار لسه بيحقق شروطك.', 'The cheapest option that still meets your requirements.')],
+        ['value', t('أقل سعر مناسب', 'Lowest suitable price'), t('أرخص خيار ما زال يحقق شروطك.', 'The cheapest option that still meets your requirements.')],
         ['balanced', t('الأنسب إجمالاً', 'Best balanced choice'), t('أحسن توازن بين السعر والمواصفات لطلبك.', 'The best balance of price and specification for your answers.')],
-        ['premium', t('مواصفات أعلى', 'Higher-feature choice'), t('لو تقدر تزوّد شوية، ده بيقدّم أكتر.', 'If you can stretch a little, this offers more.')],
+        ['premium', t('مواصفات أعلى', 'Higher-feature choice'), t('إن أمكنك الزيادة قليلاً، فهذا يقدم أكثر.', 'If you can stretch a little, this offers more.')],
       ].filter(([k]) => out.picks[k]);
 
       host.innerHTML =
@@ -348,7 +348,7 @@
         '<div class="grid3">' + cards.map(([k, label, sub]) => card(out.picks[k], label, sub)).join('') + '</div>' +
         '<div class="panel mt16">' + excludedNote(out) +
           '<details class="mt16"><summary style="cursor:pointer;font-weight:800">' +
-            t('شوف كل المنتجات المطابقة (', 'See all matching products (') + A.num(out.ranked.length) + ')</summary>' +
+            t('اعرض كل المنتجات المطابقة (', 'See all matching products (') + A.num(out.ranked.length) + ')</summary>' +
             '<div class="grid3 mt16">' + out.ranked.slice(0, 24).map(r => card(r)).join('') + '</div></details>' +
         '</div>';
       wire(host);
@@ -365,10 +365,10 @@
       let html = '<p class="small muted" style="margin:0">' +
         t('استبعدنا ', 'We excluded ') + A.num(s.excluded) + t(' منتج', ' products') +
         (bits.length ? ' (' + bits.join(t('، ', ', ')) + ')' : '') + '. ' +
-        t('الترتيب بيعتمد على إجاباتك، مش على إعلانات مدفوعة.', 'Ranking is based on your answers, not paid placement.') + '</p>';
+        t('يعتمد الترتيب على إجاباتك، لا على إعلانات مدفوعة.', 'Ranking is based on your answers, not paid placement.') + '</p>';
       if (out.nearMiss.length) {
         html += '<div class="note note--warn mt16">' + t('فيه ', 'There ') + A.num(out.nearMiss.length) +
-          t(' منتج أعلى من ميزانيتك بفرق بسيط (أقل من ٨٪) — لو الميزانية مرنة شوية يستحق تشوفهم.',
+          t(' منتج أعلى من ميزانيتك بفارق بسيط (أقل من ٨٪) — فإن كانت الميزانية مرنة قليلاً فهى جديرة بالاطلاع.',
             ' product(s) sit just over your budget (under 8%) — worth a look if you have a little flexibility.') + '</div>';
       }
       return html;

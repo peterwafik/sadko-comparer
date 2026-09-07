@@ -362,10 +362,10 @@ test('priceBands renders an empty href when the caller omits one — documented 
 
 test('rail uses the supplied see-all label, defaulting to the current Arabic when none is given', () => {
   const htmlDefault = ui.rail('الأوفر', [P], 'shop.html?cat=38003882');
-  assert.ok(htmlDefault.includes('شوف الكل'));
+  assert.ok(htmlDefault.includes('عرض الكل'));
   const htmlCustom = ui.rail('Deals', [P], 'shop.html?cat=38003882', { more: 'See all' });
   assert.ok(htmlCustom.includes('See all'));
-  assert.ok(!htmlCustom.includes('شوف الكل'));
+  assert.ok(!htmlCustom.includes('عرض الكل'));
 });
 
 const FDATA = {
@@ -487,7 +487,7 @@ test('rail default see-all label is English in EN mode — no override supplied'
 
 test('rail default see-all label is still Arabic when no window/skLang says otherwise', () => {
   const html = ui.rail('الأوفر', [P], 'shop.html?cat=38003882');
-  assert.ok(html.includes('شوف الكل'));
+  assert.ok(html.includes('عرض الكل'));
 });
 
 test('rail honours an explicit labels.more override in EN mode too', () => {

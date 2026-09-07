@@ -111,7 +111,7 @@ export function makeHome(input, existingId) {
   const p = cleanProfile(input || {});
   return Object.assign({
     id: existingId || ('h' + randomBytes(6).toString('hex')),
-    name: p.name || 'بيتى',
+    name: p.name || 'منزلى',
     icon: p.icon || '🏠',
     scope: p.scope === 'room' ? 'room' : 'home',
     createdAt: nowISO(),
@@ -404,7 +404,7 @@ export function openAccounts(file) {
         places: u.homes,
         signInMethods: (u.identities || []).map(i => ({ provider: i.provider, linkedAt: i.linkedAt })),
         orders: store.ordersFor(userId),
-        note: 'كلمة السر مش موجودة هنا لأنها متخزنة مشفّرة ومش قابلة للاسترجاع. / Your password is not included: it is stored hashed and cannot be recovered.',
+        note: 'كلمة المرور غير مدرجة هنا لأنها مخزَّنة مشفَّرة وغير قابلة للاسترجاع. / Your password is not included: it is stored hashed and cannot be recovered.',
       };
     },
     deleteUser(userId) {

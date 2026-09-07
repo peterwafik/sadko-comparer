@@ -30,10 +30,10 @@
   function PRESETS() {
     return [
       { key: 'flat',    icon: '🏢', name: t('شقتى', 'My flat'),          scope: 'home', homeType: 'apartment' },
-      { key: 'villa',   icon: '🏡', name: t('البيت', 'The house'),        scope: 'home', homeType: 'villa' },
+      { key: 'villa',   icon: '🏡', name: t('المنزل', 'The house'),        scope: 'home', homeType: 'villa' },
       { key: 'chalet',  icon: '🏖️', name: t('شاليه الساحل', 'Coast chalet'), scope: 'home', homeType: 'chalet', coastal: true },
       { key: 'kitchen', icon: '🍳', name: t('المطبخ', 'The kitchen'),     scope: 'room', roomType: 'kitchen' },
-      { key: 'bedroom', icon: '🛏️', name: t('أوضة النوم', 'Bedroom'),     scope: 'room', roomType: 'bedroom' },
+      { key: 'bedroom', icon: '🛏️', name: t('غرفة النوم', 'Bedroom'),     scope: 'room', roomType: 'bedroom' },
       { key: 'laundry', icon: '🧺', name: t('غرفة الغسيل', 'Laundry room'), scope: 'room', roomType: 'laundry' },
     ];
   }
@@ -43,24 +43,24 @@
      `homes:true`  → only shown for a whole-home place
      no flag       → shown for both */
   function FIELDS() {
-    const yn = [['yes', t('أيوه', 'Yes')], ['no', t('لا', 'No')]];
+    const yn = [['yes', t('نعم', 'Yes')], ['no', t('لا', 'No')]];
     return [
       { g: t('المكان', 'The place'), fields: [
         { k: 'name', type: 'text', max: 40, l: t('اسم المكان', 'Name this place'),
-          h: t('زى «شقة مدينة نصر» أو «شاليه الساحل» — عشان تفرّق بينهم.', 'Such as "the flat in Nasr City" or "coast chalet" — so you can tell them apart.') },
+          h: t('مثل «شقة مدينة نصر» أو «شاليه الساحل» — للتمييز بينها.', 'Such as "the flat in Nasr City" or "coast chalet" — so you can tell them apart.') },
         { k: 'icon', type: 'icon', l: t('أيقونة', 'Icon') },
-        { k: 'scope', type: 'choice', l: t('ده بيت كامل ولا أوضة؟', 'A whole home or one room?'),
-          opts: [['home', t('بيت كامل', 'Whole home')], ['room', t('أوضة واحدة', 'A single room')]] },
-        { k: 'roomType', type: 'choice', rooms: true, l: t('نوع الأوضة', 'Room type'),
+        { k: 'scope', type: 'choice', l: t('أهو منزل كامل أم غرفة؟', 'A whole home or one room?'),
+          opts: [['home', t('منزل كامل', 'Whole home')], ['room', t('غرفة واحدة', 'A single room')]] },
+        { k: 'roomType', type: 'choice', rooms: true, l: t('نوع الغرفة', 'Room type'),
           opts: [['kitchen', t('مطبخ', 'Kitchen')], ['living', t('معيشة', 'Living room')], ['bedroom', t('نوم', 'Bedroom')],
-                 ['laundry', t('غسيل', 'Laundry')], ['bathroom', t('حمّام', 'Bathroom')], ['other', t('غير كده', 'Other')]] },
+                 ['laundry', t('غسيل', 'Laundry')], ['bathroom', t('حمّام', 'Bathroom')], ['other', t('غير ذلك', 'Other')]] },
       ] },
 
       { g: t('مين ساكن هنا', 'Who lives here'), fields: [
         { k: 'people', type: 'number', min: 1, max: 20, l: t('عدد الأفراد', 'People'),
           h: t('بنحدد بيها سعة الثلاجة والغسالة المناسبة.', 'Sets the fridge and washer capacity we suggest.') },
         { k: 'kids', type: 'choice', opts: yn, l: t('فيه أطفال؟', 'Children?'),
-          h: t('بنرجّح الأجهزة اللى فيها قفل أمان.', 'We favour appliances with a child lock.') },
+          h: t('نرجّح الأجهزة المزوّدة بقفل أمان.', 'We favour appliances with a child lock.') },
         { k: 'elderly', type: 'choice', opts: yn, l: t('فيه كبار سن؟', 'Anyone elderly?'),
           h: t('بنرجّح الأزرار الواضحة والتشغيل البسيط.', 'We favour clear controls and simple operation.') },
         { k: 'pets', type: 'choice', opts: yn, l: t('فيه حيوانات أليفة؟', 'Any pets?'),
@@ -72,12 +72,12 @@
           opts: [['apartment', t('شقة', 'Apartment')], ['duplex', t('دوبلكس', 'Duplex')], ['villa', t('فيلا', 'Villa')],
                  ['studio', t('استوديو', 'Studio')], ['chalet', t('شاليه', 'Chalet')]] },
         { k: 'ownership', type: 'choice', l: t('ملك ولا إيجار؟', 'Owned or rented?'),
-          h: t('بيفرق فى التركيبات اللى تقدر تعملها.', 'Affects what you are allowed to install.'),
+          h: t('يؤثر ذلك فى التركيبات التى يمكنك إجراؤها.', 'Affects what you are allowed to install.'),
           opts: [['owned', t('ملك', 'Owned')], ['rented', t('إيجار', 'Rented')]] },
         { k: 'areaM2', type: 'number', min: 20, max: 2000, unit: 'م²', l: t('المساحة', 'Area') },
         { k: 'rooms', type: 'number', min: 1, max: 15, l: t('عدد الغرف', 'Rooms') },
         { k: 'governorate', type: 'choice', l: t('المحافظة', 'Governorate'),
-          h: t('عشان نعرف التوصيل والتركيب واصل عندك ولا لأ.', 'So we know whether delivery and installation reach you.'),
+          h: t('لنعرف ما إذا كان التوصيل والتركيب متاحين لديك.', 'So we know whether delivery and installation reach you.'),
           opts: [['القاهرة', t('القاهرة', 'Cairo')], ['الجيزة', t('الجيزة', 'Giza')], ['الإسكندرية', t('الإسكندرية', 'Alexandria')],
                  ['الساحل الشمالى', t('الساحل الشمالى', 'North Coast')], ['أخرى', t('محافظة أخرى', 'Other')]] },
         { k: 'area', type: 'text', max: 60, l: t('المنطقة', 'District') },
@@ -89,7 +89,7 @@
         { k: 'floor', type: 'text', max: 12, l: t('الدور', 'Floor') },
         { k: 'hasLift', type: 'choice', opts: yn, l: t('فيه أسانسير؟', 'Is there a lift?') },
         { k: 'doorwayW', type: 'number', min: 40, max: 200, unit: t('سم', 'cm'), l: t('أضيق باب', 'Narrowest doorway'),
-          h: t('أهم مقاس بيتنسى — لو الجهاز أعرض من الباب مش هيدخل أصلاً.', 'The most forgotten measurement — if it is wider than the door, it never gets in.') },
+          h: t('أهم مقاس يُنسى — فإن كان الجهاز أعرض من الباب فلن يدخل أصلاً.', 'The most forgotten measurement — if it is wider than the door, it never gets in.') },
         { k: 'stairsTight', type: 'choice', opts: yn, l: t('السلم ضيق؟', 'Are the stairs tight?') },
       ] },
 
@@ -103,7 +103,7 @@
           opts: [['small', t('صغير', 'Small')], ['medium', t('متوسط', 'Medium')], ['large', t('كبير', 'Large')]] },
       ] },
 
-      { g: t('مقاسات الأماكن الفاضية', 'The gaps things must fit'), fields: [
+      { g: t('مقاسات الأماكن الشاغرة', 'The gaps things must fit'), fields: [
         { k: 'fridgeSlotW', type: 'number', min: 30, max: 300, unit: t('سم', 'cm'), l: t('عرض مكان الثلاجة', 'Fridge space width') },
         { k: 'fridgeSlotH', type: 'number', min: 60, max: 300, unit: t('سم', 'cm'), l: t('ارتفاع مكان الثلاجة', 'Fridge space height') },
         { k: 'washerSlotW', type: 'number', min: 30, max: 200, unit: t('سم', 'cm'), l: t('عرض مكان الغسالة', 'Washer space width') },
@@ -111,16 +111,16 @@
         { k: 'dishwasherSlotW', type: 'number', min: 30, max: 200, unit: t('سم', 'cm'), l: t('عرض مكان غسالة الأطباق', 'Dishwasher space width') },
       ] },
 
-      { g: t('الأوضة نفسها', 'About the room'), rooms: true, fields: [
-        { k: 'roomAreaM2', type: 'number', min: 5, max: 200, unit: 'م²', l: t('مساحة الأوضة', 'Room area'),
+      { g: t('الغرفة نفسها', 'About the room'), rooms: true, fields: [
+        { k: 'roomAreaM2', type: 'number', min: 5, max: 200, unit: 'م²', l: t('مساحة الغرفة', 'Room area'),
           h: t('بنحسب بيها قدرة التكييف المناسبة.', 'Sets the air-conditioner size we suggest.') },
-        { k: 'sunFacing', type: 'choice', opts: yn, l: t('الشمس عليها معظم اليوم؟', 'In the sun most of the day?'),
-          h: t('الأوضة المشمسة محتاجة تكييف أكبر.', 'A sunny room needs more cooling.') },
+        { k: 'sunFacing', type: 'choice', opts: yn, l: t('هل تتعرض للشمس معظم اليوم؟', 'In the sun most of the day?'),
+          h: t('الغرفة المشمسة تحتاج تكييفاً أكبر.', 'A sunny room needs more cooling.') },
         { k: 'noiseSensitive', type: 'choice', opts: yn, l: t('الهدوء مهم هنا؟', 'Does quiet matter here?') },
       ] },
 
       { g: t('عاداتكم', 'Your habits'), fields: [
-        { k: 'cookFrequency', type: 'choice', l: t('بتطبخوا قد إيه؟', 'How often do you cook?'),
+        { k: 'cookFrequency', type: 'choice', l: t('ما مقدار الطهى لديكم؟', 'How often do you cook?'),
           opts: [['daily', t('كل يوم', 'Daily')], ['often', t('أغلب الأيام', 'Most days')], ['rare', t('نادراً', 'Rarely')]] },
         { k: 'laundryPerWeek', type: 'number', min: 1, max: 30, l: t('غسلات فى الأسبوع', 'Washes per week') },
         { k: 'smartPreference', type: 'choice', opts: yn, l: t('تحب الأجهزة الذكية (واى فاى)؟', 'Do you like smart (Wi-Fi) appliances?') },
@@ -129,9 +129,9 @@
       { g: t('تفضيلات الشراء', 'Buying preferences'), fields: [
         { k: 'budgetBand', type: 'choice', l: t('الميزانية المعتادة للجهاز', 'Typical budget per appliance'),
           opts: [['low', t('أقل من ١٠ آلاف', 'Under 10,000')], ['mid', t('من ١٠ لـ ٢٥ ألف', '10,000–25,000')],
-                 ['high', t('من ٢٥ لـ ٦٠ ألف', '25,000–60,000')], ['open', t('مفيش حد أقصى', 'No limit')]] },
+                 ['high', t('من ٢٥ لـ ٦٠ ألف', '25,000–60,000')], ['open', t('بلا حد أقصى', 'No limit')]] },
         { k: 'energyPriority', type: 'choice', l: t('توفير الكهربا', 'Energy saving'),
-          opts: [['high', t('أولوية كبيرة', 'Top priority')], ['mid', t('مهم', 'Matters')], ['low', t('مش فارق', 'Not a factor')]] },
+          opts: [['high', t('أولوية كبيرة', 'Top priority')], ['mid', t('مهم', 'Matters')], ['low', t('لا فرق', 'Not a factor')]] },
         { k: 'finish', type: 'choice', l: t('اللون المفضل', 'Preferred finish'),
           opts: [['silver', t('سيلفر / ستانلس', 'Silver / stainless')], ['black', t('أسود', 'Black')],
                  ['white', t('أبيض', 'White')], ['any', t('أى لون', 'Any')]] },
@@ -144,7 +144,7 @@
   function summary(h) {
     if (!h) return '';
     const bits = [];
-    if (h.scope === 'room') bits.push(t('أوضة', 'room'));
+    if (h.scope === 'room') bits.push(t('غرفة', 'room'));
     if (h.people) bits.push(t(h.people + ' أفراد', h.people + ' people'));
     if (h.governorate) bits.push(h.governorate);
     if (h.roomAreaM2) bits.push(h.roomAreaM2 + ' م²');
@@ -233,14 +233,14 @@
       const active = Au ? Au.activeHome() : null;
       if (!homes.length) {
         host.innerHTML = '<a class="hm-add" href="' + ((/\/category\//.test(location.pathname)) ? '../' : '') + 'account.html#homes">' +
-          t('+ عرّفنا على بيتك', '+ Tell us about your home') + '</a>';
+          t('+ عرّفنا بمنزلك', '+ Tell us about your home') + '</a>';
         return;
       }
       host.innerHTML =
         '<label class="hm-switch"><span class="sr">' + t('اختر المكان', 'Choose a place') + '</span>' +
         '<select class="hm-select" aria-label="' + t('المكان الحالى', 'Current place') + '">' +
         homes.map(h => '<option value="' + esc(h.id) + '"' + (active && h.id === active.id ? ' selected' : '') + '>' +
-          esc((h.icon || '🏠') + ' ' + (h.name || t('بيتى', 'My home'))) + '</option>').join('') +
+          esc((h.icon || '🏠') + ' ' + (h.name || t('منزلى', 'My home'))) + '</option>').join('') +
         '</select></label>' +
         (o.showSummary !== false && active ? '<span class="hm-sum">' + esc(summary(active)) + '</span>' : '');
       const sel = host.querySelector('select');

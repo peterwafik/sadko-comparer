@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>قارن الأسعار — صادكو جروب</title>
-<meta name="description" content="اكتب اسم الجهاز وقارن سعره فى كل المتاجر المصرية — من أمازون ونون وبى تك لحد المتاجر المحلية الصغيرة ومتجر البراند الرسمى — وأرخص سعر بيتعلّم لك.">
+<meta name="description" content="اكتب اسم الجهاز وقارن سعره فى كل المتاجر المصرية — من أمازون ونون وبى تك إلى المتاجر المحلية الصغيرة ومتجر العلامة الرسمى — ويُميَّز لك أرخص سعر.">
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,16 +102,16 @@ html[dir=ltr] .offer .buy{text-align:right;}
 <body>
 
 <section class="hero">
-  <p class="hero__crumb"><a href="index.html" data-i18n="crumbHome">البيت</a> <span data-i18n="crumbArrow">←</span> <span data-i18n="crumbHere">قارن الأسعار</span></p>
+  <p class="hero__crumb"><a href="index.html" data-i18n="crumbHome">الرئيسية</a> <span data-i18n="crumbArrow">←</span> <span data-i18n="crumbHere">قارن الأسعار</span></p>
   <h1 class="hero__title" data-i18n="heroTitle">قارن الأسعار فى مصر</h1>
-  <p class="hero__meta" data-i18n="heroMeta">اكتب اسم الجهاز — وإحنا نلف على المتاجر المصرية كلها ونجيب لك أرخص سعر</p>
+  <p class="hero__meta" data-i18n="heroMeta">اكتب اسم الجهاز — ونحن نبحث فى المتاجر المصرية كلها لنأتيك بأرخص سعر</p>
 </section>
 
 <main class="wrap">
   <div class="search-card">
     <div class="search-row">
       <input type="search" id="q" data-i18n-ph="qPh" placeholder="مثال: ثلاجة كريازى 16 قدم نوفروست — أو Kiriazi KH 336">
-      <button class="go" id="go" data-i18n="go">🔍 قارن دلوقتى</button>
+      <button class="go" id="go" data-i18n="go">🔍 قارن الآن</button>
     </div>
     <div class="filters">
       <label><span data-i18n="priceFrom">السعر من</span> <input type="number" id="min" min="0" data-i18n-ph="optional" placeholder="اختيارى"></label>
@@ -119,10 +119,10 @@ html[dir=ltr] .offer .buy{text-align:right;}
       <label><input type="checkbox" class="tf" value="mega" checked> <span data-i18n="fMega">مواقع كبرى</span></label>
       <label><input type="checkbox" class="tf" value="local" checked> <span data-i18n="fLocal">متاجر محلية</span></label>
       <label><input type="checkbox" class="tf" value="official" checked> <span data-i18n="fOfficial">متجر البراند الرسمى</span></label>
-      <span class="hint" data-i18n="fHint">الفلاتر اختيارية — من غيرها بنعرض كل النتايج</span>
+      <span class="hint" data-i18n="fHint">الفلاتر اختيارية — وبدونها نعرض كل النتائج</span>
     </div>
     <div class="interp" id="interp" style="display:none">
-      <span class="interp__label" id="interpLabel" data-i18n="interpLabel">بندوّر على:</span>
+      <span class="interp__label" id="interpLabel" data-i18n="interpLabel">نبحث فى:</span>
       <select id="interpCat" class="interp__cat"></select>
       <span id="interpChips" class="interp__chips"></span>
     </div>
@@ -130,21 +130,21 @@ html[dir=ltr] .offer .buy{text-align:right;}
 
   <div class="modebar" id="modebar" style="display:none"></div>
 
-  <div class="loading" id="loading"><div class="spin"></div><span data-i18n="loading">بنلف على المتاجر المصرية الواحد ورا التانى (أمازون، بى تك، نون، جوميا، رنين…) — ممكن ياخد ٢٠–٤٠ ثانية عشان نجيب لك أدق سعر.</span></div>
+  <div class="loading" id="loading"><div class="spin"></div><span data-i18n="loading">نبحث فى المتاجر المصرية واحداً تلو الآخر (أمازون، بى تك، نون، جوميا، رنين…) — وقد يستغرق ذلك ٢٠–٤٠ ثانية لنأتيك بأدق سعر.</span></div>
 
   <div class="summary" id="summary"></div>
   <div class="concierge" id="concierge" style="display:none"></div>
   <div id="results"></div>
 
   <div id="linksWrap" style="display:none">
-    <p style="font:700 .85rem 'Cairo',sans-serif;color:#5b6b6e;margin:20px 0 4px" data-i18n="linksLabel">دوّر بنفسك كمان فى:</p>
+    <p style="font:700 .85rem 'Cairo',sans-serif;color:#5b6b6e;margin:20px 0 4px" data-i18n="linksLabel">وابحث بنفسك أيضاً فى:</p>
     <div class="linksgrid" id="links"></div>
   </div>
-  <p class="empty" id="empty" hidden data-i18n="empty">مفيش نتايج بسعر واضح للبحث ده — جرّب اسم أدق (البراند + الموديل) أو وسّع نطاق السعر.</p>
+  <p class="empty" id="empty" hidden data-i18n="empty">لا توجد نتائج بسعر واضح لهذا البحث — جرّب اسماً أدق (العلامة التجارية + الطراز) أو وسّع نطاق السعر.</p>
 
   <div class="search-card" style="margin-top:26px">
-    <p style="font:800 .9rem 'Cairo',sans-serif;color:#14343a;margin:0 0 4px" data-i18n="addTitle">عارف متجر مصرى مش بنفحصه؟</p>
-    <p style="font:600 .78rem 'Cairo',sans-serif;color:#5b6b6e;margin:0 0 12px" data-i18n="addBody">اكتب الدومين وإحنا هنكتشف منصته تلقائيًا ونضيفه لسجل المحرك — وهيتفحص فى كل مقارنة من هنا ورايح. (المحرك بيكتشف متاجر جديدة لوحده كمان مع كل بحث)</p>
+    <p style="font:800 .9rem 'Cairo',sans-serif;color:#14343a;margin:0 0 4px" data-i18n="addTitle">أتعرف متجراً مصرياً لا نفحصه؟</p>
+    <p style="font:600 .78rem 'Cairo',sans-serif;color:#5b6b6e;margin:0 0 12px" data-i18n="addBody">اكتب النطاق وسنكتشف منصته تلقائياً ونضيفه إلى سجل المحرك — وسيُفحص فى كل مقارنة من الآن فصاعداً. (كما يكتشف المحرك متاجر جديدة من تلقاء نفسه مع كل بحث)</p>
     <div class="search-row">
       <input type="search" id="storeDomain" data-i18n-ph="addPh" placeholder="مثال: newstore.com.eg" style="flex:1 1 220px">
       <button class="go" id="addStore" data-i18n="addBtn" style="background:#2e7e88;color:#fff">سجّل المتجر</button>
@@ -161,7 +161,7 @@ html[dir=ltr] .offer .buy{text-align:right;}
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g23" defer></script>
-<script src="assets/js/compare.js?v=g9" defer></script>
+<script src="assets/js/nav.js?v=g24" defer></script>
+<script src="assets/js/compare.js?v=g10" defer></script>
 </body>
 </html>

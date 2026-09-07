@@ -11,7 +11,7 @@
       "id": "bestsellers", "slot": "hero", "accent": "teal",
       "title": "تعرف على المنتجات الأكثر مبيعاً من صادكو",
       "titleEn": "Discover SADKO's best sellers",
-      "cta": "تسوّق دلوقتى", "ctaEn": "Shop now",
+      "cta": "تسوّق الآن", "ctaEn": "Shop now",
       "href": "shop.html?all=1",
       "image": "assets/img/promos/hero-bestseller.jpg",
       "art": "wide",

@@ -81,11 +81,11 @@
     { k: 'price', ar: 'السعر مرتفع بعض الشىء', en: 'Price is a bit high' },
     { k: 'shipping', ar: 'مصاريف الشحن/التركيب', en: 'Delivery / installation cost' },
     { k: 'thinking', ar: 'ما زلت أفكر', en: 'Still thinking it over' },
-    { k: 'comparing', ar: 'بقارن بأماكن تانية', en: 'Comparing other options' },
-    { k: 'details', ar: 'محتاج تفاصيل أكتر', en: 'Need more details' },
+    { k: 'comparing', ar: 'أقارن بأماكن أخرى', en: 'Comparing other options' },
+    { k: 'details', ar: 'أحتاج تفاصيل أكثر', en: 'Need more details' },
     { k: 'payment', ar: 'طريقة الدفع/التوصيل', en: 'Payment / delivery method' },
     { k: 'issue', ar: 'واجهت مشكلة فى الموقع', en: 'Hit a problem on the site' },
-    { k: 'other', ar: 'سبب تانى', en: 'Something else' },
+    { k: 'other', ar: 'سبب آخر', en: 'Something else' },
   ];
 
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -111,30 +111,30 @@
       '<button class="skab__x" aria-label="' + t('إغلاق', 'Close') + '">&times;</button>' +
       '<div class="skab__step" data-step="ask">' +
         '<div class="skab__thumbs">' + thumbs + '</div>' +
-        '<h2>' + t('لسه فاكر الحاجات دى؟', 'Still thinking about these?') + '</h2>' +
-        '<p>' + t('عندك ' + count + ' حاجة فى السلة بقيمة ', 'You have ' + count + ' item(s) in your cart worth ') +
-          '<b>' + money(val) + '</b>' + t('. تحب تكمّل الطلب؟', '. Want to finish your order?') + '</p>' +
+        '<h2>' + t('هل ما زلت تتذكر هذه الأصناف؟', 'Still thinking about these?') + '</h2>' +
+        '<p>' + t('عندك ' + count + ' صنفاً فى السلة بقيمة ', 'You have ' + count + ' item(s) in your cart worth ') +
+          '<b>' + money(val) + '</b>' + t('. هل تود إتمام الطلب؟', '. Want to finish your order?') + '</p>' +
         '<div class="skab__row">' +
           '<button class="skab__btn skab__btn--primary" data-go="cart">' + t('كمّل الطلب', 'Finish my order') + '</button>' +
-          '<button class="skab__btn skab__btn--ghost" data-go="why">' + t('مش دلوقتى', 'Not right now') + '</button>' +
+          '<button class="skab__btn skab__btn--ghost" data-go="why">' + t('ليس الآن', 'Not right now') + '</button>' +
         '</div>' +
       '</div>' +
       '<div class="skab__step" data-step="why" hidden>' +
-        '<h2>' + t('محدش يزعل — إيه اللى وقفك؟', 'No worries — what stopped you?') + '</h2>' +
-        '<p>' + t('ردّك بيساعدنا نحسّن الخدمة (اختيارى).', 'Your answer helps us do better (optional).') + '</p>' +
+        '<h2>' + t('لا بأس — ما الذى أوقفك؟', 'No worries — what stopped you?') + '</h2>' +
+        '<p>' + t('ردّك يساعدنا على تحسين الخدمة (اختيارى).', 'Your answer helps us do better (optional).') + '</p>' +
         '<div class="skab__reasons">' + REASONS.map(function (r) {
           return '<button class="skab__chip" data-reason="' + r.k + '">' + esc(EN() ? r.en : r.ar) + '</button>';
         }).join('') + '</div>' +
-        '<textarea class="skab__note" rows="2" placeholder="' + t('اكتب سبب تانى…', 'Tell us more…') + '" hidden></textarea>' +
+        '<textarea class="skab__note" rows="2" placeholder="' + t('اكتب سبباً آخر…', 'Tell us more…') + '" hidden></textarea>' +
         '<div class="skab__row">' +
-          '<button class="skab__btn skab__btn--primary" data-send="1">' + t('ابعت', 'Send') + '</button>' +
+          '<button class="skab__btn skab__btn--primary" data-send="1">' + t('أرسل', 'Send') + '</button>' +
           '<button class="skab__btn skab__btn--ghost" data-go="close">' + t('تخطّى', 'Skip') + '</button>' +
         '</div>' +
       '</div>' +
       '<div class="skab__step" data-step="thanks" hidden>' +
         '<h2>' + t('شكراً لوقتك 🙏', 'Thanks for the feedback 🙏') + '</h2>' +
-        '<p>' + t('السلة محفوظة لو غيّرت رأيك.', 'Your cart is saved if you change your mind.') + '</p>' +
-        '<div class="skab__row"><button class="skab__btn skab__btn--primary" data-go="close">' + t('تمام', 'Done') + '</button></div>' +
+        '<p>' + t('السلة محفوظة إن غيّرت رأيك.', 'Your cart is saved if you change your mind.') + '</p>' +
+        '<div class="skab__row"><button class="skab__btn skab__btn--primary" data-go="close">' + t('حسناً', 'Done') + '</button></div>' +
       '</div>';
 
     document.body.appendChild(scrim);

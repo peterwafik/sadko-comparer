@@ -98,7 +98,7 @@
     'نصف': 'Half', 'كامل': 'Full', 'متعدد': 'Multi', 'مينى': 'Mini', 'ماكس': 'Max', 'مسطح': 'Flat',
     'عريض': 'Wide', 'كبير': 'Large', 'صغير': 'Small', 'وسط': 'Medium', 'طويل': 'Tall',
     'دائرى': 'Round', 'هرمى': 'Pyramid', 'مزود': 'with', 'مزودة': 'with', 'بدون': 'Without',
-    'فقط': 'Only', 'جديد': 'New', 'موديل': 'Model', 'لون': 'Color', 'صافى': 'Net', 'صافي': 'Net',
+    'فقط': 'Only', 'جديد': 'New', 'طراز': 'Model', 'لون': 'Color', 'صافى': 'Net', 'صافي': 'Net',
     'فريم': 'Frame', 'مقبض': 'Handle', 'قاعدة': 'Base', 'حامل': 'Holder', 'حوامل': 'Pan Supports',
     'طبق': 'Plate', 'طقم': 'Set', 'ملحقات': 'Accessories', 'رف': 'Shelf', 'شبكة': 'Mesh',
     'شبك': 'Mesh', 'بالشكبة': 'with Mesh', 'قوائم': 'Legs', 'عجل': 'Wheels', 'بالعجل': 'with Wheels',

@@ -8,7 +8,7 @@
    "type": "mega",
    "t": 1,
    "platform": "local",
-   "lastOk": 1788681279384,
+   "lastOk": 1788788824904,
    "failN": 0
   },
   {
@@ -19,7 +19,7 @@
    "t": 1,
    "platform": "gql",
    "gqlHost": "2b.com.eg",
-   "lastOk": 1788527192040,
+   "lastOk": 1788785258059,
    "failN": 0,
    "lastFail": 1788015188572
   },
@@ -30,9 +30,9 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1788681285704,
+   "lastOk": 1788788828577,
    "failN": 0,
-   "lastFail": 1788610774021
+   "lastFail": 1788707437857
   },
   {
    "domain": "elarabygroup.com",
@@ -41,7 +41,7 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1788680379642,
+   "lastOk": 1788787925197,
    "failN": 0
   },
   {
@@ -51,8 +51,8 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "failN": 20,
-   "lastFail": 1788682188278
+   "failN": 21,
+   "lastFail": 1788786133855
   },
   {
    "domain": "jumia.com.eg",
@@ -61,9 +61,9 @@
    "type": "mega",
    "t": 1,
    "platform": "jumia",
-   "failN": 0,
-   "lastFail": 1788677680575,
-   "lastOk": 1788680381853
+   "failN": 3,
+   "lastFail": 1788796933957,
+   "lastOk": 1788787929560
   },
   {
    "domain": "noon.com",
@@ -73,8 +73,8 @@
    "t": 1,
    "platform": "noon",
    "lastOk": 1788429740048,
-   "failN": 7,
-   "lastFail": 1788677680582
+   "failN": 9,
+   "lastFail": 1788785266468
   },
   {
    "domain": "btech.com",
@@ -84,7 +84,7 @@
    "t": 1,
    "platform": "btech",
    "needsHeadless": true,
-   "lastOk": 1788680385541,
+   "lastOk": 1788787931078,
    "failN": 0,
    "lastFail": 1788677712506
   },
@@ -96,7 +96,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1788682182304,
+   "lastOk": 1788789727607,
    "failN": 0,
    "lastFail": 1788526332254
   },
@@ -138,8 +138,8 @@
    "type": "mega",
    "t": 1,
    "platform": "auto",
-   "failN": 18,
-   "lastFail": 1788593679900
+   "failN": 20,
+   "lastFail": 1788786139859
   },
   {
    "domain": "kenzz.com",
@@ -148,8 +148,8 @@
    "type": "mega",
    "t": 2,
    "platform": "jsonld:/?s=",
-   "failN": 9,
-   "lastFail": 1788551026006
+   "failN": 11,
+   "lastFail": 1788786133901
   },
   {
    "domain": "elghazawy.com",
@@ -160,7 +160,7 @@
    "platform": "render",
    "renderTpl": "https://www.elghazawy.com/en/search?q={q}",
    "needsHeadless": true,
-   "lastOk": 1788681301006,
+   "lastOk": 1788788839958,
    "failN": 0,
    "lastFail": 1788677712668
   },
@@ -194,8 +194,8 @@
    "t": 2,
    "platform": "jsonld:/search?q=",
    "lastOk": 1788435132678,
-   "failN": 2,
-   "lastFail": 1788679488994
+   "failN": 3,
+   "lastFail": 1788786136733
   },
   {
    "domain": "imediastores.com",
@@ -204,8 +204,8 @@
    "type": "mega",
    "t": 2,
    "platform": "woo",
-   "failN": 23,
-   "lastFail": 1788677681153
+   "failN": 25,
+   "lastFail": 1788786138476
   },
   {
    "domain": "mobileshop.com.eg",
@@ -244,8 +244,8 @@
    "type": "local",
    "t": 2,
    "platform": "auto",
-   "failN": 10,
-   "lastFail": 1788427054283
+   "failN": 11,
+   "lastFail": 1788786150342
   },
   {
    "domain": "games2egypt.com",
@@ -254,8 +254,8 @@
    "type": "local",
    "t": 2,
    "platform": "jsonld:/?s=",
-   "failN": 17,
-   "lastFail": 1788680391336
+   "failN": 19,
+   "lastFail": 1788794237628
   },
   {
    "domain": "camerashop.com.eg",
@@ -284,8 +284,8 @@
    "type": "official",
    "t": 2,
    "platform": "auto",
-   "failN": 37,
-   "lastFail": 1788678598900
+   "failN": 39,
+   "lastFail": 1788785280978
   },
   {
    "domain": "smeg.com.eg",
@@ -294,8 +294,8 @@
    "type": "official",
    "t": 2,
    "platform": "auto",
-   "failN": 37,
-   "lastFail": 1788678599229
+   "failN": 39,
+   "lastFail": 1788785281470
   },
   {
    "domain": "zanussi.com.eg",
@@ -304,8 +304,8 @@
    "type": "official",
    "t": 2,
    "platform": "auto",
-   "failN": 26,
-   "lastFail": 1788680398397
+   "failN": 28,
+   "lastFail": 1788786151743
   },
   {
    "domain": "abdulaziz-stores.com",
@@ -315,8 +315,8 @@
    "t": 3,
    "platform": "jsonld:/catalogsearch/result/?q=",
    "lastOk": 1788541124484,
-   "failN": 5,
-   "lastFail": 1788678594575
+   "failN": 7,
+   "lastFail": 1788785277962
   },
   {
    "domain": "riz.shop",
@@ -325,9 +325,9 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/search/?q=",
-   "failN": 8,
-   "lastFail": 1788678597346,
-   "lastOk": 1788394634384
+   "failN": 3,
+   "lastFail": 1788795137383,
+   "lastOk": 1788788829994
   },
   {
    "domain": "ehabcenter.com",
@@ -336,8 +336,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 6,
-   "lastFail": 1788677682848,
+   "failN": 8,
+   "lastFail": 1788785278351,
    "lastOk": 1788526321637
   },
   {
@@ -347,8 +347,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 20,
-   "lastFail": 1788601799991
+   "failN": 22,
+   "lastFail": 1788786177485
   },
   {
    "domain": "makka.store",
@@ -357,8 +357,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 21,
-   "lastFail": 1788677728016
+   "failN": 23,
+   "lastFail": 1788785307363
   },
   {
    "domain": "wazen.eg",
@@ -368,8 +368,8 @@
    "t": 3,
    "platform": "woo",
    "failN": 0,
-   "lastFail": 1788677682867,
-   "lastOk": 1788678592710
+   "lastFail": 1788706516600,
+   "lastOk": 1788786143565
   },
   {
    "domain": "aghezty.com",
@@ -398,8 +398,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 22,
-   "lastFail": 1788677722033
+   "failN": 24,
+   "lastFail": 1788785301363
   },
   {
    "domain": "abusolimanstores.com",
@@ -418,8 +418,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 21,
-   "lastFail": 1788677733436
+   "failN": 23,
+   "lastFail": 1788785312925
   },
   {
    "domain": "wdestores.com",
@@ -428,8 +428,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 20,
-   "lastFail": 1788677734343
+   "failN": 22,
+   "lastFail": 1788785313739
   },
   {
    "domain": "hyper-techno.com",
@@ -438,8 +438,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/search/?q=",
-   "failN": 13,
-   "lastFail": 1788681293440,
+   "failN": 15,
+   "lastFail": 1788796037693,
    "lastOk": 1787989740795
   },
   {
@@ -449,8 +449,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 16,
-   "lastFail": 1788427069343
+   "failN": 17,
+   "lastFail": 1788706541575
   },
   {
    "domain": "dubaiforshopping.com",
@@ -459,8 +459,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 16,
-   "lastFail": 1788556449886
+   "failN": 17,
+   "lastFail": 1788708334289
   },
   {
    "domain": "azmyco.com",
@@ -479,8 +479,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 21,
-   "lastFail": 1788679522536
+   "failN": 24,
+   "lastFail": 1788785318215
   },
   {
    "domain": "miamicenters.com",
@@ -489,8 +489,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 14,
-   "lastFail": 1788677682899,
+   "failN": 16,
+   "lastFail": 1788785279280,
    "lastOk": 1784806278195
   },
   {
@@ -500,8 +500,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 22,
-   "lastFail": 1788592809028
+   "failN": 24,
+   "lastFail": 1788785314257
   },
   {
    "domain": "moreshopping.com",
@@ -521,8 +521,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 20,
-   "lastFail": 1788607193443
+   "failN": 22,
+   "lastFail": 1788787056175
   },
   {
    "domain": "mahgoub.com",
@@ -531,8 +531,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 20,
-   "lastFail": 1788601805468
+   "failN": 22,
+   "lastFail": 1788785322369
   },
   {
    "domain": "elwaha.com.eg",
@@ -551,8 +551,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 11,
-   "lastFail": 1788600006892
+   "failN": 13,
+   "lastFail": 1788794264219
   },
   {
    "domain": "appliance.com.eg",
@@ -561,8 +561,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 20,
-   "lastFail": 1788677749578
+   "failN": 22,
+   "lastFail": 1788785328741
   },
   {
    "domain": "dubaiphone.net",
@@ -571,8 +571,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 21,
-   "lastFail": 1788677735773
+   "failN": 23,
+   "lastFail": 1788785314971
   },
   {
    "domain": "smartkoshk.com",
@@ -603,8 +603,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 22,
-   "lastFail": 1788677750785
+   "failN": 24,
+   "lastFail": 1788785329981
   },
   {
    "domain": "drmobilestore.com",
@@ -613,8 +613,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 21,
-   "lastFail": 1788681327953
+   "failN": 23,
+   "lastFail": 1788786185068
   },
   {
    "domain": "alsheikhstores.com",
@@ -633,8 +633,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/?s=",
-   "failN": 19,
-   "lastFail": 1788602705328
+   "failN": 20,
+   "lastFail": 1788786180383
   },
   {
    "domain": "kareemstores.com",
@@ -643,8 +643,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/products?q=",
-   "failN": 23,
-   "lastFail": 1788677748849
+   "failN": 25,
+   "lastFail": 1788785331370
   },
   {
    "domain": "shams-stores.com",
@@ -653,8 +653,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 23,
-   "lastFail": 1788677758013
+   "failN": 25,
+   "lastFail": 1788785338210
   },
   {
    "domain": "tal2aa.com",
@@ -663,8 +663,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 8,
-   "lastFail": 1788561213825
+   "failN": 9,
+   "lastFail": 1788785338735
   },
   {
    "domain": "eratablet.com",
@@ -673,8 +673,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 13,
-   "lastFail": 1788677747915
+   "failN": 15,
+   "lastFail": 1788785329425
   },
   {
    "domain": "maximumhardware.store",
@@ -683,8 +683,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/index.php?route=product/search&search=",
-   "failN": 4,
-   "lastFail": 1788427064712
+   "failN": 5,
+   "lastFail": 1788707471007
   },
   {
    "domain": "compuscience.com.eg",
@@ -693,8 +693,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 23,
-   "lastFail": 1788677763865
+   "failN": 25,
+   "lastFail": 1788785344982
   },
   {
    "domain": "computershopegypt.com",
@@ -703,8 +703,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 22,
-   "lastFail": 1788677764585
+   "failN": 24,
+   "lastFail": 1788785346055
   },
   {
    "domain": "elbadrgroupeg.store",
@@ -723,8 +723,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/?s=",
-   "failN": 17,
-   "lastFail": 1788410015037
+   "failN": 18,
+   "lastFail": 1788705651909
   },
   {
    "domain": "uptodate.store",
@@ -733,8 +733,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 10,
-   "lastFail": 1788548397909
+   "failN": 12,
+   "lastFail": 1788787065179
   },
   {
    "domain": "hankerz.com.eg",
@@ -763,8 +763,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/ar/website/search?search=",
-   "failN": 23,
-   "lastFail": 1788677762874
+   "failN": 25,
+   "lastFail": 1788785347220
   },
   {
    "domain": "store.fut-electronics.com",
@@ -783,8 +783,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 23,
-   "lastFail": 1788677766620
+   "failN": 25,
+   "lastFail": 1788785348410
   },
   {
    "domain": "magicduino.com",
@@ -813,8 +813,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 22,
-   "lastFail": 1788677775629
+   "failN": 24,
+   "lastFail": 1788785355894
   },
   {
    "domain": "shuttershopegypt.com",
@@ -823,8 +823,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 23,
-   "lastFail": 1788677771879
+   "failN": 25,
+   "lastFail": 1788785352238
   },
   {
    "domain": "audiomisr.com",
@@ -833,8 +833,8 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 12,
-   "lastFail": 1788679532416
+   "failN": 14,
+   "lastFail": 1788786192107
   },
   {
    "domain": "sharpegy.com",
@@ -843,8 +843,8 @@
    "platform": "auto",
    "addedBy": "discovery",
    "lastOk": 1784453452899,
-   "failN": 17,
-   "lastFail": 1788595487286
+   "failN": 18,
+   "lastFail": 1788786157321
   },
   {
    "domain": "shaarp.net",
@@ -853,8 +853,8 @@
    "platform": "woo",
    "addedBy": "discovery",
    "lastOk": 1784453459562,
-   "failN": 22,
-   "lastFail": 1788677682992
+   "failN": 24,
+   "lastFail": 1788785280640
   },
   {
    "domain": "sharp-egypt.com",
@@ -863,8 +863,8 @@
    "platform": "woo",
    "addedBy": "discovery",
    "lastOk": 1784453459843,
-   "failN": 20,
-   "lastFail": 1788677682994
+   "failN": 21,
+   "lastFail": 1788786152567
   },
   {
    "domain": "eshop.vodafone.com.eg",
@@ -884,8 +884,8 @@
    "platform": "woo",
    "addedBy": "discovery",
    "lastOk": 1784827159183,
-   "failN": 13,
-   "lastFail": 1788677683082
+   "failN": 15,
+   "lastFail": 1788785282234
   },
   {
    "domain": "almorshedymarts.net",
@@ -895,8 +895,8 @@
    "platform": "auto",
    "addedBy": "discovery",
    "lastOk": 1784607997309,
-   "failN": 18,
-   "lastFail": 1788680402694
+   "failN": 20,
+   "lastFail": 1788785288381
   },
   {
    "domain": "almasreen.net",
@@ -905,7 +905,7 @@
    "t": 4,
    "platform": "jsonld:/?s=",
    "addedBy": "discovery",
-   "lastOk": 1788678593357,
+   "lastOk": 1788786148668,
    "failN": 0,
    "lastFail": 1788015227600
   },
@@ -917,8 +917,8 @@
    "platform": "auto",
    "addedBy": "tavily",
    "lastOk": 1787990700242,
-   "failN": 13,
-   "lastFail": 1788678607725
+   "failN": 15,
+   "lastFail": 1788785292051
   },
   {
    "domain": "kanbkam.com",
@@ -928,8 +928,8 @@
    "platform": "auto",
    "addedBy": "tavily",
    "lastOk": 1787990704406,
-   "failN": 11,
-   "lastFail": 1788681302890
+   "failN": 13,
+   "lastFail": 1788786159123
   },
   {
    "domain": "smartmarteg.net",
@@ -950,8 +950,8 @@
    "platform": "jsonld:/?s=",
    "addedBy": "tavily",
    "lastOk": 1787992431323,
-   "failN": 12,
-   "lastFail": 1788682195889
+   "failN": 13,
+   "lastFail": 1788704737453
   },
   {
    "domain": "berty-center.com",
@@ -961,8 +961,8 @@
    "platform": "woo",
    "addedBy": "tavily",
    "lastOk": 1788429741457,
-   "failN": 7,
-   "lastFail": 1788677683819
+   "failN": 9,
+   "lastFail": 1788785288281
   },
   {
    "domain": "zs-eg.com",
@@ -972,8 +972,8 @@
    "platform": "woo",
    "addedBy": "tavily",
    "lastOk": 1788400967858,
-   "failN": 8,
-   "lastFail": 1788677683900
+   "failN": 10,
+   "lastFail": 1788785288681
   },
   {
    "domain": "eastasiaeg.com",
@@ -983,8 +983,8 @@
    "platform": "jsonld:/en/catalogsearch/result/?q=",
    "addedBy": "tavily",
    "lastOk": 1788423452462,
-   "failN": 7,
-   "lastFail": 1788679499146
+   "failN": 9,
+   "lastFail": 1788786154200
   },
   {
    "domain": "shop.halan.com",
@@ -994,8 +994,8 @@
    "platform": "auto",
    "addedBy": "tavily",
    "lastOk": 1788422569477,
-   "failN": 6,
-   "lastFail": 1788596387749
+   "failN": 7,
+   "lastFail": 1788786162484
   },
   {
    "domain": "karnakac.com",
@@ -1007,6 +1007,24 @@
    "lastOk": 1788426170718,
    "failN": 2,
    "lastFail": 1788677683937
+  },
+  {
+   "domain": "electronichouseegypt.com",
+   "name": "electronichouseegypt",
+   "type": "local",
+   "t": 4,
+   "platform": "shopify",
+   "addedBy": "discovery",
+   "lastOk": 1788785268348
+  },
+  {
+   "domain": "iplusegypt.com",
+   "name": "iplusegypt",
+   "type": "local",
+   "t": 4,
+   "platform": "shopify",
+   "addedBy": "discovery",
+   "lastOk": 1788785268179
   }
  ]
 }

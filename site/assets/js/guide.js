@@ -213,11 +213,45 @@ function mountGuide(container, api, sections) {
     tour.addEventListener('click', e => { if (e.target === tour) nextStep(); });
     document.addEventListener('keydown', onTourKey);
     window.addEventListener('resize', renderStep);
+    startTracking();
 
     // Give the engine a beat to settle the landing view (marker opacities are
     // written on the scroll frame) before measuring targets.
     setTimeout(renderStep, 150);
   }
+
+  /* Keep the ring ON its target for as long as the tour is open.
+
+     renderStep() measured once per step and re-ran only on resize, so the ring
+     was pinned to wherever the target happened to be at that instant. On this
+     page that is not a safe assumption: the appliance markers are positioned
+     from the scroll frame, the camera keeps gliding after a jump, and the
+     walkthrough can be re-opened from "؟" at any scroll offset — so between
+     the measurement and the next repaint the marker can move out from under
+     its own highlight, which reads as a highlight that is "shifted a bit".
+
+     A rAF loop is the only thing that survives all of those, because the scene
+     is animated by the engine rather than by events we could listen for. It
+     writes nothing unless the target's rect has actually changed, so a static
+     step costs one getBoundingClientRect per frame and no layout. */
+  let trackRaf = 0, lastBox = '';
+  function startTracking() {
+    cancelAnimationFrame(trackRaf);
+    const tick = () => {
+      if (!tour) return;
+      const st = STEPS[stepIdx];
+      const target = st && st.sel();
+      if (target) {
+        const r = targetRect(target);
+        const box = r.left + ',' + r.top + ',' + r.width + ',' + r.height;
+        if (box !== lastBox) { lastBox = box; placeRing(r, false); }
+      }
+      trackRaf = requestAnimationFrame(tick);
+    };
+    lastBox = '';
+    trackRaf = requestAnimationFrame(tick);
+  }
+  function stopTracking() { cancelAnimationFrame(trackRaf); trackRaf = 0; lastBox = ''; }
 
   function nextStep() {
     if (stepIdx < STEPS.length - 1) { stepIdx++; renderStep(); }
@@ -235,34 +269,80 @@ function mountGuide(container, api, sections) {
     if (!tour) return;
     document.removeEventListener('keydown', onTourKey);
     window.removeEventListener('resize', renderStep);
+    stopTracking();
     tour.classList.add('is-out');
     const t = tour; tour = null;
     setTimeout(() => t.remove(), 320);
     try { localStorage.setItem(GUIDE_KEY, '1'); } catch (e) {}
   }
 
-  function renderStep() {
-    if (!tour) return;
-    const st = STEPS[stepIdx];
-    const target = st.sel();
-    const r = target && target.getBoundingClientRect();
-    if (!r || r.width < 2 || r.height < 2) {   // target missing/hidden → skip it
-      if (stepIdx < STEPS.length - 1) { stepIdx++; renderStep(); } else closeTour();
-      return;
-    }
+  /* Draw the ring around one rect, clamped to the viewport. A target as wide as
+     the screen — the top strap on a phone — otherwise produced a ring starting
+     at -10px and running 20px past the far edge, so the amber outline bled off
+     both sides and read as "everything" rather than as a control.
+
+     Split out of renderStep because the tracking loop repositions the ring
+     between steps without re-rendering the card. */
+  /* The rect a highlight should actually trace: the element's own box UNIONED
+     with its visible descendants'.
+
+     .sk-nav__side is a <span> — an inline box — so its getBoundingClientRect is
+     the line box, which is shorter than the round buttons laid out inside it.
+     Ringing the raw rect drew an amber line straight through the cart, wishlist
+     and account circles: geometrically faithful to the element, visibly wrong
+     about the control. Any inline or overflowing container has the same
+     problem, so this is measured rather than special-cased. */
+  function targetRect(el) {
+    const R = el.getBoundingClientRect();
+    let l = R.left, t = R.top, r = R.right, b = R.bottom;
+    el.querySelectorAll('*').forEach(c => {
+      const k = c.getBoundingClientRect();
+      if (k.width < 1 || k.height < 1) return;      // hidden / collapsed child
+      if (getComputedStyle(c).position === 'fixed') return;  // not part of this control
+      l = Math.min(l, k.left); t = Math.min(t, k.top);
+      r = Math.max(r, k.right); b = Math.max(b, k.bottom);
+    });
+    return { left: l, top: t, right: r, bottom: b, width: r - l, height: b - t };
+  }
+
+  function placeRing(r, glide) {
     const pad = 10, vw = window.innerWidth, vh = window.innerHeight;
-    /* Clamped to the viewport. A target as wide as the screen — the top strap on
-       a phone — produced a ring starting at -10px and running 20px past the far
-       edge, so the highlight bled off both sides and read as "everything" rather
-       than as a control. Clamping keeps the amber outline visible on all four
-       sides of whatever is being pointed at. */
     const ring = tour.querySelector('.gd-tour__ring');
-    const rl = Math.max(4, r.left - pad), rt = Math.max(4, r.top - pad);
-    const rr = Math.min(vw - 4, r.right + pad), rb = Math.min(vh - 4, r.bottom + pad);
+    /* The 0.45s ease on left/top/width/height is what makes the ring travel
+       nicely between steps. It is exactly wrong while TRACKING a target that is
+       already moving: the ring spends the whole animation catching up, so it
+       sits permanently behind the thing it is pointing at — which is what a
+       drifting highlight looks like. Glide on a step change, snap when
+       following. */
+    ring.style.transition = glide ? '' : 'none';
+    /* The pad shrinks SYMMETRICALLY when the target sits near an edge. Clamping
+       each side independently kept the ring on screen but stopped it being
+       concentric — the hamburger sits 12px from the left, so a 10px pad clamped
+       to a 4px margin left the ring 2px tighter on one side than the other, and
+       an off-centre highlight reads as a misplaced one. Taking the smallest pad
+       that fits on both sides keeps the ring centred on what it is pointing at,
+       whatever the target's distance from the edge. */
+    const padX = Math.max(0, Math.min(pad, r.left - 4, vw - 4 - r.right));
+    const padY = Math.max(0, Math.min(pad, r.top - 4, vh - 4 - r.bottom));
+    const rl = r.left - padX, rt = r.top - padY;
+    const rr = r.right + padX, rb = r.bottom + padY;
     ring.style.left = rl + 'px';
     ring.style.top = rt + 'px';
     ring.style.width = Math.max(0, rr - rl) + 'px';
     ring.style.height = Math.max(0, rb - rt) + 'px';
+  }
+
+  function renderStep() {
+    if (!tour) return;
+    const st = STEPS[stepIdx];
+    const target = st.sel();
+    const r = target && targetRect(target);
+    if (!r || r.width < 2 || r.height < 2) {   // target missing/hidden → skip it
+      if (stepIdx < STEPS.length - 1) { stepIdx++; renderStep(); } else closeTour();
+      return;
+    }
+    placeRing(r, true);
+    lastBox = r.left + ',' + r.top + ',' + r.width + ',' + r.height;
 
     tour.querySelector('.gd-tour__step').textContent = `${stepIdx + 1} / ${STEPS.length}`;
     // title/body may be functions: a step whose target moves between layouts

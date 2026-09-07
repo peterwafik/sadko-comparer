@@ -18,7 +18,11 @@
    3. GUIDED TOUR — a first-visit spotlight walkthrough of the home page:
       dims the page, rings each control (scroll, dock, appliance markers,
       the per-room showcase button, the hotline CTA) and explains it in
-      Egyptian Arabic. Re-openable any time from a floating "؟" help button.
+      Modern Standard Arabic — the walkthrough was written in broad Egyptian
+      colloquial ("اتفسّح", "أوضة", "دوس", "يلّا نتفسّح") which reads as too
+      casual for a retailer talking to a customer it has not met yet; the rest
+      of the site's own copy keeps that warmer voice.
+      Re-openable any time from a floating "؟" help button.
       Stored under localStorage 'sadko-guide-v1'; suppressed with ?spots.
    ========================================================================== */
 
@@ -35,12 +39,12 @@ function mountGuide(container, api, sections) {
     tourAria: 'Page walkthrough', close: 'Close', skip: 'Skip the tour',
     prev: 'Back', next: 'Next', done: 'Great, let’s explore',
   } : {
-    dockAria: 'التنقل السريع بين أوض البيت',
-    dockTitle: l => `اضغط تروح ${l} على طول — وكل علامات الأجهزة هتنوّر`,
-    dockBtnAria: l => `روح لـ${l} وشوف كل أجهزتها القابلة للتسوّق`,
-    helpMark: '؟', helpTitle: 'إزاى أستخدم الصفحة؟', helpAria: 'اعرض شرح استخدام الصفحة',
+    dockAria: 'التنقل السريع بين غرف المنزل',
+    dockTitle: l => `اضغط للانتقال مباشرة إلى ${l} — وستضيء كل علامات الأجهزة`,
+    dockBtnAria: l => `انتقل إلى ${l} وشاهد كل أجهزتها المتاحة للشراء`,
+    helpMark: '؟', helpTitle: 'كيف أستخدم الصفحة؟', helpAria: 'اعرض شرح استخدام الصفحة',
     tourAria: 'شرح استخدام الصفحة', close: 'إغلاق', skip: 'تخطّى الشرح',
-    prev: 'السابق', next: 'التالى', done: 'تمام، يلّا نتفسّح',
+    prev: 'السابق', next: 'التالى', done: 'حسنًا، لنبدأ الجولة',
   };
 
   injectGuideCSS();
@@ -100,41 +104,60 @@ function mountGuide(container, api, sections) {
     d.addEventListener('click', () => { if (api.enterShowcase) api.enterShowcase(i); }));
 
   /* ---------------- guided tour ---------------- */
+  // renderStep() treats a zero-sized target as absent and skips the step, so a
+  // selector that matches a hidden element is worse than one that matches
+  // nothing — it silently costs a step. Resolve to an element only if it is
+  // actually on screen, which lets a step fall back down a chain of candidates.
+  const visibleTarget = sel => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return r.width > 2 && r.height > 2 ? el : null;
+  };
+
   const STEPS = [
     {
       sel: () => container.querySelector('.sw-hint'),
-      title: EN ? 'Explore by scrolling' : 'اتفسّح بالسكرول',
+      title: EN ? 'Explore the home' : 'تجوّل داخل المنزل',
       body: EN
-        ? 'Scroll with your mouse or swipe with your finger — the camera flies you through the SADKO house, room after room, from the living room to the showroom.'
-        : 'اسكرول بالماوس أو اسحب بصباعك — الكاميرا هتطير بيك جوه بيت صادكو، أوضة ورا أوضة، من غرفة المعيشة لحد صالة العروض.',
+        ? 'Move with your mouse or by swiping your finger on the screen to see every home appliance on display.'
+        : 'تجوّل بالماوس أو بسحب إصبعك على الشاشة لمشاهدة كافة الأجهزة الكهربائية المعروضة.',
     },
     {
       sel: () => dock,
-      title: EN ? 'Room buttons — the fastest route' : 'أزرار الأوض — أسرع طريق',
+      title: EN ? 'Room buttons — the fastest route' : 'أزرار الغرف — أسرع طريق',
       body: EN
         ? 'In a hurry? Click any room name here and we drop you on its best view, with every appliance marker in it lit up at once. The dots on the side of the screen do the same.'
-        : 'مستعجل؟ اضغط على اسم أى أوضة هنا وهنوقّفك على أحسن لقطة فيها، وكل علامات الأجهزة اللى فيها هتنوّر مرة واحدة. النقط اللى على جنب الشاشة بتعمل نفس الحاجة.',
+        : 'فى عجلة من أمرك؟ اضغط على اسم أى غرفة هنا لتنتقل مباشرة إلى أفضل لقطة فيها، مع إضاءة كل علامات الأجهزة الموجودة بها فى الوقت نفسه. والنقاط الجانبية على الشاشة تؤدى الغرض نفسه.',
     },
     {
       sel: () => container.querySelector('.hs-layer .hs-group .hs-spot'),
-      title: EN ? 'Pulsing markers = shop categories' : 'العلامات النابضة = فئات تسوّق',
+      title: EN ? 'Pulsing markers = shop categories' : 'العلامات النابضة = فئات التسوّق',
       body: EN
         ? 'Every pulsing marker sits on an appliance in the scene. Click one and it opens a page with every product in that category — TVs, air conditioners, refrigerators… and more.'
-        : 'كل علامة نابضة واقفة فوق جهاز فى المشهد. اضغط على أى علامة يفتح لك صفحة فيها كل منتجات الفئة دى — تليفزيونات، تكييفات، ثلاجات… إلخ.',
+        : 'كل علامة نابضة تقف فوق جهاز فى المشهد. اضغط على أى علامة لتفتح صفحة تضم كل منتجات هذه الفئة — تليفزيونات، تكييفات، ثلاجات… وغيرها.',
     },
+    /* There was a fourth step here describing a per-room «شوف الأجهزة اللى هنا»
+       showcase button. That button does not exist: `.hs-scbtn` is never created
+       (it survives only as dead CSS in hotspots.js and an unread `showcaseLabel`
+       in index.html), so renderStep() found no target and skipped it every time.
+       The tour counted "1 / 5" and could never reach five. Removed rather than
+       left to skip silently — describing a control the page does not have is
+       worse than one step fewer. */
     {
-      sel: () => container.querySelector('.hs-scbtn'),
-      title: EN ? 'The “See the appliances here” button' : 'زرار «شوف الأجهزة اللى هنا»',
-      body: EN
-        ? 'It lives inside each room’s copy — it lights all the room’s markers together so you can see everything shoppable in one glance.'
-        : 'موجود جوه كلام كل أوضة — بينوّر كل علامات الأوضة مع بعض عشان تشوف كل اللى ينفع تتسوّقه منها فى لقطة واحدة.',
-    },
-    {
-      sel: () => document.querySelector('.sk-hotline') || container.querySelector('.sw-topcta'),
+      /* The hotline sits in the top strap on desktop but collapses into the
+         drawer on phones, where .sk-nav__side is display:none — so ringing it
+         directly made the LAST step target invisible, and renderStep() closes
+         the tour when it has to skip the last one. Every phone visitor lost the
+         final step, the one that says how to re-open this walkthrough. Falls
+         back to the strap itself, which is what the copy describes anyway and
+         is present at every width. */
+      sel: () => visibleTarget('.sk-hotline') || visibleTarget('.sk-nav') ||
+                 container.querySelector('.sw-topcta'),
       title: EN ? 'Order any time' : 'اطلب فى أى وقت',
       body: EN
         ? 'The 19140 hotline is always up top — tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart. Need this walkthrough again? Hit the “?” button.'
-        : 'الخط الساخن 19140 موجود فوق على طول — دوس عليه تتصل بينا مباشرة. ومن الشريط اللى فوق تقدر تفتح المتجر الكامل والطلبات والمعارض والسلة. ولو احتجت الشرح ده تانى، دوس على علامة «؟».',
+        : 'الخط الساخن 19140 موجود فى الأعلى دائمًا — اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».',
     },
   ];
 

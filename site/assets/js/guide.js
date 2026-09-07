@@ -131,8 +131,11 @@ function mountGuide(container, api, sections) {
       sel: () => dock,
       title: EN ? 'Room buttons — the fastest route' : 'أزرار الغرف — أسرع طريق',
       body: EN
-        ? 'In a hurry? Click any room name here and we drop you on its best view, with every appliance marker in it lit up at once. The dots on the side of the screen do the same.'
-        : 'فى عجلة من أمرك؟ اضغط على اسم أى غرفة هنا لتنتقل مباشرة إلى أفضل لقطة فيها، مع إضاءة كل علامات الأجهزة الموجودة بها فى الوقت نفسه. والنقاط الجانبية على الشاشة تؤدى الغرض نفسه.',
+        // No longer mentions the side dot rail: index.html passes route:false,
+        // so those dots do not exist. A walkthrough that points at absent
+        // furniture is the same fault that killed the old step 4.
+        ? 'In a hurry? Click any room name here and we drop you on its best view, with every appliance marker in it lit up at once.'
+        : 'فى عجلة من أمرك؟ اضغط على اسم أى غرفة هنا لتنتقل مباشرة إلى أفضل لقطة فيها، مع إضاءة كل علامات الأجهزة الموجودة بها فى الوقت نفسه.',
     },
     {
       sel: () => container.querySelector('.hs-layer .hs-group .hs-spot'),

@@ -9,11 +9,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g29" defer></script>
+<script src="assets/js/scrub-engine.js?v=g30" defer></script>
 <script src="assets/js/nav.js?v=g23" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g2" defer></script>
 <script src="assets/js/hotspots.js?v=g44" defer></script>
-<script src="assets/js/guide.js?v=g8" defer></script>
+<script src="assets/js/guide.js?v=g9" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g14">
 </head>
 <body>
@@ -228,6 +228,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const api = mountScrollWorld(document.getElementById('world'), {
     nav: false,               // core-pages strap comes from nav.js; rooms live in the dock
+    route: false,             // no side dot rail: it runs down the right edge, which is
+                              // exactly where the edge-anchored appliance markers sit (the
+                              // AC and the fan in the living room, the fridge column in the
+                              // kitchen), so the two overlapped and the rail stole the taps.
+                              // The dock already names the room you are in, so it said
+                              // nothing the dock wasn't already saying.
     hint: EN ? 'Scroll to enter the house' : 'اسحب لتدخل البيت',
     diveScroll: 1.5,
     connScroll: 0.9,

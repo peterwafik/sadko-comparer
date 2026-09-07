@@ -151,13 +151,19 @@ function mountScrollWorld(container, config) {
 
   const stage = el('div', 'sw-stage');
   const copylayer = el('div', 'sw-copylayer');
-  const route = el('div', 'sw-route');
+  /* The side route rail — a vertical dot per section, pinned to the right edge.
+     Optional (`route: false`), the same way the topbar nav is: on a page whose
+     scenes carry their own edge-anchored markers it competes with them for the
+     same strip of screen, and a second "which room am I in" indicator is
+     redundant when the room dock already names the room. */
+  const route = config.route === false ? null : el('div', 'sw-route');
   const hint = el('div', 'sw-hint');
   const hintText = el('span'); hintText.textContent = config.hint || 'scroll'; hint.appendChild(hintText);
   hint.appendChild(el('i'));
   const track = el('div', 'sw-track');
 
-  [sky, scrollbar, topbar, stage, copylayer, route, hint, track].forEach(n => container.appendChild(n));
+  [sky, scrollbar, topbar, stage, copylayer, route, hint, track]
+    .filter(Boolean).forEach(n => container.appendChild(n));
 
   // segment scenes
   SEGMENTS.forEach(s => {
@@ -240,9 +246,14 @@ function mountScrollWorld(container, config) {
       (s.cta ? `<div class="sw-copy__cta">${ctaBtns(s.cta)}</div>` : '');
     copylayer.appendChild(c); copies.push(c);
 
-    const dot = el('button', 'sw-route__dot'); dot.style.setProperty('--sw-accent', s.accent || '');
-    dot.innerHTML = `<span class="sw-route__label">${esc(s.label || '')}</span><i></i>`;
-    dot.addEventListener('click', () => jumpTo(i)); route.appendChild(dot); dots.push(dot);
+    // `dots` stays index-aligned with SECTIONS whether or not the rail exists;
+    // when it doesn't, it is simply empty and the active-state loop below is a
+    // no-op, so nothing downstream needs to know.
+    if (route) {
+      const dot = el('button', 'sw-route__dot'); dot.style.setProperty('--sw-accent', s.accent || '');
+      dot.innerHTML = `<span class="sw-route__label">${esc(s.label || '')}</span><i></i>`;
+      dot.addEventListener('click', () => jumpTo(i)); route.appendChild(dot); dots.push(dot);
+    }
 
     if (config.nav !== false) {
       const b = el('button', 'sw-nav__item'); b.textContent = s.label || '';

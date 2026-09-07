@@ -114,6 +114,10 @@ function mountGuide(container, api, sections) {
     const r = el.getBoundingClientRect();
     return r.width > 2 && r.height > 2 ? el : null;
   };
+  // Read live rather than from a breakpoint constant: this has to stay right
+  // when a window is dragged across the breakpoint or a phone is rotated
+  // mid-tour, and renderStep() re-runs on resize.
+  const strapCollapsed = () => !visibleTarget('.sk-nav__side');
 
   const STEPS = [
     {
@@ -145,19 +149,31 @@ function mountGuide(container, api, sections) {
        left to skip silently — describing a control the page does not have is
        worse than one step fewer. */
     {
-      /* The hotline sits in the top strap on desktop but collapses into the
-         drawer on phones, where .sk-nav__side is display:none — so ringing it
-         directly made the LAST step target invisible, and renderStep() closes
-         the tour when it has to skip the last one. Every phone visitor lost the
-         final step, the one that says how to re-open this walkthrough. Falls
-         back to the strap itself, which is what the copy describes anyway and
-         is present at every width. */
-      sel: () => visibleTarget('.sk-hotline') || visibleTarget('.sk-nav') ||
-                 container.querySelector('.sw-topcta'),
-      title: EN ? 'Order any time' : 'اطلب فى أى وقت',
-      body: EN
-        ? 'The 19140 hotline is always up top — tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart. Need this walkthrough again? Hit the “?” button.'
-        : 'الخط الساخن 19140 موجود فى الأعلى دائمًا — اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».',
+      /* This step points at different furniture depending on the layout, so it
+         resolves its target AND its words together.
+
+         Below the desktop breakpoint nav.js collapses .sk-nav__side into the
+         hamburger drawer: the hotline, cart, saved and account are not in the
+         strap at all, they are behind ☰, with the 19140 link at the foot of the
+         drawer. Ringing the hotline there hit a display:none element, which
+         renderStep() skips — and skipping the LAST step closes the tour, so
+         phone visitors lost this step entirely. Ringing the whole strap instead
+         was no better: it highlighted a bar containing none of what the words
+         promised. */
+      sel: () => strapCollapsed()
+        ? (visibleTarget('.sk-burger') || visibleTarget('.sk-nav'))
+        : (visibleTarget('.sk-nav__side') || visibleTarget('.sk-hotline') ||
+           visibleTarget('.sk-nav') || container.querySelector('.sw-topcta')),
+      title: () => EN
+        ? (strapCollapsed() ? 'Everything is behind this button' : 'Order any time')
+        : (strapCollapsed() ? 'كل الأقسام داخل هذا الزر' : 'اطلب فى أى وقت'),
+      body: () => EN
+        ? (strapCollapsed()
+          ? 'This button opens the menu: the full shop, orders, showrooms and the cart, with the 19140 hotline at the foot of it — tap that to call us directly. Need this walkthrough again? Hit the “?” button.'
+          : 'The 19140 hotline is always up top — tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart. Need this walkthrough again? Hit the “?” button.')
+        : (strapCollapsed()
+          ? 'يفتح لك هذا الزر القائمة: المتجر الكامل والطلبات والمعارض والسلة، والخط الساخن 19140 فى أسفلها — اضغط عليه للاتصال بنا مباشرة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'
+          : 'الخط الساخن 19140 موجود فى الأعلى دائمًا — اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'),
     },
   ];
 
@@ -232,15 +248,25 @@ function mountGuide(container, api, sections) {
       return;
     }
     const pad = 10, vw = window.innerWidth, vh = window.innerHeight;
+    /* Clamped to the viewport. A target as wide as the screen — the top strap on
+       a phone — produced a ring starting at -10px and running 20px past the far
+       edge, so the highlight bled off both sides and read as "everything" rather
+       than as a control. Clamping keeps the amber outline visible on all four
+       sides of whatever is being pointed at. */
     const ring = tour.querySelector('.gd-tour__ring');
-    ring.style.left = (r.left - pad) + 'px';
-    ring.style.top = (r.top - pad) + 'px';
-    ring.style.width = (r.width + 2 * pad) + 'px';
-    ring.style.height = (r.height + 2 * pad) + 'px';
+    const rl = Math.max(4, r.left - pad), rt = Math.max(4, r.top - pad);
+    const rr = Math.min(vw - 4, r.right + pad), rb = Math.min(vh - 4, r.bottom + pad);
+    ring.style.left = rl + 'px';
+    ring.style.top = rt + 'px';
+    ring.style.width = Math.max(0, rr - rl) + 'px';
+    ring.style.height = Math.max(0, rb - rt) + 'px';
 
     tour.querySelector('.gd-tour__step').textContent = `${stepIdx + 1} / ${STEPS.length}`;
-    tour.querySelector('h3').textContent = st.title;
-    tour.querySelector('p').textContent = st.body;
+    // title/body may be functions: a step whose target moves between layouts
+    // (the strap collapsing into the drawer) has to describe what it is
+    // actually ringing on THIS screen, not what it rings on a desktop.
+    tour.querySelector('h3').textContent = typeof st.title === 'function' ? st.title() : st.title;
+    tour.querySelector('p').textContent = typeof st.body === 'function' ? st.body() : st.body;
     tour.querySelector('.gd-tour__prev').style.visibility = stepIdx ? 'visible' : 'hidden';
     tour.querySelector('.gd-tour__next').textContent = stepIdx === STEPS.length - 1 ? G.done : G.next;
 
@@ -250,7 +276,11 @@ function mountGuide(container, api, sections) {
     const card = tour.querySelector('.gd-tour__card');
     const cw = card.offsetWidth, ch = card.offsetHeight;
     let cx = r.left + r.width / 2 - cw / 2;
-    cx = Math.max(12, Math.min(vw - cw - 12, cx));
+    // Math.max(12, …) used to win over the right-edge clamp whenever the card
+    // was wider than the viewport less its margins, pushing it off-screen
+    // instead of merely up against the edge. Centre it in that case.
+    cx = cw >= vw - 24 ? Math.max(0, (vw - cw) / 2)
+                       : Math.max(12, Math.min(vw - cw - 12, cx));
     let cy = r.bottom + pad + 16;
     if (cy + ch > vh - 12) cy = r.top - pad - 16 - ch;
     if (cy < 12) cy = Math.max(12, (vh - ch) / 2);
@@ -347,7 +377,11 @@ function injectGuideCSS() {
     box-shadow:0 0 0 9999px rgba(7,22,26,.62),0 0 0 3px var(--sadko-amber,#fe9800),0 0 34px rgba(254,152,0,.45);
     transition:left .45s cubic-bezier(.22,.8,.24,1),top .45s cubic-bezier(.22,.8,.24,1),
       width .45s cubic-bezier(.22,.8,.24,1),height .45s cubic-bezier(.22,.8,.24,1);}
-  .gd-tour__card{position:absolute;width:min(88vw,350px);direction:rtl;text-align:right;
+  /* box-sizing is explicit because index.html loads no global reset (app.css and
+     category.css carry one; the home page carries neither). Without it the 20px
+     side padding sat OUTSIDE the width, so the card measured 390px and hung off
+     the right edge of every phone narrower than 414px. */
+  .gd-tour__card{position:absolute;box-sizing:border-box;width:min(88vw,350px);direction:rtl;text-align:right;
     background:#fff;color:var(--sw-ink,#14343a);border-radius:18px;padding:18px 20px 16px;
     box-shadow:0 24px 60px rgba(7,22,26,.45);font-family:var(--sw-font-display,inherit);
     transition:left .45s cubic-bezier(.22,.8,.24,1),top .45s cubic-bezier(.22,.8,.24,1);}
@@ -355,8 +389,13 @@ function injectGuideCSS() {
     background:var(--sw-accent,#2e7e88);border-radius:999px;padding:5px 10px;}
   .gd-tour__card h3{margin:10px 0 6px;font-size:1.15rem;font-weight:800;line-height:1.35;}
   .gd-tour__card p{margin:0;font-size:.9rem;line-height:1.7;color:#3f5457;}
-  .gd-tour__row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;}
+  /* nowrap on the controls, wrap on the row: the last step's button reads
+     "حسنًا، لنبدأ الجولة", which broke across two lines inside its own pill on a
+     narrow card and left the footer looking collapsed. Breaking BETWEEN
+     controls is fine; breaking a button's label is not. */
+  .gd-tour__row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap;}
   .gd-tour__row>div{display:flex;gap:8px;}
+  .gd-tour__next,.gd-tour__prev,.gd-tour__skip{white-space:nowrap;}
   .gd-tour__next{border:0;cursor:pointer;font:700 .88rem var(--sw-font-display,inherit);color:#241a05;
     background:var(--sadko-amber,#fe9800);padding:10px 18px;border-radius:999px;transition:transform .18s;}
   .gd-tour__next:hover{transform:translateY(-2px);}
@@ -372,6 +411,17 @@ function injectGuideCSS() {
   html[dir=ltr] .gd-dock{direction:ltr;}
   html[dir=ltr] .gd-tour__card{direction:ltr;text-align:left;}
   html[dir=ltr] .gd-tour__x{left:auto;right:10px;}
+  /* On a phone the card is ~346px wide, ~306px of it usable. Skip + Back +
+     "حسنًا، لنبدأ الجولة" measure past that at the desktop sizes, so the row is
+     tightened just enough to keep all three on one line. */
+  @media (max-width:430px){
+    .gd-tour__card{padding:16px 16px 14px;}
+    .gd-tour__card h3{font-size:1.06rem;}
+    .gd-tour__card p{font-size:.86rem;line-height:1.65;}
+    .gd-tour__next{padding:9px 13px;font-size:.84rem;}
+    .gd-tour__prev{padding:8px 12px;font-size:.82rem;}
+    .gd-tour__skip{font-size:.78rem;}
+  }
   @media (prefers-reduced-motion:reduce){
     .gd-tour__ring,.gd-tour__card{transition:none;}
   }

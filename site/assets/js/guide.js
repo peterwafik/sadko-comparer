@@ -289,11 +289,24 @@ function injectGuideCSS() {
     .sw-hint{bottom:calc(76px + env(safe-area-inset-bottom));}
     .sw-copy{bottom:calc(clamp(104px,18vh,160px) + env(safe-area-inset-bottom));}
   }
+  /* Phones name every room, exactly as the desktop bar does. The rule this
+     replaces hid every label but the active one, so the bar read as one word
+     beside three anonymous numbers — you could see where you WERE and had no
+     idea where the other three buttons went.
+
+     Everything here is sized in vw between a floor and a ceiling, so the bar
+     holds the same share of the screen across the whole phone range instead of
+     being a fixed pixel size that eats a third of a 320px screen and looks
+     stranded on a 430px one. The floors are what keeps it legible on the
+     narrowest phones still in use; the ceilings stop it outgrowing the desktop
+     bar as the viewport approaches the 700px breakpoint. */
   @media (max-width:700px){
-    .gd-dock{gap:2px;padding:6px;bottom:calc(10px + env(safe-area-inset-bottom));}
-    .gd-dock__btn{padding:8px 10px;font-size:.78rem;}
-    .gd-dock__btn span{display:none;}
-    .gd-dock__btn.is-active span{display:inline;}
+    .gd-dock{gap:clamp(1px,.45vw,4px);padding:clamp(4px,1.1vw,7px);max-width:98vw;
+      bottom:calc(10px + env(safe-area-inset-bottom));}
+    .gd-dock__btn{font-size:clamp(8.5px,2.45vw,12.5px);gap:clamp(3px,1.1vw,7px);
+      padding:clamp(5px,1.5vw,9px) clamp(6px,1.9vw,11px);}
+    .gd-dock__btn em{width:clamp(13px,3.5vw,18px);height:clamp(13px,3.5vw,18px);
+      font-size:clamp(7px,1.9vw,10px);}
     /* keep the corner free for the dock: tuck help under the topbar instead */
     .gd-help{width:40px;height:40px;right:10px;bottom:auto;top:calc(72px + env(safe-area-inset-top));}
   }

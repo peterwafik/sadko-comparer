@@ -398,3 +398,40 @@ test('a page that states no currency leaves it unset, not guessed', () => {
   assert.ok(!it.currency, 'silence must stay unknown — the Egyptian adapters carry no currency at all');
   assert.equal(it.price, 15000);
 });
+
+/* ---------------------------------------------------------------------------
+   The leading-words fallback. When the verbose pasted title returns nothing,
+   the ladder retries with the first two tokens — and on the commonest shape of
+   a marketplace title (brand, size, product) it was spending that one rescue
+   attempt on the unit word: "Hawkins 3 Litre Contura…" became "hawkins litre",
+   "LG 43 inch Smart TV" became "lg inch". No store answers those.
+   --------------------------------------------------------------------------- */
+const { ADAPTERS, searchStore } = await import('../compare-server.mjs');
+
+async function attemptsFor(q) {
+  const seen = [];
+  const real = ADAPTERS.amazon;
+  ADAPTERS.amazon = async (_s, attempt) => { seen.push(attempt); return []; };
+  try { await searchStore({ domain: 't.test', name: 't', platform: 'amazon', t: 3 }, q, [q], null); }
+  finally { ADAPTERS.amazon = real; }
+  return seen;
+}
+
+test('the fallback attempt skips unit words and filler', async () => {
+  const cases = [
+    ['Hawkins 3 Litre Contura Black Pressure Cooker, Hard Anodised Inner Lid (CB30)', 'hawkins contura'],
+    ['Tefal 5 Litre Clipso Pressure Cooker stainless steel', 'tefal clipso'],
+    ['Toshiba 296 Litre No Frost Refrigerator GR-EF31', 'toshiba frost'],
+    ['LG 43 inch Smart TV 43LM6370', 'lg tv'],
+  ];
+  for (const [q, expected] of cases) {
+    const seen = await attemptsFor(q);
+    assert.equal(seen[seen.length - 1], expected,
+      'fallback for ' + JSON.stringify(q.slice(0, 40)) + ' should be ' + JSON.stringify(expected));
+  }
+});
+
+test('a query with no size still keeps its own leading words', async () => {
+  const seen = await attemptsFor('Midea Airfryer MF-CY85WK');
+  assert.equal(seen[seen.length - 1], 'midea airfryer', 'nothing to strip here — leave it alone');
+});

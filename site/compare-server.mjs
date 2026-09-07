@@ -723,6 +723,15 @@ function variantInTitle(t, v) {
 const UNIT_TOKENS = new Set(['كيلو', 'كجم', 'kg', 'kilo', 'بوصة', 'inch', 'inches', 'قدم', 'feet',
   'foot', 'ft', 'لتر', 'liter', 'litre', 'liters', 'litres', 'حصان', 'hp', 'horsepower', 'سم', 'cm']
   .map(x => normAr(x)));
+/* Words that carry no identity and so must not consume one of the two slots in
+   the leading-words fallback: structural filler, and the marketing adjectives
+   catalog.mjs already treats as generic. Kept deliberately small — a colour or
+   a series name CAN be identity-bearing, so nothing is dropped on suspicion. */
+const LADDER_NOISE = new Set(['no', 'the', 'and', 'with', 'for', 'of', 'in', 'x',
+  'smart', 'full', 'hd', 'fhd', 'uhd', 'led', 'lcd', 'new', 'pro', 'plus', 'max', 'series',
+  'من', 'فى', 'مع', 'و']
+  .map(x => normAr(x)));
+
 /* a digit-only query token is mandatory (must show up as a standalone number
    in the title) only when it is a SIZE/CAPACITY — i.e. in the original query
    text it is immediately followed by a unit word (spaces/hyphens allowed in
@@ -983,7 +992,21 @@ async function searchStore(store, q, variants, attrs) {
   const fn = ADAPTERS[key] || ADAPTERS.auto;
   // attempt ladder: AI/canonical variants when available, else the raw query,
   // then the leading words — every pass is relevance-filtered against the RAW query
-  const toks = queryTokens(q).filter(x => !/^\d+$/.test(x));
+  /* The rescue attempt: the leading words, used when the verbose pasted title
+     returns nothing. It took the first two tokens that were not bare digits,
+     which on the commonest shape of a marketplace title — brand, then size,
+     then the product — spends the attempt on the unit word:
+
+       "Hawkins 3 Litre Contura Black Pressure Cooker…"  -> "hawkins litre"
+       "Tefal 5 Litre Clipso Pressure Cooker"            -> "tefal litre"
+       "Toshiba 296 Litre No Frost Refrigerator"         -> "toshiba litre"
+       "LG 43 inch Smart TV 43LM6370"                    -> "lg inch"
+
+     No store answers those, so the one fallback that exists was wasted exactly
+     when it was needed. Unit words and filler are dropped so the attempt keeps
+     identity-bearing words instead: "hawkins contura", "tefal clipso", "lg tv". */
+  const toks = queryTokens(q).filter(x =>
+    !/^\d+$/.test(x) && !UNIT_TOKENS.has(x) && !LADDER_NOISE.has(x));
   // render (SPA) stores get ONE broad attempt — the in-page harvest collects up
   // to 48 cards and isRelevant narrows them, so breadth beats precision there
   const attempts = key === 'render'

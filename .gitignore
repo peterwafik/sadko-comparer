@@ -22,6 +22,11 @@ site/data/accounts.db-*
 # runtime business data created and mutated on the server, like accounts.db
 site/data/catalog-admin.db
 site/data/catalog-admin.db-*
+# Ecwid mirror — a CACHE of someone else's data, always safe to delete and
+# re-sync. Runtime state, never committed.
+site/data/ecwid.db
+site/data/ecwid.db-*
+
 # owner analytics — funnel events + cart-abandonment feedback, runtime data
 site/data/analytics.db
 site/data/analytics.db-*

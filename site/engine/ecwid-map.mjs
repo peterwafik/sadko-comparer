@@ -137,3 +137,52 @@ export function toSadkoProduct(e) {
     incomplete: !title,
   };
 }
+
+/* ============================ categories ================================= */
+
+/* Arabic script, including the presentation forms. Used to refuse an "English"
+   translation that is actually Arabic — see enTranslation(). */
+const ARABIC = new RegExp(
+  '[\\u0600-\\u06FF' +   // Arabic
+  '\\u0750-\\u077F' +    // Arabic Supplement
+  '\\u08A0-\\u08FF' +    // Arabic Extended-A
+  '\\uFB50-\\uFDFF' +    // Arabic Presentation Forms-A
+  '\\uFE70-\\uFEFF]');   // Arabic Presentation Forms-B
+
+/* Ecwid's nameTranslated.en is NOT trustworthy as English. The live SADKO store
+   populates it with the ARABIC name, so reading it blindly would print Arabic
+   on the English pages — the exact half-translated-title bug that
+   mkcategories.mjs asserts against at build time.
+
+   So a translation is accepted only when it contains no Arabic script and
+   actually differs from the Arabic name. Anything else returns null, and the
+   caller falls back to the site's own curated English names. */
+function enTranslation(translated, arabicName) {
+  if (!translated || typeof translated !== 'object') return null;
+  const raw = translated.en ?? translated.EN ?? translated['en_US'];
+  if (raw == null) return null;
+  const en = text(raw);
+  if (!en) return null;
+  if (ARABIC.test(en)) return null;                  // Arabic in the English slot
+  if (en === text(arabicName)) return null;          // a copy, not a translation
+  return en;
+}
+
+export function toSadkoCategory(e) {
+  const name = text(e.name);
+  return {
+    id: String(e.id),
+    name,
+    /* Only a genuine English translation survives; see enTranslation(). */
+    nameEn: enTranslation(e.nameTranslated, e.name),
+    /* Ecwid uses 0 for a top-level category; null keeps the taxonomy from
+       treating 0 as a real parent id. */
+    parentId: e.parentId && String(e.parentId) !== '0' ? String(e.parentId) : null,
+    order: num(e.orderBy) ?? 0,
+    enabled: e.enabled !== false,
+    image: e.imageUrl || e.originalImageUrl || e.thumbnailUrl || '',
+    productCount: num(e.productCount) ?? 0,
+    url: e.url || '',
+    description: text(e.description),
+  };
+}

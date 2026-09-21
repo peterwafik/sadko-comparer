@@ -222,3 +222,73 @@ test('the real payload has a genuine discount, and it survives the provenance ru
 test('the real payload carries no weight, which is why delivery cannot be quoted yet', () => {
   assert.equal(toSadkoProduct(FIX).weight, null);
 });
+
+/* ============================ categories (Task 4) ======================== */
+
+import { toSadkoCategory } from './ecwid-map.mjs';
+
+const FIXC = JSON.parse(readFileSync(path.join(import.meta.dirname, 'fixtures', 'ecwid-category.json'), 'utf8'));
+
+const C = (over = {}) => ({
+  id: 206629517, parentId: 206629761, orderBy: 10,
+  name: 'نو فروست', enabled: true, productCount: 197,
+  url: 'https://sadko-test.company.site/products/nw-frwst',
+  description: '', imageUrl: 'https://cdn/c.jpg', thumbnailUrl: 'https://cdn/t.jpg',
+  ...over,
+});
+
+test('maps an Ecwid category onto the fields the taxonomy needs', () => {
+  const c = toSadkoCategory(C());
+  assert.equal(c.id, '206629517');
+  assert.equal(c.name, 'نو فروست');
+  assert.equal(c.parentId, '206629761');
+  assert.equal(c.order, 10);
+  assert.equal(c.enabled, true);
+  assert.equal(c.productCount, 197);
+  assert.equal(c.image, 'https://cdn/c.jpg');
+});
+
+test('a top-level category has a null parent, not "0"', () => {
+  assert.equal(toSadkoCategory(C({ parentId: 0 })).parentId, null);
+  assert.equal(toSadkoCategory(C({ parentId: null })).parentId, null);
+});
+
+test('category names are entity-decoded like product titles', () => {
+  assert.equal(toSadkoCategory(C({ name: 'أفران&nbsp;وبوتاجازات' })).name, 'أفران وبوتاجازات');
+});
+
+test('a disabled category is reported as disabled rather than dropped', () => {
+  assert.equal(toSadkoCategory(C({ enabled: false })).enabled, false);
+});
+
+/* ---- the English-translation trap ---- */
+
+test('an English slot holding ARABIC text is NOT treated as a translation', () => {
+  /* The live store really does this: nameTranslated.en carries the Arabic
+     name. Trusting it would print Arabic on the English pages — the exact
+     half-translated-title bug mkcategories.mjs guards against. */
+  const c = toSadkoCategory(C({ name: 'نو فروست', nameTranslated: { en: 'نو فروست' } }));
+  assert.equal(c.nameEn, null);
+});
+
+test('an English slot holding different Arabic text is still rejected', () => {
+  const c = toSadkoCategory(C({ name: 'نو فروست', nameTranslated: { en: 'ثلاجات نو فروست' } }));
+  assert.equal(c.nameEn, null, 'Arabic script can never be an English name');
+});
+
+test('a genuine English translation IS kept', () => {
+  const c = toSadkoCategory(C({ name: 'نو فروست', nameTranslated: { en: 'No Frost' } }));
+  assert.equal(c.nameEn, 'No Frost');
+});
+
+test('an absent or empty translation yields null', () => {
+  assert.equal(toSadkoCategory(C({ nameTranslated: undefined })).nameEn, null);
+  assert.equal(toSadkoCategory(C({ nameTranslated: { en: '   ' } })).nameEn, null);
+});
+
+test('the real captured category maps, and its English slot is correctly refused', () => {
+  const c = toSadkoCategory(FIXC);
+  assert.equal(typeof c.id, 'string');
+  assert.ok(c.name.length);
+  assert.equal(c.nameEn, null, 'the live store stores Arabic in the en slot');
+});

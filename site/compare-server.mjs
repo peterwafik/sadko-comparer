@@ -60,6 +60,13 @@ import { openAccounts, ORDER_STATUSES } from './engine/accounts.mjs';
 import { verifyIdToken, enabledProviders } from './engine/oidc.mjs';
 import { openCatalogAdmin, EDITABLE_FIELDS } from './engine/catalog-admin.mjs';
 import { openAnalytics, EVENT_TYPES, FUNNEL_STAGES } from './engine/analytics.mjs';
+/* Ecwid — design: docs/superpowers/specs/2026-09-15-ecwid-integration-design.md
+   plus revision 2 (2026-09-21). Everything is behind SADKO_ECWID; with the flag
+   unset every catalogue path behaves exactly as it did before. */
+import { openEcwidStore } from './engine/ecwid-store.mjs';
+import { openEcwidApi } from './engine/ecwid-api.mjs';
+import { createEcwidSync } from './engine/ecwid-sync.mjs';
+import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -1650,6 +1657,57 @@ function storeLinks(q, lang) {
    collecting payment details under false pretences. */
 const PAYMENT_METHODS = ['cod', 'bank', 'showroom'];
 
+/* ---- Ecwid ---------------------------------------------------------------
+   The flag gates everything. `enabled` additionally requires a token: with the
+   flag on but no token the server still boots and serves the seed catalogue,
+   and the admin panel says "not connected" — an integration must never take
+   the site down. */
+const ECWID_ON = process.env.SADKO_ECWID === '1';
+const ECWID_STORE_ID = process.env.SADKO_ECWID_STORE_ID || '142682751';
+const ECWID_TOKEN = process.env.SADKO_ECWID_TOKEN || '';
+const ECWID_BANNER_CATEGORY = process.env.SADKO_ECWID_BANNER_CATEGORY || null;
+let ECWID_STORE = null, ECWID_API = null, ECWID_SYNC = null, ECWID_SOURCE = null;
+
+function ecwidStore() {
+  if (!ECWID_ON) return null;
+  if (ECWID_STORE === null) {
+    try { ECWID_STORE = openEcwidStore(path.join(ROOT, 'data', 'ecwid.db')); }
+    catch (e) { console.error('[ecwid] store unavailable:', e.message); ECWID_STORE = false; }
+  }
+  return ECWID_STORE || null;
+}
+function ecwidApi() {
+  if (!ECWID_ON) return null;
+  if (ECWID_API === null)
+    ECWID_API = openEcwidApi({ storeId: ECWID_STORE_ID, token: ECWID_TOKEN });
+  return ECWID_API;
+}
+function ecwidSync() {
+  const store = ecwidStore(), api = ecwidApi();
+  if (!store || !api || !api.configured) return null;
+  if (ECWID_SYNC === null) ECWID_SYNC = createEcwidSync({ api, store });
+  return ECWID_SYNC;
+}
+/* Always returns a source, even with the flag off — it is what decides to
+   serve the seed, so every catalogue read can go through one path. */
+function ecwidSource() {
+  if (ECWID_SOURCE === null) {
+    const store = ecwidStore();
+    ECWID_SOURCE = createEcwidSource({
+      store: store || {
+        allProducts: () => [],
+        stats: () => ({ products: 0, enabled: 0, buyable: 0, categories: 0, outOfStock: 0,
+                        discounted: 0, incomplete: 0, paymentMethods: 0, shippingMethods: 0,
+                        lastSync: null, lastError: null }),
+      },
+      seedLoader: seedCatalog,
+      enabled: ECWID_ON && !!ECWID_TOKEN,
+      bannerCategoryId: ECWID_BANNER_CATEGORY,
+    });
+  }
+  return ECWID_SOURCE;
+}
+
 let ACCOUNTS = null;
 function accounts() {
   if (ACCOUNTS === null) {
@@ -1690,10 +1748,12 @@ function analytics() {
   return ANALYTICS;
 }
 
-/* The scraped base catalogue, cached in memory and re-read only when the file's
-   mtime changes (a re-crawl). The admin overlay is applied on top of this. */
+/* The STATIC seed catalogue: the July scrape, cached in memory and re-read only
+   when the file's mtime changes. Once Ecwid is on and mirrored this is only a
+   cold-start and outage fallback — see engine/ecwid-source.mjs for the
+   precedence rules. */
 let _baseCat = { mtime: 0, list: null };
-async function baseCatalog() {
+async function seedCatalog() {
   const file = path.join(ROOT, 'data', 'products.json');
   try {
     const m = statSync(file).mtimeMs;
@@ -1703,6 +1763,10 @@ async function baseCatalog() {
   } catch (e) { if (!_baseCat.list) _baseCat.list = []; }
   return _baseCat.list;
 }
+
+/* The catalogue the storefront builds on: the Ecwid mirror when it has rows,
+   otherwise the seed. One call site, so nothing can read the wrong source. */
+async function baseCatalog() { return ecwidSource().catalogBase(); }
 // The storefront catalogue as customers see it = base ⊕ owner's overlay.
 async function mergedCatalog() {
   const base = await baseCatalog();
@@ -2320,9 +2384,21 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   if (u.pathname === '/data/products.json' && (req.method === 'GET' || req.method === 'HEAD')) {
     try {
       const list = await mergedCatalog();
+      const src = ecwidSource();
+      const from = src.activeSource();
       res.setHeader('content-type', 'application/json; charset=utf-8');
       res.setHeader('cache-control', 'no-cache');
-      return res.end(JSON.stringify({ scrapedAt: _baseCat.mtime, count: list.length, products: list }));
+      /* `scrapedAt` kept for backwards compatibility with anything reading it,
+         but it must not claim a scrape date when the data came from Ecwid — so
+         it reports the sync time in that case, and `source` says which. */
+      const sync = from === 'ecwid' ? src.describe().lastSync : null;
+      return res.end(JSON.stringify({
+        source: from,
+        scrapedAt: sync && sync.at ? sync.at : _baseCat.mtime,
+        syncedAt: sync && sync.at ? sync.at : null,
+        count: list.length,
+        products: list,
+      }));
     } catch (e) { /* fall through to static */ }
   }
 
@@ -2343,6 +2419,7 @@ function shutdown(signal) {
     try { ACCOUNTS && ACCOUNTS.close && ACCOUNTS.close(); } catch (e) {}
     try { CATALOG_ADMIN && CATALOG_ADMIN.close && CATALOG_ADMIN.close(); } catch (e) {}
     try { ANALYTICS && ANALYTICS.close && ANALYTICS.close(); } catch (e) {}
+    try { ECWID_STORE && ECWID_STORE.close && ECWID_STORE.close(); } catch (e) {}
     process.exit(0);
   };
   try { SERVER.close(done); } catch (e) { done(); }
@@ -2363,5 +2440,35 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
     renderPage('about:blank', { waitMs: 300 })
       .then(() => console.log('headless Chrome pre-warmed'))
       .catch(() => console.log('headless pre-warm skipped'));
+  }
+
+  /* Ecwid: catch up now, then incremental every 15 minutes and a full
+     reconcile daily. The reconcile is the only path that finds DELETIONS,
+     because updatedFrom cannot report them.
+
+     Every call is invalidate-then-serve: the source caches the built
+     catalogue, so it must be told when the mirror changed. */
+  const es = ecwidSync();
+  if (es) {
+    console.log(`Ecwid sync ON — store ${ECWID_STORE_ID}` +
+      (ECWID_BANNER_CATEGORY ? `, banners from category ${ECWID_BANNER_CATEGORY}` : ', no banner category set'));
+    const after = r => { ecwidSource().invalidate(); return r; };
+
+    es.syncAll().then(r => {
+      after(r);
+      console.log(`[ecwid] first sync: ${r.products} products, ${r.categories} categories, ` +
+        `${r.payment} payment, ${r.shipping} shipping, ${r.removed} removed`);
+    }).catch(e => console.error('[ecwid] first sync failed:', e.message));
+
+    setInterval(() => {
+      const from = es.lastSyncedUnix();
+      es.syncProducts(from ? { updatedFrom: from } : {}).then(after).catch(() => {});
+    }, 15 * 60 * 1000).unref();
+
+    setInterval(() => {
+      es.syncAll().then(after).catch(() => {});
+    }, 24 * 60 * 60 * 1000).unref();
+  } else if (ECWID_ON) {
+    console.log('Ecwid flag is on but no token is configured — serving the seed catalogue');
   }
 });

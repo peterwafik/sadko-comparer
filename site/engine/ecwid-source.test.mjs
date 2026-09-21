@@ -1,0 +1,219 @@
+// site/engine/ecwid-source.test.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { openEcwidStore } from './ecwid-store.mjs';
+import { createEcwidSource, BANNER_CATEGORY_SKU } from './ecwid-source.mjs';
+
+const SEED = [{ id: 's1', title: 'من الملف', price: 100, url: '', image: '', description: '', categoryId: 'c' }];
+
+const M = (id, over = {}) => ({
+  id: String(id), url: 'u' + id, title: 'ثلاجة ' + id, image: 'i.webp', images: ['i.webp'],
+  price: 1000 + Number(id), description: 'وصف', categoryId: '206629517',
+  categoryIds: ['206629517'], brand: '', sku: 'S' + id, inStock: true,
+  stockTracked: true, quantity: 5, compareToPrice: null, discountPercent: null,
+  shippingRequired: true, weight: null, enabled: true, incomplete: false, ...over,
+});
+
+function fresh({ enabled = true, bannerCategoryId = null } = {}) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'sadko-src-'));
+  const store = openEcwidStore(path.join(dir, 'ecwid.db'));
+  const src = createEcwidSource({ store, seedLoader: async () => SEED, enabled, bannerCategoryId });
+  return { store, src, cleanup: () => { try { store.close(); } catch (e) {} rmSync(dir, { recursive: true, force: true }); } };
+}
+
+/* ---------------------------- source precedence ------------------------- */
+
+test('with the flag off the seed is served and the mirror is never consulted', async () => {
+  const { src, store, cleanup } = fresh({ enabled: false });
+  try {
+    store.upsertProducts([M(1)]);
+    assert.deepEqual(await src.catalogBase(), SEED);
+    assert.equal(src.activeSource(), 'disabled');
+  } finally { cleanup(); }
+});
+
+test('with the flag on but an empty mirror, the seed is served', async () => {
+  const { src, cleanup } = fresh();
+  try {
+    assert.deepEqual(await src.catalogBase(), SEED);
+    assert.equal(src.activeSource(), 'seed');
+  } finally { cleanup(); }
+});
+
+test('once the mirror has rows, the mirror is served', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    const out = await src.catalogBase();
+    assert.equal(out.length, 1);
+    assert.equal(out[0].title, 'ثلاجة 1');
+    assert.equal(src.activeSource(), 'ecwid');
+  } finally { cleanup(); }
+});
+
+test('the mirror is served even when the last sync failed — last good data, not the seed', async () => {
+  /* Stale real data beats a months-old snapshot; the failure is surfaced in
+     admin instead of silently swapping the catalogue under the customer. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    store.setState('last_error', 'ecwid-503: boom');
+    assert.equal((await src.catalogBase())[0].title, 'ثلاجة 1');
+    assert.equal(src.activeSource(), 'ecwid');
+  } finally { cleanup(); }
+});
+
+test('a broken seed loader with an empty mirror yields an empty list rather than throwing', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'sadko-src-b-'));
+  const store = openEcwidStore(path.join(dir, 'ecwid.db'));
+  try {
+    const src = createEcwidSource({ store, seedLoader: async () => { throw new Error('no file'); }, enabled: true });
+    assert.deepEqual(await src.catalogBase(), []);
+  } finally { store.close(); rmSync(dir, { recursive: true, force: true }); }
+});
+
+/* ------------------------------- filtering ------------------------------ */
+
+test('disabled products never reach the storefront', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1), M(2, { enabled: false })]);
+    assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1']);
+  } finally { cleanup(); }
+});
+
+test('incomplete shells never reach the storefront', async () => {
+  /* 463 products in the live store have no name, no image and no category.
+     Publishing them would put blank cards in front of customers. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1), M(2, { title: '', incomplete: true })]);
+    assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1']);
+  } finally { cleanup(); }
+});
+
+test('an out-of-stock product IS served — it is ordered last, not hidden', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { inStock: false })]);
+    const out = await src.catalogBase();
+    assert.equal(out.length, 1, 'hiding it would understate the range SADKO carries');
+    assert.equal(out[0].inStock, false);
+  } finally { cleanup(); }
+});
+
+/* -------------------------- the banner category ------------------------- */
+
+test('banner entries are excluded from the catalogue entirely', async () => {
+  /* Banners live as entries in a dedicated Ecwid category. They are not
+     products and must never be purchasable or appear in browse or search. */
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([
+      M(1),
+      M(2, { categoryId: '999', categoryIds: ['999'] }),
+      M(3, { categoryId: '206629517', categoryIds: ['206629517', '999'] }),
+    ]);
+    assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1'],
+      'a banner in any of its categories must be excluded');
+  } finally { cleanup(); }
+});
+
+test('with no banner category configured nothing is excluded on that basis', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: null });
+  try {
+    store.upsertProducts([M(1), M(2, { categoryId: '999', categoryIds: ['999'] })]);
+    assert.equal((await src.catalogBase()).length, 2);
+  } finally { cleanup(); }
+});
+
+test('banners() returns the banner entries, and only those', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([M(1), M(2, { categoryId: '999', categoryIds: ['999'], sku: 'hero' })]);
+    const b = await src.banners();
+    assert.equal(b.length, 1);
+    assert.equal(b[0].id, '2');
+    assert.equal(b[0].sku, 'hero', 'the SKU carries the slot');
+  } finally { cleanup(); }
+});
+
+test('banners() is empty when no banner category is configured', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: null });
+  try {
+    store.upsertProducts([M(1)]);
+    assert.deepEqual(await src.banners(), []);
+  } finally { cleanup(); }
+});
+
+test('the slot SKU constant is exported so the sync and the storefront agree', () => {
+  assert.ok(Array.isArray(BANNER_CATEGORY_SKU));
+  assert.ok(BANNER_CATEGORY_SKU.includes('hero'));
+});
+
+/* --------------------------------- order -------------------------------- */
+
+test('in-stock products come before out-of-stock ones', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { inStock: false }), M(2), M(3, { inStock: false }), M(4)]);
+    const out = await src.catalogBase();
+    assert.deepEqual(out.map(p => p.inStock), [true, true, false, false]);
+  } finally { cleanup(); }
+});
+
+test('within the same stock state, the original order is preserved', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(10), M(20), M(30)]);
+    const ids = (await src.catalogBase()).map(p => p.id);
+    assert.deepEqual(ids, ['10', '20', '30']);
+  } finally { cleanup(); }
+});
+
+/* -------------------------------- describe ------------------------------ */
+
+test('describe reports what the admin panel shows, and never a token', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1), M(2, { inStock: false })]);
+    store.setState('last_error', 'ecwid-403');
+    await src.catalogBase();
+    const d = src.describe();
+    assert.equal(d.enabled, true);
+    assert.equal(d.source, 'ecwid');
+    assert.equal(d.products, 2);
+    assert.equal(d.served, 2);
+    assert.equal(d.outOfStock, 1);
+    assert.equal(d.lastError, 'ecwid-403');
+    assert.ok(!/token/i.test(JSON.stringify(d)), 'describe must not mention a token at all');
+  } finally { cleanup(); }
+});
+
+test('describe works before any catalogue read', () => {
+  const { src, cleanup } = fresh();
+  try {
+    const d = src.describe();
+    assert.equal(d.products, 0);
+    assert.equal(d.source, 'seed');
+  } finally { cleanup(); }
+});
+
+/* --------------------------------- caching ------------------------------ */
+
+test('a repeated read is served from cache until the mirror changes', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    const a = await src.catalogBase();
+    const b = await src.catalogBase();
+    assert.equal(a, b, 'the same array instance should come back');
+    src.invalidate();
+    const c = await src.catalogBase();
+    assert.notEqual(a, c, 'after invalidate the catalogue is rebuilt');
+    assert.deepEqual(c.map(p => p.id), ['1']);
+  } finally { cleanup(); }
+});

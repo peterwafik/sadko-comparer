@@ -1,0 +1,76 @@
+{
+ "subtotal": 0,
+ "subtotalWithoutTax": 0,
+ "total": 250,
+ "totalWithoutTax": 250,
+ "giftCardRedemption": 0,
+ "totalBeforeGiftCardRedemption": 250,
+ "giftCardDoubleSpending": false,
+ "tax": 0,
+ "couponDiscount": 0,
+ "volumeDiscount": 0,
+ "membershipBasedDiscount": 0,
+ "totalAndMembershipBasedDiscount": 0,
+ "customSurcharges": [],
+ "discount": 0,
+ "usdTotal": 0,
+ "items": [
+  {
+   "id": 0,
+   "productId": 865564964,
+   "price": 0,
+   "priceWithoutTax": 0,
+   "productPrice": 0,
+   "basePrice": 0,
+   "basePriceType": "PRODUCT",
+   "quantity": 1,
+   "shortDescriptionTranslated": {
+    "en": ""
+   },
+   "tax": 0,
+   "shipping": 250,
+   "handlingFee": 0,
+   "quantityInStock": 0,
+   "nameTranslated": {
+    "en": ""
+   },
+   "isShippingRequired": true,
+   "weight": 0,
+   "trackQuantity": false,
+   "fixedShippingRateOnly": false,
+   "fixedShippingRate": 0,
+   "digital": false,
+   "productAvailable": true,
+   "couponApplied": false,
+   "taxes": [],
+   "taxable": true,
+   "giftCard": false,
+   "attributes": [],
+   "compositeComponents": []
+  }
+ ],
+ "shippingPerson": {
+  "name": "عميل تجريبي",
+  "firstName": "عميل",
+  "lastName": "تجريبي",
+  "street": "شارع تجريبي",
+  "city": "القاهرة",
+  "countryCode": "EG",
+  "countryName": "Egypt"
+ },
+ "shippingOption": {
+  "shippingMethodId": "58695-1592739336209",
+  "shippingMethodName": "القاهرة الكبرى",
+  "shippingRate": 250,
+  "shippingRateWithoutTax": 250,
+  "estimatedTransitTime": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "isPickup": false,
+  "isShippingLimit": false,
+  "discountedShippingRate": 250
+ },
+ "predictedPackage": [],
+ "shippingLabelAvailableForShipment": false,
+ "shipments": [],
+ "discountInfo": [],
+ "withdrawalRequested": false
+}

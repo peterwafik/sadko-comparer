@@ -166,7 +166,7 @@ async function capture() {
   /* The delivery-cost calculation revision 2 decided to rely on. Uses the first
      real product so the request is representative. */
   try {
-    const calc = await call('/orders/calculate', {
+    const calc = await call('/order/calculate', {
       method: 'POST',
       body: {
         items: [{ productId: product.id, quantity: 1 }],
@@ -195,14 +195,20 @@ async function capture() {
    · how many images per product                                             */
 async function survey() {
   console.log('\n=== catalogue survey (pages the whole catalogue) ===');
+  /* Field names below are taken from a REAL captured payload, not guessed.
+     Ecwid has no trackQuantity (it has `unlimited`), no requiresShipping (it
+     has `isShippingRequired`) and no top-level `brand` (brand is an attribute).
+     An earlier pass used the guessed names and reported four false zeroes. */
   const s = {
-    total: 0, enabled: 0, inStock: 0, tracked: 0,
-    withWeight: 0, zeroWeight: 0, requiresShipping: 0,
+    total: 0, enabled: 0, inStock: 0, tracked: 0, unlimited: 0,
+    withWeight: 0, zeroWeight: 0, withDimensions: 0, requiresShipping: 0, fixedRate: 0,
     withOptions: 0, withCombinations: 0,
     withCompareTo: 0, compareToAbovePrice: 0,
-    withRibbon: 0, withBrand: 0, withSku: 0,
-    images1: 0, imagesMany: 0, noImage: 0,
-    currencies: new Set(), optionExamples: [], weightless: [],
+    withRibbon: 0, withAttributes: 0, withBrandAttr: 0, withSku: 0,
+    noName: 0, withNameTranslated: 0, withDescTranslated: 0, langs: new Set(),
+    noCategory: 0,
+    images1: 0, imagesMany: 0, noImage: 0, maxImages: 0,
+    currencies: new Set(), optionExamples: [], weighted: [], brandNames: new Set(),
   };
 
   for (let offset = 0; ; ) {
@@ -214,12 +220,27 @@ async function survey() {
       s.total++;
       if (p.enabled !== false) s.enabled++;
       if (p.inStock) s.inStock++;
-      if (p.trackQuantity) s.tracked++;
-      if (p.requiresShipping) s.requiresShipping++;
+      if (p.unlimited === false) s.tracked++; else if (p.unlimited) s.unlimited++;
+      if (p.isShippingRequired) s.requiresShipping++;
+      if (p.fixedShippingRateOnly) s.fixedRate++;
+
+      if (!p.name || !String(p.name).trim()) s.noName++;
+      if (p.nameTranslated && Object.keys(p.nameTranslated).length) {
+        s.withNameTranslated++;
+        for (const l of Object.keys(p.nameTranslated)) s.langs.add(l);
+      }
+      if (p.descriptionTranslated && Object.keys(p.descriptionTranslated).length) s.withDescTranslated++;
+
+      const cats = Array.isArray(p.categoryIds) ? p.categoryIds : [];
+      if (!cats.length && !p.defaultCategoryId) s.noCategory++;
 
       const w = Number(p.weight);
-      if (Number.isFinite(w) && w > 0) s.withWeight++;
-      else { s.zeroWeight++; if (s.weightless.length < 5) s.weightless.push(`${p.id} ${String(p.name).slice(0, 44)}`); }
+      if (Number.isFinite(w) && w > 0) {
+        s.withWeight++;
+        if (s.weighted.length < 5) s.weighted.push(`${p.id} ${String(p.name).slice(0, 40)} → ${w}`);
+      } else s.zeroWeight++;
+      const d = p.dimensions || {};
+      if (Number(d.length) > 0 || Number(d.width) > 0 || Number(d.height) > 0) s.withDimensions++;
 
       const opts = Array.isArray(p.options) ? p.options : [];
       if (opts.length) {
@@ -236,10 +257,24 @@ async function survey() {
       }
 
       if (p.ribbon && (p.ribbon.text || typeof p.ribbon === 'string')) s.withRibbon++;
-      if (p.brand && String(p.brand).trim()) s.withBrand++;
       if (p.sku && String(p.sku).trim()) s.withSku++;
 
+      /* Ecwid has no top-level brand: it lives in attributes, where a built-in
+         brand attribute has type BRAND. Count both so a nonstandard setup
+         still shows up as "attributes present but no brand attribute". */
+      const attrs = Array.isArray(p.attributes) ? p.attributes : [];
+      if (attrs.length) s.withAttributes++;
+      for (const a of attrs) {
+        const isBrand = String(a.type || '').toUpperCase() === 'BRAND' || /brand|ماركة|علامة/i.test(String(a.name || ''));
+        if (isBrand && a.value && String(a.value).trim()) {
+          s.withBrandAttr++;
+          if (s.brandNames.size < 12) s.brandNames.add(String(a.value).trim());
+          break;
+        }
+      }
+
       const imgs = (Array.isArray(p.galleryImages) ? p.galleryImages.length : 0) + (p.imageUrl ? 1 : 0);
+      if (imgs > s.maxImages) s.maxImages = imgs;
       if (!imgs) s.noImage++; else if (imgs === 1) s.images1++; else s.imagesMany++;
 
       if (p.defaultDisplayedPriceFormatted) {
@@ -261,14 +296,24 @@ async function survey() {
   row('enabled', s.enabled, pct(s.enabled));
   row('in stock', s.inStock, pct(s.inStock));
   row('quantity tracked', s.tracked, pct(s.tracked));
+  row('unlimited stock', s.unlimited, pct(s.unlimited));
   row('requires shipping', s.requiresShipping, pct(s.requiresShipping));
+  row('fixed shipping rate only', s.fixedRate, pct(s.fixedRate));
+  console.log('');
+  console.log('  -- content quality --');
+  row('MISSING a name', s.noName, pct(s.noName));
+  row('in no category at all', s.noCategory, pct(s.noCategory));
+  row('has translated name', s.withNameTranslated, pct(s.withNameTranslated));
+  row('has translated description', s.withDescTranslated, pct(s.withDescTranslated));
+  if (s.langs.size) console.log(`    translation languages present: ${[...s.langs].join(', ')}`);
   console.log('');
   console.log('  -- shipping band selection (revision 2 §10 q1 and q3) --');
   row('WITH a weight set', s.withWeight, pct(s.withWeight));
   row('with NO weight', s.zeroWeight, pct(s.zeroWeight));
-  if (s.weightless.length) {
-    console.log('    examples with no weight:');
-    for (const x of s.weightless) console.log('      ' + x);
+  row('with dimensions set', s.withDimensions, pct(s.withDimensions));
+  if (s.weighted.length) {
+    console.log('    examples that DO have a weight:');
+    for (const x of s.weighted) console.log('      ' + x);
   }
   console.log('');
   console.log('  -- variations (the gap the new site cannot render) --');
@@ -282,14 +327,17 @@ async function survey() {
   console.log('  -- fields the new site newly gains --');
   row('compare-to price set', s.withCompareTo, pct(s.withCompareTo));
   row('  ...genuinely ABOVE price', s.compareToAbovePrice, pct(s.compareToAbovePrice));
-  row('ribbon (= our badge)', s.withRibbon, pct(s.withRibbon));
-  row('brand filled', s.withBrand, pct(s.withBrand));
+  row('ribbon set (= our badge)', s.withRibbon, pct(s.withRibbon));
+  row('any attributes', s.withAttributes, pct(s.withAttributes));
+  row('  ...a brand attribute', s.withBrandAttr, pct(s.withBrandAttr));
   row('SKU filled', s.withSku, pct(s.withSku));
+  if (s.brandNames.size) console.log(`    brands seen: ${[...s.brandNames].join(' · ')}`);
   console.log('');
   console.log('  -- images --');
   row('exactly one image', s.images1, pct(s.images1));
   row('more than one', s.imagesMany, pct(s.imagesMany));
   row('no image at all', s.noImage, pct(s.noImage));
+  row('most images on one product', s.maxImages);
   if (s.currencies.size) console.log(`\n  currency symbols seen: ${[...s.currencies].join(' ')}`);
 
   console.log('\n  Interpretation:');

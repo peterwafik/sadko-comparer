@@ -1,0 +1,1054 @@
+{
+ "generalInfo": {
+  "storeId": 142682751,
+  "storeUrl": "https://sadko-test.company.site/products",
+  "websitePlatform": "instantsite",
+  "instantSiteV2Enabled": true,
+  "profileId": "p34792404",
+  "starterSite": {
+   "ecwidSubdomain": "sadko-test",
+   "generatedUrl": "https://sadko-test.company.site",
+   "storeLogoUrl": "https://d2j6dbq0eux0bg.cloudfront.net/images/142682751/logos/profile/6259701181.jpg",
+   "ecwidSubdomainSuffix": "company.site",
+   "slugsWithoutIdsEnabled": true
+  },
+  "storefrontUrlFormat": "CLEAN",
+  "storefrontUrlSlugFormat": "WITHOUT_IDS"
+ },
+ "account": {
+  "availableFeatures": [
+   "AFFILIATE",
+   "BULK_INVOICE_PRINTING",
+   "BULK_PRICES",
+   "CDN",
+   "COMBINATIONS",
+   "COMPARE_TO_PRICE",
+   "CSV_EXPORT",
+   "CUSTOM_NOTIFICATIONS",
+   "CUSTOM_FROM_EMAIL_FOR_NOTIFICATIONS",
+   "CUSTOMER_GROUPS",
+   "DESTINATION_ZONES_LIMIT",
+   "DISCOUNT_COUPONS",
+   "DISCOUNTS",
+   "EBAY_AMAZON_THIRD_PARTY",
+   "GOOGLE_SHOPPING",
+   "EDIT_INVOICE",
+   "EGOODS",
+   "EGOODS_LIMITS",
+   "FACEBOOK_STORE",
+   "FB_SYNC_PRODUCTS",
+   "TRACKING_PIXELS",
+   "AUTO_FACEBOOK_ADS",
+   "GOOGLE_REMARKETING",
+   "INVENTORY_TRACKING",
+   "LOCAL_PICKUP",
+   "MARKETPLACES",
+   "NCR_POS",
+   "ORDER_AMOUNT_LIMITS",
+   "PREMIUM",
+   "API",
+   "SHIPMENT_TRACKING",
+   "CUSTOM_DOMAIN",
+   "CUSTOM_DOMAIN_STARTER_SITE",
+   "HIDE_POWERED_BY_ECWID_BADGE_INSTANTSITE",
+   "LINKUP_HIDE_BRANDING",
+   "LINKUP_ACTIVATE_ANALYTICS",
+   "STORE_STATS",
+   "XERO",
+   "PRODUCT_FILTERS",
+   "FAVORITES",
+   "HIDE_POWERED_BY_ECWID_NOTIFICATIONS",
+   "VEND",
+   "CLOVER",
+   "SQUARE_SYNC",
+   "SQUARE_PAYMENTS",
+   "HANDLING_FEE",
+   "CHECKOUT",
+   "ORDER_EDITOR",
+   "PRIVATE_ADMIN_NOTES",
+   "STRIPE_PAYMENTS",
+   "STRIPE_STORED_CREDIT_CARD",
+   "MOBILE",
+   "ECWID_LIVE_CHAT",
+   "ECWID_LIVE_CHAT_TRIAL",
+   "ECWID_LIVE_CHAT_SCHEDULE_CALLBACK",
+   "SHOPAPP",
+   "AUTOMATIC_TAXES_US",
+   "AUTOMATIC_TAXES_REST_OF_THE_WORLD",
+   "PRODUCT_DIMENSIONS",
+   "PRINT_SHIPPING_LABELS",
+   "SEO_FIELDS",
+   "TAX_EXEMPT_CUSTOMERS",
+   "CUSTOMER_TAX_ID",
+   "FB_MESSENGER",
+   "AUTO_ABANDONED_SALES_RECOVERY",
+   "LEGACY_ABANDONED_SALES_VIEW",
+   "MULTIADMIN",
+   "SCHEDULED_PICKUP_OR_DELIVERY",
+   "INSTAGRAM_SHOPPING",
+   "STARTERSITE_SITEMAP",
+   "INSTANT_SITE_VERIFICATION_CODE",
+   "INSTANT_SITE_VERIFICATION_CODE_API",
+   "INSTANT_SITE_CUSTOM_JS_CODE",
+   "EXPORT_CONTACTS",
+   "SHIPPING_PER_PRODUCT",
+   "PRINTFUL",
+   "CLOVER_PAY",
+   "MULTILINGUAL_STORE",
+   "GIFT_CARDS",
+   "AUTO_YANDEX_ADS",
+   "TRIGGERED_EMAILS",
+   "MAILCHIMP",
+   "WHOLESALE2B",
+   "STOREFRONT_LABEL_EDITOR",
+   "SET_DELIVERY_REGION_ON_MAP",
+   "TIPS",
+   "INSTANT_SITE_SALE_FEATURE",
+   "WEBSITES_SALE_FEATURE",
+   "BUY_BUTTONS_SALE_FEATURE",
+   "WORDPRESS_SALE_FEATURE",
+   "JOOMLA_SALE_FEATURE",
+   "WIX_SALE_FEATURE",
+   "WEEBLY_SALE_FEATURE",
+   "SQUARESPACE_SALE_FEATURE",
+   "RAPID_WEAVER_SALE_FEATURE",
+   "PRODUCT_SUBTITLES_FEATURE",
+   "PRODUCT_RIBBONS_FEATURE",
+   "NAME_YOUR_PRICE_FEATURE",
+   "TAX_INVOICES_FEATURE",
+   "RECURRING_SUBSCRIPTION_FEATURE",
+   "TIKTOK_SHOPS",
+   "CHECKOUT_CUSTOM_FIELDS",
+   "PRODUCT_DELIVERY_TIME_FEATURE",
+   "COST_PRICE_FEATURE",
+   "PREORDERS_FEATURE",
+   "PRODUCT_PURCHASE_LIMITS_FEATURE",
+   "DOMAIN_PURCHASE_FEATURE",
+   "PAYMENT_METHOD_SURCHARGE_FEATURE",
+   "PAYPAL_GUEST_CHECKOUT_FEATURE",
+   "CUSTOM_ORDER_STATUSES",
+   "STAFF_SCOPES",
+   "VIDEO_EMBED_IN_GALLERY_FEATURE",
+   "AI_PRODUCT_DATA_GENERATION",
+   "CUSTOM_REDIRECTS_FOR_INSTANT_SITES",
+   "CUSTOM_URL_SLUGS_FOR_CATALOG_PAGES",
+   "ROYAL_MAIL_CLICK_AND_DROP",
+   "TAX_NEXUS_MANAGEMENT_FEATURE",
+   "INVITE_STAFF_FEATURE",
+   "ADVANCED_DISCOUNTS_FEATURE",
+   "NEW_INSTANT_SITE_PAGES",
+   "LOWEST_PRICE_FEATURE",
+   "PRODUCT_REVIEWS_FEATURE",
+   "SWATCHES_OPTION_FEATURE",
+   "CUSTOMER_EXTRA_FIELDS_FEATURE",
+   "LINKUP_EXTERNAL_LINKS",
+   "LINKUP_HIGHLIGHT_BLOCK",
+   "LINKUP_LAYOUT_BLOCK",
+   "RICH_TEXT_EDITOR_IN_INSTANT_SITE",
+   "STOREFRONT_AGE_CONFIRMATION_FEATURE",
+   "ACCESS_TO_CONTROL_PANEL",
+   "SIZE_CHARTS_FEATURE",
+   "SHARED_PRODUCT_CONTENT_FEATURE",
+   "AI_SECTION_GENERATION_FEATURE",
+   "ALLOW_EDIT_CATEGORIES_FEATURE",
+   "ALL_ONLINE_PAYMENTS_AVAILABLE",
+   "CUSTOM_CODE_FEATURE",
+   "INSTANT_SITE_AI_ASSISTANT_FEATURE",
+   "INSTANT_SITE_V2_BLOG_FEATURE",
+   "SHOP_APP_PROMO_FEATURE",
+   "TEMPLATE_MARKET_FEATURE",
+   "FACEBOOK_PIXEL",
+   "ALL_TRAFFIC",
+   "NEW_VS_RETURNING_VISITORS",
+   "VISITORS_BY_DEVICE",
+   "VISITORS_BY_LANGUAGE",
+   "VISITORS_BY_COUNTRY",
+   "ALL_ORDERS",
+   "NEW_ORDERS_VS_REPEAT_ORDERS",
+   "INVENTORY_REPORT",
+   "TOP_OF_SHIPPING_METHODS_BY_ORDERS",
+   "TOP_OF_PAYMENT_METHODS_BY_ORDERS",
+   "ALL_REVENUE",
+   "ALL_EXPENSES",
+   "CONVERSION_REPORT",
+   "ADD_TO_CART_CONVERSION",
+   "CHECKOUT_SALES_FUNNEL",
+   "TOP_OF_MARKETING_SOURCES",
+   "CUSTOMERS_BY_MARKETING_CONSENT"
+  ]
+ },
+ "settings": {
+  "closed": false,
+  "storeName": "صادكو",
+  "storeDescription": "",
+  "invoiceLogoUrl": "https://d2j6dbq0eux0bg.cloudfront.net/images/142682751/logos/invoice/6259699854.png",
+  "emailLogoUrl": "https://d2j6dbq0eux0bg.cloudfront.net/images/142682751/logos/email/6259703522.jpg",
+  "googleAnalyticsId": "G-YYPJ5ZCRDF",
+  "fbPixelId": "812601816618610",
+  "defaultAllProductsViewSortOrder": "NAME_ASC",
+  "defaultProductSortOrder": "DEFINED_BY_STORE_OWNER",
+  "productSortOrderInCart": "TIME_ADDED_TO_CART_ASC",
+  "showAcceptMarketingCheckbox": true,
+  "acceptMarketingCheckboxDefaultValue": true,
+  "acceptMarketingCheckboxCustomText": "أريد أن أكون مطلعاً على الأخبار والعروض الحصرية",
+  "acceptMarketingCheckboxCustomTextTranslated": {
+   "en": "أريد أن أكون مطلعاً على الأخبار والعروض الحصرية"
+  },
+  "askConsentToTrackInStorefront": false,
+  "wixExternalTrackingEnabled": false,
+  "askZipCode": false,
+  "showPricePerUnit": true,
+  "recurringSubscriptionsSettings": {},
+  "rootCategorySeoTitle": "",
+  "rootCategorySeoDescription": "",
+  "showRepeatOrderButton": false,
+  "withdrawalRequestEnabled": false
+ },
+ "mailNotifications": {},
+ "phoneNotifications": {},
+ "company": {
+  "companyName": "SADKO test",
+  "email": "test@example.com",
+  "street": "شارع تجريبي",
+  "city": "القاهرة",
+  "countryCode": "EG",
+  "postalCode": "00000",
+  "stateOrProvinceCode": "C",
+  "phone": "+200000000000"
+ },
+ "formatsAndUnits": {
+  "currency": "EGP",
+  "currencyPrefix": "LE ",
+  "currencySuffix": "",
+  "currencyGroupSeparator": ",",
+  "currencyDecimalSeparator": ".",
+  "currencyPrecision": 2,
+  "currencyTruncateZeroFractional": false,
+  "currencyRate": 1,
+  "weightUnit": "KILOGRAM",
+  "weightGroupSeparator": ",",
+  "weightDecimalSeparator": ".",
+  "weightTruncateZeroFractional": false,
+  "timeFormat": "hh:mm a",
+  "dateFormat": "MMM d, yyyy",
+  "timezone": "Egypt",
+  "dimensionsUnit": "CM",
+  "volumeUnit": "ML"
+ },
+ "languages": {
+  "enabledLanguages": [
+   "en"
+  ],
+  "facebookPreferredLocale": "en_US",
+  "defaultLanguage": "en"
+ },
+ "shipping": {
+  "handlingFee": {
+   "value": 0
+  },
+  "shippingOptions": [
+   {
+    "id": "58695-1592739336209",
+    "title": "القاهرة الكبرى",
+    "titleTranslated": {
+     "en": "القاهرة الكبرى"
+    },
+    "enabled": true,
+    "orderby": 10,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "ratesTable": {},
+    "deliveryTimeDays": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+    "carrier": "",
+    "description": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+    "descriptionTranslated": {
+     "en": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه"
+    }
+   },
+   {
+    "id": "2744-1592736956929",
+    "title": "الجيزة",
+    "titleTranslated": {
+     "en": "الجيزة"
+    },
+    "enabled": true,
+    "orderby": 20,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "ratesTable": {},
+    "deliveryTimeDays": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+    "carrier": "",
+    "description": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+    "descriptionTranslated": {
+     "en": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه"
+    }
+   },
+   {
+    "id": "34337-1622180249466",
+    "title": "الاسكندرية",
+    "titleTranslated": {
+     "en": "الاسكندرية"
+    },
+    "enabled": true,
+    "orderby": 30,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+    "carrier": "",
+    "description": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+    "descriptionTranslated": {
+     "en": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه"
+    }
+   },
+   {
+    "id": "dced4a1a-96a6-41ef-86c3-ac12288c75bf-1747555190097",
+    "title": "القليوبية - الدلتا - القناة منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)",
+    "titleTranslated": {
+     "en": "القليوبية - الدلتا - القناة منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)"
+    },
+    "enabled": true,
+    "orderby": 40,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "carrier": "",
+    "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "descriptionTranslated": {
+     "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+    }
+   },
+   {
+    "id": "7d99de70-e62e-44af-a9f3-ccb85e326bc7-1747556408187",
+    "title": "القليوبية - الدلتا - القناة منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)",
+    "titleTranslated": {
+     "en": "القليوبية - الدلتا - القناة منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)"
+    },
+    "enabled": true,
+    "orderby": 50,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "carrier": "",
+    "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "descriptionTranslated": {
+     "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+    }
+   },
+   {
+    "id": "692ccc8e-4e5f-45a4-a5c4-11f3dd55ec9c-1747556496629",
+    "title": "القليوبية - الدلتا - القناة منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)",
+    "titleTranslated": {
+     "en": "القليوبية - الدلتا - القناة منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)"
+    },
+    "enabled": true,
+    "orderby": 60,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "carrier": "",
+    "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "descriptionTranslated": {
+     "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+    }
+   },
+   {
+    "id": "c41399a7-73eb-427b-aeb4-453f65bbfdfe-1747556577269",
+    "title": "القليوبية - الدلتا - القناة منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)",
+    "titleTranslated": {
+     "en": "القليوبية - الدلتا - القناة منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)"
+    },
+    "enabled": true,
+    "orderby": 70,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "carrier": "",
+    "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+    "descriptionTranslated": {
+     "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+    }
+   },
+   {
+    "id": "4fe8b9d8-b6b6-419f-a1fb-c296c58912d9-1747556658666",
+    "title": "الصعيد - مرسى مطروح - البحر الاحمر منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)",
+    "titleTranslated": {
+     "en": "الصعيد - مرسى مطروح - البحر الاحمر منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)"
+    },
+    "enabled": true,
+    "orderby": 80,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "carrier": "",
+    "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "descriptionTranslated": {
+     "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+    }
+   },
+   {
+    "id": "b4e5ca5b-0277-4949-9b4c-552650f0a661-1747556870144",
+    "title": "الصعيد -مرسى مطروح-البحر الاحمر منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)",
+    "titleTranslated": {
+     "en": "الصعيد -مرسى مطروح-البحر الاحمر منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)"
+    },
+    "enabled": true,
+    "orderby": 90,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "carrier": "",
+    "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "descriptionTranslated": {
+     "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+    }
+   },
+   {
+    "id": "07b80758-ddf9-4548-b6a8-60b14efb27d6-1747556934279",
+    "title": "الصعيد - مرسى مطروح - البحر الاحمر منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)",
+    "titleTranslated": {
+     "en": "الصعيد - مرسى مطروح - البحر الاحمر منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)"
+    },
+    "enabled": true,
+    "orderby": 100,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "carrier": "",
+    "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "descriptionTranslated": {
+     "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+    }
+   },
+   {
+    "id": "a0829cea-ec4b-4b37-a9a8-c2bde3b517fb-1747556984448",
+    "title": "الصعيد-مرسى مطروح-البحر الاحمر منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)",
+    "titleTranslated": {
+     "en": "الصعيد-مرسى مطروح-البحر الاحمر منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)"
+    },
+    "enabled": true,
+    "orderby": 110,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "table",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "ratesTable": {},
+    "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "carrier": "",
+    "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+    "descriptionTranslated": {
+     "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+    }
+   },
+   {
+    "id": "40290-1713262373619",
+    "title": "القاهرة والجيزة شحن حرف يدوية ومنتجات عضوية",
+    "titleTranslated": {
+     "en": "القاهرة والجيزة شحن حرف يدوية ومنتجات عضوية"
+    },
+    "enabled": true,
+    "orderby": 120,
+    "fulfilmentType": "delivery",
+    "ratesCalculationType": "flat",
+    "destinationZone": {},
+    "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+    "minimumOrderSubtotal": 0,
+    "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+    "scheduled": false,
+    "scheduledTimePrecisionType": "DATE",
+    "timeSlotLengthInMinutes": 60,
+    "allowSameDayDelivery": false,
+    "cutoffTimeForSameDayDelivery": "16:00",
+    "flatRate": {
+     "rateType": "ABSOLUTE",
+     "rate": 50
+    },
+    "carrier": ""
+   }
+  ]
+ },
+ "payment": {
+  "paymentOptions": [
+   {
+    "id": "6798-1567006926352",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "Cash on Delivery  الدفع عند الاستلام",
+    "checkoutTitleTranslated": {
+     "en": "Cash on Delivery  الدفع عند الاستلام"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 0,
+    "appClientId": "",
+    "appNamespace": "",
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "",
+     "instructionsTranslated": {
+      "en": ""
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "51353-1761549067023",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "تقسيط البنك الاهلي ( ٦ اشهر بدون فوائد )",
+    "checkoutTitleTranslated": {
+     "en": "تقسيط البنك الاهلي ( ٦ اشهر بدون فوائد )"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 10,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong>سيتم التواصل لارسال الرابط الخاص بالدفع</strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong>سيتم التواصل لارسال الرابط الخاص بالدفع</strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "9599-1749103906430",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "مبادرة العربى تقسيط ( منتجات العربى فقط )",
+    "checkoutTitleTranslated": {
+     "en": "مبادرة العربى تقسيط ( منتجات العربى فقط )"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 20,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong> <span style=\"font-size: 16px;\"> سيتم التواصل لارسال رابط الخاص </span></strong><strong><span style=\"font-size: 16px;\">بالدفع بخدمة التفسيط</span></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong> <span style=\"font-size: 16px;\"> سيتم التواصل لارسال رابط الخاص </span></strong><strong><span style=\"font-size: 16px;\">بالدفع بخدمة التفسيط</span></strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "164118-1692521254900",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "Valu",
+    "checkoutTitleTranslated": {
+     "en": "Valu"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 30,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong><span style=\"font-size: 16px;\"><span style=\"font-size: 16px;\">Valu</span> سيتم التواصل لارسال رابط الخاص بالدفع بخدمة </span></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong><span style=\"font-size: 16px;\"><span style=\"font-size: 16px;\">Valu</span> سيتم التواصل لارسال رابط الخاص بالدفع بخدمة </span></strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "64148-1693836233578",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "Souhoola",
+    "checkoutTitleTranslated": {
+     "en": "Souhoola"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 40,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong><span style=\"font-size: 16px;\">Souhoola سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong><span style=\"font-size: 16px;\">Souhoola سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "52809-1705928497621",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "Fawry",
+    "checkoutTitleTranslated": {
+     "en": "Fawry"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 50,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong><span style=\"font-size: 16px;\">Fawry سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong><span style=\"font-size: 16px;\">Fawry سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "4964-1748420427532",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "Mogo",
+    "checkoutTitleTranslated": {
+     "en": "Mogo"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 60,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong><span style=\"font-size: 16px;\"><span style=\"font-size: 16px;\"></span>Mogo سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong><span style=\"font-size: 16px;\"><span style=\"font-size: 16px;\"></span>Mogo سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "24827-1763364863223",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "SEVEN‎",
+    "checkoutTitleTranslated": {
+     "en": "SEVEN‎"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 70,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><span style=\"font-size: 16px;\"><strong>SEVEN‎ سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</strong></span></p>",
+     "instructionsTranslated": {
+      "en": "<p><span style=\"font-size: 16px;\"><strong>SEVEN‎ سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</strong></span></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "80361-1761810127405",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "تقسيط البنك الاهلي ( ١٨ شهر بدون فوائد ) على جميع منتجات كريازى",
+    "checkoutTitleTranslated": {
+     "en": "تقسيط البنك الاهلي ( ١٨ شهر بدون فوائد ) على جميع منتجات كريازى"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 80,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong>سيتم التواصل لارسال الرابط الخاص بالدفع</strong><strong></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong>سيتم التواصل لارسال الرابط الخاص بالدفع</strong><strong></strong></p>"
+     }
+    },
+    "methods": []
+   },
+   {
+    "id": "51826-1692861580161",
+    "enabled": true,
+    "configured": true,
+    "checkoutTitle": "Forsa",
+    "checkoutTitleTranslated": {
+     "en": "Forsa"
+    },
+    "checkoutDescription": "",
+    "paymentProcessorId": "offline",
+    "paymentProcessorTitle": "",
+    "orderBy": 90,
+    "appClientId": "",
+    "appNamespace": "",
+    "paymentSurcharges": {
+     "type": "ABSOLUTE",
+     "value": 0
+    },
+    "instructionsForCustomer": {
+     "instructionsTitle": "",
+     "instructions": "<p><strong><span style=\"font-size: 16px;\"><span style=\"font-size: 16px;\"></span>Forsa سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>",
+     "instructionsTranslated": {
+      "en": "<p><strong><span style=\"font-size: 16px;\"><span style=\"font-size: 16px;\"></span>Forsa سيتم التواصل لارسال رابط الخاص بالدفع بخدمة</span></strong><strong></strong></p>"
+     }
+    },
+    "methods": []
+   }
+  ],
+  "applePay": {
+   "enabled": false,
+   "available": false
+  },
+  "applePayOptions": []
+ },
+ "legalPagesSettings": {
+  "requireTermsAgreementAtCheckout": false,
+  "legalPages": [
+   {
+    "type": "TERMS",
+    "enabled": true,
+    "title": "Terms & Conditions",
+    "titleTranslated": {
+     "en": "Terms & Conditions"
+    },
+    "display": "INLINE",
+    "displayTranslated": {
+     "en": "INLINE"
+    },
+    "text": "<p><strong>Introduction:</strong></p>  <p>By accessing the Site, you confirm your understanding & accepting of the Terms and Conditions, which includes all the details below, If you do not agree to these Terms and Conditions of use, please do not access, register with or use this Site.</p>  <p>The Site reserves the right, to change, modify, add, or remove portions of these Terms and Conditions of use at any time, Changes will be effective when posted on the Site with no other notice provided Please check these Terms and Conditions of use regularly for updates. Your continued use of the Site following the posting of changes to these Terms and Conditions of use constitutes your acceptance of those changes if you do not agree to the changes in the Terms of Use as they occur, you should exit and not use the Web Site.</p>  <p><strong>Use of the Website:</strong></p>  <ul>  <li>Membership      of the website is not available to persons under the age of 18 years and Sadko      has the right to cancel the account of any member who has not yet reached      the age of 18 year.</li>  <li>When      you register as a member of the Site you have been or will be required to      provide certain information and register a username and password for use      on this Site and you will provide true, accurate, current and complete      information about yourself, and you will not include any of your contact      details including but not limited to email addresses, telephone numbers or      other personal details.</li>  <li>You      will be responsible for maintaining your account secret information and      your password confidentiality, and so you agree to inform Sadko      immediately of any unauthorized of your password or login to your account,      or any other breach of confidentiality of your information.</li>  <li>Sadko      is committed to deal with your personal information and contact details      confidentially.</li>  <li>You      must comply with all applicable laws to regulate trade via the Internet.</li> </ul>    <p><strong>Trademarks and Copyrights:</strong></p>  <p>All intellectual property rights, whether registered or unregistered, in the Site, information content on the Site and all the website design, including, but not limited to, text, graphics, software, photos, video, music, sound, and their selection and arrangement, and all software compilations, underlying source code and software shall remain our property. The entire contents of the Site also are protected by copyright as a collective work under Egyptian copyright laws and international conventions. All rights are reserved.</p>      <p><strong>Sadko Commitments:</strong></p>  <ul>  <li>It      is the sole and exclusive owner by law of the beneficiary by all materials      of any kind that it wants to offer for sale on the website, and it has the      evidences proving that it has the right and authority to trade in these      materials and to offer them for sale.</li>  <li>It      will comply with all local and international laws applicable in this      regard, as well as applicable laws and regulations regarding the use of      the website.</li>  <li>The      information and description of goods in order to be published on the      website are true, accurate, detailed and illustrated the sale.</li>  <li>To      operate according to the website policy concerning the maintenance of the      privacy of contact and communication Information, and it will not disclose      the details of information and contact addresses, including phone numbers,      mailing addresses, and e-mail addresses, anywhere on the website,      including the models and Forum, and Item details, or through any e-mail      features of the website.</li> </ul>      <p><strong>The confidentiality of information:</strong></p>    <ul>     <li>Sadko       shall abide by the standards for the protection against the arrival of an       unauthorized person to your personal identity information, and saving       them. Knowing that the Internet is not a secure way, the confidentiality       of your personal information cannot be guaranteed 100%.</li>   <li>Sadko       has no control over the actions of any third party, like other Internet       pages linked to this website, or any third parties claiming to represent       you or to represent others.</li>   </ul>  <p><strong>Termination:</strong></p>  <p>We may suspend or terminate your use of the Web Site at any time, for any reason or for no reason. We reserve the right to change, suspend, or discontinue all or any aspect of the Web Site at any time without notice. Additionally, we may cancel any order placed through the Web Site at any time in our sole. </p>",
+    "textTranslated": {
+     "en": "<p><strong>Introduction:</strong></p>  <p>By accessing the Site, you confirm your understanding & accepting of the Terms and Conditions, which includes all the details below, If you do not agree to these Terms and Conditions of use, please do not access, register with or use this Site.</p>  <p>The Site reserves the right, to change, modify, add, or remove portions of these Terms and Conditions of use at any time, Changes will be effective when posted on the Site with no other notice provided Please check these Terms and Conditions of use regularly for updates. Your continued use of the Site following the posting of changes to these Terms and Conditions of use constitutes your acceptance of those changes if you do not agree to the changes in the Terms of Use as they occur, you should exit and not use the Web Site.</p>  <p><strong>Use of the Website:</strong></p>  <ul>  <li>Membership      of the website is not available to persons under the age of 18 years and Sadko      has the right to cancel the account of any member who has not yet reached      the age of 18 year.</li>  <li>When      you register as a member of the Site you have been or will be required to      provide certain information and register a username and password for use      on this Site and you will provide true, accurate, current and complete      information about yourself, and you will not include any of your contact      details including but not limited to email addresses, telephone numbers or      other personal details.</li>  <li>You      will be responsible for maintaining your account secret information and      your password confidentiality, and so you agree to inform Sadko      immediately of any unauthorized of your password or login to your account,      or any other breach of confidentiality of your information.</li>  <li>Sadko      is committed to deal with your personal information and contact details      confidentially.</li>  <li>You      must comply with all applicable laws to regulate trade via the Internet.</li> </ul>    <p><strong>Trademarks and Copyrights:</strong></p>  <p>All intellectual property rights, whether registered or unregistered, in the Site, information content on the Site and all the website design, including, but not limited to, text, graphics, software, photos, video, music, sound, and their selection and arrangement, and all software compilations, underlying source code and software shall remain our property. The entire contents of the Site also are protected by copyright as a collective work under Egyptian copyright laws and international conventions. All rights are reserved.</p>      <p><strong>Sadko Commitments:</strong></p>  <ul>  <li>It      is the sole and exclusive owner by law of the beneficiary by all materials      of any kind that it wants to offer for sale on the website, and it has the      evidences proving that it has the right and authority to trade in these      materials and to offer them for sale.</li>  <li>It      will comply with all local and international laws applicable in this      regard, as well as applicable laws and regulations regarding the use of      the website.</li>  <li>The      information and description of goods in order to be published on the      website are true, accurate, detailed and illustrated the sale.</li>  <li>To      operate according to the website policy concerning the maintenance of the      privacy of contact and communication Information, and it will not disclose      the details of information and contact addresses, including phone numbers,      mailing addresses, and e-mail addresses, anywhere on the website,      including the models and Forum, and Item details, or through any e-mail      features of the website.</li> </ul>      <p><strong>The confidentiality of information:</strong></p>    <ul>     <li>Sadko       shall abide by the standards for the protection against the arrival of an       unauthorized person to your personal identity information, and saving       them. Knowing that the Internet is not a secure way, the confidentiality       of your personal information cannot be guaranteed 100%.</li>   <li>Sadko       has no control over the actions of any third party, like other Internet       pages linked to this website, or any third parties claiming to represent       you or to represent others.</li>   </ul>  <p><strong>Termination:</strong></p>  <p>We may suspend or terminate your use of the Web Site at any time, for any reason or for no reason. We reserve the right to change, suspend, or discontinue all or any aspect of the Web Site at any time without notice. Additionally, we may cancel any order placed through the Web Site at any time in our sole. </p>"
+    },
+    "externalUrl": "",
+    "externalUrlTranslated": {
+     "en": ""
+    }
+   },
+   {
+    "type": "PRIVACY_STATEMENT",
+    "enabled": true,
+    "title": "Created by eShops+",
+    "titleTranslated": {
+     "en": "Created by eShops+"
+    },
+    "display": "INLINE",
+    "displayTranslated": {
+     "en": "INLINE"
+    },
+    "text": "",
+    "textTranslated": {
+     "en": ""
+    },
+    "externalUrl": "https://eshopsplus.com/",
+    "externalUrlTranslated": {
+     "en": "https://eshopsplus.com/"
+    }
+   },
+   {
+    "type": "SHIPPING_COST_PAYMENT_INFO",
+    "enabled": true,
+    "title": "Shipping & Payment Info",
+    "titleTranslated": {
+     "en": "Shipping & Payment Info"
+    },
+    "display": "INLINE",
+    "displayTranslated": {
+     "en": "INLINE"
+    },
+    "text": "<p>Shipping and delivery is handled by Sadko crew staff to ensure maximum goods care and quality standard services.</p>  <p>Delivery is to Cairo , Giza & Alexandria only is a free of charge service offered by Sadko.</p>  <p>Delivery to North Coast is  available during summer season only. This service is subject to delivery charges which will be notified by our customer service staff. </p>  <p>Payment methods are cash on delivery ( COD ) andcredit card. </p>",
+    "textTranslated": {
+     "en": "<p>Shipping and delivery is handled by Sadko crew staff to ensure maximum goods care and quality standard services.</p>  <p>Delivery is to Cairo , Giza & Alexandria only is a free of charge service offered by Sadko.</p>  <p>Delivery to North Coast is  available during summer season only. This service is subject to delivery charges which will be notified by our customer service staff. </p>  <p>Payment methods are cash on delivery ( COD ) andcredit card. </p>"
+    },
+    "externalUrl": "",
+    "externalUrlTranslated": {
+     "en": ""
+    }
+   },
+   {
+    "type": "REVOCATION_TERMS",
+    "enabled": true,
+    "title": "Return Policy",
+    "titleTranslated": {
+     "en": "Return Policy"
+    },
+    "display": "INLINE",
+    "displayTranslated": {
+     "en": "INLINE"
+    },
+    "text": "<p><span style=\"font-family: verdana;\">We accept the return of an item only if it is in an unopened, original box and/or packaging intact with all labels on it.</span>\n</p><p><span style=\"font-family: verdana;\">Sealed & Closed Box means: A brand-new, unused, unopened, undamaged item in its original packaging. Packaging should be the same as it was delivered to you.</span>\n</p><ul>\n\t<li><span style=\"font-family: verdana;\"><u>Cases where it is difficult for us to support returns:</u></span></li>\n</ul><ol><li><span style=\"font-family: Helvetica;\">Return request is made outside the specified time frame of 14 days from delivery.</span></li><li><span style=\"font-family: Helvetica;\">Product is used, damaged, or is not in the same condition as you received it.</span></li><li><span style=\"font-family: Helvetica;\">Defective product which is covered under the manufacturer's warranty.</span></li><li><span style=\"font-family: Helvetica;\">Item which has been used or installed.</span></li><li><span style=\"font-family: Helvetica;\">Anything missing from the package you have received including, original packing, freebies and <span style=\"font-family: verdana;\">accessories</span>.</span></li><li><span style=\"font-family: Helvetica;\"></span><span style=\"font-family: Helvetica;\">Items classified as non home appliances such as books , handcrafts & games</span> <span class=\"redactor-invisible-space\"><strong></strong></span><strong></strong></li></ol><p><strong><span style=\"font-family: verdana;\"></span></strong>\n</p>",
+    "textTranslated": {
+     "en": "<p><span style=\"font-family: verdana;\">We accept the return of an item only if it is in an unopened, original box and/or packaging intact with all labels on it.</span>\n</p><p><span style=\"font-family: verdana;\">Sealed & Closed Box means: A brand-new, unused, unopened, undamaged item in its original packaging. Packaging should be the same as it was delivered to you.</span>\n</p><ul>\n\t<li><span style=\"font-family: verdana;\"><u>Cases where it is difficult for us to support returns:</u></span></li>\n</ul><ol><li><span style=\"font-family: Helvetica;\">Return request is made outside the specified time frame of 14 days from delivery.</span></li><li><span style=\"font-family: Helvetica;\">Product is used, damaged, or is not in the same condition as you received it.</span></li><li><span style=\"font-family: Helvetica;\">Defective product which is covered under the manufacturer's warranty.</span></li><li><span style=\"font-family: Helvetica;\">Item which has been used or installed.</span></li><li><span style=\"font-family: Helvetica;\">Anything missing from the package you have received including, original packing, freebies and <span style=\"font-family: verdana;\">accessories</span>.</span></li><li><span style=\"font-family: Helvetica;\"></span><span style=\"font-family: Helvetica;\">Items classified as non home appliances such as books , handcrafts & games</span> <span class=\"redactor-invisible-space\"><strong></strong></span><strong></strong></li></ol><p><strong><span style=\"font-family: verdana;\"></span></strong>\n</p>"
+    },
+    "externalUrl": "",
+    "externalUrlTranslated": {
+     "en": ""
+    }
+   },
+   {
+    "type": "LEGAL_INFO",
+    "enabled": true,
+    "title": "About Us",
+    "titleTranslated": {
+     "en": "About Us"
+    },
+    "display": "INLINE",
+    "displayTranslated": {
+     "en": "INLINE"
+    },
+    "text": "",
+    "textTranslated": {
+     "en": ""
+    },
+    "externalUrl": "",
+    "externalUrlTranslated": {
+     "en": ""
+    }
+   }
+  ]
+ },
+ "designSettings": {
+  "enable_catalog_on_one_page": false,
+  "product_list_card_spacing_type": "WIDE",
+  "product_list_image_size": "LARGE",
+  "product_list_image_aspect_ratio": "PORTRAIT_0667",
+  "product_list_show_product_images": true,
+  "product_list_product_info_layout": "CENTER",
+  "product_list_show_frame": false,
+  "product_list_show_additional_image_on_hover": false,
+  "product_list_title_behavior": "SHOW",
+  "product_list_price_behavior": "SHOW",
+  "product_list_show_price_ranges": false,
+  "product_list_sku_behavior": "HIDE",
+  "product_list_buybutton_behavior": "HIDE",
+  "product_list_category_title_behavior": "SHOW_ON_IMAGE",
+  "product_list_image_has_shadow": false,
+  "show_signin_link": true,
+  "show_signin_link_with_unified_account_page": false,
+  "show_footer_menu": true,
+  "show_breadcrumbs": true,
+  "product_list_show_sort_viewas_options": true,
+  "product_filters_position_search_page": "LEFT",
+  "product_filters_position_category_page": "RIGHT",
+  "product_filters_opened_by_default_on_category_page": false,
+  "product_filters_visible_on_catalog_pages": false,
+  "product_filters_position_on_catalog_pages": "RIGHT",
+  "product_filters_opened_by_default_on_catalog_pages": true,
+  "enable_catalog_seamless_product_list_view": true,
+  "product_details_show_product_sku": false,
+  "product_details_add_to_cart_quantity_compact_view": false,
+  "product_details_layout": "TWO_COLUMNS_SIDEBAR_ON_THE_RIGHT",
+  "product_details_two_columns_with_right_sidebar_show_product_description_on_sidebar": true,
+  "product_details_two_columns_with_left_sidebar_show_product_description_on_sidebar": true,
+  "product_details_show_product_name": true,
+  "product_details_show_breadcrumbs": true,
+  "product_details_show_product_price": true,
+  "product_details_show_sale_price": true,
+  "product_details_show_tax": true,
+  "product_details_show_attributes": true,
+  "product_details_show_weight": false,
+  "product_details_show_product_description": true,
+  "product_details_show_delivery_time": true,
+  "product_details_show_product_options": true,
+  "product_details_show_wholesale_prices": true,
+  "product_details_show_save_for_later": true,
+  "product_details_show_share_buttons": true,
+  "product_details_position_product_name": 100,
+  "product_details_position_breadcrumbs": 200,
+  "product_details_position_product_sku": 300,
+  "product_details_position_product_price": 400,
+  "product_details_position_product_options": 700,
+  "product_details_position_buy_button": 900,
+  "product_details_position_wholesale_prices": 1000,
+  "product_details_position_product_description": 2147483647,
+  "product_details_position_delivery_time": 800,
+  "product_details_position_save_for_later": 1100,
+  "product_details_position_share_buttons": 1200,
+  "product_details_show_price_per_unit": true,
+  "product_details_description_compact_view": false,
+  "product_details_estimated_delivery_time_compact_view": false,
+  "product_details_show_qty": false,
+  "product_details_show_in_stock_label": true,
+  "product_details_show_number_of_items_in_stock": true,
+  "product_details_favorites_compact_view": false,
+  "product_details_gallery_image_position": "FIT",
+  "product_details_gallery_layout": "IMAGE_SINGLE_THUMBNAILS_HORIZONTAL",
+  "product_details_expanded_gallery_layout": "GRID",
+  "hide_category_block_show_all_enabled_products": false,
+  "product_list_subtitles_behavior": "SHOW",
+  "product_details_show_subtitle": true,
+  "product_details_position_subtitle": 600,
+  "product_details_show_navigation_arrows": true,
+  "product_details_show_product_photo_zoom": true,
+  "product_details_show_breadcrumbs_position": "NAVIGATION_CONTAINER",
+  "checkout_expand_billing_address_form": false,
+  "product_details_position_review_section": 1400,
+  "product_details_show_rating_section": true,
+  "product_details_reviews_in_single_view_compact_view": false,
+  "product_details_share_button_compact_view": false,
+  "product_details_show_ask_question_section": true,
+  "product_details_show_reviews_section": true,
+  "product_details_show_reviews_section_in_one_card_view": true,
+  "product_details_stock_per_outlet_compact_view": false,
+  "product_details_wholesale_prices_compact_view": false,
+  "product_list_rating_section_behavior": "SHOW",
+  "product_list_show_rating_in_one_star": false,
+  "product_list_show_rating_number_in_five_stars_view": true,
+  "product_list_show_reviews_count_in_five_stars_view": true,
+  "product_list_swatches_product_option_behavior": "HIDE",
+  "product_list_size_product_option_behavior": "HIDE",
+  "swatches_product_option_shape": "SQUARE",
+  "swatches_product_option_size": "MEDIUM",
+  "product_details_show_image_alt_text_as_visible_description": false,
+  "product_details_position_size_chart": 800,
+  "product_filters_orientation": "VERTICAL"
+ },
+ "orderInvoiceSettings": {
+  "invoiceLogoUrl": "https://d2j6dbq0eux0bg.cloudfront.net/images/142682751/logos/invoice/6259699854.png",
+  "attachInvoiceToOrderEmailNotifications": "DO_NOT_ATTACH"
+ },
+ "taxInvoiceSettings": {
+  "taxInvoiceLogoUrl": "https://d2j6dbq0eux0bg.cloudfront.net/images/142682751/logos/invoice/6259699854.png",
+  "attachTaxInvoiceToOrderEmailNotifications": "ATTACH_TO_ALL_EMAILS",
+  "enableTaxInvoices": false,
+  "generateInvoicesAutomatically": "ON_ORDER_PLACED"
+ }
+}

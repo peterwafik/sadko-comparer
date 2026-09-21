@@ -67,6 +67,7 @@ import { openEcwidStore } from './engine/ecwid-store.mjs';
 import { openEcwidApi } from './engine/ecwid-api.mjs';
 import { createEcwidSync } from './engine/ecwid-sync.mjs';
 import { createEcwidSource } from './engine/ecwid-source.mjs';
+import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -2004,6 +2005,62 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      The check is server-side and identical for reads and writes; there is no
      "admin cookie" a browser could forge. Writes also pass the global same-origin
      gate above. All mutations are recorded in the catalog-admin audit log. */
+  /* ---- Ecwid webhooks ----------------------------------------------------
+     PUBLIC route. Answer 200 the moment the event is verified, then work
+     asynchronously: Ecwid retries anything slow or non-200, and a retry storm
+     is worse than a missed event — the 15-minute pull is the safety net.
+
+     See engine/ecwid-webhook.mjs for why the signature does not cover storeId,
+     and why this checks it explicitly. */
+  if (u.pathname === '/api/ecwid/webhook' && req.method === 'POST') {
+    const es = ecwidSync();
+    if (!es) { res.statusCode = 503; return res.end('ecwid off'); }
+
+    let raw = '';
+    try {
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 64_000) { res.statusCode = 413; return res.end('too large'); }
+      }
+    } catch (e) { res.statusCode = 400; return res.end('bad body'); }
+
+    const ev = parseWebhook(raw);
+    if (!ev) { res.statusCode = 400; return res.end('bad event'); }
+
+    if (!verifyWebhook({
+      event: ev.event,
+      signature: req.headers['x-ecwid-webhook-signature'],
+      secret: process.env.SADKO_ECWID_WEBHOOK_SECRET || '',
+    })) {
+      console.warn(`[ecwid] webhook REJECTED (bad or missing signature) ${ev.eventType} ${ev.entityId}`);
+      res.statusCode = 401; return res.end('bad signature');
+    }
+
+    /* The signature proves Ecwid sent it, not that it concerns our store. */
+    if (ev.storeId && ev.storeId !== String(ECWID_STORE_ID)) {
+      console.warn(`[ecwid] webhook ignored: store ${ev.storeId} is not ${ECWID_STORE_ID}`);
+      res.statusCode = 202; return res.end('not this store');
+    }
+
+    res.statusCode = 200; res.end('ok');            // acknowledge, then work
+
+    const done = () => ecwidSource().invalidate();
+    if (/^product\./.test(ev.eventType)) {
+      es.applyProductEvent(ev).then(done).catch(e => console.error('[ecwid] webhook product:', e.message));
+    } else if (/^category\./.test(ev.eventType)) {
+      es.syncCategories().then(done).catch(e => console.error('[ecwid] webhook category:', e.message));
+    } else if (/^(profile|payment|shipping)\./.test(ev.eventType)) {
+      es.syncSettings().then(done).catch(e => console.error('[ecwid] webhook settings:', e.message));
+    } else if (/^order\./.test(ev.eventType)) {
+      /* Order status flowing back is Task 13. Logged rather than silently
+         dropped, so a delivery arriving before that lands is visible. */
+      console.log(`[ecwid] order event ${ev.eventType} ${ev.entityId} — handler arrives in Task 13`);
+    } else {
+      console.log(`[ecwid] webhook ignored, unhandled type: ${ev.eventType}`);
+    }
+    return;
+  }
+
   if (u.pathname.startsWith('/api/admin/')) {
     const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
     const db = accounts();

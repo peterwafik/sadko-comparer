@@ -75,9 +75,21 @@ const randBytesHex = n => randomBytes(n).toString('hex');
 
 /* JSON data files the owner may edit from the control room. Whitelisted so the
    content endpoint can never be pointed at an arbitrary path on disk. */
+/* JSON content files the owner may edit from the control room.
+   The CATALOGUE is deliberately absent: Ecwid owns products, and a JSON editor
+   for products.json would let someone edit the seed and see nothing change.
+   collections.json is absent for the same reason — the rails are derived from
+   Ecwid category membership (engine/ecwid-rails.mjs), so editing the static
+   file would appear to work and then silently do nothing.
+   These three are the site's OWN editorial content, which Ecwid cannot hold. */
 const ADMIN_CONTENT = {
   guides: { file: 'guides.json', label: 'أدلة الشراء / Buying guides' },
   finder: { file: 'finder.json', label: 'مساعد الاختيار / Finder questions' },
+  /* Banner artwork can come from the dedicated Ecwid category, but derived
+     banners carry no English — the store holds no usable translations — so
+     this file stays the bilingual source and the fallback when that category
+     is empty. See engine/ecwid-rails.mjs deriveBanners(). */
+  promos: { file: 'promos.json', label: 'لافتات الإعلانات / Advertisement banners' },
 };
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));

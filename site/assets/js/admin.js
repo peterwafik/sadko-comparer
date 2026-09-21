@@ -42,7 +42,7 @@
       st_received: 'اتستلم', st_confirmed: 'اتأكّد', st_preparing: 'بيتجهّز', st_shipping: 'فى الطريق', st_delivered: 'اتسلّم', st_cancelled: 'ملغى',
       th_name: 'الاسم', th_email: 'البريد الإلكترونى', th_phone: 'الهاتف المحمول', th_homes: 'أماكن', th_orders: 'طلبات', th_joined: 'انضم', th_via: 'دخول عبر',
       noCustomers: 'لا عملاء بعد.', viaPass: 'كلمة سر',
-      c_guides: 'أدلة الشراء', c_finder: 'أسئلة مساعد الاختيار', validate: 'تحقّق', saveContent: 'حفظ المحتوى',
+      c_guides: 'أدلة الشراء', c_finder: 'أسئلة مساعد الاختيار', c_promos: 'لافتات الإعلانات', validate: 'تحقّق', saveContent: 'حفظ المحتوى',
       validJson: 'JSON سليم ✓', invalidJson: 'JSON غير صحيح: ', contentSaved: 'المحتوى اتحفظ ✓',
       set_hotline: 'الخط الساخن', set_hotlineK: 'رقم الخط الساخن المعروض فى الموقع',
       set_banner: 'شريط إعلان أعلى الصفحات', set_bannerK: 'نص يظهر أعلى الموقع (سيبه فاضى لإخفائه)',
@@ -62,7 +62,7 @@
       nav_customers: 'Customers', nav_content: 'Content', nav_settings: 'Settings', nav_audit: 'Audit log',
       sub_dashboard: 'A quick read on the store', sub_products: 'Edit every product — images, details, prices',
       sub_orders: 'Track orders and update their status', sub_customers: 'Everyone who registered',
-      sub_content: 'Buying guides and finder questions', sub_settings: 'Site settings', sub_audit: 'Every change made here',
+      sub_content: 'Buying guides, finder questions and banners', sub_settings: 'Site settings', sub_audit: 'Every change made here',
       v_users: 'Customers', v_orders: 'Orders', v_ordersToday: 'Orders today', v_liveCat: 'Products live',
       v_edited: 'Edited', v_custom: 'Added', v_hidden: 'Hidden', v_base: 'Base catalogue',
       recent: 'Recent activity', noActivity: 'No activity yet.',
@@ -81,7 +81,7 @@
       st_received: 'Received', st_confirmed: 'Confirmed', st_preparing: 'Preparing', st_shipping: 'Shipping', st_delivered: 'Delivered', st_cancelled: 'Cancelled',
       th_name: 'Name', th_email: 'Email', th_phone: 'Mobile', th_homes: 'Places', th_orders: 'Orders', th_joined: 'Joined', th_via: 'Sign-in',
       noCustomers: 'No customers yet.', viaPass: 'password',
-      c_guides: 'Buying guides', c_finder: 'Finder questions', validate: 'Validate', saveContent: 'Save content',
+      c_guides: 'Buying guides', c_finder: 'Finder questions', c_promos: 'Advertisement banners', validate: 'Validate', saveContent: 'Save content',
       validJson: 'Valid JSON ✓', invalidJson: 'Invalid JSON: ', contentSaved: 'Content saved ✓',
       set_hotline: 'Hotline', set_hotlineK: 'Hotline number shown across the site',
       set_banner: 'Announcement bar', set_bannerK: 'Text shown at the top of the site (leave blank to hide)',
@@ -550,7 +550,11 @@
   }
 
   /* ================= CONTENT ================= */
-  const CONTENT_FILES = [{ name: 'guides', k: 'c_guides' }, { name: 'finder', k: 'c_finder' }];
+  /* MUST stay in step with ADMIN_CONTENT in compare-server.mjs — a file
+     registered on the server but missing here is simply invisible to the
+     owner. engine/admin-content.test.mjs asserts the two lists match. */
+  const CONTENT_FILES = [{ name: 'guides', k: 'c_guides' }, { name: 'finder', k: 'c_finder' },
+                         { name: 'promos', k: 'c_promos' }];
   let CONTENT_CUR = 'guides';
   async function viewContent() {
     const view = $('view');

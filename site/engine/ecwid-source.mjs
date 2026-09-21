@@ -29,9 +29,23 @@
 export const BANNER_CATEGORY_SKU = ['hero', 'wide', 'square'];
 
 export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId = null }) {
-  let mode = enabled ? 'seed' : 'disabled';
   let cache = null;                       // built catalogue, invalidated on write
   let lastCounts = { served: 0, outOfStock: 0 };
+
+  /* Which source is live, computed FRESH every time rather than remembered
+     from the last catalogue read.
+
+     This was a bug worth keeping a note about: `mode` used to be assigned as a
+     side effect inside catalogBase(), so any route that checked it BEFORE the
+     first catalogue read saw "seed" and quietly served the static file. The
+     rails route did exactly that and shipped July's curated ids while the
+     products route was serving Ecwid. A gate must not depend on something else
+     having run first. */
+  function liveSource() {
+    if (!enabled) return 'disabled';
+    try { return store.productIds && store.productIds().size ? 'ecwid' : 'seed'; }
+    catch (e) { return 'seed'; }
+  }
 
   const banner = bannerCategoryId == null ? null : String(bannerCategoryId);
 
@@ -65,14 +79,13 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
 
   return {
     async catalogBase() {
-      if (!enabled) { mode = 'disabled'; return seed(); }
+      if (!enabled) return seed();
       if (cache) return cache;
 
       let rows = [];
       try { rows = store.allProducts(); } catch (e) { rows = []; }
 
-      if (!rows.length) { mode = 'seed'; return seed(); }
-      mode = 'ecwid';
+      if (!rows.length) return seed();
       cache = build(rows);
       return cache;
     },
@@ -84,12 +97,17 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
       if (!enabled || banner == null) return [];
       let rows = [];
       try { rows = store.allProducts(); } catch (e) { return []; }
-      return rows.filter(p => p && inBannerCategory(p) && p.enabled !== false && !p.incomplete);
+      /* Deliberately does NOT require enabled. Banner entries are kept DISABLED
+         in Ecwid so they never appear in Ecwid own storefront — the category
+         description tells staff exactly that — so requiring enabled here would
+         find nothing, ever. They are still excluded from the catalogue by
+         build() above, which filters the banner category outright. */
+      return rows.filter(p => p && inBannerCategory(p) && !p.incomplete);
     },
 
     invalidate() { cache = null; },
 
-    activeSource: () => mode,
+    activeSource: () => liveSource(),
 
     /* Counts and the last error only. There is no code path here that can
        reveal any part of the token. */
@@ -100,7 +118,7 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
       try { s = store.stats(); } catch (e) {}
       return {
         enabled: !!enabled,
-        source: mode,
+        source: liveSource(),
         products: s.products,
         categories: s.categories,
         served: lastCounts.served,

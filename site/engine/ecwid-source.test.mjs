@@ -217,3 +217,44 @@ test('a repeated read is served from cache until the mirror changes', async () =
     assert.deepEqual(c.map(p => p.id), ['1']);
   } finally { cleanup(); }
 });
+
+/* ------------------------- regression: the gate -------------------------- */
+
+test('activeSource reports ecwid BEFORE any catalogue read', () => {
+  /* The bug this pins: `mode` used to be assigned as a side effect inside
+     catalogBase(), so a route checking activeSource() first saw "seed" and
+     served the static July file. /data/collections.json did exactly that —
+     shipping curated July ids while /data/products.json served Ecwid. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    assert.equal(src.activeSource(), 'ecwid', 'the gate must not depend on a prior read');
+    assert.equal(src.describe().source, 'ecwid');
+  } finally { cleanup(); }
+});
+
+test('activeSource still reports seed when the mirror is genuinely empty', () => {
+  const { src, cleanup } = fresh();
+  try { assert.equal(src.activeSource(), 'seed'); } finally { cleanup(); }
+});
+
+test('banner entries are found even though they are DISABLED products', async () => {
+  /* Banner entries are deliberately disabled in Ecwid so they never appear in
+     Ecwid own storefront — the category description tells staff to keep them
+     that way. Requiring enabled here would therefore find nothing, ever. */
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([M(2, { categoryId: '999', categoryIds: ['999'], enabled: false, sku: 'hero' })]);
+    const b = await src.banners();
+    assert.equal(b.length, 1, 'a disabled banner entry must still be readable');
+    assert.equal(b[0].sku, 'hero');
+  } finally { cleanup(); }
+});
+
+test('a disabled banner entry is still kept OUT of the catalogue', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([M(1), M(2, { categoryId: '999', categoryIds: ['999'], enabled: false })]);
+    assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1']);
+  } finally { cleanup(); }
+});

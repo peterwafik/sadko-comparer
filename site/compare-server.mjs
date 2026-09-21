@@ -68,6 +68,7 @@ import { openEcwidApi } from './engine/ecwid-api.mjs';
 import { createEcwidSync } from './engine/ecwid-sync.mjs';
 import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
+import { deriveRails, deriveBanners } from './engine/ecwid-rails.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -2438,6 +2439,63 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      view (scraped base + the owner's overlay) so every edit the owner makes in
      the control room is reflected across shop, category, finder and product
      pages with no change to any of those pages. */
+  /* The shop reads its rails from this URL. With Ecwid on, serve DERIVED rails
+     so a product removed in Ecwid can never leave a dangling curated id; with
+     Ecwid off, fall through to the static file, which is still correct for the
+     seed catalogue it was captured against. */
+  if (u.pathname === '/data/collections.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    if (ecwidSource().activeSource() === 'ecwid') {
+      try {
+        const store = ecwidStore();
+        const collections = deriveRails(await mergedCatalog(), {
+          categories: store ? store.allCategories() : [],
+          offersCategoryId: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
+          bestSellersCategoryId: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
+        });
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.setHeader('cache-control', 'no-cache');
+        return res.end(JSON.stringify({
+          note: 'Derived live from the Ecwid store. offers and bestSellers are membership of ' +
+                'the curated categories, resolved by Arabic name because the stores use ' +
+                'different ids. featured is products with a real compareToPrice above the ' +
+                'price that are NOT already in offers, so the two rails cannot duplicate ' +
+                'each other. A rail with no qualifying products is omitted, never padded.',
+          source: 'ecwid',
+          derivedAt: new Date().toISOString(),
+          collections,
+        }));
+      } catch (e) { /* fall through to the static file */ }
+    }
+  }
+
+  /* Advertisement banners. Ecwid has no banner entity, so these are entries in
+     a dedicated disabled category (SADKO_ECWID_BANNER_CATEGORY). If that
+     category holds nothing usable we fall through to the static
+     data/promos.json, which stays the bilingual source — derived banners carry
+     no English, because Ecwid holds no usable translations for this store. */
+  if (u.pathname === '/data/promos.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    if (ecwidSource().activeSource() === 'ecwid' && ECWID_BANNER_CATEGORY) {
+      try {
+        const promos = deriveBanners(await ecwidSource().banners());
+        if (promos.length) {
+          res.setHeader('content-type', 'application/json; charset=utf-8');
+          res.setHeader('cache-control', 'no-cache');
+          return res.end(JSON.stringify({
+            note: 'Derived from Ecwid category ' + ECWID_BANNER_CATEGORY + '. Each entry is a ' +
+                  'BANNER, not a product: image = artwork, name = headline, description = ' +
+                  'subtitle, SKU = slot, product URL = click-through. These entries are ' +
+                  'excluded from the catalogue, search and rails. No English fields: Ecwid ' +
+                  'holds no usable translations, and copying Arabic into an English field ' +
+                  'would be worse than omitting it.',
+            source: 'ecwid',
+            derivedAt: new Date().toISOString(),
+            promos,
+          }));
+        }
+      } catch (e) { /* fall through to the static file */ }
+    }
+  }
+
   if (u.pathname === '/data/products.json' && (req.method === 'GET' || req.method === 'HEAD')) {
     try {
       const list = await mergedCatalog();

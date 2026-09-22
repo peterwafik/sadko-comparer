@@ -41,7 +41,7 @@
           ? ` — <span class="save">بتوفّر ${fmt(worst.price - best.price)} جنيه</span> عن أغلى عرض (${fmt(worst.price)} ج)` : '') +
         ` · قارنّا ${n} ${n > 2 ? 'متاجر' : 'متجر'}`,
       crown: '👑 أرخص سعر', sadkoBadge: '🛡️ صادكو — ضمان وتركيب وصيانة',
-      currency: 'جنيه', view: 'اعرض العرض ↗', buySadko: 'اشترى من صادكو ↗', orderVia: '🛡️ اطلبها عبر صادكو',
+      currency: 'جنيه', view: 'اعرض العرض ↗', buySadko: 'اعرضه على صادكو', orderVia: '🛡️ اطلبها عبر صادكو',
       ccHead: 'ميزة صادكو',
       ccSadkoBest: 'صادكو هو <b>أرخص سعر</b> فعلاً — ومعه ما لا تمنحه المقارنات الأخرى: <b>تأكيد أصالة المنتج</b> قبل وصوله إليك، و<b>توصيل وتركيب</b>، و<b>صيانة معتمدة بعد البيع</b> وقت أن تحتاجها.',
       ccOther: (s, p) => `لقينا سعر أرخص من ${s} (${fmt(p)} ج). بس على عكس أى موقع مقارنة، صادكو ميوقّفش عند السعر: تقدر <b>تطلب نفس المنتج من صادكو</b> فنتأكد من <b>أصالته</b>، <b>نوصّله ونركّبه</b>، و<b>نصيّنه بعد البيع</b> — راحة بال بفرق بسيط.`,
@@ -113,7 +113,7 @@
           ? ` — <span class="save">you save ${fmt(worst.price - best.price)} EGP</span> vs the priciest offer (${fmt(worst.price)} EGP)` : '') +
         ` · compared ${n} store${n > 1 ? 's' : ''}`,
       crown: '👑 Cheapest price', sadkoBadge: '🛡️ SADKO — warranty, installation & service',
-      currency: 'EGP', view: 'View offer ↗', buySadko: 'Buy from SADKO ↗', orderVia: '🛡️ Order via SADKO',
+      currency: 'EGP', view: 'View offer ↗', buySadko: 'Find it on SADKO', orderVia: '🛡️ Order via SADKO',
       ccHead: 'The SADKO edge',
       ccSadkoBest: 'SADKO really is the <b>cheapest price</b> — plus what other comparers never give you: <b>product-authenticity validation</b> before it reaches you, <b>delivery & installation</b>, and <b>certified after-sale maintenance</b> whenever you need it.',
       ccOther: (s, p) => `We found a cheaper price at ${s} (${fmt(p)} EGP). But unlike any comparison site, SADKO doesn’t stop at the price: you can <b>order the same product through SADKO</b> — we validate its <b>authenticity</b>, <b>deliver & install</b> it, and <b>service it after the sale</b> — peace of mind for a small difference.`,
@@ -372,7 +372,12 @@
           `</div></div>` +
           `<div class="buy"><span class="price">${fmt(r.price)} <small>${T.currency}</small></span>` +
             (r.prevPrice && r.prevPrice !== r.price ? `<span class="was">${T.wasPrice}${fmt(r.prevPrice)}</span>` : '') +
-            `<a class="btn" href="${r.url}" target="_blank" rel="noopener">${isSadko ? T.buySadko : T.view}</a>` +
+            /* SADKO's own row stays on the site. Every other row is a
+               different retailer's listing and must open there — that is
+               what a price comparer is for. */
+            (isSadko
+              ? `<a class="btn" href="${sadkoSearchHref(r.title)}">${T.buySadko}</a>`
+              : `<a class="btn" href="${r.url}" target="_blank" rel="noopener">${T.view}</a>`) +
             (isSadko ? '' : `<a class="btn concierge-btn" href="tel:19140">${T.orderVia}</a>`) +
           `</div>` +
         `</article>`;
@@ -389,6 +394,22 @@
       pollN++;
       pollT = setTimeout(async () => { render(q, await fetchData(q, lastOverrideParams)); }, 6000);
     }
+  }
+
+  /* This site's own search for a comparer row's product.
+
+     A SEARCH rather than a product page on purpose. Comparer rows are crawled
+     listings ({domain, url, title, price} — see engine/crawler.mjs) and carry
+     no product id, so resolving one to a catalogue entry means matching
+     titles, and a wrong match would open the wrong appliance with a price the
+     shopper did not agree to. The search shows the real candidates.
+
+     The title is trimmed to 60 characters, the same cut the product page uses
+     when it hands a title to the comparer, so a long catalogue name does not
+     become a query that matches nothing. */
+  function sadkoSearchHref(title) {
+    const q = String(title || '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+    return 'shop.html?q=' + encodeURIComponent(q);
   }
 
   function renderConcierge(data, best) {

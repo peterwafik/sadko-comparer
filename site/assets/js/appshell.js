@@ -95,7 +95,11 @@
   function liveCats() {
     return Promise.all([products(), loadEcwidCats()]).then(([list]) => {
       const n = {};
-      list.forEach(p => { n[String(p.categoryId)] = (n[String(p.categoryId)] || 0) + 1; });
+      /* Skips the products with no category at all — see the same guard in
+         shop-core.js liveCategories(). Counting them under String(null)
+         produced a nameless "فئة" tile that led nowhere. */
+      list.forEach(p => { if (p.categoryId == null || p.categoryId === "") return;
+                          n[String(p.categoryId)] = (n[String(p.categoryId)] || 0) + 1; });
       /* Previously filtered to CATS, which silently returned NOTHING for a
          store whose ids the curated map does not cover. A category with
          products in it is real whether or not we have a curated name. */

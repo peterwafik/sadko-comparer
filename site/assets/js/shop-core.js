@@ -60,6 +60,18 @@
   function liveCategories(products) {
     var by = {};
     products.forEach(function (p) {
+      /* Ecwid uses 0 for "no category" and the mapper turns that into null, so
+         7 products in the live store (gym equipment) have none at all. They
+         used to be counted under String(null) === "null", which produced a
+         facet with no name — appshell fell back to the generic "فئة" /
+         "Category" — that led to an empty page when clicked, since no product
+         matches the id "null".
+
+         They are skipped here rather than bucketed: unlike a missing BRAND,
+         which a shopper might deliberately filter on, nobody asks to see the
+         uncategorised. The products stay in the unfiltered listing and in
+         search; they simply have no category facet to reach them by. */
+      if (p.categoryId == null || p.categoryId === "") return;
       var id = String(p.categoryId);
       by[id] = (by[id] || 0) + 1;
     });
@@ -339,12 +351,71 @@
     return true;
   }
 
+  /* Every category id a product belongs to. p.categoryId is only the DEFAULT
+     one, and 70 products in the live store sit in more than one category — so
+     reading the single field made them invisible in every category but one. */
+  function catIdsOf(p) {
+    if (p && p.categoryIds && p.categoryIds.length) return p.categoryIds;
+    return (p && p.categoryId != null) ? [p.categoryId] : [];
+  }
+
+  /* Does this product belong in the category being browsed?
+
+     state.catSet, when present, is the wanted category PLUS all of its
+     descendants (built by catFamily below). It is what makes a parent
+     category page work: Ecwid files a product under the child only — a fridge
+     in "نو فروست" does not list "ثلاجات" — so matching the parent id alone
+     found nothing and the fridges page was empty with 217 fridges one level
+     down.
+
+     Without catSet the behaviour is the plain id comparison it always was,
+     so a caller that has no taxonomy loaded is unaffected. */
+  function inCategory(p, state) {
+    var ids = catIdsOf(p);
+    var set = state.catSet;
+    for (var i = 0; i < ids.length; i++) {
+      var id = String(ids[i]);
+      if (set ? set[id] === true : id === String(state.cat)) return true;
+    }
+    return false;
+  }
+
+  /* A category and everything under it, as a plain lookup object.
+
+     Walks DOWN from the wanted id rather than up from each category, so the
+     cost is the size of the subtree and a cycle in the data (which Ecwid
+     should never produce, but this must not hang on) is bounded by the seen
+     check. Returns null for a missing id so callers fall back to the plain
+     comparison instead of matching nothing. */
+  function catFamily(catId, categories) {
+    if (catId == null || !categories || !categories.length) return null;
+    var want = String(catId);
+    var kids = {};
+    for (var i = 0; i < categories.length; i++) {
+      var c = categories[i];
+      if (!c || c.id == null) continue;
+      var par = c.parentId == null ? '' : String(c.parentId);
+      if (!kids[par]) kids[par] = [];
+      kids[par].push(String(c.id));
+    }
+    var out = {}, queue = [want];
+    out[want] = true;
+    while (queue.length) {
+      var cur = queue.shift();
+      var ch = kids[cur] || [];
+      for (var j = 0; j < ch.length; j++) {
+        if (out[ch[j]] !== true) { out[ch[j]] = true; queue.push(ch[j]); }
+      }
+    }
+    return out;
+  }
+
   function filter(products, state, specOf, trTitle) {
     // Parse once for the whole pass, not once per product: expanding synonyms for
     // every one of 471 products on every keystroke-free re-render is wasted work.
     var q = parseQuery(state.q);
     function facets(p) {
-      if (state.cat && String(p.categoryId) !== String(state.cat)) return false;
+      if (state.cat && !inCategory(p, state)) return false;
       if (state.min != null && !(p.price >= state.min)) return false;
       if (state.max != null && !(p.price < state.max)) return false;
       if (state.brands && state.brands.length) {
@@ -599,5 +670,5 @@
     });
   }
 
-  return { SORTS: SORTS, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate, suggest: suggest, editDistance: editDistance, fuzzyHit: fuzzyHit };
+  return { SORTS: SORTS, catIdsOf: catIdsOf, inCategory: inCategory, catFamily: catFamily, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate, suggest: suggest, editDistance: editDistance, fuzzyHit: fuzzyHit };
 });

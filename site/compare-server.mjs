@@ -45,7 +45,7 @@
 
 import http from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, statSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderPage, headlessAvailable } from './headless.mjs';
@@ -72,6 +72,7 @@ import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwi
 import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
 import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
 import { mergeOrders } from './engine/ecwid-customers.mjs';
+import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -1963,6 +1964,37 @@ export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProdu
    60 seconds: long enough that opening the account page and then the orders
    page is one API call, short enough that a status staff just changed shows up
    while the customer is still looking at it. */
+/* The live taxonomy, shaped for the category resolver. Ecwid when it owns the
+   catalogue, and the seed's own categories otherwise — so the resolver
+   behaves the same with the flag off, where the ids already match and every
+   resolution is the no-op 'id' tier. */
+function liveCategoryList() {
+  try {
+    const st = ecwidStore();
+    const rows = st ? st.allCategories() : [];
+    if (rows.length) {
+      return rows.filter(c => c && c.id != null && c.name)
+                 .map(c => ({ id: String(c.id), name: c.name, nameEn: c.nameEn || null }));
+    }
+  } catch (e) {}
+  return [];
+}
+
+/* One hand-built category page, used as the shell for a live category that has
+   no file of its own. Read once: it is the same 34 lines every time, and
+   rewriting a real page is what keeps the script list and stylesheet order
+   identical to the other 30 (storefront.test.mjs asserts them). */
+let CATEGORY_TEMPLATE = null;
+async function categoryTemplate() {
+  if (CATEGORY_TEMPLATE !== null) return CATEGORY_TEMPLATE;
+  try {
+    const dir = path.join(ROOT, 'category');
+    const first = readdirSync(dir).filter(n => n.endsWith('.html')).sort()[0];
+    CATEGORY_TEMPLATE = first ? await readFile(path.join(dir, first), 'utf8') : '';
+  } catch (e) { CATEGORY_TEMPLATE = ''; }
+  return CATEGORY_TEMPLATE;
+}
+
 const REMOTE_ORDERS_TTL_MS = 60_000;
 const REMOTE_ORDERS = new Map();          // email -> { at, orders }
 
@@ -2812,6 +2844,71 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         products: list,
       }));
     } catch (e) { /* fall through to static */ }
+  }
+
+  /* ---- category pages, against whichever store is actually connected ----
+
+     The 30 pages in site/category/ and the Shop dropdown in nav.js are both
+     keyed to PRODUCTION category ids. The test store shares none of them, so
+     picking "تليفزيونات" from the menu loaded category/38022381.html, found
+     no product in category 38022381, and rendered "no products in this
+     section" — the page existed and was empty. Separately, any link built
+     from a LIVE id (appshell's catHref does exactly that) asked for
+     category/206642016.html and got a plain 404.
+
+     Both are fixed on the way out, using the only thing the two stores share:
+     the category NAME, which every static page already carries in
+     data-cat-name. See engine/category-alias.mjs for the name-matching tiers
+     and why an ambiguous match deliberately resolves to nothing.
+
+     In production, where the ids already agree, resolveCategory returns the
+     same id by the 'id' tier and the file is served untouched. */
+  if (/^\/category\/[^/]+\.html$/.test(u.pathname) && (req.method === 'GET' || req.method === 'HEAD')) {
+    const wantedId = decodeURIComponent(u.pathname.slice('/category/'.length, -'.html'.length));
+    const file = path.join(ROOT, 'category', wantedId + '.html');
+    const inRoot = file.startsWith(path.join(ROOT, 'category'));
+
+    try {
+      /* The live taxonomy and the per-category product counts, both from
+         whatever source is actually serving the catalogue. */
+      let live = [], counts = {};
+      try {
+        const list = await mergedCatalog();
+        for (const pr of list) {
+          for (const cid of (Array.isArray(pr.categoryIds) && pr.categoryIds.length
+                              ? pr.categoryIds : [pr.categoryId])) {
+            if (cid != null) counts[String(cid)] = (counts[String(cid)] || 0) + 1;
+          }
+        }
+        live = liveCategoryList();
+      } catch (e) { live = []; }
+
+      if (inRoot && existsSync(file) && statSync(file).isFile()) {
+        const html = await readFile(file, 'utf8');
+        /* The page's own name is the key. Read from the file rather than from
+           a table here, so a page whose name is edited keeps working. */
+        const nm = /data-cat-name="([^"]*)"/.exec(html);
+        const hit = live.length ? resolveCategory(wantedId, nm ? nm[1] : '', live, counts) : null;
+        res.setHeader('content-type', MIME['.html']);
+        res.setHeader('cache-control', 'no-cache');
+        /* Only rewrite when the resolution actually moves the id — otherwise
+           the file goes out exactly as it is on disk. */
+        return res.end(hit && hit.id !== wantedId ? repointCategoryPage(html, hit.id) : html);
+      }
+
+      /* No file for this id. If it is a real live category, build its page
+         from one of the hand-built shells so the asset list stays identical. */
+      const cat = live.find(c => String(c.id) === String(wantedId));
+      if (cat) {
+        const tpl = await categoryTemplate();
+        const out = tpl && retargetCategoryPage(tpl, { id: cat.id, name: cat.name, nameEn: cat.nameEn });
+        if (out) {
+          res.setHeader('content-type', MIME['.html']);
+          res.setHeader('cache-control', 'no-cache');
+          return res.end(out);
+        }
+      }
+    } catch (e) { /* fall through to the static handler, which will 404 */ }
   }
 
   let p = decodeURIComponent(u.pathname); if (p === '/') p = '/index.html';

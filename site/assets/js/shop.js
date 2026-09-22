@@ -327,6 +327,14 @@
     });
   }
 
+  // state.catSet is what shop-core's inCategory() matches against: the
+  // chosen category plus every descendant. Left undefined when there is no
+  // category or no taxonomy, and the filter then compares the id directly.
+  function withFamily(state) {
+    state.catSet = state.cat ? C.catFamily(state.cat, CACHE.cats || []) : null;
+    return state;
+  }
+
   function renderBrowse(root, state, products) {
     var fixed = root.getAttribute('data-cat');
     var matched = C.filter(products, state, specOf, TR);
@@ -335,7 +343,11 @@
 
     // Facet counts are computed against everything EXCEPT the facet being shown,
     // so a user can always see what selecting another value would give them.
-    var forCats = C.filter(products, Object.assign({}, state, { cat: '' }), specOf, TR);
+    // Object.assign copies catSet along with everything else, which is what
+    // these need — except forCats, which clears the category entirely and so
+    // must clear the set with it or the "all categories" counts would stay
+    // narrowed to the current subtree.
+    var forCats = C.filter(products, Object.assign({}, state, { cat: '', catSet: null }), specOf, TR);
     var forBrands = C.filter(products, Object.assign({}, state, { brands: [] }), specOf, TR);
     var forPrice = C.filter(products, Object.assign({}, state, { min: null, max: null }), specOf, TR);
 
@@ -813,6 +825,10 @@
     var fixed = root.getAttribute('data-cat');
     var state = C.parseState(location.search);
     if (fixed) { state.cat = fixed; state.all = false; }
+    // A parent category browses its whole subtree. Computed here, once per
+    // render, so every consumer of this state object (the grid, the facet
+    // counts, the band counts) agrees about what the category contains.
+    withFamily(state);
     if (C.isBrowse(state)) {
       renderBrowse(root, state, CACHE.products);
     } else {
@@ -867,17 +883,29 @@
     var collections = fixedPage ? Promise.resolve(null)
       : fetch(P('data/collections.json')).then(function (r) { return r.ok ? r.json() : null; })
         .catch(function () { return null; });
+    // The category tree, for parent categories. Ecwid files a product under
+    // the CHILD only — a fridge in "نو فروست" does not list "ثلاجات" — so
+    // browsing a parent matched nothing and the fridges page was empty while
+    // 217 fridges sat one level down. parentId comes from this file; the
+    // subtree is expanded by C.catFamily(). A failure resolves to [], which
+    // returns the plain id comparison the filter used before.
+    var cats = fetch(P('data/categories.json'))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { return (d && d.categories) || []; })
+      .catch(function () { return []; });
     Promise.all([
       window.skApp.products(),
       promos,
       logos,
-      collections
+      collections,
+      cats
     ]).then(function (res) {
       CACHE = {
         products: res[0],
         promos: (res[1] && res[1].promos) || null,
         logos: res[2] || {},
-        collections: (res[3] && res[3].collections) || null
+        collections: (res[3] && res[3].collections) || null,
+        cats: res[4] || []
       };
       render();
     });

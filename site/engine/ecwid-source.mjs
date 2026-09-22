@@ -22,7 +22,7 @@
    cannot be bought, and hiding them would understate the range SADKO carries.
    They are ordered last instead.
    ========================================================================== */
-import { adSlotOf, isAd } from './ecwid-ads.mjs';
+import { adSlotOf, isAd, adDestination } from './ecwid-ads.mjs';
 
 /* The slot a banner occupies is carried in its Ecwid SKU, so the owner sets it
    in the same field they already use. Exported so the storefront and the
@@ -183,6 +183,12 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     /* The slot one product occupies, folder first then SKU. Handed to
        deriveBanners so the folder decides the slot rather than the SKU. */
     adSlotOf: p => adSlotOf(p, slotMap()),
+
+    /* Where the owner pointed this ad, from its SKU — validated against the
+       allow-list in ecwid-ads.mjs, so nothing arbitrary reaches an href. Null
+       when the SKU is empty or is not a destination, and the category
+       fallback then applies. */
+    adDestinationOf: p => adDestination(p && p.sku),
 
     invalidate() { cache = null; },
 

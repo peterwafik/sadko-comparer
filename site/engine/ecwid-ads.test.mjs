@@ -441,3 +441,108 @@ test('the startup log names the configured folders', () => {
   assert.match(SERVER, /\[ecwid\] ad folders: /);
   assert.match(SERVER, /no ad folders configured/);
 });
+
+/* ======================================================================
+   The destination the owner types in the panel.
+
+   Needed because two of the three square tiles being moved into Ecwid point
+   at contact.html and delivery.html, and the third at one product — none of
+   which a category can express. Without it all three would have become "the
+   shop", which is a worse page than they have today.
+
+   It is staff-typed text that ends up in an href on our own pages, so the
+   allow-list is the security boundary, not a convenience.
+   ================================================================== */
+
+import { adDestination } from './ecwid-ads.mjs';
+
+test('a site page name becomes that page', () => {
+  assert.equal(adDestination('contact'), 'contact.html');
+  assert.equal(adDestination('delivery'), 'delivery.html');
+  assert.equal(adDestination('finder'), 'finder.html');
+});
+
+test('the .html a staff member may add is tolerated', () => {
+  assert.equal(adDestination('contact.html'), 'contact.html');
+  assert.equal(adDestination('  Delivery.HTML  '), 'delivery.html');
+});
+
+test('a specific product is reachable', () => {
+  assert.equal(adDestination('product:837495061'), 'product.html?id=837495061');
+});
+
+test('a category is reachable, in the form that also targets the aisle', () => {
+  assert.equal(adDestination('cat:206629766'), 'shop.html?cat=206629766');
+});
+
+test('an empty SKU means "use the category fallback"', () => {
+  for (const v of ['', '   ', null, undefined]) assert.equal(adDestination(v), null);
+});
+
+test('a slot marker is NOT read as a destination', () => {
+  /* banner-hero is the legacy way of saying which slot this is. Reading it as
+     a page name would be nonsense. */
+  assert.equal(adDestination('banner-hero'), null);
+  assert.equal(adDestination('banner-square'), null);
+  assert.equal(adDestination('hero'), null);
+  assert.equal(adDestination('square'), null);
+});
+
+test('a real product code falls through to the category fallback', () => {
+  /* Ads created by copying a product keep its SKU; that must not be read as
+     a destination. */
+  assert.equal(adDestination('600330254'), null);
+  assert.equal(adDestination('80240465'), null);
+});
+
+/* -------------------------- the security boundary ---------------------- */
+
+test('an absolute URL is REFUSED', () => {
+  /* An open redirect on our own pages, and the exact thing the p.url bug did. */
+  for (const v of ['https://evil.test', 'http://evil.test/x', '//evil.test',
+                   'https://sadko-test.company.site/products/x']) {
+    assert.equal(adDestination(v), null, 'accepted: ' + v);
+  }
+});
+
+test('a javascript: or data: URL is REFUSED', () => {
+  for (const v of ['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,<script>',
+                   'vbscript:msgbox']) {
+    assert.equal(adDestination(v), null, 'accepted: ' + v);
+  }
+});
+
+test('a path that climbs out of the site is REFUSED', () => {
+  for (const v of ['../../etc/passwd', '/admin.html', '../admin', './contact']) {
+    assert.equal(adDestination(v), null, 'accepted: ' + v);
+  }
+});
+
+test('a page NOT on the list is refused, admin.html above all', () => {
+  /* The list is things it makes sense to advertise. A glob over the folder
+     would have offered the staff console. */
+  for (const v of ['admin', 'admin.html', 'account', 'checkout', 'cart']) {
+    assert.equal(adDestination(v), null, 'accepted: ' + v);
+  }
+});
+
+test('a product or category id must be digits only', () => {
+  for (const v of ['product:abc', 'product:1;drop', 'cat:x', 'product:', 'cat:',
+                   'product:837495061 OR 1=1']) {
+    assert.equal(adDestination(v), null, 'accepted: ' + v);
+  }
+});
+
+test('an absurdly long id is refused rather than rendered', () => {
+  assert.equal(adDestination('product:' + '9'.repeat(40)), null);
+});
+
+test('every accepted destination is a bare relative path this site can re-base', () => {
+  /* shop.js runs these through P() for the pages under /category/, and leaves
+     anything absolute alone — so an absolute value would also escape that. */
+  for (const v of ['contact', 'delivery', 'product:1', 'cat:2', 'shop']) {
+    const d = adDestination(v);
+    assert.ok(d, v + ' should be accepted');
+    assert.ok(!/^([a-z]+:|\/\/|\/)/i.test(d), 'not re-basable: ' + d);
+  }
+});

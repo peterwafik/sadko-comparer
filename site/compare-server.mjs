@@ -2854,6 +2854,10 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           /* The folder wins over the SKU, so moving an ad between folders
              changes its slot even if its SKU still says otherwise. */
           slotOf: p => ecwidSource().adSlotOf(p),
+          /* And where it points, which a category alone cannot express: two
+             of the three square tiles this replaces go to contact.html and
+             delivery.html. */
+          destOf: p => ecwidSource().adDestinationOf(p),
         });
         if (derived.length) {
           /* The local file is the fallback PER SLOT. A read failure leaves it

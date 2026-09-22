@@ -235,3 +235,61 @@ export function mergePromos(ecwidPromos = [], localPromos = []) {
 
   return { promos: out, fromEcwid: replaced, fromLocal: kept };
 }
+
+/* ============================================================================
+   Where an ad points, set from the panel.
+
+   The folder decides the SLOT, which frees the SKU field: for a product inside
+   an ad folder, "SKU" has no other meaning. So that is where the owner writes
+   the destination.
+
+   THE REASON THIS IS NEEDED. Deriving the destination from the ad's assigned
+   category covers "this banner advertises air conditioners" and nothing else.
+   Two of the three square tiles this replaces point at contact.html and
+   delivery.html, and the third at one specific product — none of which a
+   category can express. Without this, moving them into Ecwid would silently
+   drop all three destinations and send every tile to the shop.
+
+   A STRICT ALLOW-LIST, not a URL. This value is staff-typed text that ends up
+   in an href on our own pages, so an arbitrary string would be an open
+   redirect at best and a javascript: URL at worst. Only three shapes are
+   accepted, and anything else is ignored in favour of the category fallback:
+
+     contact          → contact.html          (any site page in SITE_PAGES)
+     product:837495061→ product.html?id=837495061
+     cat:206629766    → shop.html?cat=206629766
+
+   Nothing here can produce an absolute URL, a protocol, or a path that climbs
+   out of the site.
+   ========================================================================== */
+
+/* The pages an ad may point at. Named explicitly rather than derived from the
+   filesystem: this is a list of things it makes sense to advertise, and a
+   glob would happily offer admin.html. */
+const SITE_PAGES = new Set([
+  'index', 'shop', 'finder', 'compare', 'guides', 'care', 'plan', 'delivery',
+  'contact', 'about', 'showrooms', 'warranty', 'values', 'appliances', 'saved',
+]);
+
+export function adDestination(sku) {
+  const raw = String(sku == null ? '' : sku).trim().toLowerCase();
+  if (!raw) return null;
+
+  /* A slot marker is not a destination — it is the legacy way of saying which
+     slot this is, and it must not be read as a page name. */
+  if (raw.startsWith('banner-') || AD_SLOTS.includes(raw)) return null;
+
+  let m = /^product:(\d{1,20})$/.exec(raw);
+  if (m) return 'product.html?id=' + m[1];
+
+  m = /^cat:(\d{1,20})$/.exec(raw);
+  if (m) return 'shop.html?cat=' + m[1];
+
+  /* A bare page name, with or without the .html a staff member may add. */
+  const page = raw.replace(/\.html$/, '');
+  if (SITE_PAGES.has(page)) return page + '.html';
+
+  /* Anything else — a real product code, a pasted URL, a typo — is not a
+     destination. The category fallback takes over. */
+  return null;
+}

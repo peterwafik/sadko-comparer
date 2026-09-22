@@ -137,10 +137,33 @@ const ART_FOR_SLOT = { hero: 'wide', wide: 'wide', square: 'square' };
    which is a weak destination but a safe one.
 
    For a banner that must point somewhere a category cannot express — the
-   contact page, the delivery page, one specific product — the local
-   promos.json route in the SADKO admin still takes an arbitrary href, and an
-   Ecwid banner overrides it wholesale (see the /data/promos.json route), so
-   the two are an either/or choice, not a merge. */
+   contact page, the delivery page, one specific product — the owner writes it
+   in the ad's SKU field, which the folder design leaves free. See
+   adDestination() in ecwid-ads.mjs for the allow-list and why it is one.
+   That value arrives here as destOf and wins over the category.
+
+   promos.json remains the local source, and it is merged PER SLOT rather than
+   replaced — a slot Ecwid has no ads for keeps its local entries and their
+   bilingual copy. See mergePromos(). */
+/* The destination, in order of authority:
+
+     1. destOf(p) — what the owner typed in the panel, already validated
+        against a strict allow-list by adDestination(). Needed because two of
+        the three square tiles this replaces point at contact.html and
+        delivery.html, and the third at one product — none of which a category
+        can express, so without this they would all have become "the shop".
+
+     2. the ordinary category the ad is assigned to, which also TARGETS it to
+        that aisle (shop.js reads ?cat=NNN out of the href).
+
+     3. the shop. */
+function adHref(p, bannerCategoryId, destOf) {
+  if (typeof destOf === 'function') {
+    try { const d = destOf(p); if (d) return d; } catch (e) {}
+  }
+  return bannerHref(p, bannerCategoryId);
+}
+
 function bannerHref(p, bannerCategoryId) {
   const banner = bannerCategoryId == null ? null : String(bannerCategoryId);
   const usable = id => {
@@ -171,7 +194,7 @@ function bannerHref(p, bannerCategoryId) {
 }
 
 export function deriveBanners(bannerProducts = [],
-                              { bannerCategoryId = null, slotOf = null } = {}) {
+                              { bannerCategoryId = null, slotOf = null, destOf = null } = {}) {
   const out = [];
   for (const p of bannerProducts) {
     if (!p) continue;
@@ -210,7 +233,7 @@ export function deriveBanners(bannerProducts = [],
       art: ART_FOR_SLOT[slot],
       title,
       sub: String(p.description || '').trim() || undefined,
-      href: bannerHref(p, bannerCategoryId),
+      href: adHref(p, bannerCategoryId, destOf),
       image,
       alt: title,
       source: 'ecwid',

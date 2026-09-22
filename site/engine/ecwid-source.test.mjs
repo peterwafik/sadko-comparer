@@ -258,3 +258,31 @@ test('a disabled banner entry is still kept OUT of the catalogue', async () => {
     assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1']);
   } finally { cleanup(); }
 });
+
+test('describe reports served correctly BEFORE any catalogue read', () => {
+  /* Same stale-value trap as activeSource(): `served` used to be captured
+     during the last catalogue build, so an admin opening the panel before the
+     storefront had been hit saw 0 of 1,453 products served. */
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([
+      M(1),                                                    // served
+      M(2, { inStock: false }),                                // served, last
+      M(3, { enabled: false }),                                // not served
+      M(4, { incomplete: true, title: '' }),                   // not served
+      M(5, { categoryId: '999', categoryIds: ['999'] }),       // banner, not served
+    ]);
+    assert.equal(src.describe().served, 2, 'counted fresh, not from a prior build');
+  } finally { cleanup(); }
+});
+
+test('the served count matches what catalogBase actually returns', () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([M(1), M(2, { enabled: false }), M(3, { categoryId: '999', categoryIds: ['999'] })]);
+    const n = src.describe().served;
+    return src.catalogBase().then(list => {
+      assert.equal(list.length, n, 'the panel must not disagree with the storefront');
+    }).finally(cleanup);
+  } catch (e) { cleanup(); throw e; }
+});

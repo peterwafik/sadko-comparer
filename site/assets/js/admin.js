@@ -23,7 +23,15 @@
       nav_customers: 'العملاء', nav_content: 'المحتوى', nav_settings: 'الإعدادات', nav_audit: 'السجل',
       sub_dashboard: 'نظرة سريعة على المتجر', sub_products: 'تعديل كل منتج — الصور والتفاصيل والأسعار',
       sub_orders: 'متابعة الطلبات وتحديث حالتها', sub_customers: 'كل من سجّل حساب',
-      sub_content: 'أدلة الشراء وأسئلة مساعد الاختيار', sub_settings: 'إعدادات الموقع', sub_audit: 'كل تعديل اتعمل من هنا',
+      sub_content: 'أدلة الشراء وأسئلة مساعد الاختيار واللافتات',
+      ecwidTitle: 'إكويد', ecwidSyncNow: 'زامن الآن', ecwidOpen: 'افتح لوحة إكويد',
+      ecwidConnected: 'متصل بإكويد', ecwidWaiting: 'في انتظار أول مزامنة', ecwidOff: 'غير متصل',
+      ecwidProducts: 'منتجات مُزامنة', ecwidBuyable: 'متاح للشراء', ecwidOos: 'غير متوفر',
+      ecwidCats: 'أقسام', ecwidPay: 'طرق دفع', ecwidShip: 'طرق شحن', ecwidBanners: 'لافتات',
+      ecwidLastSync: 'آخر مزامنة', ecwidLastErr: 'آخر خطأ', ecwidNone: 'لا يوجد',
+      ecwidRails: 'صفوف المنتجات', ecwidUnresolved: 'لم يتم العثور على القسم',
+      ecwidOwned: 'الاسم والسعر والصورة والوصف والقسم تُدار في إكويد. عدّلها هناك وتظهر هنا خلال دقائق.',
+      ecwidSynced: 'تمت المزامنة ✓', ecwidOpenProduct: 'افتح في إكويد', sub_settings: 'إعدادات الموقع', sub_audit: 'كل تعديل اتعمل من هنا',
       v_users: 'عملاء', v_orders: 'طلبات', v_ordersToday: 'طلبات النهاردة', v_liveCat: 'منتجات معروضة',
       v_edited: 'منتجات معدّلة', v_custom: 'منتجات مضافة', v_hidden: 'منتجات مخفية', v_base: 'الكتالوج الأصلى',
       recent: 'آخر النشاط', noActivity: 'لا نشاط بعد.',
@@ -62,7 +70,15 @@
       nav_customers: 'Customers', nav_content: 'Content', nav_settings: 'Settings', nav_audit: 'Audit log',
       sub_dashboard: 'A quick read on the store', sub_products: 'Edit every product — images, details, prices',
       sub_orders: 'Track orders and update their status', sub_customers: 'Everyone who registered',
-      sub_content: 'Buying guides, finder questions and banners', sub_settings: 'Site settings', sub_audit: 'Every change made here',
+      sub_content: 'Buying guides, finder questions and banners',
+      ecwidTitle: 'Ecwid', ecwidSyncNow: 'Sync now', ecwidOpen: 'Open the Ecwid admin',
+      ecwidConnected: 'Connected to Ecwid', ecwidWaiting: 'Awaiting first sync', ecwidOff: 'Not connected',
+      ecwidProducts: 'Products synced', ecwidBuyable: 'Buyable', ecwidOos: 'Out of stock',
+      ecwidCats: 'Categories', ecwidPay: 'Payment methods', ecwidShip: 'Shipping methods', ecwidBanners: 'Banners',
+      ecwidLastSync: 'Last sync', ecwidLastErr: 'Last error', ecwidNone: 'none',
+      ecwidRails: 'Product rails', ecwidUnresolved: 'category not found',
+      ecwidOwned: 'Name, price, image, description and category are managed in Ecwid. Edit them there and they appear here within minutes.',
+      ecwidSynced: 'Synced ✓', ecwidOpenProduct: 'Open in Ecwid', sub_settings: 'Site settings', sub_audit: 'Every change made here',
       v_users: 'Customers', v_orders: 'Orders', v_ordersToday: 'Orders today', v_liveCat: 'Products live',
       v_edited: 'Edited', v_custom: 'Added', v_hidden: 'Hidden', v_base: 'Base catalogue',
       recent: 'Recent activity', noActivity: 'No activity yet.',
@@ -290,6 +306,74 @@
     view.innerHTML = `<div class="empty">${t('loadFail')}<br><span class="muted" style="font-size:.8rem">${esc(e.message || '')}</span></div>`;
   }
 
+  /* ================= ECWID =================
+     A window onto Ecwid, not a second editor. Shows what is synced, whether
+     the rails resolved, and the last error — a rail that quietly resolved to
+     nothing is otherwise invisible until someone spots an empty row on the
+     shop page. Never displays any part of the token. */
+  let ECWID = null;
+
+  function ecwidAdminUrl(storeId, kind, id) {
+    const base = 'https://my.ecwid.com/store/' + encodeURIComponent(storeId || '');
+    if (kind === 'product') return base + '#product:id=' + encodeURIComponent(id);
+    if (kind === 'category') return base + '#category:id=' + encodeURIComponent(id) + '&mode=edit';
+    return base;
+  }
+
+  async function loadEcwid() {
+    try { ECWID = await api('/api/admin/ecwid'); } catch (e) { ECWID = null; }
+    return ECWID;
+  }
+
+  /* True while Ecwid is the live catalogue source. The product editor uses it
+     to disable the fields Ecwid owns. */
+  function ecwidOwnsCatalogue() {
+    return !!(ECWID && ECWID.ecwid && ECWID.ecwid.source === 'ecwid');
+  }
+
+  function renderEcwidPanel(d) {
+    if (!d || !d.ecwid) return '';
+    const e = d.ecwid;
+    const state = e.source === 'ecwid' ? t('ecwidConnected')
+      : (e.enabled ? t('ecwidWaiting') : t('ecwidOff'));
+    const num = n => (n == null ? '—' : String(n));
+    const row = (l, v, cls) => '<tr><th>' + esc(l) + '</th><td class="' + (cls || '') + '">' + esc(v) + '</td></tr>';
+    const rail = (name, id) => id
+      ? esc((name || id) + ' (' + id + ')')
+      : '<span class="err">' + esc(t('ecwidUnresolved')) + '</span>';
+    return '<div class="panel">'
+      + '<div class="panel__h"><h2>' + esc(t('ecwidTitle')) + ' — ' + esc(state) + '</h2>'
+      + '<div class="toolbar__sp"></div>'
+      + '<a class="btn btn--ghost" href="' + ecwidAdminUrl(d.storeId) + '" target="_blank" rel="noopener">' + esc(t('ecwidOpen')) + '</a>'
+      + '<button class="btn btn--gold" id="adm-ecwid-sync">' + esc(t('ecwidSyncNow')) + '</button>'
+      + '</div><div class="tablewrap"><table class="tbl"><tbody>'
+      + row(t('ecwidProducts'), num(e.products))
+      + row(t('ecwidBuyable'), num(e.buyable))
+      + row(t('ecwidOos'), num(e.outOfStock))
+      + row(t('ecwidCats'), num(e.categories))
+      + row(t('ecwidPay'), num(e.paymentMethods))
+      + row(t('ecwidShip'), num(e.shippingMethods))
+      + row(t('ecwidBanners'), num(d.banners))
+      + row(t('ecwidLastSync'), (e.lastSync && e.lastSync.at) ? when(e.lastSync.at) : t('ecwidNone'))
+      + row(t('ecwidLastErr'), e.lastError || t('ecwidNone'), e.lastError ? 'err' : '')
+      + '<tr><th>' + esc(t('ecwidRails')) + '</th><td>'
+      + esc('عروض صادكو') + ': ' + rail(d.rails && d.rails.offersName, d.rails && d.rails.offers) + '<br>'
+      + esc('الأكثر مبيعاً') + ': ' + rail(d.rails && d.rails.bestSellersName, d.rails && d.rails.bestSellers)
+      + '</td></tr>'
+      + '</tbody></table></div></div>';
+  }
+
+  function bindEcwidPanel() {
+    const b = $('adm-ecwid-sync');
+    if (!b) return;
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await api('/api/admin/ecwid/sync', { method: 'POST' }); toast(t('ecwidSynced'), 'ok'); route(); }
+      catch (err) { toast(err.message, 'err'); }
+      finally { b.disabled = false; }
+    });
+  }
+
   /* ================= DASHBOARD ================= */
   async function viewDashboard() {
     const view = $('view');
@@ -297,7 +381,9 @@
       const o = S.overview = await api('/api/admin/overview'); updatePills();
       const a = o.accounts || {}, c = o.catalog || {};
       const vital = (n, l, d, gold) => `<div class="vital ${gold ? 'g' : ''}"><div class="n">${n}</div><div class="l">${l}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`;
+      const ecwidPanel = renderEcwidPanel(await loadEcwid());
       view.innerHTML = `
+        ${ecwidPanel}
         <div class="vitals">
           ${vital(c.live ?? '—', t('v_liveCat'), t('v_base') + ': ' + (c.base ?? '—'))}
           ${vital(a.orders ?? '—', t('v_orders'), (a.ordersToday ? a.ordersToday.n : 0) + ' ' + t('v_ordersToday'))}
@@ -312,6 +398,7 @@
             o.audit.map(r => `<tr><td class="audit-act">${esc(r.action)}</td><td>${esc(r.target || '')}</td><td class="muted" style="font-size:.8rem">${esc(r.actor || '')}</td><td class="audit-when">${when(r.at)}</td></tr>`).join('')
           }</tbody></table></div>` : `<div class="empty">${t('noActivity')}</div>`}
         </div>`;
+      bindEcwidPanel();
     } catch (e) { fail(view, e); }
   }
 
@@ -404,15 +491,24 @@
         product = Object.assign(product, d.product); base = d.base || null; isCustom = !!(d.product && d.product._custom);
       } catch (e) { toast(e.message, 'err'); closeDrawer(); return; }
     } else { isCustom = true; }
+    /* The editor can be opened without visiting the dashboard first, so make
+       sure we know whether Ecwid owns the catalogue before rendering fields. */
+    if (ECWID === null) await loadEcwid();
     EDIT = { id, orig: Object.assign({}, product), base, isCustom };
 
     const overridden = f => base && EDIT.orig[f] != null && base[f] != null && String(EDIT.orig[f]) !== String(base[f]);
+    /* Fields Ecwid owns are disabled rather than left editable to fail with a
+       409 on save. The server still refuses them — this is the courtesy layer,
+       not the guard. */
+    const OWNED = (ECWID && ECWID.ownedFields) || ['title','price','image','description','categoryId','url','brand'];
+    const locked = f => ecwidOwnsCatalogue() && OWNED.indexOf(f) !== -1;
     const field = (f, label, opts = {}) => {
-      const rev = overridden(f) ? `<span class="rev on" data-rev="${f}">↩ ${t('revert')}</span>` : '';
+      const dis = locked(f) ? ' disabled' : '';
+      const rev = (overridden(f) && !locked(f)) ? `<span class="rev on" data-rev="${f}">↩ ${t('revert')}</span>` : '';
       const val = esc(product[f] == null ? '' : product[f]);
-      const input = opts.textarea ? `<textarea id="ed_${f}">${val}</textarea>`
-        : opts.select ? `<select id="ed_${f}">${opts.select}</select>`
-        : `<input id="ed_${f}" type="${opts.type || 'text'}" value="${val}" ${opts.mono ? 'class="mono"' : ''} dir="${opts.dir || 'auto'}">`;
+      const input = opts.textarea ? `<textarea id="ed_${f}"${dis}>${val}</textarea>`
+        : opts.select ? `<select id="ed_${f}"${dis}>${opts.select}</select>`
+        : `<input id="ed_${f}" type="${opts.type || 'text'}" value="${val}" ${opts.mono ? 'class="mono"' : ''} dir="${opts.dir || 'auto'}"${dis}>`;
       return `<div class="f"><label for="ed_${f}">${label}${rev}</label>${input}${opts.hint ? `<div class="hint">${opts.hint}</div>` : ''}</div>`;
     };
     const catOptions = `<option value="">—</option>` + CAT_FLAT.map(c => `<option value="${c.id}" ${String(product.categoryId) === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('') +
@@ -421,6 +517,7 @@
     drawer.innerHTML = `
       <div class="drawer__h"><h2>${id ? t('editP') : t('addP')}</h2><button class="drawer__x" id="edX">✕</button></div>
       <div class="drawer__body">
+        ${ecwidOwnsCatalogue() ? `<div class="hint" style="margin-bottom:14px">${esc(t('ecwidOwned'))}${id && !isCustom ? ' <a href="' + ecwidAdminUrl(ECWID && ECWID.storeId, 'product', id) + '" target="_blank" rel="noopener">' + esc(t('ecwidOpenProduct')) + '</a>' : ''}</div>` : ''}
         ${field('title', t('f_title'), { textarea: false })}
         <div class="f"><label>${t('f_img')}</label>
           <div class="imgedit">

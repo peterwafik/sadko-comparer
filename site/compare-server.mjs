@@ -68,7 +68,7 @@ import { openEcwidApi } from './engine/ecwid-api.mjs';
 import { createEcwidSync } from './engine/ecwid-sync.mjs';
 import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
-import { deriveRails, deriveBanners } from './engine/ecwid-rails.mjs';
+import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwid-rails.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -1676,6 +1676,15 @@ const PAYMENT_METHODS = ['cod', 'bank', 'showroom'];
    flag on but no token the server still boots and serves the seed catalogue,
    and the admin panel says "not connected" — an integration must never take
    the site down. */
+/* Product fields Ecwid owns once it is the catalogue source. The owner edits
+   these in Ecwid, not here, so there is exactly one writer per field and a
+   local override can never silently mask a future Ecwid price change.
+
+   `badge` is deliberately absent. Ecwid does have a ribbon field, but this
+   store sets none on any of its 1,453 products, so badge is the one product
+   field the local overlay still usefully owns. */
+const ECWID_OWNED_FIELDS = ['title', 'price', 'image', 'description', 'categoryId', 'url', 'brand'];
+
 const ECWID_ON = process.env.SADKO_ECWID === '1';
 const ECWID_STORE_ID = process.env.SADKO_ECWID_STORE_ID || '142682751';
 const ECWID_TOKEN = process.env.SADKO_ECWID_TOKEN || '';
@@ -2154,6 +2163,14 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       }
 
       if (seg[0] === 'products' && seg.length === 1 && req.method === 'POST') {
+        /* A product added here would vanish on the next sync, because the
+           mirror is what gets served. Refusing beats losing the work. */
+        if (ecwidSource().activeSource() === 'ecwid') return json(409, {
+          error: 'ecwid-owned',
+          message: lang === 'en'
+            ? 'Add products in Ecwid. The catalogue syncs from there, so a product added here would disappear on the next sync.'
+            : 'أضف المنتجات في إكويد. الكتالوج يُزامن من هناك، وأي منتج يُضاف هنا سيختفي مع المزامنة التالية.',
+        });
         const b = await readJson(req, 80000);
         const r = cadm.createProduct(b, actor);
         if (r.error) return json(400, { error: r.error, message: r.error === 'title-required'
@@ -2171,6 +2188,19 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         }
         if (req.method === 'PATCH' || req.method === 'PUT') {
           const b = await readJson(req, 80000);
+          /* Ecwid owns these fields while it is the source. Naming the offending
+             fields matters: "read-only" with no explanation is how someone ends
+             up editing the same price twice and believing the site is broken. */
+          if (ecwidSource().activeSource() === 'ecwid') {
+            const touched = Object.keys(b || {}).filter(k => ECWID_OWNED_FIELDS.includes(k));
+            if (touched.length) return json(409, {
+              error: 'ecwid-owned',
+              fields: touched,
+              message: lang === 'en'
+                ? `Edit these in Ecwid, not here: ${touched.join(', ')}. The catalogue syncs from Ecwid, so a local change would be overwritten.`
+                : `عدّل هذه الحقول في إكويد لا هنا: ${touched.join('، ')}. الكتالوج يُزامن من إكويد، وأي تعديل محلي سيُستبدل.`,
+            });
+          }
           const isCustom = id.startsWith('adm-');
           if (isCustom) { const r = cadm.updateCustom(id, b, actor); if (r.error) return json(404, { error: r.error }); return json(200, r); }
           const merged = cadm.setOverride(id, b, actor);
@@ -2277,6 +2307,50 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (seg[0] === 'analytics' && seg[1] === 'product' && seg[2] && req.method === 'GET') {
         const an = analytics();
         return json(200, { funnel: an ? an.productFunnel(decodeURIComponent(seg[2])) : [] });
+      }
+
+      /* ------- Ecwid connection and sync -------
+         Reports counts, the last sync and the last error. describe() is the
+         only surface that is guaranteed token-free, so everything goes through
+         it rather than reading the environment here. */
+      if (rest === 'ecwid' && req.method === 'GET') {
+        const store = ecwidStore();
+        const cats = store ? store.allCategories() : [];
+        const rails = resolveRailCategories(cats, {
+          offers: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
+          bestSellers: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
+        });
+        let banners = 0;
+        try { banners = (await ecwidSource().banners()).length; } catch (e) {}
+        return json(200, {
+          ecwid: ecwidSource().describe(),
+          storeId: ECWID_STORE_ID,
+          ownedFields: ECWID_OWNED_FIELDS,
+          /* Which curated categories the rails resolved to, by Arabic name.
+             Shown because a rail silently resolving to nothing is otherwise
+             invisible until someone notices an empty row on the shop page. */
+          rails: {
+            offers: rails.offers,
+            bestSellers: rails.bestSellers,
+            offersName: (cats.find(c => String(c.id) === rails.offers) || {}).name || null,
+            bestSellersName: (cats.find(c => String(c.id) === rails.bestSellers) || {}).name || null,
+          },
+          banners,
+          /* Order push is Task 12; until it exists the panel says so rather
+             than showing a permanently empty queue. */
+          orderPush: 'not-built',
+        });
+      }
+
+      if (seg[0] === 'ecwid' && seg[1] === 'sync' && req.method === 'POST') {
+        const es = ecwidSync();
+        if (!es) return json(503, { error: 'ecwid-off', message: lang === 'en'
+          ? 'Ecwid is not connected. Check the token in /etc/sadko.env.'
+          : 'إكويد غير متصل. تحقّق من المفتاح في /etc/sadko.env.' });
+        const r = await es.syncAll();
+        ecwidSource().invalidate();
+        cadm.log(actor, 'ecwid.sync', null, r);
+        return json(200, { ok: true, ...r, ecwid: ecwidSource().describe() });
       }
 
       /* ------- audit log ------- */

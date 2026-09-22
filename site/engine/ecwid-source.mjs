@@ -30,7 +30,6 @@ export const BANNER_CATEGORY_SKU = ['hero', 'wide', 'square'];
 
 export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId = null }) {
   let cache = null;                       // built catalogue, invalidated on write
-  let lastCounts = { served: 0, outOfStock: 0 };
 
   /* Which source is live, computed FRESH every time rather than remembered
      from the last catalogue read.
@@ -49,6 +48,11 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
 
   const banner = bannerCategoryId == null ? null : String(bannerCategoryId);
 
+  function servedCount() {
+    if (!enabled) return 0;
+    try { return store.allProducts().filter(isServed).length; } catch (e) { return 0; }
+  }
+
   const inBannerCategory = p => banner != null && (
     String(p.categoryId) === banner ||
     (Array.isArray(p.categoryIds) && p.categoryIds.map(String).includes(banner)));
@@ -57,9 +61,12 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     try { return await seedLoader(); } catch (e) { return []; }
   }
 
+  /* One predicate, used by both build() and describe(), so the count the admin
+     panel shows can never disagree with what the storefront actually serves. */
+  const isServed = p => !!p && p.enabled !== false && !p.incomplete && !inBannerCategory(p);
+
   function build(rows) {
-    const served = rows.filter(p =>
-      p && p.enabled !== false && !p.incomplete && !inBannerCategory(p));
+    const served = rows.filter(isServed);
 
     /* A stable partition rather than a sort: in-stock rows keep their relative
        order, then out-of-stock rows keep theirs. Array.prototype.sort is stable
@@ -73,7 +80,6 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     const inStock = [], out = [];
     for (const p of served) (p.inStock === false ? out : inStock).push(p);
 
-    lastCounts = { served: served.length, outOfStock: out.length };
     return inStock.concat(out);
   }
 
@@ -121,7 +127,11 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
         source: liveSource(),
         products: s.products,
         categories: s.categories,
-        served: lastCounts.served,
+        /* Counted fresh. Reading it from a value set during the last
+           catalogue build would report 0 to anyone who opened the admin panel
+           before the storefront had been hit — the same stale-value trap that
+           made the rails route serve July's data. */
+        served: servedCount(),
         outOfStock: s.outOfStock,
         buyable: s.buyable,
         incomplete: s.incomplete,

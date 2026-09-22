@@ -38,31 +38,44 @@ const r = s => (tty ? `\x1b[31m${s}\x1b[0m` : s);
 const y = s => (tty ? `\x1b[33m${s}\x1b[0m` : s);
 const b = s => (tty ? `\x1b[1m${s}\x1b[0m` : s);
 
-/* Read a line WITHOUT echoing it. A token pasted into a visible prompt ends up
-   in a screenshot, a shoulder-glance, or a support chat. */
-/* readline echoes what it reads, so the echo has to be suppressed at the
-   source: _writeToOutput is the one place every character goes through.
-   Clearing the line after the fact was the first attempt and it leaked — the
-   pasted token still appeared briefly, which for a credential is the same as
-   appearing. */
-function askHidden(question) {
-  return new Promise(resolve => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-    let armed = false;
-    rl._writeToOutput = function (chunk) {
-      /* The prompt itself is printed once; everything after it is the secret. */
-      if (!armed) { rl.output.write(chunk); return; }
-      /* Newlines may pass, so the cursor still moves off the prompt line. */
-      if (/^[\r\n]+$/.test(chunk)) rl.output.write(chunk);
-    };
-    rl.output.write(question);
-    armed = true;
-    rl.question('', answer => {
-      rl.close();
-      process.stdout.write('\n');
-      resolve(String(answer || '').trim());
-    });
-  });
+/* Read lines WITHOUT echoing them. A token pasted into a visible prompt ends
+   up in a screenshot, a shoulder-glance, or a support chat.
+
+   The suppression is at readline's _writeToOutput, which is the one place
+   every character passes through. Clearing the line after the fact was the
+   first attempt and it leaked: the pasted token still flashed up, which for a
+   credential is the same as being shown.
+
+   ONE input session for every question.
+
+   A fresh readline per question looked simpler and silently broke the second
+   one: closing an interface leaves stdin ended, so the next interface reads
+   EOF and returns empty — the client secret was skipped without a word. One
+   interface, opened once and closed at the end. */
+function makeAsker() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+  let armed = false;
+  rl._writeToOutput = function (chunk) {
+    /* The prompt itself is printed; everything after it is the secret. */
+    if (!armed) { rl.output.write(chunk); return; }
+    /* Newlines may pass, so the cursor still moves off the prompt line. */
+    if (/^[\r\n]+$/.test(chunk)) rl.output.write(chunk);
+  };
+  return {
+    ask(question) {
+      return new Promise(resolve => {
+        armed = false;
+        rl.output.write(question);
+        armed = true;
+        rl.question('', answer => {
+          armed = false;
+          process.stdout.write('\n');
+          resolve(String(answer || '').trim());
+        });
+      });
+    },
+    close() { try { rl.close(); } catch (e) {} },
+  };
 }
 
 const STORE_ID = process.env.SADKO_ECWID_STORE_ID || '142682751';
@@ -100,6 +113,23 @@ async function probe(token) {
   };
 }
 
+/* Replace one KEY=value in place, keeping every other line untouched. */
+function writeValue(file, key, value) {
+  let lines = existsSync(file) ? readFileSync(file, 'utf8').split(/\r?\n/) : [];
+  let replaced = false;
+  lines = lines.map(l => {
+    if (new RegExp('^\\s*' + key + '\\s*=').test(l)) { replaced = true; return `${key}=${value}`; }
+    return l;
+  });
+  if (!replaced) {
+    if (lines.length && lines[lines.length - 1] !== '') lines.push('');
+    lines.push(`${key}=${value}`);
+  }
+  writeFileSync(file, lines.join('\n').replace(/\n+$/, '\n'));
+  try { chmodSync(file, 0o600); } catch (e) {}
+  return replaced;
+}
+
 /* Replace SADKO_ECWID_TOKEN in place, keeping every other line untouched. */
 function writeToken(file, token) {
   let lines = [];
@@ -133,21 +163,60 @@ function writeToken(file, token) {
   return { replaced, locked };
 }
 
+/* --secret: set only the app's client secret, in its own run. */
+async function mainSecret() {
+  console.log(b('\nSADKO — set the Ecwid app client secret\n'));
+  console.log(`This will be saved to:  ${TARGET}`);
+  console.log('\nIn Ecwid: Apps -> Custom apps -> Edit -> "App keys" -> Client secret.');
+  console.log('It is what proves a webhook really came from Ecwid, so a NEW app');
+  console.log('has a NEW one.');
+  console.log(y('\nPaste it below. It will NOT appear on screen as you paste.\n'));
+
+  const asker = makeAsker();
+  const secret = await asker.ask('Client secret: ');
+  asker.close();
+
+  if (!secret) { console.log(r('\nNothing entered. No changes made.')); process.exitCode = 1; return; }
+  if (/^(secret|public)_/.test(secret)) {
+    console.log(r('\nThat is an access TOKEN, not the client secret — different fields.'));
+    console.log('The client secret is under "App keys". Nothing was changed.');
+    process.exitCode = 1;
+    return;
+  }
+  if (secret.length < 16) {
+    console.log(r('\nThat is too short to be a client secret. Nothing was changed.'));
+    process.exitCode = 1;
+    return;
+  }
+  writeValue(TARGET, 'SADKO_ECWID_WEBHOOK_SECRET', secret);
+  console.log(g(`\nClient secret saved to ${TARGET}`));
+  console.log('\nThis only matters once webhooks are registered, which needs the');
+  console.log('site to be on its public address. Nothing else has to change.');
+}
+
 async function main() {
+  if (process.argv.includes('--secret')) return mainSecret();
   console.log(b('\nSADKO — set the Ecwid token\n'));
   console.log(`This will be saved to:  ${TARGET}`);
   console.log('Nothing is saved until Ecwid confirms the token works.\n');
   console.log('In Ecwid: Apps -> Custom apps -> Edit -> "Show secret token" -> Copy.');
   console.log(y('Paste it below. It will NOT appear on screen as you paste.\n'));
 
-  const token = await askHidden('Token: ');
+  const asker = makeAsker();
+  const token = await asker.ask('Token: ');
 
-  if (!token) { console.log(r('\nNothing entered. No changes made.')); process.exitCode = 1; return; }
+  if (!token) {
+    asker.close();
+    console.log(r('\nNothing entered. No changes made.'));
+    process.exitCode = 1;
+    return;
+  }
 
   /* Shape check first — a clear message beats a confusing 401. */
   if (!/^(secret|public)_[A-Za-z0-9_-]{10,}$/.test(token)) {
     console.log(r('\nThat does not look like an Ecwid token.'));
     console.log('An Ecwid token starts with "secret_" or "public_". Nothing was changed.');
+    asker.close();
     process.exitCode = 1;
     return;
   }
@@ -155,6 +224,7 @@ async function main() {
     console.log(y('\nThat is the PUBLIC token — the one already in use.'));
     console.log('It cannot read orders or customers, which is the problem we are fixing.');
     console.log('Go back and click "Show secret token" instead. Nothing was changed.');
+    asker.close();
     process.exitCode = 1;
     return;
   }
@@ -172,6 +242,7 @@ async function main() {
   if (!ok(p.products)) {
     console.log(r('\nEcwid refused this token even for the catalogue, so it was NOT saved.'));
     console.log('Copy it again — it is easy to miss a character. Nothing was changed.');
+    asker.close();
     process.exitCode = 1;
     return;
   }
@@ -207,6 +278,17 @@ async function main() {
   else console.log(y('Note: file permissions were not changed — this is Windows, which has no') +
                    y('\n      equivalent setting. The file that needs locking down is the one on'
                      + '\n      the server, where this tool does set it.'));
+
+  /* The app's CLIENT SECRET is a second value from the same page — what proves
+     a webhook really came from Ecwid — so a NEW app means a new one.
+
+     Asked for in a SEPARATE RUN (--secret), not as a second prompt here. Two
+     prompts in one run silently broke: readline consumes the whole input on
+     the first question and the second never resolves, which for someone
+     following instructions looks like the tool hanging for no reason. One
+     question per run cannot do that. */
+  console.log(dim('\nIf this token came from a NEW custom app, its "Client secret" changed'));
+  console.log(dim('too. Set it with:  node tools/set-ecwid-token.mjs --secret'));
 
   console.log(b('\nWhat to do next\n'));
   if (TARGET === SYSTEM) {

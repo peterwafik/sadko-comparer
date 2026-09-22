@@ -1062,3 +1062,214 @@ Two things to fix in the image before this is equivalent to the Oracle setup:
 
 A longer side-by-side appendix, including the options I rejected and why, is in
 [`docs/hosting-options.md`](docs/hosting-options.md).
+
+---
+
+## Ecwid integration
+
+The catalogue, the shop rails, the advertisement banners and (once its scopes
+are granted) order fulfilment are driven by the Ecwid store that also backs
+sadko-group.com.
+
+Design: `docs/superpowers/specs/2026-09-15-ecwid-integration-design.md`, amended
+by `docs/superpowers/specs/2026-09-21-ecwid-integration-revision-2.md` — read
+revision 2 first, it corrects five assumptions the original got wrong.
+
+### Two stores, and they do NOT share ids
+
+| | Store | Note |
+|---|---|---|
+| Development | `142682751` | SADKO's test store, on `my.shopsettings.com` |
+| Production | `18028328` | The store behind sadko-group.com |
+
+**Their product and category ids are completely different.** The test store's
+products are `865…` and its offers category is `206629522`; production's are
+`676…` and `173607281`. Nothing in the site that is keyed to an id will match
+the test store — the 30 generated `site/category/*.html` pages, the home-page
+hotspot links, and the curated ids in the old `collections.json`.
+
+So: verify the **mechanism** against the test store, and verify the
+**storefront** against production. The rails resolve by Arabic name precisely so
+the same code works on both.
+
+### Configuration
+
+Seven values, all optional except the first three, in `/etc/sadko.env` read by
+`sadko.service`. **Put the token in that file yourself and never paste it into a
+terminal, a commit, a chat message or this document.**
+
+```
+SADKO_ECWID=1
+SADKO_ECWID_STORE_ID=142682751
+SADKO_ECWID_TOKEN=<from Ecwid: Apps then Custom Apps then your app>
+SADKO_ECWID_WEBHOOK_SECRET=<that app's client secret>
+SADKO_ECWID_BANNER_CATEGORY=206811031
+SADKO_ECWID_OFFERS_CATEGORY=<optional: overrides the name match>
+SADKO_ECWID_BESTSELLERS_CATEGORY=<optional: overrides the name match>
+```
+
+**Use `KEY=value` with NO SPACES around the equals sign.** systemd's
+`EnvironmentFile` does not parse `KEY = value` reliably, and the failure is
+silent — the site simply keeps serving the July seed catalogue and nothing looks
+broken.
+
+**The variable name matters too.** `compare-server.mjs` reads
+`SADKO_ECWID_TOKEN` and nothing else. A token placed as `ECWID_TOKEN` will be
+accepted by the local tools (which tolerate it and warn) and ignored by the
+server.
+
+Then restart and check the connection, which reports the token as
+present-with-a-length and never its value:
+
+```
+systemctl restart sadko
+cd /srv/sadko/site && node tools/ecwid-capture.mjs --check
+```
+
+A `403` means the token is wrong, was revoked, or the custom app was not granted
+that area. There is deliberately no separate preflight script: `--check` is it.
+
+### Turning it on, in this order
+
+1. Set the values with `SADKO_ECWID` still **unset**. Nothing changes.
+2. Set `SADKO_ECWID=1`, restart, and let the first sync finish (about 10s for
+   1,453 products). The mirror fills while the seed is still being served.
+3. **Review the diff before customers see it:**
+   `node tools/ecwid-diff.mjs`
+   It reports additions, removals, reprices, real discounts and out-of-stock
+   counts — and shouts if the two sides share no product ids at all, which means
+   you are pointed at a different store rather than a drifted one.
+   If the numbers look wrong, stop. Do not proceed.
+4. Confirm the switch: the control-room dashboard's Ecwid panel should say
+   **Connected to Ecwid**, and `GET /data/products.json` should report
+   `"source": "ecwid"`.
+5. Register the webhooks (below), then change a price in Ecwid and confirm it
+   appears within seconds.
+6. Order push: blocked until the app has order scopes (below).
+7. Decide the customer email (below).
+
+**Rolling back is unsetting the flag.** `SADKO_ECWID=` then restart; the seed
+file is untouched and still there. `site/data/ecwid.db` is a cache — deleting it
+and re-syncing is always safe.
+
+### Webhooks
+
+Register `https://<live-host>/api/ecwid/webhook` in the custom app's settings
+and subscribe to `product.created`, `product.updated`, `product.deleted`,
+`category.*` and `order.updated`.
+
+**The signature scheme is unusual and easy to misdiagnose.** Ecwid does **not**
+sign the request body. It signs the string `{eventCreated}.{eventId}` with
+HMAC-SHA256 keyed on the app's **client secret**, base64, delivered in the
+`X-Ecwid-Webhook-Signature` header. To reproduce one by hand when diagnosing a
+401, use `signatureFor()` in `site/engine/ecwid-webhook.mjs`.
+
+A missing `SADKO_ECWID_WEBHOOK_SECRET` rejects every delivery, deliberately — a
+misconfigured server must be closed, not open. Because the signature covers only
+those two fields, the route also checks the event's `storeId` against ours and
+answers `202` to anything for another store.
+
+Missed events are not a problem: an incremental pull runs every 15 minutes and a
+full reconcile daily. The reconcile is the only thing that finds deletions.
+
+### Advertisement banners
+
+Ecwid has no banner entity, so banners are entries in a dedicated **disabled**
+category (`206811031` on the test store, created for this purpose). Each entry
+is a banner, not a product:
+
+| Ecwid field | Becomes |
+|---|---|
+| product image | the artwork |
+| name | the headline |
+| description | the subtitle |
+| **SKU** | the slot: `hero`, `wide` or `square` |
+| product URL | the click-through target |
+
+Keep each banner entry **disabled** and keep the category **disabled**, so they
+never appear in Ecwid's own storefront. The new site reads them separately and
+excludes them from the catalogue, search, rails and sitemap — a banner can never
+be bought.
+
+A banner with no artwork or no headline is skipped rather than rendered as an
+empty strip. If the category is empty, `data/promos.json` is served instead.
+
+**Derived banners carry no English.** This store holds no usable translations —
+every `nameTranslated.en` contains the Arabic text — so `data/promos.json`
+remains the bilingual source, editable in the control room under Content.
+
+### Known blockers, recorded so they are not rediscovered
+
+**Order push is blocked.** `/orders` returns **403**: the custom app was not
+granted order access. Add order **read, create and update** scopes in
+Apps then Custom Apps. Until then Tasks 11–13 cannot be built, and the question
+of which Ecwid order field can carry our `SDK-` reference — the thing that stops
+one sale becoming two orders — cannot be settled.
+
+**Delivery totals are blocked.** **0 of 1,453 products carry a weight** or any
+dimension, and `POST /order/calculate` returns zero shipping options for a Cairo
+address. The 18 configured shipping methods are banded by appliance size and 11
+of them use `table` rate calculation, which needs a number to look up. Until
+weights are entered in Ecwid, checkout keeps today's behaviour: items subtotal
+only, with delivery and installation confirmed by customer care on 19140.
+
+Do not work around this by letting the customer pick the band. They can select
+the LE 275 small-appliance rate for a refrigerator, and a displayed total that
+is too low is a price SADKO would have to honour or retract.
+
+### The customer confirmation email
+
+The site sends **no email at all** today: confirmation is the on-screen receipt,
+which deliberately refuses to show delivery as zero, plus a call on 19140.
+Ecwid can email the customer, and that email may render unset shipping as free.
+
+So Ecwid's **staff** notification is on and the **customer** email stays off
+until this is checked: place a test order, read the email Ecwid actually sends,
+and enable it only if the fees-to-be-confirmed line survives in the template. An
+email implying free delivery is a false statement to a customer — leave it off
+and report back rather than shipping it.
+
+### When staff add a category in Ecwid
+
+Categories sync as data, but `site/category/*.html` are 30 static pages generated
+from a hardcoded Arabic-and-English name map with build-time asserts. A new Ecwid
+category therefore has no page, and `node site/mkcategories.mjs` will fail the
+assert — on purpose, because an English category name cannot be invented.
+
+To add one: get the English name from the owner, add the id to `NAMES` and the
+pair to `CAT_EN` in **both** `site/mkcategories.mjs` and
+`site/assets/js/nav.js` (they must stay in sync), run
+`node site/mkcategories.mjs`, and deploy.
+
+Note also that Ecwid hides disabled categories from `GET /categories` unless you
+pass `hidden_categories=true`, and even then returns them as id-only stubs with
+no name — which is why the banner category does not appear in the taxonomy.
+
+### Who owns what
+
+| Concern | Owner |
+|---|---|
+| Products, prices, stock, categories, was-prices | **Ecwid** |
+| Payment and shipping method lists | **Ecwid** |
+| Order fulfilment and status | **Ecwid**, once scopes are granted |
+| The offers / best-sellers / picks rails | **Derived** from Ecwid — not editable |
+| Banner artwork | **Ecwid** banner category, with `promos.json` as fallback |
+| Bilingual banner copy (`promos.json`) | SADKO control room — Ecwid has no usable translations |
+| Buying guides, finder questions | SADKO control room |
+| Product `badge` | SADKO control room — this store sets no Ecwid ribbons |
+| Customer accounts, sessions, saved homes | **SADKO** — Ecwid exposes no customer-login API for a headless frontend |
+| The price comparer | SADKO — unaffected by Ecwid |
+
+### Diagnosing
+
+```
+node tools/ecwid-capture.mjs --check     credentials and which endpoints answer
+node tools/ecwid-capture.mjs --survey    catalogue health: weights, options,
+                                         was-prices, images, missing names
+node tools/ecwid-diff.mjs                what a cutover would change
+node tools/ecwid-diff.mjs --sync         refresh the mirror first, then diff
+```
+
+The control room's Ecwid panel shows counts, the last sync, the last error, and
+which categories the rails resolved to. A rail that resolved to nothing is
+otherwise invisible until someone notices an empty row on the shop page.

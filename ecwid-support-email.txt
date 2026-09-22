@@ -1,0 +1,120 @@
+To: apps@ecwid.com
+Subject: Store 142682751 - access scopes are never applied to custom app tokens (two apps affected)
+
+
+Hello,
+
+Custom app access scopes on my store are saved in the control panel but are
+never applied to the issued access tokens. I have tried two separate apps and
+every fix I can find, and the result is identical each time.
+
+Store ID: 142682751
+Apps: custom-app-142682751-1 and custom-app-142682751-2
+Control panel: https://my.shopsettings.com/store/142682751#develop-apps
+
+
+WHAT I DID
+
+First app (custom-app-142682751-1):
+
+1. Apps > Custom Apps > Edit. I added access scopes, including create_orders,
+   read_customers, create_customers and update_customers. They saved - the
+   Access scopes field now lists 30 of them ("Read store profile, Update store
+   profile, Update orders, Read orders, and 26 more").
+
+2. A banner appeared: "Reinstall the app to apply your scope changes", with the
+   note "You edited the app access scopes. These changes will apply only after
+   you reinstall the app."
+
+3. I clicked reinstall, then Install. It failed with:
+   "Internal problem has occurred. Please contact support at apps@ecwid.com."
+   I tried twice. I also regenerated the secret token and tried again. Same
+   result every time.
+
+Second app (custom-app-142682751-2):
+
+4. Create App also failed with the same internal-problem message at first, then
+   eventually succeeded.
+
+5. On the new app I ticked EVERY access scope in the list and saved.
+
+6. I installed it. This was a first install, not a reinstall.
+
+7. I copied its secret token and tested it.
+
+
+WHAT THE API RETURNS
+
+The Access scopes field on app -2 now reads "Read store profile, Update store
+profile, Update orders, Read orders, and 26 more", so the 30 scopes I selected
+are saved. But the token issued for that app is limited to the scopes the app
+had WHEN IT WAS CREATED.
+
+Tested with the current secret token for app -2. Writes were sent against ids
+that do not exist, so a permitted call answers 404 and a forbidden one 403;
+nothing was created or modified:
+
+  GET  /api/v3/142682751/profile                   200   granted
+  GET  /api/v3/142682751/products?limit=1          200   granted
+  GET  /api/v3/142682751/orders?limit=1            200   granted
+  PUT  /api/v3/142682751/products/999999999999     404   granted
+  PUT  /api/v3/142682751/orders/999999999999       404   granted
+
+  POST /api/v3/142682751/orders                    403   DENIED
+  GET  /api/v3/142682751/customers?limit=1         403   DENIED
+  POST /api/v3/142682751/customers                 403   DENIED
+  PUT  /api/v3/142682751/customers/999999999999    403   DENIED
+  GET  /api/v3/142682751/discount_coupons?limit=1  403   DENIED
+  GET  /api/v3/142682751/promotions?limit=1        403   DENIED
+  GET  /api/v3/142682751/reviews?limit=1           403   DENIED
+  GET  /api/v3/142682751/brands                    403   DENIED
+
+The granted set matches exactly the scope list app -2 showed at creation
+("Read store profile, Update orders, Read orders, Create catalog, Update
+catalog, and 2 more"). Everything I added afterwards is denied.
+
+App -1 behaves the same way against ITS creation-time scopes: it grants only
+read_store_profile, read_catalog and read_orders, and denies update_catalog
+and update_orders which app -2 allows. So each app is permanently limited to
+the scopes it was created with.
+
+The "Reinstall the app to apply your scope changes" banner is STILL displayed
+on app -2 after saving the scopes, after clicking Install, and after reloading
+the page. It has never cleared. That appears to be the broken step: the scope
+selection saves, but the reinstall that is supposed to apply it never
+completes, and no combination of retries clears the banner.
+
+
+WHAT I HAVE ALREADY RULED OUT
+
+- Not a stale token. I regenerated tokens and created a second app; I compared
+  the old and new token values and confirmed they differ. Behaviour is
+  unchanged.
+- Not a plan limitation. GET /profile reports account.paid = true,
+  account.suspended = false, and account.availableFeatures includes "API"
+  (158 features in total).
+- Not authentication. The same token returns 200 on /products, so it is
+  accepted; the 403s are authorisation, not a rejected credential.
+- Not the client secret, which is not used for REST authorisation.
+
+
+WHAT I NEED
+
+Please make the selected access scopes actually take effect on this store, for
+either app, so that create_orders, read_customers, create_customers and
+update_customers work.
+
+No combination of editing scopes, reinstalling, regenerating a token, or
+creating a fresh app changes what the issued token is permitted to do, so I
+cannot resolve this from the control panel.
+
+One detail in case it is relevant: the control panel URL for this store carries
+?partner=tier_migration, and the store was registered on 17 September 2026, so
+it may be part of a plan migration.
+
+This is blocking my website from sending orders into Ecwid and from saving
+customer records there, so orders and new customers are currently queuing on my
+side instead of reaching the store.
+
+Thank you,
+Peter

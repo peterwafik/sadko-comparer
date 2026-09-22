@@ -196,7 +196,11 @@
   //     the washing-machine page is the one thing worse than no banner at all.
   // No interleaved slots here: a category page is a results list, and ads dealt
   // between rows of it would break the grid the shopper came to read.
-  function adsFor(promos, cat, products) {
+  // `fam` is the category family (the page category plus its descendants),
+  // computed once per render by withFamily() and PASSED IN rather than read
+  // from module state — adsFor is extracted and evaluated in isolation by
+  // shop-wiring.test.mjs, so reaching for C or CACHE here breaks it.
+  function adsFor(promos, cat, products, fam) {
     var all = localizePromos(promos) || [];
     if (!cat) {
       return {
@@ -205,11 +209,17 @@
       };
     }
     var wide = all.filter(function (x) { return x && x.art === 'wide'; });
+    // Matched against the category FAMILY, not the single id. A category page
+    // now lists its descendants' products (Ecwid files a product under the
+    // child only), so a campaign aimed at "نو فروست" belongs on the
+    // "ثلاجات" page it is being sold on. Without this the advert was
+    // dropped there, which read as the page having no campaign at all.
+    var inFamily = function (id) { return fam ? fam[String(id)] === true : String(id) === String(cat); };
     var mine = [], any = [];
     wide.forEach(function (x) {
       var cs = promoCats(x, products);
       if (!cs.length) any.push(x);
-      else if (cs.indexOf(String(cat)) >= 0) mine.push(x);
+      else if (cs.some(inFamily)) mine.push(x);
     });
     // Three is the whole rotation: past that the strap outlives the visit.
     return { hero: mine.concat(any).slice(0, 3), slots: [] };
@@ -396,7 +406,7 @@
       // `--sk-nav-h`, with the same fallback nav.js itself uses) only while the
       // sheet is open, on the breakpoint where it goes full-screen.
       '<style>@media (max-width:860px){#facets.is-open{padding-top:calc(var(--sk-nav-h,86px) + 16px)}}</style>' +
-      U.adHero(adsFor(CACHE && CACHE.promos, state.cat, products).hero) +
+      U.adHero(adsFor(CACHE && CACHE.promos, state.cat, products, state.catSet).hero) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') },
                     { label: t('المتجر', 'Shop'), href: P('shop.html') }, { label: title }]) +
       '<div class="shopgrid">' +

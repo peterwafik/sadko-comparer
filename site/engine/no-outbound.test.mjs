@@ -131,7 +131,10 @@ test('the banner mapper does not read p.url at all any more', () => {
      not appear anywhere in the banner mapper. */
   const src = readFileSync(path.join(import.meta.dirname, 'ecwid-rails.mjs'), 'utf8');
   assert.ok(!/href:\s*p\.url/.test(src), 'the outbound href is back');
-  assert.match(src, /href: adHref\(p, bannerCategoryId, destOf\)/,
+  /* Matched on the call, not its full argument list — the list grew when ad
+     folders had to be excluded as destinations, which said nothing about
+     whether the outbound href had come back. */
+  assert.match(src, /href: adHref\(p, bannerCategoryId, destOf/,
     'the banner href no longer goes through the in-site resolver');
 });
 

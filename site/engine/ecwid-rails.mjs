@@ -159,18 +159,26 @@ const ART_FOR_SLOT = { hero: 'wide', wide: 'wide', square: 'square' };
         that aisle (shop.js reads ?cat=NNN out of the href).
 
      3. the shop. */
-function adHref(p, bannerCategoryId, destOf) {
+function adHref(p, bannerCategoryId, destOf, adFolderIds) {
   if (typeof destOf === 'function') {
     try { const d = destOf(p); if (d) return d; } catch (e) {}
   }
-  return bannerHref(p, bannerCategoryId);
+  return bannerHref(p, bannerCategoryId, adFolderIds);
 }
 
-function bannerHref(p, bannerCategoryId) {
-  const banner = bannerCategoryId == null ? null : String(bannerCategoryId);
+function bannerHref(p, bannerCategoryId, adFolderIds) {
+  /* Every category that is NOT a real place to send a shopper: the legacy
+     banner category and each per-slot ad folder. Without the folders in this
+     set an advert with no destination of its own fell back to
+     "shop.html?cat=<its own ad folder>" — a page listing adverts, and a
+     DISABLED category at that, so the category page would 404 or come up
+     empty. */
+  const skip = new Set();
+  if (bannerCategoryId != null) skip.add(String(bannerCategoryId));
+  for (const id of adFolderIds || []) if (id != null) skip.add(String(id));
   const usable = id => {
     const v = String(id == null ? '' : id).trim();
-    return v && v !== '0' && v !== banner ? v : null;
+    return v && v !== '0' && !skip.has(v) ? v : null;
   };
   /* "shop.html?cat=NNN", NOT "category/NNN.html", and that is load-bearing
      twice over:
@@ -196,7 +204,7 @@ function bannerHref(p, bannerCategoryId) {
 }
 
 export function deriveBanners(bannerProducts = [],
-                              { bannerCategoryId = null, slotOf = null, destOf = null } = {}) {
+                              { bannerCategoryId = null, slotOf = null, destOf = null, adFolderIds = [] } = {}) {
   const out = [];
   for (const p of bannerProducts) {
     if (!p) continue;
@@ -235,7 +243,7 @@ export function deriveBanners(bannerProducts = [],
       art: ART_FOR_SLOT[slot],
       title,
       sub: String(p.description || '').trim() || undefined,
-      href: adHref(p, bannerCategoryId, destOf),
+      href: adHref(p, bannerCategoryId, destOf, adFolderIds),
       image,
       /* The DESCRIPTION first, then the name.
 

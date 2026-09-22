@@ -2858,6 +2858,10 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
              of the three square tiles this replaces go to contact.html and
              delivery.html. */
           destOf: p => ecwidSource().adDestinationOf(p),
+          /* The ad folders are containers, never destinations: an advert with
+             no destination of its own must not fall back to "the page for the
+             disabled folder it lives in". */
+          adFolderIds: Object.values(ECWID_AD_FOLDERS),
         });
         if (derived.length) {
           /* The local file is the fallback PER SLOT. A read failure leaves it

@@ -546,3 +546,46 @@ test('every accepted destination is a bare relative path this site can re-base',
     assert.ok(!/^([a-z]+:|\/\/|\/)/i.test(d), 'not re-basable: ' + d);
   }
 });
+
+/* ======================================================================
+   Ecwid enforces unique SKUs.
+
+   Discovered at save time: creating a second advert with SKU "contact" is
+   rejected with "This SKU is already in use. Please choose another value."
+   That is fatal for putting the destination in the SKU, because two banners
+   pointing at the same page is the normal case — a hero and a square both
+   advertising the instalment plan, for instance.
+
+   Everything after a "#" is therefore discarded.
+   ================================================================== */
+
+test('a # suffix makes the SKU unique to Ecwid and is ignored here', () => {
+  assert.equal(adDestination('contact#2'), 'contact.html');
+  assert.equal(adDestination('contact#hero'), 'contact.html');
+  assert.equal(adDestination('delivery#b'), 'delivery.html');
+});
+
+test('the uniquifier does not corrupt an id payload', () => {
+  /* product:NNN carries digits that MUST survive — stripping a trailing
+     number would have broken exactly the case the suffix is for. */
+  assert.equal(adDestination('product:837495061#2'), 'product.html?id=837495061');
+  assert.equal(adDestination('cat:206629766#hero'), 'shop.html?cat=206629766');
+});
+
+test('a bare # or an empty stem is not a destination', () => {
+  assert.equal(adDestination('#2'), null);
+  assert.equal(adDestination('#'), null);
+  assert.equal(adDestination('   #2'), null);
+});
+
+test('the allow-list still applies to the stem', () => {
+  /* The suffix must not become a way past the security boundary. */
+  assert.equal(adDestination('https://evil.test#contact'), null);
+  assert.equal(adDestination('admin#2'), null);
+  assert.equal(adDestination('javascript:alert(1)#contact'), null);
+  assert.equal(adDestination('../admin#x'), null);
+});
+
+test('a slot marker with a suffix is still not a destination', () => {
+  assert.equal(adDestination('banner-hero#2'), null);
+});

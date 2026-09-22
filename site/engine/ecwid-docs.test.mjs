@@ -264,3 +264,28 @@ test('the runbook says the DESCRIPTION is the alt text', () => {
   assert.match(section[0], /alt text/i);
   assert.match(section[0], /Description/);
 });
+
+test('the runbook lists all three ad folders with their real ids', () => {
+  for (const id of ['206876252', '206876253', '206866501']) {
+    assert.match(section[0], new RegExp(id), 'folder ' + id + ' is undocumented');
+  }
+});
+
+test('the runbook explains the CATEGORY page banner rules', () => {
+  /* The question that prompted this: which banner shows at the top of a
+     specific category page, and how is it aimed. */
+  assert.match(section[0], /cat:206629766/);
+  assert.match(section[0], /brand-wide/i);
+  assert.match(section[0], /never.*different category|different category.*never/i);
+  assert.match(section[0], /[Ss]ubcategor/);
+});
+
+test('the runbook records the duplicate-SKU limit and both uniquifiers', () => {
+  assert.match(section[0], /already in use/i);
+  assert.match(section[0], /contact2/);
+  assert.match(section[0], /contact#2/);
+});
+
+test('the runbook says an ad folder is never a destination', () => {
+  assert.match(section[0], /never a destination/i);
+});

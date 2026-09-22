@@ -1345,9 +1345,9 @@ and report back rather than shipping it.
 The site reads adverts from Ecwid categories, one per slot, configured by **id**:
 
 ```
-SADKO_ECWID_ADS_HERO=<category id>      the big rotating strap
-SADKO_ECWID_ADS_WIDE=<category id>      the wide strap
-SADKO_ECWID_ADS_SQUARE=206866501        the square tiles
+SADKO_ECWID_ADS_HERO=206876252     the strap atop the shop AND every category page
+SADKO_ECWID_ADS_WIDE=206876253     the wide banner mid-page, and category-page tops
+SADKO_ECWID_ADS_SQUARE=206866501   the square tile grid on the shop page
 ```
 
 Everything in a folder is an advert of that slot. Created in this store:
@@ -1356,6 +1356,8 @@ Everything in a folder is an advert of that slot. Created in this store:
 |---|---|---|
 | `Ads — إعلانات الموقع (لا تُعرض للعملاء)` | 206866002 | Disabled |
 | `banner-square — الإعلانات المربعة` | 206866501 | Disabled |
+| `banner-hero — اللافتة الرئيسية (أعلى الصفحة)` | 206876252 | Disabled |
+| `banner-wide — اللافتة العريضة (وسط الصفحة)` | 206876253 | Disabled |
 
 Each advert is an ordinary product inside the folder:
 
@@ -1409,6 +1411,63 @@ the startup log and in the admin panel rather than left to be guessed:
 [ecwid] ads by slot: hero=0, wide=0, square=3
 [ecwid] ad 866574542 (square) cannot render: no-image
 ```
+
+#### All three slots, and where each one lands
+
+| Folder | Id | Where the artwork appears |
+|---|---|---|
+| `banner-hero` | 206876252 | the rotating strap at the **top of the shop page and of every category page** — up to 3 rotate |
+| `banner-wide` | 206876253 | the wide banner **mid-way down the shop page**, and eligible for the top of a category page |
+| `banner-square` | 206866501 | the **grid of square tiles** on the shop page, between «مختارات صادكو» and «الأكثر مبيعاً» |
+
+Square tiles never appear on a category page: the frame there is 1600×608 and a
+1:1 tile would lose two-thirds of its own printed message.
+
+#### The banner at the top of a CATEGORY page
+
+A category page shows hero and wide artwork only, chosen in this order:
+
+1. adverts aimed at **that category** (or any of its subcategories),
+2. then **brand-wide** adverts,
+3. capped at three, and **never** an advert aimed at a different category —
+   advertising fridges on the washing-machine page is worse than no banner.
+
+Aim an advert with its SKU: `cat:206629766` sends it to the air-conditioners
+page *and* makes that page its click-through. Leave the SKU as a plain page
+name (`shop`, `contact`) and the advert is brand-wide — it appears on the shop
+page and on every category page.
+
+**Subcategories count.** A category page lists its descendants' products, so an
+advert aimed at «نو فروست» also shows on the «ثلاجات» page. It still never
+crosses to an unrelated category.
+
+To give one aisle its own banner: add an advert to `banner-wide`, set the SKU to
+`cat:<that category's live id>`, upload 1600×608 artwork. The live ids are in
+`GET /data/categories.json`.
+
+#### Ecwid rejects duplicate SKUs
+
+Two adverts cannot both carry `contact` — the second is refused at save time
+with *"This SKU is already in use"*. Since the SKU is the destination, and two
+banners pointing at the same page is normal, add a uniquifier that the site
+ignores:
+
+| SKU | Destination |
+|---|---|
+| `contact` | contact.html |
+| `contact2` | contact.html |
+| `contact#2` | contact.html |
+| `product:837495061#b` | product.html?id=837495061 |
+
+A trailing number is stripped only from a **bare page name** — `product:837495061`
+keeps every digit, because there they are the payload.
+
+#### An ad folder is never a destination
+
+An advert with no destination of its own falls back to the ordinary category it
+is assigned to, then to the shop. The ad folders themselves are excluded: they
+are disabled containers, so «the page for banner-wide» would be an empty
+category page.
 
 #### Artwork fills its frame — nothing is cropped
 

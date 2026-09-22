@@ -272,7 +272,23 @@ const SITE_PAGES = new Set([
 ]);
 
 export function adDestination(sku) {
-  const raw = String(sku == null ? '' : sku).trim().toLowerCase();
+  /* Everything after a "#" is a UNIQUIFIER and is discarded.
+
+     Ecwid enforces unique SKUs across the whole catalogue, so two adverts
+     cannot both carry "contact" — the second is rejected at save time with
+     "This SKU is already in use". That is fatal for a scheme that puts the
+     destination in the SKU, because two banners pointing at the same page is
+     the normal case, not the exception. A "#" suffix makes the value unique
+     to Ecwid while meaning nothing here:
+
+       contact              -> contact.html
+       contact#2            -> contact.html
+       product:837495061#b  -> product.html?id=837495061
+
+     "#" is safe to claim: it cannot appear in any destination this
+     allow-list accepts, and it is the one character a URL would treat as a
+     fragment anyway. */
+  const raw = String(sku == null ? '' : sku).split('#')[0].trim().toLowerCase();
   if (!raw) return null;
 
   /* A slot marker is not a destination — it is the legacy way of saying which
@@ -285,9 +301,24 @@ export function adDestination(sku) {
   m = /^cat:(\d{1,20})$/.exec(raw);
   if (m) return 'shop.html?cat=' + m[1];
 
-  /* A bare page name, with or without the .html a staff member may add. */
+  /* A bare page name, with or without the .html a staff member may add, and
+     with an optional trailing digit run as a second uniquifier:
+
+       contact    ->  contact.html
+       contact2   ->  contact.html
+       contact#2  ->  contact.html   (the "#" split above)
+
+     Both forms exist because Ecwid rejects a duplicate SKU and two adverts
+     pointing at the same page is the normal case. "#" is the clearer of the
+     two, but it is awkward on some keyboard layouts — this automation itself
+     typed it as "0" — so a plain trailing number works as well.
+
+     The digit form applies ONLY to a bare page name. "product:837495061"
+     keeps every digit, because there they are the payload and not a counter. */
   const page = raw.replace(/\.html$/, '');
   if (SITE_PAGES.has(page)) return page + '.html';
+  const trimmed = page.replace(/\d+$/, '');
+  if (trimmed !== page && SITE_PAGES.has(trimmed)) return trimmed + '.html';
 
   /* Anything else — a real product code, a pasted URL, a typo — is not a
      destination. The category fallback takes over. */

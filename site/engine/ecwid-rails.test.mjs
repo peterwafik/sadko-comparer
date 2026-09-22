@@ -367,3 +367,18 @@ test('a brand-wide banner has no cat, so it shows on every page', () => {
   assert.ok(!/[?&]cat=/.test(b.href));
   assert.equal(b.href, 'shop.html');
 });
+
+test('an ad FOLDER is never offered as a destination', () => {
+  /* An advert lives in a disabled folder, so falling back to that folder's
+     page would send the shopper to a page listing adverts — and a disabled
+     category at that, so it would come up empty. */
+  const [b] = deriveBanners([B(1, { categoryIds: ['206876252'], sku: 'banner-hero' })],
+                            { adFolderIds: ['206876252', '206876253', '206866501'] });
+  assert.equal(b.href, 'shop.html');
+});
+
+test('a real category beside the ad folder is still used', () => {
+  const [b] = deriveBanners([B(1, { categoryIds: ['206876252', '206629766'], sku: 'banner-hero' })],
+                            { adFolderIds: ['206876252'] });
+  assert.equal(b.href, 'shop.html?cat=206629766');
+});

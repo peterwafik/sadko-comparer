@@ -233,7 +233,10 @@ function adSelector() {
   const body =
     'var localizePromos = function (p) { return p || []; };\n' +
     'function promoCats(x, products) {' + functionBody(src, 'promoCats') + '}\n' +
-    'function adsFor(promos, cat, products) {' + functionBody(src, 'adsFor') + '}\n' +
+    /* `fam` is the category family — the page's category plus its
+       descendants — computed once per render by withFamily() and passed in.
+       Declared here so the extracted function keeps the signature it has. */
+    'function adsFor(promos, cat, products, fam) {' + functionBody(src, 'adsFor') + '}\n' +
     'return { adsFor: adsFor, promoCats: promoCats };';
   return new Function(body)();
 }
@@ -447,4 +450,32 @@ test('clearing the search box does not write ?all=1 on a pinned category page', 
     'the unpinned `all: state.all || !q` is back — it writes ?all=1 on category pages');
   assert.match(handler, /data-cat[\s\S]*state\.all \|\| !q/,
     'the all flag is no longer gated on the page being unpinned');
+});
+
+test('a category page shows a campaign aimed at one of its SUBCATEGORIES', () => {
+  /* A category page lists its descendants' products — Ecwid files a product
+     under the child only — so a campaign for "نو فروست" belongs on the
+     "ثلاجات" page it is being sold on. Before the family match it was
+     dropped there, which read as the page having no campaign at all. */
+  const { adsFor } = adSelector();
+  const child = { id: 'nofrost', slot: 'slot', art: 'wide', href: 'shop.html?cat=206629517' };
+  const fam = { '206629761': true, '206629517': true, '206629519': true };
+  const ads = adsFor([child], '206629761', [], fam);
+  assert.deepEqual(ids(ads.hero), ['nofrost']);
+});
+
+test('a campaign for an UNRELATED category is still dropped', () => {
+  /* The family match must not become "show everything everywhere". */
+  const { adsFor } = adSelector();
+  const other = { id: 'tvs', slot: 'slot', art: 'wide', href: 'shop.html?cat=206642016' };
+  const fam = { '206629761': true, '206629517': true };
+  assert.deepEqual(ids(adsFor([other], '206629761', [], fam).hero), []);
+});
+
+test('with no family the match falls back to the single id', () => {
+  /* A page whose taxonomy failed to load must still show its own campaign. */
+  const { adsFor } = adSelector();
+  const mine = { id: 'acs', slot: 'slot', art: 'wide', href: 'shop.html?cat=206629766' };
+  assert.deepEqual(ids(adsFor([mine], '206629766', [], null).hero), ['acs']);
+  assert.deepEqual(ids(adsFor([mine], '206642016', [], null).hero), []);
 });

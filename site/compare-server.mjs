@@ -2263,7 +2263,22 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
     const done = () => ecwidSource().invalidate();
     if (/^product\./.test(ev.eventType)) {
-      es.applyProductEvent(ev).then(done).catch(e => console.error('[ecwid] webhook product:', e.message));
+      /* Also re-read the ad folders, when any are configured.
+
+         applyProductEvent re-fetches the product itself, which is enough for
+         a price or a photo. It is NOT enough for an advert: folder membership
+         cannot be read off the product, because Ecwid omits a disabled
+         category from categoryIds. A banner created or moved in the panel
+         would otherwise arrive as an ordinary product and keep its old slot,
+         or none, until the next poll — leaving the "instant" path slower than
+         the timer for precisely the change adverts are edited for. */
+      const alsoFolders = Object.keys(ECWID_AD_FOLDERS).length
+        ? () => es.syncAdFolders().catch(() => {})
+        : () => {};
+      es.applyProductEvent(ev)
+        .then(alsoFolders)
+        .then(done)
+        .catch(e => console.error('[ecwid] webhook product:', e.message));
     } else if (/^category\./.test(ev.eventType)) {
       es.syncCategories().then(done).catch(e => console.error('[ecwid] webhook category:', e.message));
     } else if (/^(profile|payment|shipping)\./.test(ev.eventType)) {

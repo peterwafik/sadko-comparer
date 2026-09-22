@@ -296,3 +296,36 @@ test('the runbook records that each ad block takes its own artwork shape', () =>
   assert.match(section[0], /own shape/i);
   assert.match(section[0], /2\.6/);
 });
+
+/* ---------------------------- freshness -------------------------------- */
+
+test('the runbook explains how fast a change reaches the site', () => {
+  /* The owner asked for this directly, and the answer has three parts. */
+  assert.match(section[0], /SADKO_ECWID_POLL_SECONDS/);
+  assert.match(section[0], /on page load/i);
+  assert.match(section[0], /[Ww]ebhooks \(instant\)|instant/);
+});
+
+test('the runbook says webhooks cannot work against localhost', () => {
+  /* Otherwise the next person configures them on the preview and concludes
+     the code is broken. */
+  assert.match(section[0], /localhost/);
+});
+
+test('the runbook gives the webhook endpoint and the events to register', () => {
+  assert.match(section[0], /api\/ecwid\/webhook/);
+  assert.match(section[0], /product\.updated/);
+  assert.match(section[0], /SADKO_ECWID_WEBHOOK_SECRET/);
+});
+
+test('the runbook records that the signature is over the event, not the body', () => {
+  /* Signing the body was the first implementation and would have rejected
+     every delivery silently. */
+  assert.match(section[0], /eventCreated/);
+  assert.match(section[0], /not\*\* the body|not the body/);
+});
+
+test('the runbook keeps the daily reconcile separate and says why', () => {
+  assert.match(section[0], /DELETED|deleted/);
+  assert.match(section[0], /updatedFrom can never report|never report/);
+});

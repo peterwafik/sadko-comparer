@@ -1340,6 +1340,68 @@ and enable it only if the fees-to-be-confirmed line survives in the template. An
 email implying free delivery is a false statement to a customer — leave it off
 and report back rather than shipping it.
 
+### How fast an Ecwid change reaches the site
+
+The point of this integration is that staff edit Ecwid and the site follows,
+with no developer involved. Three mechanisms do that, in order of speed.
+
+**1. On page load (immediate).** A request for `/data/promos.json` or
+`/data/products.json` asks Ecwid what changed first, if the last check is older
+than the poll interval. So: edit in Ecwid, reload the page, see it. This is
+what makes the site feel live without waiting for a timer.
+
+**2. The poll (within a minute).** Every `SADKO_ECWID_POLL_SECONDS` (default
+**60**) the server asks Ecwid for products changed since the last check, and
+re-reads the advert folders. Cheap: the product call is incremental and almost
+always returns nothing.
+
+```
+SADKO_ECWID_POLL_SECONDS=60     default
+SADKO_ECWID_POLL_SECONDS=15     the floor; anything lower is clamped
+SADKO_ECWID_POLL_SECONDS=0      polling off — webhooks only
+```
+
+It used to be **15 minutes**, which is why an uploaded banner appeared to do
+nothing. An image upload *does* bump Ecwid's `updateTimestamp`, so the
+incremental sync always saw it — the delay was the only problem.
+
+**3. Webhooks (instant) — production only.** Ecwid pushes an event the moment
+something changes. It cannot work against `localhost`: Ecwid has to reach the
+server from the internet, so this only applies once the site is on its public
+URL.
+
+To turn it on:
+
+1. Ecwid control panel → **Apps → your custom app → Webhooks**.
+2. Endpoint: `https://<your public host>/api/ecwid/webhook`
+3. Events: `product.updated`, `product.created`, `product.deleted`,
+   `category.updated`, `order.updated`, `profile.updated`.
+4. Put the app's webhook secret in `SADKO_ECWID_WEBHOOK_SECRET` and restart.
+
+The endpoint verifies Ecwid's HMAC signature over `{eventCreated}.{eventId}`
+(**not** the body — signing the body was the first implementation and would
+have rejected every delivery), checks the store id, acknowledges immediately,
+and only then does the work. An unsigned or wrongly-signed POST is refused.
+
+A **product** event also re-reads the advert folders, because folder membership
+cannot be read off the product — Ecwid omits a disabled category from
+`categoryIds`. Without that, a banner created in the panel would arrive as an
+ordinary product and keep its old slot until the next poll, leaving the instant
+path slower than the timer for exactly the change adverts are edited for.
+
+**4. "Sync now".** The SADKO admin panel has a button, and there is
+`POST /api/admin/ecwid/sync` behind an admin session, for when someone wants to
+force it.
+
+#### What is NOT instant
+
+A page already open in a visitor's browser does not change under them; they see
+the update on their next navigation. That is ordinary web behaviour, not a
+sync problem.
+
+The **daily** full reconcile is separate and stays daily: it exists to find
+products DELETED in Ecwid, which `updatedFrom` can never report.
+
 ### Advertisement folders — one Ecwid category per banner slot
 
 The site reads adverts from Ecwid categories, one per slot, configured by **id**:

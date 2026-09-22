@@ -1,0 +1,203 @@
+/* ============================================================================
+   Put the Ecwid token in place, safely, for someone who does not want to edit
+   configuration files.
+
+     node tools/set-ecwid-token.mjs
+
+   It asks for the token, checks it against Ecwid BEFORE saving anything, then
+   writes it with the right file permissions and tells you what now works.
+
+   WHY IT EXISTS. Swapping this token is the single thing standing between the
+   site and a working integration, and the manual route is three chances to
+   get it wrong: paste into the wrong file, leave the file world-readable, or
+   save a token that does not actually have the access needed and discover it
+   later through a customer's missing order.
+
+   WHAT IT WILL NOT DO. It never prints the token, never logs it, never puts
+   it in shell history, and never sends it anywhere except api.ecwid.com. The
+   input is not echoed to the screen as you paste. If the check fails, nothing
+   is written at all — the old token stays exactly as it was.
+   ========================================================================== */
+
+import { existsSync, readFileSync, writeFileSync, chmodSync, copyFileSync } from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
+
+const SITE = path.join(import.meta.dirname, '..');
+const LOCAL = path.join(SITE, '.ecwid.env');
+const SYSTEM = '/etc/sadko.env';
+
+/* Prefer the system file when it exists (that is the VM); otherwise the local
+   development file. --file= overrides both. */
+const argFile = process.argv.find(a => a.startsWith('--file='));
+const TARGET = argFile ? argFile.slice(7) : (existsSync(SYSTEM) ? SYSTEM : LOCAL);
+
+const tty = process.stdout.isTTY;
+const g = s => (tty ? `\x1b[32m${s}\x1b[0m` : s);
+const r = s => (tty ? `\x1b[31m${s}\x1b[0m` : s);
+const y = s => (tty ? `\x1b[33m${s}\x1b[0m` : s);
+const b = s => (tty ? `\x1b[1m${s}\x1b[0m` : s);
+
+/* Read a line WITHOUT echoing it. A token pasted into a visible prompt ends up
+   in a screenshot, a shoulder-glance, or a support chat. */
+/* readline echoes what it reads, so the echo has to be suppressed at the
+   source: _writeToOutput is the one place every character goes through.
+   Clearing the line after the fact was the first attempt and it leaked — the
+   pasted token still appeared briefly, which for a credential is the same as
+   appearing. */
+function askHidden(question) {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    let armed = false;
+    rl._writeToOutput = function (chunk) {
+      /* The prompt itself is printed once; everything after it is the secret. */
+      if (!armed) { rl.output.write(chunk); return; }
+      /* Newlines may pass, so the cursor still moves off the prompt line. */
+      if (/^[\r\n]+$/.test(chunk)) rl.output.write(chunk);
+    };
+    rl.output.write(question);
+    armed = true;
+    rl.question('', answer => {
+      rl.close();
+      process.stdout.write('\n');
+      resolve(String(answer || '').trim());
+    });
+  });
+}
+
+const STORE_ID = process.env.SADKO_ECWID_STORE_ID || '142682751';
+
+/* Ask Ecwid what this token can actually do, before trusting it with anything. */
+async function probe(token) {
+  const call = async p => {
+    try {
+      const res = await fetch(`https://app.ecwid.com/api/v3/${STORE_ID}${p}`, {
+        headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
+      });
+      return res.status;
+    } catch (e) { return 0; }
+  };
+  return {
+    products: await call('/products?limit=1'),
+    orders: await call('/orders?limit=1'),
+    customers: await call('/customers?limit=1'),
+  };
+}
+
+/* Replace SADKO_ECWID_TOKEN in place, keeping every other line untouched. */
+function writeToken(file, token) {
+  let lines = [];
+  if (existsSync(file)) {
+    copyFileSync(file, file + '.bak');          // a way back, with the same 0600
+    try { chmodSync(file + '.bak', 0o600); } catch (e) {}
+    lines = readFileSync(file, 'utf8').split(/\r?\n/);
+  }
+  let replaced = false;
+  lines = lines.map(l => {
+    if (/^\s*SADKO_ECWID_TOKEN\s*=/.test(l)) { replaced = true; return `SADKO_ECWID_TOKEN=${token}`; }
+    return l;
+  });
+  if (!replaced) {
+    if (lines.length && lines[lines.length - 1] !== '') lines.push('');
+    lines.push(`SADKO_ECWID_TOKEN=${token}`);
+  }
+  writeFileSync(file, lines.join('\n').replace(/\n+$/, '\n'));
+  /* Owner-read-only. This token has full read and write over the whole store,
+     so it must not be readable by any other account on the machine.
+
+     On Windows chmod only toggles the read-only flag — POSIX permission bits
+     do not exist, so this is a no-op there and the caller is told so rather
+     than being reassured about something that did not happen. The file that
+     matters is the one on the Linux server. */
+  let locked = false;
+  try {
+    chmodSync(file, 0o600);
+    locked = process.platform !== 'win32';
+  } catch (e) { locked = false; }
+  return { replaced, locked };
+}
+
+async function main() {
+  console.log(b('\nSADKO — set the Ecwid token\n'));
+  console.log(`This will be saved to:  ${TARGET}`);
+  console.log('Nothing is saved until Ecwid confirms the token works.\n');
+  console.log('In Ecwid: Apps -> Custom apps -> Edit -> "Show secret token" -> Copy.');
+  console.log(y('Paste it below. It will NOT appear on screen as you paste.\n'));
+
+  const token = await askHidden('Token: ');
+
+  if (!token) { console.log(r('\nNothing entered. No changes made.')); process.exitCode = 1; return; }
+
+  /* Shape check first — a clear message beats a confusing 401. */
+  if (!/^(secret|public)_[A-Za-z0-9_-]{10,}$/.test(token)) {
+    console.log(r('\nThat does not look like an Ecwid token.'));
+    console.log('An Ecwid token starts with "secret_" or "public_". Nothing was changed.');
+    process.exitCode = 1;
+    return;
+  }
+  if (token.startsWith('public_')) {
+    console.log(y('\nThat is the PUBLIC token — the one already in use.'));
+    console.log('It cannot read orders or customers, which is the problem we are fixing.');
+    console.log('Go back and click "Show secret token" instead. Nothing was changed.');
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log('\nChecking it with Ecwid…');
+  const p = await probe(token);
+
+  const ok = s => s === 200;
+  const line = (label, status) =>
+    `  ${ok(status) ? g('works') : r('NO (' + (status || 'no answer') + ')')}   ${label}`;
+  console.log(line('products — the catalogue', p.products));
+  console.log(line('orders — so orders can be sent to Ecwid', p.orders));
+  console.log(line('customers — so customer details are saved in Ecwid', p.customers));
+
+  if (!ok(p.products)) {
+    console.log(r('\nEcwid refused this token even for the catalogue, so it was NOT saved.'));
+    console.log('Copy it again — it is easy to miss a character. Nothing was changed.');
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!ok(p.orders) || !ok(p.customers)) {
+    /* The token is real but the APP lacks the scopes. Saving it would be an
+       improvement over the public one, but the missing half needs saying
+       plainly, because this is the mistake that otherwise gets discovered
+       through a customer's order going missing. */
+    console.log(y('\nThe token is real, but this app is not allowed to use') +
+                y(!ok(p.orders) && !ok(p.customers) ? ' orders or customers.'
+                  : !ok(p.orders) ? ' orders.' : ' customers.'));
+    console.log('In Ecwid, on the same page as the token, scroll to "Access scopes"');
+    console.log('and switch on read AND write for orders and customers, then run this again.');
+    console.log(y('\nSaving anyway — it is still better than the public token.'));
+  }
+
+  const { replaced, locked } = writeToken(TARGET, token);
+  console.log(g(`\nSaved to ${TARGET}`) + (replaced ? ' (previous value replaced)' : ' (added)'));
+  if (existsSync(TARGET + '.bak')) console.log(`A copy of the old file is at ${TARGET}.bak`);
+  if (locked) console.log('Permissions set so only this machine\'s owner can read it.');
+  else console.log(y('Note: file permissions were not changed — this is Windows, which has no') +
+                   y('\n      equivalent setting. The file that needs locking down is the one on'
+                     + '\n      the server, where this tool does set it.'));
+
+  console.log(b('\nWhat to do next\n'));
+  if (TARGET === SYSTEM) {
+    console.log('  sudo systemctl restart sadko');
+    console.log('  node tools/ecwid-preflight.mjs');
+  } else {
+    console.log('  Restart the site, then run:  node tools/ecwid-preflight.mjs');
+  }
+  console.log('\nAfter the restart, within five minutes the site will by itself:');
+  console.log('  · create every existing account as a customer in Ecwid');
+  console.log('  · send the orders that are waiting');
+  console.log('  · start showing order status changes staff make in Ecwid');
+  console.log('You can also press "Link them now" and "Retry" in the SADKO admin panel');
+  console.log('to make both happen immediately.\n');
+}
+
+main().catch(e => {
+  console.error(r('\nSomething went wrong: ') + (e && e.message));
+  console.error('Nothing was saved.');
+  process.exitCode = 2;
+});

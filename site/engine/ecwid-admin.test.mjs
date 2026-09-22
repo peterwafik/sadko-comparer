@@ -117,3 +117,86 @@ test('the order status control is still writable, because Ecwid does not own it 
   assert.match(src, /db\.setOrderStatus\(/,
     'the local order status write must remain until Task 13 replaces it');
 });
+
+/* ======================================================================
+   Freshness: how fast an Ecwid change reaches the site.
+
+   The complaint this answers: a banner uploaded in Ecwid did not appear.
+   It would have — 15 minutes later, which is the whole poll interval and
+   far too slow for the thing this integration exists to do.
+   ================================================================== */
+
+test('the poll interval is configurable, and defaults to a minute', () => {
+  assert.match(src, /SADKO_ECWID_POLL_SECONDS/);
+  assert.match(src, /return 60_000;/);
+});
+
+test('a typo cannot hammer the API, and 0 means webhooks only', () => {
+  const fn = /const ECWID_POLL_MS = \(\(\) => \{[\s\S]{0,700}?\}\)\(\);/.exec(src)[0];
+  assert.match(fn, /Math\.max\(15, n\)/, 'no floor on the interval');
+  assert.match(fn, /n === 0 \? 0 :/, '0 should disable polling');
+});
+
+test('the timer and the on-demand refresh share ONE poll', () => {
+  /* Two code paths asking Ecwid different questions is how they drift. */
+  assert.match(src, /async function pollEcwid\(\)/);
+  assert.match(src, /setInterval\(\(\) => \{\s*pollEcwid\(\)/);
+  assert.match(src, /await pollEcwid\(\);/);
+});
+
+test('the poll never runs twice at once', () => {
+  /* A slow call must not pile up behind itself once the interval is short. */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(src)[0];
+  assert.match(fn, /if \(ECWID_POLL_INFLIGHT\) return ECWID_POLL_INFLIGHT;/);
+});
+
+test('the poll refreshes ad-folder membership, not just products', () => {
+  /* Moving an advert between folders changes no product field, so
+     updatedFrom would never report it. */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(src)[0];
+  assert.match(fn, /syncAdFolders\(\)/);
+  assert.match(fn, /syncProducts\(/);
+  assert.match(fn, /invalidate\(\)/, 'a sync that does not invalidate serves the old cache');
+});
+
+test('the poll cannot throw out of the timer', () => {
+  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(src)[0];
+  assert.match(fn, /catch \(e\) \{/);
+});
+
+test('the adverts and the catalogue REVALIDATE before answering', () => {
+  /* This is what makes "edit in Ecwid, reload, see it" true rather than
+     "wait for the next tick". */
+  const promos = /u\.pathname === '\/data\/promos\.json'[\s\S]{0,400}/.exec(src)[0];
+  assert.match(promos, /await ecwidFresh\(\);/);
+  const products = /u\.pathname === '\/data\/products\.json'[\s\S]{0,400}/.exec(src)[0];
+  assert.match(products, /await ecwidFresh\(\);/);
+});
+
+test('revalidation is bounded, so a busy page cannot stampede the API', () => {
+  const fn = /async function ecwidFresh\(\)[\s\S]{0,900}?\n\}/.exec(src)[0];
+  assert.match(fn, /Date\.now\(\) - ECWID_POLLED_AT < ECWID_POLL_MS/);
+});
+
+test('revalidation is a no-op when Ecwid is off or polling is disabled', () => {
+  const fn = /async function ecwidFresh\(\)[\s\S]{0,900}?\n\}/.exec(src)[0];
+  assert.match(fn, /if \(!ECWID_ON \|\| !ECWID_TOKEN\) return;/);
+  assert.match(fn, /if \(ECWID_POLL_MS <= 0\) return;/);
+});
+
+test('the shared poll is declared before the server is created', () => {
+  /* The ORDER_LOADERS crash again: a helper the timer needs, declared inside
+     the request handler, passes node --check and dies on the first tick. */
+  for (const name of ['async function pollEcwid', 'async function ecwidFresh', 'const ECWID_POLL_MS']) {
+    const at = src.indexOf(name);
+    assert.ok(at > -1, name + ' not found');
+    assert.ok(at < src.indexOf('http.createServer'), name + ' is declared after createServer');
+  }
+});
+
+test('the startup banner does not reference an undefined constant', () => {
+  /* It first said ECWID_WEBHOOK_SECRET, which does not exist as a binding —
+     a ReferenceError at boot that node --check cannot see. */
+  assert.ok(!/\bECWID_WEBHOOK_SECRET\b/.test(src.replace(/SADKO_ECWID_WEBHOOK_SECRET/g, '')),
+    'the startup log references an undefined ECWID_WEBHOOK_SECRET');
+});

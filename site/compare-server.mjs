@@ -1720,6 +1720,26 @@ const ECWID_TOKEN = process.env.SADKO_ECWID_TOKEN || '';
    engine/ecwid-ads.mjs for why the folders are addressed by ID and not by
    name (a disabled Ecwid category has no readable name). */
 const ECWID_AD_FOLDERS = adFoldersFromEnv(process.env);
+
+/* How often the mirror asks Ecwid what changed.
+
+   60 seconds by default, because the point of this integration is that staff
+   edit Ecwid and the site follows — at the previous 15 minutes an owner who
+   uploaded a banner and refreshed saw nothing and reasonably concluded it was
+   broken.
+
+   The cost is small: the products call is incremental (updatedFrom), so it
+   almost always returns nothing, plus one call per configured ad folder.
+   Tunable without a developer; floored at 15s so a typo cannot hammer the
+   API, and a value of 0 disables polling for anyone running purely on
+   webhooks. */
+const ECWID_POLL_MS = (() => {
+  const raw = process.env.SADKO_ECWID_POLL_SECONDS;
+  if (raw == null || String(raw).trim() === '') return 60_000;
+  const n = Number(String(raw).trim());
+  if (!Number.isFinite(n) || n < 0) return 60_000;
+  return n === 0 ? 0 : Math.max(15, n) * 1000;
+})();
 const ECWID_BANNER_CATEGORY = process.env.SADKO_ECWID_BANNER_CATEGORY || null;
 let ECWID_STORE = null, ECWID_API = null, ECWID_SYNC = null, ECWID_SOURCE = null;
 
@@ -2006,6 +2026,49 @@ async function categoryTemplate() {
     CATEGORY_TEMPLATE = first ? await readFile(path.join(dir, first), 'utf8') : '';
   } catch (e) { CATEGORY_TEMPLATE = ''; }
   return CATEGORY_TEMPLATE;
+}
+
+/* One incremental pass: what changed in the catalogue, and what moved
+   between ad folders.
+
+   Shared by the timer and by the on-demand revalidator below, so the two can
+   never drift into asking Ecwid different questions. Never throws, and never
+   runs twice at once — a slow call must not pile up behind itself. */
+let ECWID_POLL_INFLIGHT = null;
+let ECWID_POLLED_AT = 0;
+
+async function pollEcwid() {
+  if (ECWID_POLL_INFLIGHT) return ECWID_POLL_INFLIGHT;
+  ECWID_POLL_INFLIGHT = (async () => {
+    try {
+      const es = ecwidSync();
+      const from = es.lastSyncedUnix();
+      await es.syncProducts(from ? { updatedFrom: from } : {});
+      /* Folder membership needs its own read: moving an advert between
+         folders changes no product field, so updatedFrom would never report
+         it and the advert would keep its old slot until the daily full sync. */
+      await es.syncAdFolders();
+      ecwidSource().invalidate();
+    } catch (e) { /* recorded as last_error by the sync itself */ }
+    ECWID_POLLED_AT = Date.now();
+    ECWID_POLL_INFLIGHT = null;
+  })();
+  return ECWID_POLL_INFLIGHT;
+}
+
+/* Revalidate before answering, when the last poll is older than the interval.
+
+   This is what makes "edit in Ecwid, reload the page, see it" true. Without
+   it an admin has to wait out the timer, which is exactly the complaint that
+   prompted this. Bounded by the same interval, so a busy page cannot turn
+   into a request-per-visitor stampede against the API — and awaited, because
+   answering with stale data and refreshing afterwards would still show the
+   old banner on the reload the admin is actually looking at. */
+async function ecwidFresh() {
+  if (!ECWID_ON || !ECWID_TOKEN) return;
+  if (ECWID_POLL_MS <= 0) return;
+  if (Date.now() - ECWID_POLLED_AT < ECWID_POLL_MS) return;
+  try { await pollEcwid(); } catch (e) {}
 }
 
 const REMOTE_ORDERS_TTL_MS = 60_000;
@@ -2842,6 +2905,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      staged rollout possible: take over the squares, leave hero and wide alone,
      come back for them later. */
   if (u.pathname === '/data/promos.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* Pick up an advert the owner changed moments ago, rather than making
+       them wait for the next poll. */
+    await ecwidFresh();
     /* Either source is enough to run. Gating on the legacy banner category
        alone meant a store using only ad folders never reached this at all. */
     if (ecwidSource().activeSource() === 'ecwid' &&
@@ -2905,6 +2971,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/data/products.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* Same freshness contract as the adverts: a price or stock change staff
+       made a moment ago should be on the next page load. */
+    await ecwidFresh();
     try {
       const list = await mergedCatalog();
       const src = ecwidSource();
@@ -3072,14 +3141,19 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
       } catch (e) {}
     }).catch(e => console.error('[ecwid] first sync failed:', e.message));
 
-    setInterval(() => {
-      const from = es.lastSyncedUnix();
-      es.syncProducts(from ? { updatedFrom: from } : {}).then(after).catch(() => {});
-      /* Folder membership needs its own refresh: moving an ad between folders
-         changes no product field, so updatedFrom would never report it and the
-         ad would keep its old slot until the daily full sync. */
-      es.syncAdFolders().then(after).catch(() => {});
-    }, 15 * 60 * 1000).unref();
+    if (ECWID_POLL_MS > 0) {
+      console.log(`[ecwid] polling every ${Math.round(ECWID_POLL_MS / 1000)}s` +
+        /* Read from the environment, not a bare constant: no such binding
+           exists, and referencing one would throw at startup — the same shape
+           as the ORDER_LOADERS crash, which `node --check` cannot see. */
+        (process.env.SADKO_ECWID_WEBHOOK_SECRET ? ' (webhooks also enabled)'
+                                                : ' — set a webhook secret for instant updates'));
+      setInterval(() => {
+        pollEcwid().catch(() => {});
+      }, ECWID_POLL_MS).unref();
+    } else {
+      console.log('[ecwid] polling disabled (SADKO_ECWID_POLL_SECONDS=0) — relying on webhooks');
+    }
 
     setInterval(() => {
       es.syncAll().then(after).catch(() => {});

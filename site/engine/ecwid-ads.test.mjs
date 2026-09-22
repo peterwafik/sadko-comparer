@@ -412,8 +412,14 @@ test('an ad-folder product is excluded from the catalogue', () => {
 test('folder membership is refreshed on its own schedule', () => {
   /* Moving an ad between folders changes no product field, so updatedFrom
      would never report it and the ad would keep its old slot until the daily
-     full sync. */
-  assert.match(SERVER, /es\.syncAdFolders\(\)\.then\(after\)/);
+     full sync.
+
+     Asserted against the shared pollEcwid() rather than the old
+     `.then(after)` chain it used to live in — the chain went away when the
+     timer and the on-demand revalidator were merged onto one poll, which
+     said nothing about whether folders were still being refreshed. */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(SERVER)[0];
+  assert.match(fn, /syncAdFolders\(\)/);
 });
 
 test('an unreadable folder keeps its previous contents', () => {

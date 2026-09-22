@@ -1348,6 +1348,7 @@ The site reads adverts from Ecwid categories, one per slot, configured by **id**
 SADKO_ECWID_ADS_HERO=206876252     the strap atop the shop AND every category page
 SADKO_ECWID_ADS_WIDE=206876253     the wide banner mid-page, and category-page tops
 SADKO_ECWID_ADS_SQUARE=206866501   the square tile grid on the shop page
+SADKO_ECWID_POLL_SECONDS=60        how often the site asks Ecwid what changed
 ```
 
 Everything in a folder is an advert of that slot. Created in this store:

@@ -125,9 +125,14 @@ test('no Ecwid banner can send a shopper to another storefront', () => {
 });
 
 test('the banner mapper does not read p.url at all any more', () => {
+  /* Checked over the WHOLE module, not a character window around
+     deriveBanners: the window broke the moment the function grew, which said
+     nothing about whether the outbound href had returned. `href: p.url` must
+     not appear anywhere in the banner mapper. */
   const src = readFileSync(path.join(import.meta.dirname, 'ecwid-rails.mjs'), 'utf8');
-  const fn = /export function deriveBanners[\s\S]{0,2400}?\n}/.exec(src)[0];
-  assert.ok(!/href: p\.url/.test(fn), 'the outbound href is back');
+  assert.ok(!/href:\s*p\.url/.test(src), 'the outbound href is back');
+  assert.match(src, /href: adHref\(p, bannerCategoryId, destOf\)/,
+    'the banner href no longer goes through the in-site resolver');
 });
 
 test('the server tells the banner mapper which category is the banner one', () => {

@@ -246,11 +246,60 @@ test('a banner with no headline is skipped', () => {
   assert.deepEqual(deriveBanners([B(1, { title: '' })]), []);
 });
 
-test('alt text is always present, taken from the headline', () => {
+test('alt text comes from the DESCRIPTION, not the positional name', () => {
   /* The message is printed inside the artwork, so alt is the only thing a
-     screen-reader user gets. */
+     screen-reader user gets — and the names are deliberately positional
+     ("إعلان مربع ٢ — شبكة صفحة المتجر") because the artwork is replaced every
+     couple of weeks while the slot is not. Announcing the shelf instead of
+     the offer would make alt worse than useless. */
   const [b] = deriveBanners([B(1)]);
+  assert.equal(b.alt, 'خصومات على التكييفات');
+});
+
+test('alt falls back to the name, so it is never empty', () => {
+  const [b] = deriveBanners([B(1, { description: '' })]);
   assert.equal(b.alt, 'عروض الصيف');
+  const [c] = deriveBanners([B(2, { description: '   ' })]);
+  assert.equal(c.alt, 'عروض الصيف');
+});
+
+/* ------------------------- ordering by the name ------------------------- */
+
+test('the number in the name decides the order within a slot', () => {
+  /* This is what makes a positional name honest: renaming 2 to 3 moves the
+     advert, without touching the artwork. */
+  const out = deriveBanners([
+    B(1, { title: 'إعلان مربع ٣ — شبكة صفحة المتجر', sku: 'banner-square' }),
+    B(2, { title: 'إعلان مربع ١ — شبكة صفحة المتجر', sku: 'banner-square' }),
+    B(3, { title: 'إعلان مربع ٢ — شبكة صفحة المتجر', sku: 'banner-square' }),
+  ]);
+  assert.deepEqual(out.map(b => b.title.match(/[٠-٩\d]+/)[0]), ['١', '٢', '٣']);
+});
+
+test('Latin digits work as well as Arabic-Indic ones', () => {
+  const out = deriveBanners([
+    B(1, { title: 'square 2', sku: 'banner-square' }),
+    B(2, { title: 'square 1', sku: 'banner-square' }),
+  ]);
+  assert.deepEqual(out.map(b => b.title), ['square 1', 'square 2']);
+});
+
+test('an unnumbered advert keeps its place, after the numbered ones', () => {
+  /* A store that never adopts the convention must be unaffected. */
+  const out = deriveBanners([
+    B(1, { title: 'بدون رقم', sku: 'banner-square' }),
+    B(2, { title: 'إعلان مربع ١', sku: 'banner-square' }),
+  ]);
+  assert.deepEqual(out.map(b => b.title), ['إعلان مربع ١', 'بدون رقم']);
+});
+
+test('the slot still wins over the position number', () => {
+  /* A square numbered 1 must not jump ahead of the hero strap. */
+  const out = deriveBanners([
+    B(1, { title: 'مربع ١', sku: 'banner-square' }),
+    B(2, { title: 'هيرو ٩', sku: 'banner-hero' }),
+  ]);
+  assert.deepEqual(out.map(b => b.slot), ['hero', 'square']);
 });
 
 test('derived banners carry NO English fields rather than Arabic in an English slot', () => {

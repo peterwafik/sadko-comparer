@@ -241,3 +241,26 @@ test('the per-slot merge is documented, so nobody expects hero to vanish', () =>
   assert.match(section[0], /PER SLOT/);
   assert.match(section[0], /slotsFromEcwid/);
 });
+
+test('the runbook records that artwork FILLS rather than crops', () => {
+  /* Someone will see a stretched advert and "fix" it back to cover, which
+     silently re-trims the footer bar off every upload. The trade has to be
+     written down as a decision. */
+  assert.match(section[0], /object-fit: fill/);
+  assert.match(section[0], /nothing is cropped/i);
+  assert.match(section[0], /1000×1000|1000x1000/);
+});
+
+test('the runbook records the positional naming and what the number does', () => {
+  assert.match(section[0], /POSITIONAL/i);
+  assert.match(section[0], /إعلان مربع ١/);
+  assert.match(section[0], /order control/i);
+  assert.match(section[0], /right-to-left/i);
+});
+
+test('the runbook says the DESCRIPTION is the alt text', () => {
+  /* Otherwise whoever swaps the artwork leaves a stale message behind for
+     screen readers. */
+  assert.match(section[0], /alt text/i);
+  assert.match(section[0], /Description/);
+});

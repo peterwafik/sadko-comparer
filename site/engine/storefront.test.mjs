@@ -883,3 +883,54 @@ test('every generated category page keeps the load-bearing stylesheet order', ()
     assert.ok(html.includes('assets/js/shop.js'), f + ' missing shop.js');
   }
 });
+
+/* ======================================================================
+   Advert artwork must not be cropped.
+
+   Both advert frames used `object-fit: cover`, which fills by trimming
+   whatever does not fit — and an advert is a composed image with its own
+   headline, logo and call to action baked in, so cover was removing part of
+   the message. A 1284x1437 upload in a 1:1 tile lost about 11% of its
+   height, whatever the designer had put at the top or bottom.
+   ================================================================== */
+
+test('advert artwork FILLS its frame rather than cropping to it', () => {
+  for (const sel of ['.adhero__slide img', '.adslot__ad img']) {
+    /* Sliced by indexOf rather than a built regex — the same idiom the arrow
+       tests above use, and it needs no selector escaping. */
+    const at = CSS.indexOf(sel + ' {');
+    assert.ok(at > -1, 'the rule for ' + sel + ' is gone');
+    const m = [CSS.slice(at, CSS.indexOf('}', at) + 1)];
+    assert.match(m[0], /object-fit:\s*fill/, sel + ' does not fill its frame: ' + m[0]);
+    assert.ok(!/object-fit:\s*cover/.test(m[0]), sel + ' crops the artwork again');
+  }
+});
+
+test('an advert frame still pins an aspect ratio, so a row stays even', () => {
+  /* Without it, three uploads of different shapes would make a ragged row —
+     which is why the ratio is fixed per layout and the IMAGE stretches to it
+     rather than the frame growing to the image. */
+  assert.match(CSS, /\.adslot--grid \.adslot__ad \{ aspect-ratio: 1 \/ 1; \}/);
+  assert.match(CSS, /\.adslot--solo \.adslot__ad \{ aspect-ratio: 1600 \/ 608; \}/);
+  assert.match(CSS, /\.adhero \{[^}]*aspect-ratio: 1600 \/ 608/);
+});
+
+test('the recommended upload ratios are written where the rule is', () => {
+  /* "fill" only distorts when the upload does not match the frame, so the
+     ratio that avoids it has to be findable by whoever prepares artwork. */
+  assert.match(CSS, /1600x608/);
+  assert.match(CSS, /1:1/);
+});
+
+test('PRODUCT photos are still contained, never stretched', () => {
+  /* The opposite trade: a distorted appliance is a misrepresentation, and a
+     product photo carries no baked-in text to lose. */
+  for (const sel of ['.pdp__frame img', '.pdp__thumb img']) {
+    /* Sliced by indexOf rather than a built regex — the same idiom the arrow
+       tests above use, and it needs no selector escaping. */
+    const at = CSS.indexOf(sel + ' {');
+    assert.ok(at > -1, 'the rule for ' + sel + ' is gone');
+    const m = [CSS.slice(at, CSS.indexOf('}', at) + 1)];
+    assert.match(m[0], /object-fit:\s*contain/, sel + ' should contain, not ' + m[0]);
+  }
+});

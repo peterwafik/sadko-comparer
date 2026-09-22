@@ -293,3 +293,44 @@ export function adDestination(sku) {
      destination. The category fallback takes over. */
   return null;
 }
+
+/* ============================================================================
+   The advert's POSITION, read from its name.
+
+   The names are deliberately generic — "إعلان مربع ٢ — شبكة صفحة المتجر" —
+   because the artwork changes every couple of weeks while the slot it fills
+   does not. A name that described the picture would be a lie within a
+   fortnight; a name that describes the position stays true.
+
+   For that to be honest the order has to be controllable, and the leading
+   number in the name is what controls it. Renaming 2 to 3 moves the advert.
+   Without a number an advert keeps its existing position, after the numbered
+   ones — so a store that never adopts the convention is unaffected.
+
+   Arabic-Indic digits are accepted because that is what staff type in an
+   Arabic-language panel, and the two sets are folded to the same value.
+   ========================================================================== */
+
+/* ٠١٢٣٤٥٦٧٨٩ -> 0123456789 */
+const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+const foldDigits = s => String(s == null ? '' : s)
+  .replace(/[٠-٩]/g, d => String(AR_DIGITS.indexOf(d)));
+
+export function adPositionOf(title) {
+  const m = /(\d{1,3})/.exec(foldDigits(title));
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/* Sort comparator for adverts sharing one slot. An advert with a position
+   comes first, in numeric order; the rest keep the order they arrived in,
+   which Array.prototype.sort preserves for equal keys in Node. */
+export function byAdPosition(a, b) {
+  const pa = adPositionOf(a && a.title);
+  const pb = adPositionOf(b && b.title);
+  if (pa != null && pb != null) return pa - pb;
+  if (pa != null) return -1;
+  if (pb != null) return 1;
+  return 0;
+}

@@ -18,6 +18,8 @@
    which the honesty guards in shop-core.test.mjs forbid.
    ========================================================================== */
 
+import { byAdPosition } from './ecwid-ads.mjs';
+
 /* Arabic orthography varies between the two stores: "الأكثر مبيعاً" versus
    "المنتجات الاكثر مبيعاً", أ versus ا, ى versus ي. Normalise before matching
    so a rail does not vanish over a hamza. */
@@ -235,12 +237,24 @@ export function deriveBanners(bannerProducts = [],
       sub: String(p.description || '').trim() || undefined,
       href: adHref(p, bannerCategoryId, destOf),
       image,
-      alt: title,
+      /* The DESCRIPTION first, then the name.
+
+         The advert names are positional on purpose — "إعلان مربع ٢ — شبكة
+         صفحة المتجر" — because the artwork is replaced every couple of weeks
+         and the slot it fills is not. That makes the name useless as alt text:
+         a screen reader would announce the shelf instead of the offer, and so
+         would the fallback text if the artwork failed to load. The description
+         carries the advert's actual message, so it is the better alt. The name
+         stays as a last resort so alt is never empty. */
+      alt: String(p.description || '').trim() || title,
       source: 'ecwid',
     });
   }
   /* hero first, then wide, then square — shop.js deals the first wide banner
      into the single-banner block and the rest into the square row. */
   const rank = { hero: 0, wide: 1, square: 2 };
-  return out.sort((a, b) => rank[a.slot] - rank[b.slot]);
+  /* Slot first, then the position the owner numbered into the name. That
+     number is how an advert is moved without touching its artwork — see
+     adPositionOf(). Ties keep their arrival order, which Node preserves. */
+  return out.sort((a, b) => (rank[a.slot] - rank[b.slot]) || byAdPosition(a, b));
 }

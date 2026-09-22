@@ -1410,6 +1410,70 @@ the startup log and in the admin panel rather than left to be guessed:
 [ecwid] ad 866574542 (square) cannot render: no-image
 ```
 
+#### Artwork fills its frame — nothing is cropped
+
+Both advert frames used `object-fit: cover`, which fills by trimming whatever
+does not fit. That is wrong for an advert: the artwork is a composed image with
+its headline, logo, phone number and web address baked in, and cover was
+silently cutting the edges off — a 1284×1437 upload in a 1:1 tile lost about
+11% of its height, which is exactly where the `www.sadko-group.com | 19140`
+footer bar sits.
+
+Both are now `object-fit: fill`: the whole image is shown, stretched to the
+frame's boundaries. The trade is named rather than hidden — where the upload's
+ratio differs from the frame's, the image is **stretched** instead of trimmed.
+Upload at the frame ratio and there is no distortion at all:
+
+| Slot | Frame ratio | Upload at |
+|---|---|---|
+| square tiles | 1 : 1 | 1000×1000 |
+| solo wide tile | 1600 : 608 | 1600×608 |
+| hero strap | 1600 : 608 | 1600×608 |
+
+Product photos stay `object-fit: contain` — the opposite trade, because a
+stretched appliance misrepresents the goods and a product photo carries no
+baked-in text to lose.
+
+#### Advert names are POSITIONAL, and the number sets the order
+
+The artwork is replaced every couple of weeks; the slot it fills is not. A name
+describing the picture would be a lie within a fortnight, so the names describe
+the position instead:
+
+| Name | Where it lands |
+|---|---|
+| `إعلان مربع ١ — شبكة صفحة المتجر` | shop page, advert grid, first (rightmost) |
+| `إعلان مربع ٢ — شبكة صفحة المتجر` | shop page, advert grid, second |
+| `إعلان مربع ٣ — شبكة صفحة المتجر` | shop page, advert grid, third |
+
+The grid sits on the shop page between the «مختارات صادكو» rail and
+«الأكثر مبيعاً». The page is right-to-left, so **١ is the rightmost tile**.
+
+**The number in the name is the order control.** Rename ٢ to ٣ and the advert
+moves — no need to touch the artwork. Arabic-Indic and Latin digits both work.
+An advert with no number keeps its place, after the numbered ones, so a store
+that never adopts the convention is unaffected.
+
+#### The DESCRIPTION is the alt text
+
+Because the name is positional it is useless as alt text — a screen reader would
+announce the shelf instead of the offer, and so would the fallback text if the
+artwork failed to load. So the advert's message lives in the **Description**,
+and that is what becomes `alt`. The name is only the last resort, so alt is
+never empty.
+
+Whoever swaps the artwork should update that one line too. In this store:
+
+| Name | Description (= alt) |
+|---|---|
+| `إعلان مربع ١` | صادكو بالتقسيط — ٦ شهور بدون فوائد |
+| `إعلان مربع ٢` | توصيل صادكو — مهما كان مكانك هانوصل لك |
+| `إعلان مربع ٣` | ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر — جديد بمقبض جانبي |
+
+Nothing in an advert is rendered as visible text — the frames draw the image
+only — so the name and description are never shown to a shopper. They are the
+admin label and the accessible description respectively.
+
 #### THE BLOCKER: adverts must be ENABLED until the secret token is in place
 
 With the `public_` token, **every disabled PRODUCT comes back as

@@ -440,3 +440,47 @@ test('many writes in a row all land (no lost updates)', () => {
   assert.equal(db.ordersFor(u.id).length, 40);
   cleanup();
 });
+
+/* ======================================================================
+   getUser — the accessor the order push needed and did not have.
+
+   Found from a real parked order, not from reading code: two orders sat in
+   the push queue with last_error "db.getUser is not a function". Every push
+   had been failing on a TypeError, which means the 403 was hiding a second,
+   independent fault — order push would NOT have started working the moment
+   a secret token arrived.
+   ================================================================== */
+
+test('getUser returns the account the order push needs', () => {
+  const { db, cleanup } = fresh();
+  try {
+    const r = db.register(GOOD);
+    const u = db.getUser(r.user.id);
+    assert.ok(u, 'getUser must exist and find the user');
+    assert.equal(u.email, 'nour@example.com');
+    assert.equal(u.name, 'نور');
+    assert.equal(u.phone, '01012345678');
+  } finally { cleanup(); }
+});
+
+test('getUser NEVER returns the password hash or its salt', () => {
+  /* The row underneath carries both. This accessor exists to hand an account
+     to the Ecwid mapper, and a credential has no business travelling there —
+     or anywhere else it is not needed. */
+  const { db, cleanup } = fresh();
+  try {
+    const r = db.register(GOOD);
+    const u = db.getUser(r.user.id);
+    assert.equal(u.hash, undefined, 'the password hash must not leave the accounts layer');
+    assert.equal(u.salt, undefined, 'the salt must not either');
+    assert.ok(!JSON.stringify(u).includes('hash'));
+  } finally { cleanup(); }
+});
+
+test('getUser on an unknown id is null, not a throw', () => {
+  const { db, cleanup } = fresh();
+  try {
+    assert.equal(db.getUser('nope'), null);
+    assert.equal(db.getUser(null), null);
+  } finally { cleanup(); }
+});

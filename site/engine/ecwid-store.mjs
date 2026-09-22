@@ -133,6 +133,11 @@ export function openEcwidStore(file) {
   const pqPend = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts < ' + MAX_ATTEMPTS + ' ORDER BY created_at');
   const pqFail = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts >= ' + MAX_ATTEMPTS + ' ORDER BY created_at');
   const pqReset = db.prepare('UPDATE order_push SET next_attempt_at = NULL WHERE ref = ?');
+  /* The orders that actually reached Ecwid, newest first. Only these have an
+     Ecwid id to ask about, and only Ecwid can say what staff did to them
+     after the push. */
+  const pqPushed = db.prepare('SELECT * FROM order_push WHERE ecwid_order_id IS NOT NULL '
+    + 'ORDER BY pushed_at DESC LIMIT ?');
 
   const parse = rows => rows.map(r => JSON.parse(r.data_json));
   const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.id).localeCompare(String(b.id));
@@ -203,6 +208,7 @@ export function openEcwidStore(file) {
     pendingPushes: () => pqPend.all(),
     failedPushes: () => pqFail.all(),
     resetPush(ref) { pqReset.run(String(ref)); },
+    pushedOrders: (limit = 200) => pqPushed.all(Number(limit) || 200),
 
     getState(key) {
       const r = getS.get(key);

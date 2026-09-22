@@ -245,3 +245,80 @@ test('EVERY Ecwid-backed route revalidates before answering', () => {
     assert.match(head, /await ecwidFresh\(\);/, r + ' does not revalidate');
   }
 });
+
+/* ======================================================================
+   Seeing and managing what Ecwid holds.
+
+   Everything below existed as plumbing with no window onto it: the push
+   queue was returned by the status route and never rendered, orders that
+   parked after five failed attempts sat there invisibly, and there was no
+   way to look up what Ecwid actually has for one customer.
+   ================================================================== */
+
+test('there is a route listing every order against its Ecwid counterpart', () => {
+  assert.match(adminBlock[0], /seg\[1\] === 'orders' && req\.method === 'GET'/);
+});
+
+test('the order list separates pushed, waiting and PARKED', () => {
+  /* A parked order is the one that needs a human: it has exhausted its
+     retries and will never move on its own. Lumping it in with "waiting"
+     is how it stays invisible. */
+  const route = /seg\[1\] === 'orders' && req\.method === 'GET'[\s\S]{0,2000}/.exec(adminBlock[0])[0];
+  for (const k of ['pushed', 'pending', 'parked'])
+    assert.match(route, new RegExp(k + ':'), k + ' is not reported separately');
+});
+
+test('a parked order can be retried from the panel', () => {
+  assert.match(adminBlock[0], /seg\[3\] === 'retry' && req\.method === 'POST'/);
+  assert.match(adminBlock[0], /resetPush\(/);
+});
+
+test('retrying is audited, because it touches a real order', () => {
+  const route = /seg\[3\] === 'retry' && req\.method === 'POST'[\s\S]{0,900}/.exec(adminBlock[0])[0];
+  assert.match(route, /cadm\.log\(/);
+});
+
+test('there is a per-customer view of what Ecwid holds', () => {
+  assert.match(adminBlock[0], /seg\[1\] === 'customer' && req\.method === 'GET'/);
+});
+
+test('the customer view reports NO ACCESS distinctly from "no such customer"', () => {
+  /* On a public_ token both look identical — empty — and the owner would
+     spend an afternoon deciding the link was broken. */
+  const route = /seg\[1\] === 'customer' && req\.method === 'GET'[\s\S]{0,1800}/.exec(adminBlock[0])[0];
+  assert.match(route, /no-access/);
+});
+
+test('neither new route can leak the token', () => {
+  /* The whole admin block is already checked above; this pins the rule to
+     the routes that newly talk to the customer and order endpoints. */
+  const routes = /seg\[1\] === 'orders' && req\.method === 'GET'[\s\S]{0,3500}/.exec(adminBlock[0])[0];
+  assert.ok(!/Bearer|SADKO_ECWID_TOKEN/.test(routes));
+});
+
+test('the status route says whether this token can read orders at all', () => {
+  /* Six of the outstanding gaps are one 403. The panel should say so once,
+     rather than showing an empty queue that looks like "no orders yet". */
+  assert.match(src, /ECWID_ORDERS_READABLE/);
+  const route = /rest === 'ecwid' && req\.method === 'GET'[\s\S]*?return json\(200, \{[\s\S]*?\n        \}\);/
+    .exec(adminBlock[0])[0];
+  assert.match(route, /ordersReadable/);
+});
+
+test('order status flows back on the POLL, not only from a webhook', () => {
+  /* Ecwid can only deliver a webhook to a public URL, so before the site is
+     live — and in development, always — the webhook path reaches nobody. */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
+  assert.match(fn, /syncOrderStatuses\(ORDER_LOADERS\)/);
+});
+
+test('the sync layer writes a status through the loaders, not the accounts db', () => {
+  assert.match(src, /const ORDER_LOADERS = \{[\s\S]{0,900}setStatus:/);
+});
+
+test('a profile edit updates the Ecwid customer too', () => {
+  /* It only ran at registration, so a corrected phone number never left the
+     site — and the phone number is how staff ring the customer back. */
+  const route = /u\.pathname === '\/api\/auth\/profile'[\s\S]{0,900}?\n      \}/.exec(src)[0];
+  assert.match(route, /linkCustomer\(/);
+});

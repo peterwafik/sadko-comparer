@@ -235,3 +235,11 @@ html[dir=ltr] .switch input:checked::after{left:22px}
   .pname b{max-width:180px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* A standing condition, not an event: "this token cannot read orders" is true
+   until someone changes a setting, so it belongs on the page rather than in a
+   toast that vanishes. Warm amber, not red — nothing is broken, something is
+   unconfigured. */
+.notice{border-radius:12px;padding:12px 15px;margin:0 0 16px;font-weight:700;font-size:.86rem;line-height:1.55}
+.notice--warn{background:color-mix(in srgb,var(--warn,#c98a10) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--warn,#c98a10) 38%,transparent);color:var(--warn,#c98a10)}

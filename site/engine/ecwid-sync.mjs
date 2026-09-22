@@ -14,7 +14,7 @@
        serve an empty catalogue, because Ecwid did.
    ========================================================================== */
 
-import { toSadkoProduct, toSadkoCategory, toEcwidOrder } from './ecwid-map.mjs';
+import { toSadkoProduct, toSadkoCategory, toEcwidOrder, toLocalStatus } from './ecwid-map.mjs';
 import { toEcwidCustomer, customerNeedsUpdate, fromEcwidOrder } from './ecwid-customers.mjs';
 import { AD_SLOTS, buildSlotMap } from './ecwid-ads.mjs';
 
@@ -365,6 +365,64 @@ export function createEcwidSync({ api, store, adFolders = {},
     }
   }
 
+  /* ---- status, flowing back from Ecwid WITHOUT a webhook -----------------
+
+     Staff mark an order shipped in Ecwid and the customer has to see it here.
+     The webhook does that instantly, but Ecwid can only deliver a webhook to a
+     PUBLIC url — so in development, and in production until the webhook is
+     registered, a status change never arrived at all. This is the same job on
+     the poll.
+
+     Only orders that actually REACHED Ecwid are asked about: an order still
+     sitting in the push queue has no Ecwid id, so there is nothing to ask.
+
+     Finished orders drop out. The pushed list only ever grows, and asking
+     Ecwid about every order the shop has ever taken, every five minutes,
+     forever, is what would make this expensive — while a delivered or
+     cancelled order cannot change again.
+
+     An Ecwid status we do not map leaves the local one ALONE. Inventing a
+     transition would lie to the customer about their order, and that is worse
+     than showing a stale one. Same rule as the webhook path.
+
+     `blocked` says the token cannot read orders at all (a public_ token
+     answers 403), so the caller can report a configuration state rather than
+     an error nobody can act on. */
+  const TERMINAL = new Set(['delivered', 'cancelled']);
+
+  async function syncOrderStatuses({ loadOrder, setStatus } = {}, limit = 25) {
+    if (!api.configured || typeof loadOrder !== 'function') return { changed: 0, checked: 0 };
+    let changed = 0, checked = 0, blocked = false;
+
+    for (const row of store.pushedOrders(400)) {
+      if (checked >= limit) break;                  // bounded: one tick cannot run forever
+      let local = null;
+      try { local = await loadOrder(row.ref); } catch (e) { continue; }
+      if (!local || TERMINAL.has(String(local.status))) continue;
+
+      checked++;
+      let remote = null;
+      try {
+        remote = await api.getOrder(row.ecwid_order_id);
+      } catch (e) {
+        /* 403 is "this token cannot read orders" — a configuration state, not
+           a fault. Stop asking: every remaining order would answer the same. */
+        if (e && (e.status === 403 || e.status === 401)) { blocked = true; break; }
+        continue;
+      }
+      if (!remote) continue;
+
+      const status = toLocalStatus(remote);
+      if (!status || status === local.status) continue;
+      try {
+        await setStatus(row.ref, status);
+        changed++;
+        console.log(`[ecwid] order ${row.ref} -> ${status} (poll)`);
+      } catch (e) { /* a rejected write is the accounts layer's to report */ }
+    }
+    return { changed, checked, blocked };
+  }
+
   /* ---- the orders Ecwid holds for one customer --------------------------
      So a phone order or a showroom sale, typed in by staff, reaches the
      customer's own account page instead of seeming to have been lost.
@@ -385,6 +443,7 @@ export function createEcwidSync({ api, store, adFolders = {},
     pushPendingOrders,
     linkCustomer,
     remoteOrdersFor,
+    syncOrderStatuses,
     syncAdFolders,
     adFolderState,
     syncCategories,

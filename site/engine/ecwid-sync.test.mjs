@@ -306,3 +306,144 @@ test('an unconfigured api makes syncAll a recorded no-op rather than a crash', a
     assert.match(String(store.getState('last_error')), /not configured/i);
   } finally { cleanup(); }
 });
+
+/* ======================================================================
+   Order status, flowing back WITHOUT a webhook.
+
+   Staff mark an order shipped in Ecwid; the customer has to see it here.
+   Until now the only path was the order.updated webhook, which Ecwid can
+   only deliver to a public URL — so in development, and in production
+   before the webhook is registered, a status change never arrived at all.
+   The poll now asks about the orders it actually pushed.
+   ================================================================== */
+
+/* A local order, in the shape accounts.mjs returns. */
+const LOCAL = (ref, status = 'received') => ({ ref, status, items: [], userId: 'u1' });
+
+function orderHarness(remoteById, localByRef) {
+  const seen = [];
+  const api = stubApi({
+    getOrder: async id => remoteById[String(id)] || null,
+  });
+  const loaders = {
+    loadOrder: async ref => localByRef[ref] || null,
+    setStatus: async (ref, status) => { seen.push([ref, status]); localByRef[ref].status = status; },
+  };
+  return { api, loaders, seen };
+}
+
+test('a status changed in Ecwid reaches the local order on the poll', async () => {
+  const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
+  const { api, loaders, seen } = orderHarness(
+    { '900': { id: 900, fulfillmentStatus: 'SHIPPED', paymentStatus: 'AWAITING_PAYMENT' } }, local);
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueOrderPush('SDK-AAA111');
+    store.markPushed('SDK-AAA111', '900');
+    const r = await sync.syncOrderStatuses(loaders);
+    assert.equal(r.changed, 1);
+    assert.deepEqual(seen, [['SDK-AAA111', 'shipping']]);
+  } finally { cleanup(); }
+});
+
+test('an unchanged status writes nothing', async () => {
+  /* Every write is an audit row and a customer-visible event. */
+  const local = { 'SDK-AAA111': LOCAL('SDK-AAA111', 'shipping') };
+  const { api, loaders, seen } = orderHarness(
+    { '900': { id: 900, fulfillmentStatus: 'SHIPPED' } }, local);
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueOrderPush('SDK-AAA111');
+    store.markPushed('SDK-AAA111', '900');
+    const r = await sync.syncOrderStatuses(loaders);
+    assert.equal(r.changed, 0);
+    assert.deepEqual(seen, []);
+  } finally { cleanup(); }
+});
+
+test('an Ecwid status we do not map leaves the local one ALONE', async () => {
+  /* Inventing a transition would lie to the customer about their order. */
+  const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
+  const { api, loaders, seen } = orderHarness(
+    { '900': { id: 900, fulfillmentStatus: 'SOMETHING_NEW' } }, local);
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueOrderPush('SDK-AAA111');
+    store.markPushed('SDK-AAA111', '900');
+    await sync.syncOrderStatuses(loaders);
+    assert.deepEqual(seen, []);
+    assert.equal(local['SDK-AAA111'].status, 'received');
+  } finally { cleanup(); }
+});
+
+test('a cancelled or refunded PAYMENT cancels the order whatever fulfilment says', async () => {
+  const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
+  const { api, loaders, seen } = orderHarness(
+    { '900': { id: 900, fulfillmentStatus: 'PROCESSING', paymentStatus: 'REFUNDED' } }, local);
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueOrderPush('SDK-AAA111');
+    store.markPushed('SDK-AAA111', '900');
+    await sync.syncOrderStatuses(loaders);
+    assert.deepEqual(seen, [['SDK-AAA111', 'cancelled']]);
+  } finally { cleanup(); }
+});
+
+test('an order that was never pushed is never asked about', async () => {
+  /* It has no Ecwid id, so there is nothing to ask. */
+  const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
+  let asked = 0;
+  const api = stubApi({ getOrder: async () => { asked++; return null; } });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueOrderPush('SDK-AAA111');            // queued, never pushed
+    await sync.syncOrderStatuses({ loadOrder: async r => local[r], setStatus: async () => {} });
+    assert.equal(asked, 0);
+  } finally { cleanup(); }
+});
+
+test('a DELIVERED or CANCELLED local order stops being polled', async () => {
+  /* The list of pushed orders only grows. Asking Ecwid about every order the
+     store has ever taken, every five minutes, forever, is the thing that
+     makes this expensive — and a finished order cannot change again. */
+  let asked = 0;
+  const local = { a: LOCAL('a', 'delivered'), b: LOCAL('b', 'cancelled'), c: LOCAL('c', 'preparing') };
+  const api = stubApi({ getOrder: async () => { asked++; return { id: 1, fulfillmentStatus: 'SHIPPED' }; } });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    for (const ref of ['a', 'b', 'c']) { store.enqueueOrderPush(ref); store.markPushed(ref, '90' + ref); }
+    await sync.syncOrderStatuses({ loadOrder: async r => local[r], setStatus: async () => {} });
+    assert.equal(asked, 1, 'only the unfinished order should be asked about');
+  } finally { cleanup(); }
+});
+
+test('one tick is bounded, so a long order history cannot stall the poll', async () => {
+  let asked = 0;
+  const local = {};
+  const api = stubApi({ getOrder: async () => { asked++; return { id: 1, fulfillmentStatus: 'QUEUED' }; } });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    for (let i = 0; i < 60; i++) {
+      const ref = 'SDK-' + i;
+      local[ref] = LOCAL(ref);
+      store.enqueueOrderPush(ref); store.markPushed(ref, String(1000 + i));
+    }
+    await sync.syncOrderStatuses({ loadOrder: async r => local[r], setStatus: async () => {} });
+    assert.ok(asked <= 25, 'asked about ' + asked + ' orders in one tick');
+  } finally { cleanup(); }
+});
+
+test('a 403 answers quietly rather than failing the whole poll', async () => {
+  /* The public_ token answers 403 on /orders. That is a configuration state,
+     not a fault, and the rest of the sync must carry on. */
+  const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
+  const api = stubApi({ getOrder: async () => { const e = new Error('ecwid-403: no'); e.status = 403; throw e; } });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueOrderPush('SDK-AAA111');
+    store.markPushed('SDK-AAA111', '900');
+    const r = await sync.syncOrderStatuses({ loadOrder: async x => local[x], setStatus: async () => {} });
+    assert.equal(r.changed, 0);
+    assert.equal(r.blocked, true, 'the caller should be able to tell access is missing');
+  } finally { cleanup(); }
+});

@@ -2043,6 +2043,10 @@ let ECWID_POLLED_AT = 0;
    category, cheap enough to leave on. */
 const ECWID_SLOW_EVERY = 5;
 let ECWID_POLL_TICK = 0;
+/* null until the poll has actually tried. Not derived from the token's
+   prefix: what matters is whether THIS token can read orders, and only an
+   answer from Ecwid knows that. */
+let ECWID_ORDERS_READABLE = null;
 
 async function pollEcwid() {
   if (ECWID_POLL_INFLIGHT) return ECWID_POLL_INFLIGHT;
@@ -2078,6 +2082,12 @@ async function pollEcwid() {
       if (ECWID_POLL_TICK % ECWID_SLOW_EVERY === 0) {
         await es.syncCategories();
         await es.syncSettings();
+        /* Status that staff changed in Ecwid. The webhook does this instantly
+           but only on a public URL, so this is the path that works everywhere
+           else. Bounded, and finished orders drop out of it. */
+        const os = await es.syncOrderStatuses(ORDER_LOADERS);
+        if (os && os.blocked) ECWID_ORDERS_READABLE = false;
+        else if (os && os.checked) ECWID_ORDERS_READABLE = true;
       }
       ECWID_POLL_TICK++;
 
@@ -2126,6 +2136,16 @@ async function remoteOrdersCached(email) {
 
 const ORDER_LOADERS = {
   loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
+  /* The sync layer writes a status through this seam rather than reaching
+     into the accounts database itself — the same boundary it already reads
+     orders and users across. setOrderStatus validates the transition and
+     writes the audit row, so neither is bypassed here. */
+  setStatus: async (ref, status) => {
+    const db = accounts();
+    if (!db) return;
+    const r = db.setOrderStatus(ref, status);
+    if (r && r.error) throw new Error(r.error);
+  },
   loadUser: async order => {
     const db = accounts();
     const u = db && order ? db.getUser(order.userId) : null;
@@ -2597,6 +2617,10 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           banners,
           /* Order push is Task 12; until it exists the panel says so rather
              than showing a permanently empty queue. */
+          /* Six of the outstanding gaps are the same 403. Said once, here,
+             rather than leaving the panel showing an empty queue that reads
+             as "no orders yet". */
+          ordersReadable: ECWID_ORDERS_READABLE,
           pendingPushes: store ? store.pendingPushes() : [],
           failedPushes: store ? store.failedPushes() : [],
         });
@@ -2612,6 +2636,98 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const r = await esy.pushOrder(ref, ORDER_LOADERS);
         cadm.log(actor, 'ecwid.push', ref, r);
         return json(r.ok ? 200 : 400, r);
+      }
+
+      /* ------- every order, against its Ecwid counterpart -------
+
+         Three groups, because they need three different things from a human:
+         PUSHED is the healthy case and is here so staff can jump to the order
+         in Ecwid; PENDING is waiting on a retry that will happen by itself;
+         PARKED has exhausted its attempts and will NEVER move on its own.
+         Lumping parked in with pending is exactly how an order goes missing. */
+      if (seg[0] === 'ecwid' && seg[1] === 'orders' && req.method === 'GET') {
+        const store = ecwidStore();
+        if (!store) return json(503, { error: 'ecwid-off' });
+        const db = accounts();
+        /* The local order carries the customer and the status; the push row
+           carries what happened between here and Ecwid. Neither alone tells
+           the story. */
+        const join = row => {
+          const local = db ? db.orderByRefAny(row.ref) : null;
+          return {
+            ref: row.ref,
+            ecwidOrderId: row.ecwid_order_id || null,
+            pushedAt: row.pushed_at || null,
+            attempts: row.attempts,
+            nextAttemptAt: row.next_attempt_at || null,
+            lastError: row.last_error || null,
+            status: local ? local.status : null,
+            email: local ? (local.email || null) : null,
+            total: local ? (local.subtotal ?? null) : null,
+            createdAt: local ? local.createdAt : (row.created_at || null),
+          };
+        };
+        return json(200, {
+          storeId: ECWID_STORE_ID,
+          maxAttempts: store.MAX_PUSH_ATTEMPTS,
+          /* null until the poll has actually asked. An empty queue on a token
+             that cannot read orders looks exactly like "no orders yet". */
+          ordersReadable: ECWID_ORDERS_READABLE,
+          pushed: store.pushedOrders(200).map(join),
+          pending: store.pendingPushes().map(join),
+          parked: store.failedPushes().map(join),
+        });
+      }
+
+      /* ------- push one parked order again -------
+         resetPush clears the backoff; the push is then attempted immediately
+         so the person who clicked sees the outcome rather than a promise. */
+      if (seg[0] === 'ecwid' && seg[1] === 'orders' && seg[2] && seg[3] === 'retry' && req.method === 'POST') {
+        const store = ecwidStore(), es = ecwidSync();
+        if (!store || !es) return json(503, { error: 'ecwid-off' });
+        const ref = decodeURIComponent(seg[2]);
+        if (!store.pushRow(ref)) return json(404, { error: 'unknown-order' });
+        store.resetPush(ref);
+        const r = await es.pushOrder(ref, ORDER_LOADERS);
+        cadm.log(actor, 'ecwid.order.retry', ref, r);
+        return json(200, { ok: !!r.ok, ...r, row: store.pushRow(ref) });
+      }
+
+      /* ------- what Ecwid holds for ONE customer -------
+         The link is by email, so this answers the question staff actually ask:
+         is this person in Ecwid, and does their history there match ours. */
+      if (seg[0] === 'ecwid' && seg[1] === 'customer' && req.method === 'GET') {
+        const api = ecwidApi();
+        const email = String(u.searchParams.get('email') || '').trim().toLowerCase();
+        if (!email) return json(400, { error: 'no-email' });
+        if (!api || !api.configured) return json(503, { error: 'ecwid-off' });
+        let customer = null, orders = [], reason = null;
+        try {
+          customer = await api.customerByEmail(email);
+        } catch (e) {
+          /* 403 means this token cannot read customers at all — a
+             configuration state. Reported distinctly, because on a public_
+             token "no access" and "no such customer" both look like nothing,
+             and the owner would spend an afternoon deciding the link broke. */
+          reason = /ecwid-40[13]/.test(String(e && e.message)) ? 'no-access' : 'error';
+        }
+        if (!reason) {
+          try { orders = await ecwidSync().remoteOrdersFor(email); }
+          catch (e) { orders = []; }
+        }
+        return json(200, {
+          email,
+          reason,
+          linked: !!customer,
+          customer: customer ? {
+            id: String(customer.id),
+            name: customer.name || null,
+            registered: customer.registered ?? null,
+            totalOrders: customer.totalOrderCount ?? null,
+            createDate: customer.createDate || null,
+          } : null,
+          orders,
+        });
       }
 
       if (seg[0] === 'ecwid' && seg[1] === 'sync' && req.method === 'POST') {
@@ -2717,6 +2833,12 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const b = await readJson(req);
         const r = db.updateProfile(me.id, b);
         if (r.error) return json(400, authErr(r.error, lang));
+        /* Keep Ecwid's copy current: staff ring the number on the customer
+           record, and a corrected phone that never left this site is a call
+           that does not happen. Not awaited and its failure ignored, exactly
+           as at registration — saving a profile must not wait on Ecwid or
+           fail because Ecwid refused the write. */
+        try { ecwidSync().linkCustomer(r.user).catch(() => {}); } catch (e) {}
         return json(200, { ok: true, user: r.user });
       }
 

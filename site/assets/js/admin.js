@@ -30,6 +30,11 @@
       ecwidCats: 'أقسام', ecwidPay: 'طرق دفع', ecwidShip: 'طرق شحن', ecwidBanners: 'لافتات',
       ecwidLastSync: 'آخر مزامنة', ecwidLastErr: 'آخر خطأ', ecwidNone: 'لا يوجد',
       ecwidRails: 'صفوف المنتجات', ecwidUnresolved: 'لم يتم العثور على القسم',
+      th_ecwid: 'فى إيكويد', ecwidInStore: 'مُسجَّل', ecwidWaitingPush: 'فى الانتظار',
+      ecwidParked: 'متوقّف', ecwidNotPushed: 'لم يُرسل', ecwidRetry: 'أعد المحاولة',
+      ecwidRetried: 'تمت إعادة الإرسال', ecwidNoOrderAccess: 'هذا المفتاح لا يقرأ الطلبات من إيكويد (‏403). الطلبات محفوظة هنا وستُرسل فور تفعيل مفتاح secret_.',
+      ecwidLookup: 'ابحث فى إيكويد', ecwidNotLinked: 'غير مُسجَّل فى إيكويد',
+      ecwidCustOrders: 'طلبات إيكويد', ecwidOrdersReadable: 'قراءة الطلبات',
       ecwidOwned: 'الاسم والسعر والصورة والوصف والقسم تُدار في إكويد. عدّلها هناك وتظهر هنا خلال دقائق.',
       ecwidSynced: 'تمت المزامنة ✓', ecwidOpenProduct: 'افتح في إكويد', sub_settings: 'إعدادات الموقع', sub_audit: 'كل تعديل اتعمل من هنا',
       v_users: 'عملاء', v_orders: 'طلبات', v_ordersToday: 'طلبات النهاردة', v_liveCat: 'منتجات معروضة',
@@ -77,6 +82,11 @@
       ecwidCats: 'Categories', ecwidPay: 'Payment methods', ecwidShip: 'Shipping methods', ecwidBanners: 'Banners',
       ecwidLastSync: 'Last sync', ecwidLastErr: 'Last error', ecwidNone: 'none',
       ecwidRails: 'Product rails', ecwidUnresolved: 'category not found',
+      th_ecwid: 'In Ecwid', ecwidInStore: 'Filed', ecwidWaitingPush: 'Waiting',
+      ecwidParked: 'Stopped', ecwidNotPushed: 'Not sent', ecwidRetry: 'Retry',
+      ecwidRetried: 'Sent again', ecwidNoOrderAccess: 'This token cannot read orders from Ecwid (403). Orders are safe here and will be sent the moment a secret_ token is in place.',
+      ecwidLookup: 'Look up in Ecwid', ecwidNotLinked: 'Not in Ecwid',
+      ecwidCustOrders: 'Ecwid orders', ecwidOrdersReadable: 'Order access',
       ecwidOwned: 'Name, price, image, description and category are managed in Ecwid. Edit them there and they appear here within minutes.',
       ecwidSynced: 'Synced ✓', ecwidOpenProduct: 'Open in Ecwid', sub_settings: 'Site settings', sub_audit: 'Every change made here',
       v_users: 'Customers', v_orders: 'Orders', v_ordersToday: 'Orders today', v_liveCat: 'Products live',
@@ -596,21 +606,75 @@
   }
 
   /* ================= ORDERS ================= */
+  /* Where each order stands between here and Ecwid, by ref. Fetched
+     alongside the orders rather than folded into /api/admin/orders, because
+     the orders desk has to keep working with Ecwid switched off entirely. */
+  let ECWID_ORDERS = null;
+  async function loadEcwidOrders() {
+    try { ECWID_ORDERS = await api('/api/admin/ecwid/orders'); }
+    catch (e) { ECWID_ORDERS = null; }
+    return ECWID_ORDERS;
+  }
+
+  function ecwidOrderMap(d) {
+    const m = new Map();
+    if (!d) return m;
+    for (const o of d.pushed || []) m.set(o.ref, { ...o, state: 'pushed' });
+    for (const o of d.pending || []) m.set(o.ref, { ...o, state: 'pending' });
+    for (const o of d.parked || []) m.set(o.ref, { ...o, state: 'parked' });
+    return m;
+  }
+
+  /* One cell, saying the one thing a human needs: it is filed (here is the
+     link), it is waiting (nothing to do), or it has STOPPED and needs a
+     person. The last is the only one with a button. */
+  function ecwidOrderCell(row, storeId) {
+    if (!row) return '<span class="muted">' + esc(t('ecwidNotPushed')) + '</span>';
+    if (row.state === 'pushed') {
+      const href = 'https://my.ecwid.com/store/' + encodeURIComponent(storeId || '') +
+        '#order:id=' + encodeURIComponent(row.ecwidOrderId);
+      return '<a href="' + href + '" target="_blank" rel="noopener" class="mono" style="font-size:.78rem">'
+        + esc(t('ecwidInStore')) + ' #' + esc(row.ecwidOrderId) + '</a>';
+    }
+    if (row.state === 'parked') {
+      return '<span class="err">' + esc(t('ecwidParked')) + '</span> '
+        + '<button class="btn btn--ghost btn--sm ecwid-retry" data-ref="' + esc(row.ref) + '">'
+        + esc(t('ecwidRetry')) + '</button>'
+        + (row.lastError ? '<br><span class="muted" style="font-size:.72rem">' + esc(String(row.lastError).slice(0, 90)) + '</span>' : '');
+    }
+    return '<span class="muted">' + esc(t('ecwidWaitingPush'))
+      + (row.attempts ? ' (' + row.attempts + ')' : '') + '</span>';
+  }
+
   async function viewOrders() {
     const view = $('view');
     try {
-      const data = await api('/api/admin/orders');
+      const [data, eo] = await Promise.all([api('/api/admin/orders'), loadEcwidOrders()]);
       if (!data.orders.length) { view.innerHTML = `<div class="empty">${t('noOrders')}</div>`; return; }
-      view.innerHTML = `<div class="tablewrap"><table class="tbl">
-        <thead><tr><th>${t('th_ref')}</th><th>${t('th_cust')}</th><th>${t('th_items')}</th><th>${t('th_total')}</th><th>${t('th_status')}</th><th>${t('th_when')}</th></tr></thead>
-        <tbody>${data.orders.map(rowOrder).join('')}</tbody></table></div>`;
+      const emap = ecwidOrderMap(eo);
+      const storeId = eo && eo.storeId;
+      /* Said once, at the top, rather than leaving every row reading as
+         "not sent" with no explanation of why. */
+      const notice = (eo && eo.ordersReadable === false)
+        ? `<div class="notice notice--warn">${esc(t('ecwidNoOrderAccess'))}</div>` : '';
+      view.innerHTML = notice + `<div class="tablewrap"><table class="tbl">
+        <thead><tr><th>${t('th_ref')}</th><th>${t('th_cust')}</th><th>${t('th_items')}</th><th>${t('th_total')}</th><th>${t('th_status')}</th><th>${t('th_ecwid')}</th><th>${t('th_when')}</th></tr></thead>
+        <tbody>${data.orders.map(o => rowOrder(o, emap.get(o.ref), storeId)).join('')}</tbody></table></div>`;
+      view.querySelectorAll('.ecwid-retry').forEach(b => b.addEventListener('click', async () => {
+        b.disabled = true;
+        try {
+          const r = await api('/api/admin/ecwid/orders/' + encodeURIComponent(b.dataset.ref) + '/retry', { method: 'POST' });
+          toast(r.ok ? t('ecwidRetried') : (r.error || t('loadFail')), r.ok ? 'ok' : 'err');
+          route();
+        } catch (ex) { toast(ex.message, 'err'); b.disabled = false; }
+      }));
       view.querySelectorAll('.statussel').forEach(sel => sel.addEventListener('change', async e => {
         try { await api(`/api/admin/orders/${encodeURIComponent(sel.dataset.ref)}/status`, { method: 'POST', body: { status: e.target.value } }); toast(t('statusUpdated'), 'ok'); refreshOverview(); }
         catch (ex) { toast(ex.message, 'err'); }
       }));
     } catch (e) { fail(view, e); }
   }
-  function rowOrder(o) {
+  function rowOrder(o, ecwidRow, storeId) {
     const cust = o.customer || {};
     // Separator follows the admin's language, like every other string here.
     const items = (o.items || []).map(i => `${esc(i.title)}${i.qty > 1 ? ' ×' + i.qty : ''}`)
@@ -622,6 +686,7 @@
       <td><div class="ord-items" title="${esc(items)}">${esc(items).slice(0, 120)}</div></td>
       <td class="price">${money(total)}</td>
       <td><select class="statussel" data-ref="${esc(o.ref)}">${S.orderStatuses.map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${t('st_' + s)}</option>`).join('')}</select></td>
+      <td>${ecwidOrderCell(ecwidRow, storeId)}</td>
       <td class="audit-when">${when(o.createdAt)}</td>
     </tr>`;
   }
@@ -633,7 +698,7 @@
       const data = await api('/api/admin/customers');
       if (!data.customers.length) { view.innerHTML = `<div class="empty">${t('noCustomers')}</div>`; return; }
       view.innerHTML = `<div class="tablewrap"><table class="tbl">
-        <thead><tr><th>${t('th_name')}</th><th>${t('th_email')}</th><th>${t('th_phone')}</th><th>${t('th_homes')}</th><th>${t('th_orders')}</th><th>${t('th_via')}</th><th>${t('th_joined')}</th></tr></thead>
+        <thead><tr><th>${t('th_name')}</th><th>${t('th_email')}</th><th>${t('th_phone')}</th><th>${t('th_homes')}</th><th>${t('th_orders')}</th><th>${t('th_via')}</th><th>${t('th_joined')}</th><th>${t('th_ecwid')}</th></tr></thead>
         <tbody>${data.customers.map(c => `<tr>
           <td><b style="font-weight:700">${esc(c.name || '—')}</b></td>
           <td class="mono" style="font-size:.8rem">${esc(c.email)}</td>
@@ -642,8 +707,31 @@
           <td>${c.orders || 0}</td>
           <td class="muted" style="font-size:.8rem">${(c.providers && c.providers.length) ? esc(c.providers.join(', ')) : t('viaPass')}</td>
           <td class="audit-when">${when(c.createdAt)}</td>
+          <td class="ecwid-cust" data-email="${esc(c.email)}"><button class="btn btn--ghost btn--sm ecwid-look" data-email="${esc(c.email)}">${esc(t('ecwidLookup'))}</button></td>
         </tr>`).join('')}</tbody></table></div>`;
+      view.querySelectorAll('.ecwid-look').forEach(b => b.addEventListener('click', async () => {
+        const cell = b.parentNode;
+        b.disabled = true;
+        cell.innerHTML = '<span class="muted">…</span>';
+        try {
+          const r = await api('/api/admin/ecwid/customer?email=' + encodeURIComponent(b.dataset.email));
+          cell.innerHTML = ecwidCustomerCell(r);
+        } catch (ex) { cell.innerHTML = '<span class="err">' + esc(ex.message || '') + '</span>'; }
+      }));
     } catch (e) { fail(view, e); }
+  }
+
+  /* What came back, in one cell. 'no-access' is reported as its own thing:
+     on a public_ token an unreachable customer and a non-existent one both
+     look like nothing, and that ambiguity costs an afternoon. */
+  function ecwidCustomerCell(r) {
+    if (!r) return '<span class="err">—</span>';
+    if (r.reason === 'no-access')
+      return '<span class="muted" style="font-size:.74rem">403</span>';
+    if (!r.linked) return '<span class="muted" style="font-size:.76rem">' + esc(t('ecwidNotLinked')) + '</span>';
+    const n = (r.orders || []).length;
+    return '<b style="font-weight:700">#' + esc(r.customer.id) + '</b>'
+      + '<br><span class="muted" style="font-size:.74rem">' + esc(t('ecwidCustOrders')) + ': ' + n + '</span>';
   }
 
   /* ================= CONTENT ================= */

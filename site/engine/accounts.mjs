@@ -401,6 +401,24 @@ export function openAccounts(file) {
     orderByRef: (userId, ref) => store.orderByRef(userId, ref),
 
     /* ---- privacy: the customer's own data, and erasing it ---- */
+    /* One account, safe to hand outwards.
+
+       The row underneath carries `salt` and `hash`, so this is NOT
+       store.getUser re-exported: a password hash has no business travelling
+       to the Ecwid mapper, or anywhere else that did not ask for it.
+
+       This accessor was missing, and its absence was invisible because the
+       only caller is the order push — which was ALSO failing on a 403. Two
+       orders sat in the queue with "db.getUser is not a function" against
+       them, so order push would not have started working the moment a secret
+       token arrived. */
+    getUser(userId) {
+      const u = userId ? store.getUser(userId) : null;
+      if (!u) return null;
+      const { salt, hash, ...safe } = u;
+      return safe;
+    },
+
     exportUser(userId) {
       const u = store.getUser(userId);
       if (!u) return null;

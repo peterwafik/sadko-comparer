@@ -1477,7 +1477,7 @@ Ordered by what it costs the business, not by effort.
 | 1 | **Orders never reach Ecwid.** A completed order is stored locally and parked in a retry queue. | The configured token is a `public_` one; `POST /orders` answers **403**. | The owner issues a `secret_` token with order scope. The push code, its idempotency ref and the two-minute retry are written and waiting. |
 | 2 | **No delivery charge is ever shown.** Checkout states delivery is arranged after the order, and no grand total is invented. | Two independent causes, both in Ecwid's data: **no shipping method has a destination zone** (so the first one, Greater Cairo, would apply to every address in Egypt), and **0 of 1,453 products have a weight** (the methods are banded by product size, so the band cannot be chosen). | Ecwid → Shipping & Pickup → set each method's governorates; then enter product weights. Never let the customer pick the band — they could choose the LE 275 small-appliance rate for a refrigerator. |
 | 3 | **Customer accounts are SADKO's, not Ecwid's.** Sign-in, sessions and saved homes are local. | Ecwid has **no API that verifies a customer's password**. This is a hard limit, not a missing task. | Nothing. Email is the key: a customer's Ecwid orders are merged into their SADKO history by email once the secret token lands. |
-| 4 | **Order history shows only site orders.** Orders staff typed directly into Ecwid do not appear. | `GET /orders` answers 403 on this token. The merge is written but **unverified against a real payload**. | The same secret token as #1 — then check the merged output against one real order before trusting it. |
+| 4 | **Order history shows only site orders.** Orders staff typed directly into Ecwid do not appear. | `GET /orders` answers 403 on this token. The merge is written but **unverified against a real payload**. | The same secret token as #1 — then run `node tools/ecwid-preflight.mjs`, which checks the shapes against a real customer and a real order before anything trusts them. |
 | 5 | **Adverts must stay Enabled in Ecwid.** They therefore also appear in Ecwid's own storefront. | A `public_` token cannot read a disabled product, so a disabled advert arrives as an id-only stub with no image. | The secret token. Then the eight adverts can be disabled and will still render here. |
 | 6 | **Guides, care articles, finder questions, reviews and Q&A are local.** | Ecwid has no field for any of them. | Nothing to unblock — they stay in the SADKO panel by design. |
 | 7 | **Bilingual advert copy is local.** Ecwid holds one name and one description per advert; the site shows them as-is. | Ecwid's translation fields are not populated in this store. | Either populate them, or keep the bilingual strap in `promos.json` as the fallback it already is. |
@@ -1831,6 +1831,112 @@ shell or a banner entry 404s rather than opening as a product.
 
 With `SADKO_ECWID` off the page falls back to the list entry and behaves exactly
 as it did before, so the flag is still a clean rollback.
+
+### Customers and orders — where the data lives, and how to manage it
+
+Ecwid holds the catalogue. It does **not** hold the site's customers: accounts
+live here, because Ecwid has no API that verifies a customer's password. The
+two are joined by **email**, which is the same key Ecwid itself files an order
+under.
+
+#### Two databases, and what is in each
+
+Both are SQLite files under `site/data/`. Neither is in git.
+
+| File | Holds | Written by |
+|---|---|---|
+| `data/ecwid.db` | The **mirror** of Ecwid: `products`, `categories`, `payment_methods`, `shipping_methods`, `state` (sync bookmarks, ad-folder map), and `order_push` | the sync — safe to delete, it rebuilds |
+| `data/accounts.db` | The site's own record: `users`, `sessions`, `identities`, `homes`, `orders` | the site — **never** delete it |
+
+The one table that spans both worlds is **`order_push`** in `ecwid.db`. It is
+not a copy of the order; it is the record of what happened between here and
+Ecwid for one order reference:
+
+```
+ref              our SDK- reference, the primary key
+ecwid_order_id   the id Ecwid gave it — NULL until the push succeeds
+attempts         how many times we have tried
+next_attempt_at  when the retry is due (exponential backoff)
+last_error       why the last attempt failed
+pushed_at        when it succeeded — NULL while it has not
+created_at       when the order was placed here
+```
+
+Three states follow from those columns, and they need three different things
+from a person:
+
+- **Filed** — `ecwid_order_id` set. It is in Ecwid; the panel links straight to it.
+- **Waiting** — no id yet, `attempts` below the limit. It retries by itself every two minutes. Nothing to do.
+- **Stopped** — `attempts` has reached the limit (6). **It will never move on its own.** Somebody has to look.
+
+#### Where to see it
+
+**The SADKO admin panel is the place** — `admin.html`, and everything below is
+in it, no terminal required.
+
+| Question | Where |
+|---|---|
+| Is this order in Ecwid? | Orders desk → the **In Ecwid** column. Filed orders link straight to the order in Ecwid. |
+| Why has this order not reached Ecwid? | Same column. A stopped order shows its actual error and a **Retry** button. |
+| Can this token read orders at all? | A banner at the top of the orders desk when it cannot — rather than every row silently reading "not sent". |
+| Is this customer in Ecwid? | Customers desk → **In Ecwid** column → *Look up*. Shows the Ecwid customer id and how many orders Ecwid has for them. |
+| Is the catalogue in step? | Dashboard → the Ecwid panel: counts, last sync, last error, which folders feed which advert slot. |
+| Who changed what here? | Audit log. Every retry is recorded with the person who clicked it. |
+
+The underlying routes, if you want them directly (all behind an admin session):
+
+```
+GET  /api/admin/ecwid                     status, counts, adverts, rails
+GET  /api/admin/ecwid/orders              every order vs its Ecwid counterpart
+POST /api/admin/ecwid/orders/<ref>/retry  clear the backoff and push again now
+GET  /api/admin/ecwid/customer?email=…    what Ecwid holds for one customer
+POST /api/admin/ecwid/sync                force a full sync
+```
+
+#### How a change gets from one side to the other
+
+| What moves | Direction | When |
+|---|---|---|
+| Products, prices, stock, categories, adverts | Ecwid → site | ≤60s, or on the next page load |
+| A new customer registering | site → Ecwid | immediately, in the background |
+| A customer correcting their name, phone or address | site → Ecwid | immediately, in the background |
+| A completed order | site → Ecwid | immediately, then retried every 2 min if it fails |
+| **Order status** (staff mark it shipped) | Ecwid → site | instantly by webhook, otherwise on the poll |
+
+Two rules worth knowing, because both look like bugs and are not:
+
+- Linking a customer **only ever fills what Ecwid lacks.** It never overwrites a detail staff corrected in Ecwid — staff are closer to the customer than a registration form is.
+- An Ecwid fulfilment status the site does not recognise **leaves the local status alone.** Inventing a transition would tell the customer something untrue about their order; a stale status is the lesser harm.
+
+#### Checking the shapes before trusting them
+
+```
+node tools/ecwid-preflight.mjs
+```
+
+Reads one customer and one order and reports whether the field names the site
+assumes are the ones Ecwid actually sends. **Run it first, the moment a
+`secret_` token is in place.** It writes nothing, changes nothing, and prints
+no customer's name, email, phone or address — only field names and whether a
+value was present.
+
+It exists because four Ecwid field names have already been guessed wrong here
+(`trackQuantity`/`unlimited`, `requiresShipping`/`isShippingRequired`, a
+top-level `brand` that is really an attribute, `/orders/calculate` vs
+`/order/calculate`), and each was found by a feature quietly doing nothing.
+
+#### Inspecting the databases directly
+
+Rarely needed, and read-only unless you know exactly why:
+
+```
+sqlite3 data/ecwid.db    "SELECT ref, ecwid_order_id, attempts, last_error FROM order_push;"
+sqlite3 data/accounts.db "SELECT ref, status, created_at FROM orders ORDER BY created_at DESC LIMIT 20;"
+```
+
+`data/ecwid.db` can be deleted and will rebuild on the next start.
+`data/accounts.db` is the only copy of the site's customers and orders — it is
+what the backup in §5G exists for.
 
 ### Who owns what
 

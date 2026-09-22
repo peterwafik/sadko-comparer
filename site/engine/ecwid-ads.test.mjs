@@ -418,7 +418,7 @@ test('folder membership is refreshed on its own schedule', () => {
      `.then(after)` chain it used to live in — the chain went away when the
      timer and the on-demand revalidator were merged onto one poll, which
      said nothing about whether folders were still being refreshed. */
-  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(SERVER)[0];
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(SERVER)[0];
   assert.match(fn, /syncAdFolders\(\)/);
 });
 

@@ -146,21 +146,21 @@ test('the timer and the on-demand refresh share ONE poll', () => {
 
 test('the poll never runs twice at once', () => {
   /* A slow call must not pile up behind itself once the interval is short. */
-  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(src)[0];
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
   assert.match(fn, /if \(ECWID_POLL_INFLIGHT\) return ECWID_POLL_INFLIGHT;/);
 });
 
 test('the poll refreshes ad-folder membership, not just products', () => {
   /* Moving an advert between folders changes no product field, so
      updatedFrom would never report it. */
-  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(src)[0];
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
   assert.match(fn, /syncAdFolders\(\)/);
   assert.match(fn, /syncProducts\(/);
   assert.match(fn, /invalidate\(\)/, 'a sync that does not invalidate serves the old cache');
 });
 
 test('the poll cannot throw out of the timer', () => {
-  const fn = /async function pollEcwid\(\)[\s\S]{0,1400}?\n\}/.exec(src)[0];
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
   assert.match(fn, /catch \(e\) \{/);
 });
 
@@ -199,4 +199,49 @@ test('the startup banner does not reference an undefined constant', () => {
      a ReferenceError at boot that node --check cannot see. */
   assert.ok(!/\bECWID_WEBHOOK_SECRET\b/.test(src.replace(/SADKO_ECWID_WEBHOOK_SECRET/g, '')),
     'the startup log references an undefined ECWID_WEBHOOK_SECRET');
+});
+
+test('the poll detects DELETIONS, which updatedFrom can never report', () => {
+  /* Compared by COUNT rather than by paging every id: one request instead of
+     ~15 against this catalogue, and the real reconcile runs only when the
+     numbers actually disagree. */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
+  assert.match(fn, /productCount\(\)/);
+  assert.match(fn, /live !== mine/);
+  assert.match(fn, /fullReconcile\(\)/);
+});
+
+test('a failed count skips the reconcile rather than triggering one', () => {
+  /* live === null must not read as "the count changed". */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
+  assert.match(fn, /live != null && live !== mine/);
+});
+
+test('categories and settings refresh on a slower tick, not never', () => {
+  /* They only came round on the daily full sync, so a new category or a
+     payment method switched off took a day to show. */
+  const fn = /async function pollEcwid\(\)[\s\S]{0,4000}?\n\}/.exec(src)[0];
+  assert.match(fn, /ECWID_POLL_TICK % ECWID_SLOW_EVERY === 0/);
+  assert.match(fn, /syncCategories\(\)/);
+  assert.match(fn, /syncSettings\(\)/);
+});
+
+test('EVERY Ecwid-backed route revalidates before answering', () => {
+  /* Only the adverts and the catalogue did, so a price change showed on the
+     shop page while the product page still had the old one. */
+  const routes = [
+    "u.pathname.startsWith('/api/product/')",
+    "u.pathname === '/api/shipping-methods'",
+    "u.pathname === '/api/payment-methods'",
+    "u.pathname === '/data/categories.json'",
+    "u.pathname === '/data/collections.json'",
+    "u.pathname === '/data/promos.json'",
+    "u.pathname === '/data/products.json'",
+  ];
+  for (const r of routes) {
+    const at = src.indexOf(r);
+    assert.ok(at > -1, 'route not found: ' + r);
+    const head = src.slice(at, at + 420);
+    assert.match(head, /await ecwidFresh\(\);/, r + ' does not revalidate');
+  }
 });

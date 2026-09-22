@@ -122,6 +122,25 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
       return ids;
     },
 
+    /* How many products the store has, in ONE request.
+
+       The cheap half of deletion detection. updatedFrom can never report a
+       product that no longer exists, and paging every id to find out costs
+       ~15 requests against this catalogue. Ecwid's `total` and the mirror's
+       row count agree exactly when nothing is missing (measured: 1462 =
+       1462), so a mismatch is a reliable trigger for the real reconcile
+       below — and only then is the expensive call worth making.
+
+       Returns null rather than throwing, so a failed count simply skips the
+       check for that tick instead of failing the whole poll. */
+    productCount: async () => {
+      try {
+        const page = await call('/products' + qs({ limit: 1 }));
+        const n = page && page.total;
+        return Number.isFinite(n) ? n : null;
+      } catch (e) { return null; }
+    },
+
     /* The full id set, used by the daily reconcile to find DELETIONS — which
        updatedFrom can never report. */
     listAllProductIds: async () => {

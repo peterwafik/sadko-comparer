@@ -230,3 +230,56 @@ test('a category with no products returns an empty list, not a throw', async () 
   });
   assert.deepEqual(await api.listCategoryProductIds('206811031'), []);
 });
+
+/* ======================================================================
+   productCount — the cheap half of deletion detection.
+
+   updatedFrom can never report a product that no longer exists, and paging
+   every id to find out costs ~15 requests against this catalogue. One
+   request gives the total, and it matches the mirror exactly when nothing
+   is missing, so only a mismatch pays for the real reconcile.
+   ================================================================== */
+
+test('the count is fetched in ONE request', async () => {
+  const urls = [];
+  const api = openEcwidApi({
+    storeId: 'S', token: 'T',
+    fetchImpl: async (url) => {
+      urls.push(url);
+      return { ok: true, status: 200, text: async () => JSON.stringify({ items: [{ id: 1 }], total: 1462 }) };
+    },
+  });
+  assert.equal(await api.productCount(), 1462);
+  assert.equal(urls.length, 1, 'the count must not page the catalogue');
+  assert.match(urls[0], /limit=1/, 'it should ask for one row, not the whole list');
+});
+
+test('a failed count returns null rather than throwing', async () => {
+  /* It runs inside the minute poll; a network blip must not take the whole
+     sync down or trigger a spurious reconcile. */
+  const api = openEcwidApi({
+    storeId: 'S', token: 'T', retries: 0,
+    fetchImpl: async () => { throw new Error('network'); },
+  });
+  assert.equal(await api.productCount(), null);
+});
+
+test('a nonsense total is refused rather than compared', async () => {
+  /* null !== <mirror count> would reconcile on every tick. */
+  for (const total of [undefined, null, 'many', NaN]) {
+    const api = openEcwidApi({
+      storeId: 'S', token: 'T',
+      fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ items: [], total }) }),
+    });
+    assert.equal(await api.productCount(), null, 'accepted a total of ' + String(total));
+  }
+});
+
+test('zero is a real count, not a missing one', async () => {
+  /* An emptied store must reconcile, not be mistaken for a failed call. */
+  const api = openEcwidApi({
+    storeId: 'S', token: 'T',
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ items: [], total: 0 }) }),
+  });
+  assert.equal(await api.productCount(), 0);
+});

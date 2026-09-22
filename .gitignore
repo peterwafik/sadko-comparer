@@ -63,3 +63,4 @@ site/data/bookings.json
 
 # Claude Code worktrees (isolated workspaces; never committed)
 .claude/worktrees/
+site/preview.log

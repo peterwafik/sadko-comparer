@@ -2037,17 +2037,50 @@ async function categoryTemplate() {
 let ECWID_POLL_INFLIGHT = null;
 let ECWID_POLLED_AT = 0;
 
+/* Categories and store settings change rarely and cost one request each, so
+   they run on every Nth poll rather than every one. At the default 60s that
+   is every five minutes — fast enough that nobody waits a day for a new
+   category, cheap enough to leave on. */
+const ECWID_SLOW_EVERY = 5;
+let ECWID_POLL_TICK = 0;
+
 async function pollEcwid() {
   if (ECWID_POLL_INFLIGHT) return ECWID_POLL_INFLIGHT;
   ECWID_POLL_INFLIGHT = (async () => {
     try {
       const es = ecwidSync();
       const from = es.lastSyncedUnix();
+
+      /* 1. Everything Ecwid says changed since last time. Incremental, so it
+            is one request that usually returns nothing — and every one of the
+            1,462 products if every one of them changed. */
       await es.syncProducts(from ? { updatedFrom: from } : {});
-      /* Folder membership needs its own read: moving an advert between
-         folders changes no product field, so updatedFrom would never report
-         it and the advert would keep its old slot until the daily full sync. */
+
+      /* 2. Advert folder membership, which no product field reflects. */
       await es.syncAdFolders();
+
+      /* 3. DELETIONS, which updatedFrom can never report. Comparing counts is
+            one request instead of paging every id: Ecwid's total and the
+            mirror's agree exactly when nothing is missing, so a mismatch is a
+            reliable trigger for the real reconcile. A mismatch can also mean
+            a product was ADDED and somehow missed above, and a reconcile
+            fixes that too. */
+      try {
+        const live = await ecwidApi().productCount();
+        const mine = ecwidStore().stats().products;
+        if (live != null && live !== mine) {
+          console.log(`[ecwid] product count ${mine} -> ${live}, reconciling`);
+          await es.fullReconcile();
+        }
+      } catch (e) { /* a failed count simply skips the reconcile this tick */ }
+
+      /* 4. Categories and payment/shipping methods, every Nth tick. */
+      if (ECWID_POLL_TICK % ECWID_SLOW_EVERY === 0) {
+        await es.syncCategories();
+        await es.syncSettings();
+      }
+      ECWID_POLL_TICK++;
+
       ecwidSource().invalidate();
     } catch (e) { /* recorded as last_error by the sync itself */ }
     ECWID_POLLED_AT = Date.now();
@@ -2823,6 +2856,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      there is no mirror, so this 404s and the page falls back to the list
      entry it already has — which is exactly the pre-Ecwid behaviour. */
   if (u.pathname.startsWith('/api/product/') && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* the product page must not show a price the shop page has already updated. */
+    await ecwidFresh();
     const id = decodeURIComponent(u.pathname.slice('/api/product/'.length));
     let p = null;
     try { p = ecwidSource().productDetail(id); } catch (e) { p = null; }
@@ -2838,6 +2873,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      store genuinely states about delivery, plus quotable:false and the
      reasons — see engine/ecwid-shipping.mjs for the full evidence. */
   if (u.pathname === '/api/shipping-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* delivery policy staff edited in Ecwid should reach checkout on the next load. */
+    await ecwidFresh();
     let methods = [], counts = {};
     try {
       const st = ecwidStore();
@@ -2850,6 +2887,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/api/payment-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* a payment method switched off in Ecwid must stop being offered. */
+    await ecwidFresh();
     const methods = activePaymentMethods();
     return json(200, {
       source: methods === FALLBACK_METHODS ? 'builtin' : 'ecwid',
@@ -2865,6 +2904,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      the hardcoded map does not. Arabic only: Ecwid holds no usable English for
      this store, so the curated bilingual names still win where they exist. */
   if (u.pathname === '/data/categories.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* a renamed or added category should appear without waiting for a tick. */
+    await ecwidFresh();
     const store = ecwidStore();
     if (store && ecwidSource().activeSource() === 'ecwid') {
       try {
@@ -2882,6 +2923,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/data/collections.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    /* the offers and best-seller rails follow category membership. */
+    await ecwidFresh();
     if (ecwidSource().activeSource() === 'ecwid') {
       try {
         const store = ecwidStore();

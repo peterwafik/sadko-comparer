@@ -62,15 +62,44 @@
     '48143206':  { ar: 'سخانات غاز', en: 'Gas water heaters' },
     '48149056':  { ar: 'سخانات كهرباء', en: 'Electric water heaters' },
   };
-  const catName = cid => { const c = CATS[String(cid)]; return c ? t(c.ar, c.en) : t('فئة', 'Category'); };
+  /* Names Ecwid knows about, merged in as a FALLBACK for ids the curated map
+     lacks. Never overrides a curated entry: those have a real English name and
+     Ecwid holds none for this store. Arabic-only names are used for both
+     languages, which is honest — the alternative is a numeric id. */
+  let ECWID_CATS = {};
+  let ecwidCatsLoaded = null;
+  function loadEcwidCats() {
+    if (ecwidCatsLoaded) return ecwidCatsLoaded;
+    ecwidCatsLoaded = fetch(P('data/categories.json'))
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        for (const c of (d && d.categories) || []) {
+          if (!c || !c.id || !c.name) continue;
+          ECWID_CATS[String(c.id)] = { ar: c.name, en: c.nameEn || c.name };
+        }
+        return ECWID_CATS;
+      })
+      .catch(() => ECWID_CATS);
+    return ecwidCatsLoaded;
+  }
+  loadEcwidCats();
+
+  const catName = cid => {
+    const k = String(cid);
+    const c = CATS[k] || ECWID_CATS[k];
+    return c ? t(c.ar, c.en) : t('فئة', 'Category');
+  };
   const catHref = cid => P('category/' + cid + '.html');
 
   /* Categories with at least one product, for pickers. */
   function liveCats() {
-    return products().then(list => {
+    return Promise.all([products(), loadEcwidCats()]).then(([list]) => {
       const n = {};
       list.forEach(p => { n[String(p.categoryId)] = (n[String(p.categoryId)] || 0) + 1; });
-      return Object.keys(n).filter(k => CATS[k]).map(k => ({ id: k, count: n[k], name: catName(k) }))
+      /* Previously filtered to CATS, which silently returned NOTHING for a
+         store whose ids the curated map does not cover. A category with
+         products in it is real whether or not we have a curated name. */
+      return Object.keys(n).map(k => ({ id: k, count: n[k], name: catName(k) }))
         .sort((a, b) => b.count - a.count);
     });
   }

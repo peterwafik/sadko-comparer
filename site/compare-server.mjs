@@ -2624,6 +2624,26 @@ async function applyEcwidOrderEvent(ev) {
     });
   }
 
+  /* Category names, so the client can label a category Ecwid knows about but
+     the hardcoded map does not. Arabic only: Ecwid holds no usable English for
+     this store, so the curated bilingual names still win where they exist. */
+  if (u.pathname === '/data/categories.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const store = ecwidStore();
+    if (store && ecwidSource().activeSource() === 'ecwid') {
+      try {
+        const cats = store.allCategories()
+          .filter(c => c.enabled !== false && c.name)
+          .map(c => ({ id: c.id, name: c.name, nameEn: c.nameEn, parentId: c.parentId,
+                       order: c.order, count: c.productCount }));
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.setHeader('cache-control', 'no-cache');
+        return res.end(JSON.stringify({ source: 'ecwid', categories: cats }));
+      } catch (e) { /* fall through */ }
+    }
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    return res.end(JSON.stringify({ source: 'none', categories: [] }));
+  }
+
   if (u.pathname === '/data/collections.json' && (req.method === 'GET' || req.method === 'HEAD')) {
     if (ecwidSource().activeSource() === 'ecwid') {
       try {

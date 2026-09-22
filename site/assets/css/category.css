@@ -177,3 +177,25 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
   .card__row .sk-detbtn,
   .card__row .card__buy { font-size: .74rem; padding: 7px 6px; }
 }
+
+
+/* ---- unavailable products in the category grids (nav.js add-to-cart) ----
+   The button stays in the layout rather than disappearing, so the card does not
+   reflow when stock changes; it just stops being a control. */
+.sk-addbtn.is-soldout,
+.sk-addbtn:disabled {
+  background: #fbebed;
+  color: #9d2f44;
+  border-color: #f0d3d8;
+  cursor: not-allowed;
+  opacity: 1;              /* not faded: it is a clear statement, not a dead control */
+}
+.sk-addbtn.is-soldout:hover { background: #fbebed; }
+
+.card[data-stock="out"] .card__imgwrap img { opacity: .55; filter: saturate(.55); }
+
+@media (prefers-color-scheme: dark) {
+  .sk-addbtn.is-soldout,
+  .sk-addbtn:disabled { background: #331c21; color: #ec8e9e; border-color: #4a2a30; }
+  .sk-addbtn.is-soldout:hover { background: #331c21; }
+}

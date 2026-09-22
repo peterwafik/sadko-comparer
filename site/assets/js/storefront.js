@@ -76,7 +76,27 @@
       ? '<img loading="lazy" decoding="async" src="' + esc(p.image) + '" alt="' + esc(title) + '">'
       : '<span class="card__noimg" aria-hidden="true"></span>';
     var buyLabel = opts.buyLabel || (en ? 'Buy now ↗' : 'اشترى الآن');
-    return '<article class="card" data-id="' + esc(p.id) + '" data-cat="' + esc(p.categoryId) + '">' +
+
+    // ---- availability -------------------------------------------------
+    // Ecwid reports stock; the July seed catalogue did not. A product with no
+    // inStock field is therefore treated as available, so behaviour with the
+    // flag off is unchanged. Out of stock is SHOWN, never hidden — hiding it
+    // would understate the range SADKO carries — but it is never offered for
+    // sale, because the shop cannot ship it.
+    var out = p.inStock === false;
+    var soldOut = en ? 'Out of stock' : 'غير متوفر حالياً';
+
+    // ---- a real was-price ---------------------------------------------
+    // Only a staff-entered compareToPrice ABOVE the current price survives.
+    // The mapper already nulls stale ones; re-checking here means the card
+    // cannot claim a discount even if bad data reaches it.
+    var was = Number(p.compareToPrice);
+    var now = Number(p.price);
+    var hasWas = isFinite(was) && isFinite(now) && was > now && was > 0;
+    var offPct = hasWas ? Math.round((was - now) / was * 100) : 0;
+
+    return '<article class="card" data-id="' + esc(p.id) + '" data-cat="' + esc(p.categoryId) + '"' +
+      (out ? ' data-stock="out"' : '') + '>' +
       '<a class="card__imgwrap" href="' + esc(href) + '">' + img + '</a>' +
       '<div class="card__body">' +
         '<h3 class="card__title">' + esc(title) + '</h3>' +
@@ -87,9 +107,13 @@
         // controls fought over ~306px: "Details & size" was squeezed to 65px (three
         // wrapped lines) and "Add to cart" to 49px (four). .card__row is now the
         // action block ALONE, which is also the element nav.js appends into.
-        '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small></span>' +
+        '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small>' +
+          (hasWas ? ' <s class="card__was">' + money(was) + '</s> <em class="card__off">-' + offPct + '%</em>' : '') +
+        '</span>' +
         '<div class="card__row">' +
-          '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(buyLabel) + '</a>' +
+          (out
+            ? '<span class="card__soldout">' + esc(soldOut) + '</span>'
+            : '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(buyLabel) + '</a>') +
         '</div>' +
       '</div>' +
     '</article>';

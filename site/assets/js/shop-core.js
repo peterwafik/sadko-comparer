@@ -474,7 +474,7 @@
     var seen = {};
     function push(kind, label, score, extra) {
       if (!score) return;
-      var key = kind + ' ' + norm(label);
+      var key = kind + '\u0000' + norm(label);
       if (seen[key]) return;
       seen[key] = 1;
       // Shorter labels win ties: the query accounts for more of them.
@@ -529,7 +529,21 @@
     var out = list.slice();
     if (sort === 'price-asc') out.sort(function (a, b) { return a.price - b.price; });
     else if (sort === 'price-desc') out.sort(function (a, b) { return b.price - a.price; });
-    return out;
+    // Whatever the shopper sorted by, what they cannot buy goes last. The data
+    // layer already partitions on stock, but a price sort re-orders the WHOLE
+    // list and would scatter unavailable products back through the grid — 470
+    // of the 990 products Ecwid shows are out of stock. Being out of stock is
+    // never a reason to DROP a product, only to rank it last.
+    return outOfStockLast(out);
+  }
+
+  // Stable: in-stock keep their relative order, then out-of-stock keep theirs.
+  function outOfStockLast(list) {
+    var yes = [], no = [];
+    for (var i = 0; i < list.length; i++) {
+      (list[i] && list[i].inStock === false ? no : yes).push(list[i]);
+    }
+    return yes.concat(no);
   }
 
   function paginate(list, page, per) {

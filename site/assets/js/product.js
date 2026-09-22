@@ -111,6 +111,13 @@
     /* ---- headline + actions ---- */
     function head(p, s, dispTitle) {
       const saved = St.saved.has(p.id);
+      /* Ecwid reports stock and a staff-entered compare-at price; the July seed
+         catalogue had neither, so a product missing these fields behaves
+         exactly as it always did. */
+      const out = p.inStock === false;
+      const was = Number(p.compareToPrice), now = Number(p.price);
+      const hasWas = isFinite(was) && isFinite(now) && was > now && was > 0;
+      const offPct = hasWas ? Math.round((was - now) / was * 100) : 0;
       return '<h1 class="pdp__title" style="font:900 clamp(1.3rem,3vw,1.9rem) Cairo,sans-serif;margin:0 0 10px;line-height:1.4">' + esc(dispTitle) + '</h1>' +
         '<div class="chips mt8">' +
           (s.brand ? '<span class="chip">' + esc(t(s.brand.ar, s.brand.en)) + '</span>' : '') +
@@ -118,10 +125,19 @@
           (s.energy.cls ? '<span class="chip chip--ok">' + t('كفاءة طاقة ', 'Energy class ') + esc(s.energy.cls) + '</span>' : '') +
           (s.energy.inverter ? '<span class="chip chip--ok">' + t('انفرتر', 'Inverter') + '</span>' : '') +
         '</div>' +
-        '<p class="pdp__price" style="font:900 1.8rem Cairo,sans-serif;color:var(--accent);margin:16px 0 4px">' + A.money(p.price) + '</p>' +
+        '<p class="pdp__price" style="font:900 1.8rem Cairo,sans-serif;color:var(--accent);margin:16px 0 4px">' + A.money(p.price) +
+          (hasWas ? ' <s class="pdp__was" style="font-size:.62em;font-weight:600;color:var(--muted)">' + A.money(was) + '</s>' +
+                    ' <em class="pdp__off" style="font-size:.55em;font-weight:800;color:var(--ok,#2f6b46);font-style:normal">-' + offPct + '%</em>' : '') +
+        '</p>' +
         '<p class="muted small pdp__caveat" style="margin:0 0 16px">' + t('سعر صادكو وقت آخر تحديث للكتالوج — أكّد السعر قبل الشراء.', 'SADKO price at the last catalogue update — confirm before buying.') + '</p>' +
+        (out ? '<p class="note note--warn" style="margin:0 0 16px">' +
+                 t('هذا المنتج غير متوفر حالياً. يمكنك حفظه أو الاتصال بخدمة العملاء على 19140 للسؤال عن موعد توفره.',
+                   'This product is out of stock. You can save it, or call customer care on 19140 to ask when it will be available.') +
+               '</p>' : '') +
         '<div class="chips">' +
-          '<a class="btn btn--primary" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + t('اشترى من صادكو', 'Buy from SADKO') + '</a>' +
+          /* Out of stock keeps Compare, Save and Add-to-plan — all still useful —
+             but loses the buy button, because the shop cannot ship it. */
+          (out ? '' : '<a class="btn btn--primary" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + t('اشترى من صادكو', 'Buy from SADKO') + '</a>') +
           '<a class="btn btn--teal" href="' + A.P('compare.html') + '?q=' + encodeURIComponent(cleanTitle(p.title)) + '">' + t('قارن الأسعار', 'Compare prices') + '</a>' +
           '<button class="btn btn--ghost" id="btnSave">' + (saved ? t('محفوظ ✓', 'Saved ✓') : t('احفظ', 'Save')) + '</button>' +
           '<a class="btn btn--ghost" href="' + A.P('plan.html') + '?add=' + encodeURIComponent(p.id) + '">' + t('ضيفه لخطة', 'Add to a plan') + '</a>' +

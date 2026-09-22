@@ -40,14 +40,14 @@
       savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
       more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
       grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
-      pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ أُضيف', langBtn: 'EN', langTitle: 'Switch to English' },
+      pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ أُضيف', soldOut: 'غير متوفر حالياً', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
       orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
       finder: 'Help me choose', plan: 'Shopping plans', guides: 'Buying guides', care: 'Customer care',
       savedAria: 'Saved products', acctAria: 'My account', details: 'Details & size',
       more: 'More', appliances: 'My appliances', account: 'My account', saved: 'Saved', cart: 'Cart',
       grpBefore: 'Plan your purchase', grpAfter: 'After buying', menu: 'Menu', close: 'Close',
-      pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
+      pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', soldOut: 'Out of stock', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
   }[LANG];
   const CAT_EN = {
     'ثلاجات': 'Refrigerators', 'نو فروست': 'No frost', 'ديفروست': 'Defrost',
@@ -95,6 +95,13 @@
     count: () => readCart().reduce((n, i) => n + i.qty, 0),
     total: () => readCart().reduce((n, i) => n + (i.price || 0) * i.qty, 0),
     add(p, qty) {
+      /* Defence in depth. The button is disabled and the buy link is gone, but
+         a page left open before a sync, or a second tab, could still reach
+         here. Taking money for something SADKO cannot ship is the one outcome
+         worth guarding twice. A product with NO inStock field — the seed
+         catalogue — is still perfectly addable, so behaviour with the Ecwid
+         flag off is unchanged. */
+      if (p && p.inStock === false) return false;
       const items = readCart();
       const hit = items.find(i => i.id === p.id);
       if (hit) hit.qty += (qty || 1);
@@ -498,14 +505,24 @@
         row.appendChild(det);
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = 'sk-addbtn';
-        b.textContent = N.add;
-        b.addEventListener('click', () => {
-          skCart.add(prod);
-          b.textContent = N.added;
-          b.classList.add('is-done');
-          setTimeout(() => { b.textContent = N.add; b.classList.remove('is-done'); }, 1400);
-        });
+        /* An out-of-stock product keeps its card and its details link — it is
+           still worth discovering, and hiding it would understate the range
+           SADKO carries — but it cannot be added to a cart. */
+        if (prod.inStock === false) {
+          b.className = 'sk-addbtn is-soldout';
+          b.disabled = true;
+          b.textContent = N.soldOut;
+          card.setAttribute('data-stock', 'out');
+        } else {
+          b.className = 'sk-addbtn';
+          b.textContent = N.add;
+          b.addEventListener('click', () => {
+            skCart.add(prod);
+            b.textContent = N.added;
+            b.classList.add('is-done');
+            setTimeout(() => { b.textContent = N.add; b.classList.remove('is-done'); }, 1400);
+          });
+        }
         row.appendChild(b);
       });
       mountPrefsBar();

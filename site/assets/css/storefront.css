@@ -433,3 +433,58 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   .btile { scroll-snap-align: start; }
   .btile__mark { width: 74px; height: 74px; }
 }
+
+
+/* ============================================================================
+   Availability and real was-prices — added when Ecwid became the catalogue
+   source. Before that the catalogue carried neither field, so these classes
+   simply never appear on the seed data and nothing below can affect it.
+   ========================================================================== */
+
+/* A struck-through OLD price, only ever rendered when a staff-entered
+   compare-at price is genuinely higher than the current one. */
+.card__was {
+  color: var(--muted, #6d7f85);
+  font-weight: 600;
+  font-size: .82em;
+  text-decoration-thickness: 1px;
+  margin-inline-start: 2px;
+}
+
+/* The saving. Semantic green, deliberately not the brand accent: this is a
+   fact about the price, not a brand flourish. */
+.card__off {
+  font-style: normal;
+  font-weight: 800;
+  font-size: .78em;
+  color: #2f6b46;
+  background: #e8f2ea;
+  border-radius: 3px;
+  padding: .05em .3em;
+  white-space: nowrap;
+}
+
+/* The whole card is dimmed, not hidden: an unavailable product is still worth
+   discovering, and hiding it would understate the range SADKO carries. The
+   image carries the dimming so the TEXT stays fully legible — a greyed-out
+   title reads as broken rather than as unavailable. */
+.card[data-stock="out"] .card__imgwrap img { opacity: .55; filter: saturate(.55); }
+
+/* Replaces the buy link in the action row. Looks like a state, not a control,
+   so nobody tries to click it. */
+.card__soldout {
+  display: inline-block;
+  font-weight: 700;
+  font-size: .82rem;
+  color: #9d2f44;
+  background: #fbebed;
+  border: 1px solid #f0d3d8;
+  border-radius: 6px;
+  padding: .42em .8em;
+  cursor: default;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card__off { color: #7cc496; background: #15291d; }
+  .card__soldout { color: #ec8e9e; background: #331c21; border-color: #4a2a30; }
+}

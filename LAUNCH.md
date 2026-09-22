@@ -1399,8 +1399,93 @@ A page already open in a visitor's browser does not change under them; they see
 the update on their next navigation. That is ordinary web behaviour, not a
 sync problem.
 
-The **daily** full reconcile is separate and stays daily: it exists to find
-products DELETED in Ecwid, which `updatedFrom` can never report.
+Deletions used to wait for the **daily** reconcile, because `updatedFrom` can
+never report a product that no longer exists. The minute poll now compares
+Ecwid's product **count** with the mirror's — one request, and the two agree
+exactly when nothing is missing — and runs the full reconcile only when the
+numbers disagree. Paging all 1,462 ids every minute to learn the same thing
+would be about fifteen requests a minute. The daily reconcile stays as a
+backstop; nothing routine depends on it any more.
+
+**Categories and payment/shipping methods** refresh on every fifth poll — five
+minutes at the default. They are one request each but change rarely, so they do
+not need to ride every tick. Before this they only came round on the daily sync,
+so a new category or a payment method switched off took a day to appear.
+
+#### Every page, and how fast it follows Ecwid
+
+"Refresh rate" below is the worst case with webhooks off (development, or
+production before the webhook is registered). With webhooks on, every row
+marked *on load / ≤60s* becomes **instant** — Ecwid pushes the change the
+moment it is saved.
+
+| Page | What it shows from Ecwid | Served by | Refresh rate |
+|---|---|---|---|
+| `index.html` | Home rails, hotspot products, banner strap | `/data/products.json`, `/data/promos.json` | on load, else ≤60s |
+| `shop.html` | The whole catalogue, category filters, all three advert slots | `/data/products.json`, `/data/categories.json`, `/data/collections.json`, `/data/promos.json` | on load, else ≤60s |
+| `shop.html?cat=NNN` | One category, plus its own top banner | same, filtered client-side | on load, else ≤60s |
+| `product.html?id=NNN` | One product in full: rich description, images, stock, was-price | `/api/product/:id` | on load, else ≤60s |
+| `cart.html` | Prices and stock re-read from the catalogue | `/data/products.json` | on load, else ≤60s |
+| `checkout.html` | Payment methods, delivery policy | `/api/payment-methods`, `/api/shipping-methods` | on load, else ≤5 min |
+| `account.html` | Payment methods; order history | `/api/payment-methods`, `/api/orders` | on load; orders **not yet wired** |
+| `orders.html` | A customer's orders | `/api/orders` | **local only** — see the gaps below |
+| `compare.html` | Nothing from Ecwid | `/api/compare` | live scrape, unrelated |
+| `finder.html` | Questions local; results from the catalogue | `data/finder.json`, `/data/products.json` | questions **local file**; products ≤60s |
+| `guides.html`, `care.html`, `plan.html` | Nothing from Ecwid | `data/guides.json` | **local file** — edited in the SADKO panel |
+| `delivery.html`, `warranty.html`, `showrooms.html`, `about.html`, `contact.html`, `values.html`, `privacy.html`, `terms.html` | Nothing from Ecwid | static HTML | **local** |
+| `admin.html` | Sync status, counts, last error | `/api/admin/ecwid` | live on every open |
+
+#### The endpoints behind them
+
+Seven routes read Ecwid. Every one of them **revalidates before answering**:
+if the last check is older than the poll interval it asks Ecwid first, so a
+reload after an edit shows the edit. The bound is what stops a busy page from
+stampeding the API — a hundred simultaneous visitors cause one call, not a
+hundred.
+
+| Endpoint | Content | Revalidates on request | Background refresh |
+|---|---|---|---|
+| `/data/products.json` | The served catalogue (list shape, no rich copy) | yes | every 60s, incremental |
+| `/api/product/:id` | One product in full | yes | every 60s, incremental |
+| `/data/promos.json` | All eight adverts, merged per slot | yes | every 60s + folder re-read |
+| `/data/categories.json` | Category tree | yes | every 5th poll (5 min) |
+| `/data/collections.json` | Offers / best-seller rails | yes | every 5th poll (5 min) |
+| `/api/payment-methods` | Ecwid's method list, with the brand restrictions | yes | every 5th poll (5 min) |
+| `/api/shipping-methods` | Delivery policy and quote readiness | yes | every 5th poll (5 min) |
+| `/api/ecwid/webhook` | Ecwid's push (production only) | — | instant, signature-checked |
+| `/api/admin/ecwid/sync` | "Sync now", behind an admin session | — | on demand |
+| — | Full reconcile, the backstop | — | daily |
+
+These are **not** Ecwid-backed and do not change when Ecwid does:
+
+| Endpoint | Content | Refresh |
+|---|---|---|
+| `data/guides.json` | Buying guides, care articles, plan copy | when an admin edits it |
+| `data/finder.json` | Finder questions and scoring | when an admin edits it |
+| `data/price-index.json`, `/api/stores` | The price comparer's own data | its own schedule |
+| `/api/compare` | A live scrape of other retailers | per request |
+
+`Cache-Control: no-cache` is set on the `/data/*.json` routes, so a browser
+revalidates rather than serving a stale copy from disk.
+
+#### What is NOT wired to Ecwid yet
+
+Ordered by what it costs the business, not by effort.
+
+| # | Gap | Why it is not done | What unblocks it |
+|---|---|---|---|
+| 1 | **Orders never reach Ecwid.** A completed order is stored locally and parked in a retry queue. | The configured token is a `public_` one; `POST /orders` answers **403**. | The owner issues a `secret_` token with order scope. The push code, its idempotency ref and the two-minute retry are written and waiting. |
+| 2 | **No delivery charge is ever shown.** Checkout states delivery is arranged after the order, and no grand total is invented. | Two independent causes, both in Ecwid's data: **no shipping method has a destination zone** (so the first one, Greater Cairo, would apply to every address in Egypt), and **0 of 1,453 products have a weight** (the methods are banded by product size, so the band cannot be chosen). | Ecwid → Shipping & Pickup → set each method's governorates; then enter product weights. Never let the customer pick the band — they could choose the LE 275 small-appliance rate for a refrigerator. |
+| 3 | **Customer accounts are SADKO's, not Ecwid's.** Sign-in, sessions and saved homes are local. | Ecwid has **no API that verifies a customer's password**. This is a hard limit, not a missing task. | Nothing. Email is the key: a customer's Ecwid orders are merged into their SADKO history by email once the secret token lands. |
+| 4 | **Order history shows only site orders.** Orders staff typed directly into Ecwid do not appear. | `GET /orders` answers 403 on this token. The merge is written but **unverified against a real payload**. | The same secret token as #1 — then check the merged output against one real order before trusting it. |
+| 5 | **Adverts must stay Enabled in Ecwid.** They therefore also appear in Ecwid's own storefront. | A `public_` token cannot read a disabled product, so a disabled advert arrives as an id-only stub with no image. | The secret token. Then the eight adverts can be disabled and will still render here. |
+| 6 | **Guides, care articles, finder questions, reviews and Q&A are local.** | Ecwid has no field for any of them. | Nothing to unblock — they stay in the SADKO panel by design. |
+| 7 | **Bilingual advert copy is local.** Ecwid holds one name and one description per advert; the site shows them as-is. | Ecwid's translation fields are not populated in this store. | Either populate them, or keep the bilingual strap in `promos.json` as the fallback it already is. |
+| 8 | **Instalment-plan brand eligibility is a label, not a rule.** Two Ecwid payment methods are restricted to one manufacturer's products; the site names the brand and flags them `restricted`. | Ecwid **cannot enforce a product restriction on a manual payment method**, so nothing stops a customer selecting one. | Enforcement would have to be added on the SADKO side at checkout. |
+| 9 | **The admin panel is a read-only window on Ecwid fields.** Title, price, image, description, category, URL and brand are refused with a reason; `badge` stays editable. | Deliberate — a local edit would be overwritten by the next sync. | Nothing. Edit those in Ecwid. |
+| 10 | **Webhooks are not registered.** Everything above runs on the 60-second poll. | Ecwid cannot reach `localhost`; this only works on the public URL. | Register the endpoint on the production host — see *Webhooks* above. |
+| 11 | **Production has never been synced.** All of this is measured against test store `142682751`. | Store `18028328` needs its own token, and its ids are completely different. | A production token, then `tools/ecwid-diff.mjs` before any cutover. |
+
 
 ### Advertisement folders — one Ecwid category per banner slot
 
@@ -1626,6 +1711,22 @@ needed for orders and customers.
 This also corrects an earlier reading of the catalogue recorded elsewhere in
 this runbook: the ~463 products described as "empty shells with no name" are in
 fact **disabled products** that the public token cannot see into.
+
+#### Two housekeeping items in the panel
+
+Neither breaks anything; both are visible to whoever edits the adverts next.
+
+- **The third hero advert (`اعلان 3`, id `866616783`) has no image and still
+  carries its original ad-hoc name.** An advert with no artwork is skipped —
+  the log says `ad 866616783 (hero) cannot render: no-image` — so the hero
+  strap currently rotates two, not three. Either upload a 1500×570 image and
+  rename it to the positional convention the other seven use, or delete it.
+  It cannot be renamed from here: a `public_` token cannot write.
+
+- **Square advert 3 pointed at a product that does not exist** (`product:837495061`).
+  The site no longer follows a dead destination — it falls back to the shop
+  page — but the SKU is still wrong, so that advert goes somewhere generic
+  rather than where it was meant to. Set its SKU to a real `product:NNN`.
 
 ### Category pages work against either store — read this before "fixing" one
 

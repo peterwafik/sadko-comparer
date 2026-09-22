@@ -152,8 +152,78 @@ test('a banner entry maps to the promos.json shape', () => {
   assert.equal(b.title, 'عروض الصيف');
   assert.equal(b.sub, 'خصومات على التكييفات');
   assert.equal(b.image, 'https://cdn/banner.jpg');
-  assert.equal(b.href, 'https://sadko/shop');
   assert.equal(b.source, 'ecwid');
+  /* The href used to be p.url — the banner entry's own page on Ecwid's
+     storefront — which made the homepage's largest click target a door out of
+     the site. It is now an in-site destination; the rules are below. */
+  assert.equal(b.href, 'shop.html');
+  assert.ok(!b.href.includes('sadko/shop'), 'the banner still links to Ecwid');
+});
+
+/* ======================================================================
+   Where a banner sends the shopper.
+
+   This is the one part of a banner the owner sets with an existing field on
+   the Ecwid product form: the ordinary category the banner is assigned to
+   becomes its click-through. It must never be the Ecwid product URL —
+   shop.js passes an absolute href straight through, so nothing downstream
+   would catch it.
+   ================================================================== */
+
+test('a banner NEVER links to the Ecwid storefront', () => {
+  const [b] = deriveBanners([B(1, { url: 'https://sadko-test.company.site/products/x-9001' })]);
+  assert.ok(!/company\.site|app\.ecwid\.com/.test(b.href), 'the banner href is: ' + b.href);
+});
+
+test('the category a banner is assigned to becomes its destination', () => {
+  /* "This banner advertises air conditioners" → it opens the air
+     conditioners page on THIS site. */
+  const [b] = deriveBanners([B(1, { categoryIds: ['206629766'] })]);
+  assert.equal(b.href, 'shop.html?cat=206629766');
+});
+
+test('the banner category itself is never offered as a destination', () => {
+  /* It is a container for adverts, not a place to send a shopper — and its
+     page would be a list of banners. */
+  const [b] = deriveBanners([B(1, { categoryIds: ['206811031'] })],
+                            { bannerCategoryId: '206811031' });
+  assert.equal(b.href, 'shop.html');
+});
+
+test('the banner category is skipped even when a real category sits beside it', () => {
+  const [b] = deriveBanners([B(1, { categoryIds: ['206811031', '206629766'] })],
+                            { bannerCategoryId: '206811031' });
+  assert.equal(b.href, 'shop.html?cat=206629766');
+});
+
+test('the default category is used when categoryIds is empty', () => {
+  /* Ecwid omits a DISABLED category from categoryIds, so a banner in a hidden
+     banner category can arrive with an empty array and a defaultCategoryId. */
+  const [b] = deriveBanners([B(1, { categoryIds: [], categoryId: '206642016' })]);
+  assert.equal(b.href, 'shop.html?cat=206642016');
+});
+
+test('Ecwid\'s 0 for "no category" is not treated as a category', () => {
+  const [b] = deriveBanners([B(1, { categoryIds: ['0'], categoryId: '0' })]);
+  assert.equal(b.href, 'shop.html');
+});
+
+test('a banner assigned to nothing lands on the shop, not on a dead link', () => {
+  const [b] = deriveBanners([B(1, { categoryIds: [], categoryId: null })]);
+  assert.equal(b.href, 'shop.html');
+});
+
+test('the destination is a site-root-relative path, which shop.js can re-base', () => {
+  /* shop.js resolves these through P() so a banner also works on the 30 pages
+     under /category/; it deliberately leaves absolute URLs alone, which is
+     exactly why the old Ecwid href escaped notice. */
+  const [b] = deriveBanners([B(1, { categoryIds: ['206629766'] })]);
+  assert.ok(!/^([a-z]+:|\/\/|\/)/i.test(b.href), 'not re-basable: ' + b.href);
+});
+
+test('a category id with URL-unsafe characters is encoded', () => {
+  const [b] = deriveBanners([B(1, { categoryIds: ['a b&c'] })]);
+  assert.equal(b.href, 'shop.html?cat=a%20b%26c');
 });
 
 test('the SKU carries the slot, and an unknown slot falls back to square', () => {
@@ -228,4 +298,23 @@ test('deriveBanners reads the prefixed SKU form as the slot', () => {
   assert.equal(deriveBanners([B(1, { sku: 'banner-wide' })])[0].slot, 'wide');
   assert.equal(deriveBanners([B(1, { sku: 'BANNER-SQUARE' })])[0].slot, 'square');
   assert.equal(deriveBanners([B(1, { sku: 'banner-nonsense' })])[0].slot, 'square');
+});
+
+test('a banner assigned to a category is TARGETED to that category page', () => {
+  /* Not just a destination: shop.js's promoCats() reads ?cat=NNN out of the
+     banner's own href to decide which pages it appears on. So assigning a
+     banner to air conditioners both points it at that aisle and keeps it off
+     the washing-machine page. The category/NNN.html form would not match that
+     pattern and every banner would have gone everywhere. */
+  const [b] = deriveBanners([B(1, { categoryIds: ['206629766'] })]);
+  assert.match(b.href, /[?&]cat=(\d+)/, 'shop.js cannot tell which category this banner is for');
+  assert.equal(/[?&]cat=(\d+)/.exec(b.href)[1], '206629766');
+});
+
+test('a brand-wide banner has no cat, so it shows on every page', () => {
+  /* The instalments and delivery banners are honest anywhere — promoCats
+     returns [] for them and adsFor treats that as brand-wide. */
+  const [b] = deriveBanners([B(1, { categoryIds: [], categoryId: null })]);
+  assert.ok(!/[?&]cat=/.test(b.href));
+  assert.equal(b.href, 'shop.html');
 });

@@ -1,13 +1,18 @@
 // site/engine/no-outbound.test.mjs
 /* Nothing on this site may send a shopper somewhere else to buy from SADKO.
 
-   There were three such exits, found and closed one after another:
+   There were four such exits, found and closed one after another:
      • product cards hrefed p.url, the Ecwid storefront
      • the product page's primary button did the same, in a new tab
      • the price comparer's own SADKO row said "Buy from SADKO ↗" and went to
        the old WordPress listing on sadko-group.com
+     • an Ecwid BANNER's click-through was p.url too — latent, because the
+       banner category is still empty, so it would have appeared on the
+       owner's very first banner
 
-   A single grep over the client scripts is what stops a fourth appearing. */
+   The greps below cover the client scripts; the banner case is asserted
+   against the mapper at the bottom, because the engine builds that href and
+   no amount of grepping assets/js/ would have found it. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -96,4 +101,38 @@ test('a mailto is not an outbound buy link', () => {
      address appears in several files and must keep working. */
   const withMail = SHOPPER_FACING.filter(n => /mailto:csupport@sadko-group\.com/.test(read(n)));
   assert.ok(withMail.length >= 2, 'the support address vanished from the site');
+});
+
+/* ---------------------------- and the banners -------------------------- */
+/* The fourth exit, found while documenting the banner feature: an Ecwid
+   banner's click-through was p.url — the entry's own page on Ecwid's
+   storefront. It never showed, because the banner category is still empty, so
+   it would have appeared on the owner's FIRST banner. The engine builds that
+   href, not a client script, which is why the greps above could not see it. */
+
+import { deriveBanners } from './ecwid-rails.mjs';
+
+test('no Ecwid banner can send a shopper to another storefront', () => {
+  const b = deriveBanners([{
+    id: '9001', title: 'ت', description: 'د', sku: 'banner-hero',
+    image: 'https://cdn/a.jpg', images: ['https://cdn/a.jpg'],
+    url: 'https://sadko-test.company.site/products/banner-hero-9001',
+    categoryId: '206811031', categoryIds: [],
+  }], { bannerCategoryId: '206811031' })[0];
+  assert.ok(b, 'the banner was dropped entirely');
+  assert.ok(!/company\.site|app\.ecwid\.com|sadko-group\.com/.test(b.href),
+    'the banner href leaves the site: ' + b.href);
+});
+
+test('the banner mapper does not read p.url at all any more', () => {
+  const src = readFileSync(path.join(import.meta.dirname, 'ecwid-rails.mjs'), 'utf8');
+  const fn = /export function deriveBanners[\s\S]{0,2400}?\n}/.exec(src)[0];
+  assert.ok(!/href: p\.url/.test(fn), 'the outbound href is back');
+});
+
+test('the server tells the banner mapper which category is the banner one', () => {
+  /* Without it, a banner in the banner category would offer that category as
+     its own destination — a page listing adverts. */
+  const server = readFileSync(path.join(import.meta.dirname, '..', 'compare-server.mjs'), 'utf8');
+  assert.match(server, /deriveBanners\(await ecwidSource\(\)\.banners\(\),[\s\S]{0,120}bannerCategoryId/);
 });

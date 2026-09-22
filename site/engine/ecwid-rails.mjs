@@ -122,7 +122,55 @@ export function deriveRails(products, {
 const SLOTS = new Set(['hero', 'wide', 'square']);
 const ART_FOR_SLOT = { hero: 'wide', wide: 'wide', square: 'square' };
 
-export function deriveBanners(bannerProducts = []) {
+/* Where a banner sends the shopper.
+
+   NEVER p.url. That is the banner entry's own page on Ecwid's storefront, and
+   pointing the homepage's largest click target at another shop is the bug this
+   replaces — shop.js passes an absolute URL straight through, so nothing
+   downstream would have caught it.
+
+   The owner controls it from the panel instead, with a field that is already
+   on the product form: assign the banner entry to the ordinary category it is
+   advertising, and that category's page becomes the destination. The banner
+   category itself is skipped (it is not a place to send anyone), and so is
+   Ecwid's 0 for "no category". A banner assigned to nothing lands on the shop,
+   which is a weak destination but a safe one.
+
+   For a banner that must point somewhere a category cannot express — the
+   contact page, the delivery page, one specific product — the local
+   promos.json route in the SADKO admin still takes an arbitrary href, and an
+   Ecwid banner overrides it wholesale (see the /data/promos.json route), so
+   the two are an either/or choice, not a merge. */
+function bannerHref(p, bannerCategoryId) {
+  const banner = bannerCategoryId == null ? null : String(bannerCategoryId);
+  const usable = id => {
+    const v = String(id == null ? '' : id).trim();
+    return v && v !== '0' && v !== banner ? v : null;
+  };
+  /* "shop.html?cat=NNN", NOT "category/NNN.html", and that is load-bearing
+     twice over:
+
+       · shop.js promoCats() decides WHICH PAGE a banner appears on by reading
+         ?cat=NNN out of its own href. A banner assigned to air conditioners
+         therefore becomes the banner on the air-conditioners page, and is kept
+         off the washing-machine page — "advertising fridges on the washing
+         machine page is the one thing worse than no banner at all". The
+         category/NNN.html form does not match that pattern, so every banner
+         would have been treated as brand-wide and shown everywhere.
+
+       · it is the same form the local promos.json already uses
+         ("shop.html?cat=38032005"), so both sources behave identically. */
+  const list = Array.isArray(p.categoryIds) ? p.categoryIds : [];
+  for (const id of list) {
+    const ok = usable(id);
+    if (ok) return 'shop.html?cat=' + encodeURIComponent(ok);
+  }
+  const dflt = usable(p.categoryId);
+  if (dflt) return 'shop.html?cat=' + encodeURIComponent(dflt);
+  return 'shop.html';
+}
+
+export function deriveBanners(bannerProducts = [], { bannerCategoryId = null } = {}) {
   const out = [];
   for (const p of bannerProducts) {
     if (!p) continue;
@@ -147,7 +195,7 @@ export function deriveBanners(bannerProducts = []) {
       art: ART_FOR_SLOT[slot],
       title,
       sub: String(p.description || '').trim() || undefined,
-      href: p.url || undefined,
+      href: bannerHref(p, bannerCategoryId),
       image,
       alt: title,
       source: 'ecwid',

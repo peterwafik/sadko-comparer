@@ -2805,14 +2805,20 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   if (u.pathname === '/data/promos.json' && (req.method === 'GET' || req.method === 'HEAD')) {
     if (ecwidSource().activeSource() === 'ecwid' && ECWID_BANNER_CATEGORY) {
       try {
-        const promos = deriveBanners(await ecwidSource().banners());
+        /* The banner category is passed so a banner's own category is never
+           offered as its destination. */
+        const promos = deriveBanners(await ecwidSource().banners(),
+                                     { bannerCategoryId: ECWID_BANNER_CATEGORY });
         if (promos.length) {
           res.setHeader('content-type', 'application/json; charset=utf-8');
           res.setHeader('cache-control', 'no-cache');
           return res.end(JSON.stringify({
             note: 'Derived from Ecwid category ' + ECWID_BANNER_CATEGORY + '. Each entry is a ' +
                   'BANNER, not a product: image = artwork, name = headline, description = ' +
-                  'subtitle, SKU = slot, product URL = click-through. These entries are ' +
+                  'subtitle, SKU = slot. The CLICK-THROUGH is the ordinary category the ' +
+                  'banner entry is also assigned to (its page on THIS site), or the shop when ' +
+                  'it has none — never the Ecwid product URL, which would send the shopper to ' +
+                  'another storefront. These entries are ' +
                   'excluded from the catalogue, search and rails. No English fields: Ecwid ' +
                   'holds no usable translations, and copying Arabic into an English field ' +
                   'would be worse than omitting it.',

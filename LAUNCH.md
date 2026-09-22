@@ -1340,17 +1340,64 @@ and enable it only if the fees-to-be-confirmed line survives in the template. An
 email implying free delivery is a false statement to a customer — leave it off
 and report back rather than shipping it.
 
-### When staff add a category in Ecwid
+### Category pages work against either store — read this before "fixing" one
 
-Categories sync as data, but `site/category/*.html` are 30 static pages generated
-from a hardcoded Arabic-and-English name map with build-time asserts. A new Ecwid
-category therefore has no page, and `node site/mkcategories.mjs` will fail the
-assert — on purpose, because an English category name cannot be invented.
+The 30 pages in `site/category/` and the Shop dropdown in `site/assets/js/nav.js`
+are keyed to **production** category ids. The test store shares **none** of them.
+That used to mean two separate empty-page bugs:
 
-To add one: get the English name from the owner, add the id to `NAMES` and the
-pair to `CAT_EN` in **both** `site/mkcategories.mjs` and
-`site/assets/js/nav.js` (they must stay in sync), run
-`node site/mkcategories.mjs`, and deploy.
+* Picking a category from the Shop menu loaded, say, `category/38022381.html`,
+  found no product in category `38022381`, and rendered "لا يوجد منتجات فى هذا
+  القسم حاليًا". The page existed and was empty.
+* Any link built from a **live** id — `appshell.js`'s `catHref` does exactly
+  that — asked for `category/206642016.html`, which no file matches. A 404.
+
+Both are now resolved **when the page is served**, by the one thing the two
+stores share: the category name, which every static page already carries in
+`data-cat-name`. See `site/engine/category-alias.mjs`.
+
+Name matching is not equality, because staff typed the names by hand in Ecwid:
+
+| The static page says | Ecwid says |
+|---|---|
+| خلاطات ومحضرات طعام | خلاطات و محضرات طعام |
+| أجهزة صغيرة | اجهزة صغيرة |
+| كاتيل وماكينات قهوة | كاتيل و ماكينات قهوة |
+| أفران وبوتاجازات | أفران |
+| الأكثر مبيعاً | المنتجات الاكثر مبيعاً |
+
+So it tries exact, then space-insensitive, then containment, stopping at the
+first tier with exactly **one** candidate. An ambiguous name resolves to
+**nothing** on purpose — sending a shopper who asked for washing machines to the
+dishwashers is worse than the empty page. In production, where the ids already
+agree, the file is served byte-for-byte from disk.
+
+**A parent category browses its whole subtree.** Ecwid files a product under the
+child only: 0 of the 144 products in "نو فروست" mention their parent "ثلاجات".
+Matching the parent id alone found nothing, so the fridges page was empty with
+217 fridges one level down. `shop.js` loads `data/categories.json` for `parentId`
+and `shop-core.js` expands the subtree. It also reads `categoryIds` rather than
+just the single default `categoryId`, so the 70 products that sit in more than
+one category appear in each of them.
+
+**A product with no category gets no facet.** Ecwid uses 0 for "no category" and
+the mapper nulls it; 7 products (gym equipment) are in that state. They used to
+be counted under `String(null)` and rendered a nameless "فئة"/"Category" facet
+that led to another empty page. They stay in the listing and in search.
+
+#### When staff add a category in Ecwid
+
+**Nothing is required for it to work.** A live category with no file of its own
+gets a page generated from one of the hand-built shells, so `catHref` and the
+facet rail both reach it. That is a change from the old behaviour, where a new
+category had no page at all.
+
+You only need a **static** page for a category that should have a stable URL in
+the Shop dropdown and in sitemaps. For that: get the English name from the owner,
+add the id to `NAMES` and the pair to `CAT_EN` in **both**
+`site/mkcategories.mjs` and `site/assets/js/nav.js` (they must stay in sync), run
+`node site/mkcategories.mjs`, and deploy. The build asserts on a missing English
+name on purpose — a category name cannot be invented.
 
 Note also that Ecwid hides disabled categories from `GET /categories` unless you
 pass `hidden_categories=true`, and even then returns them as id-only stubs with

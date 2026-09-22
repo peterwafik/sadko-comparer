@@ -165,3 +165,31 @@ test('the runbook flags the customer and order reads as UNVERIFIED', () => {
   assert.match(section[0], /unverified/i);
   assert.match(section[0], /four Ecwid field names|guessed four/i);
 });
+
+/* --------------------- category pages across stores -------------------- */
+
+test('the runbook explains that category pages resolve by NAME across stores', () => {
+  /* Without this, the next person to see an empty category page edits the 30
+     static files or the dropdown, neither of which is where the fix lives. */
+  assert.match(section[0], /data-cat-name/);
+  assert.match(section[0], /category-alias\.mjs/);
+});
+
+test('the runbook records that an ambiguous name resolves to nothing', () => {
+  assert.match(section[0], /ambiguous/i);
+});
+
+test('the runbook explains the parent-category subtree', () => {
+  /* The single most surprising part: Ecwid files a product under the child
+     only, so a parent matched nothing until the subtree was expanded. */
+  assert.match(section[0], /subtree/i);
+  assert.match(section[0], /parentId/);
+});
+
+test('the runbook no longer says a new Ecwid category has no page', () => {
+  /* It gets one generated now. Leaving the old claim would send staff to do
+     work that is not needed. */
+  assert.ok(!/A new Ecwid\s*\ncategory therefore has no page/.test(section[0]),
+    'the superseded claim is back');
+  assert.match(section[0], /Nothing is required for it to work/);
+});

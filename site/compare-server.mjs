@@ -70,6 +70,8 @@ import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
 import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwid-rails.mjs';
 import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
+import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
+import { mergeOrders } from './engine/ecwid-customers.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -1950,6 +1952,37 @@ export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProdu
 
 /* How the push worker finds an order and its customer. In one place so the
    timer, the immediate push and the admin retry all load identically. */
+/* Ecwid's copy of one customer's orders, cached briefly.
+
+   SADKO sells by phone and in showrooms, and staff type those into Ecwid — so
+   without this read a customer who rang 19140 opens their account, sees
+   nothing, and concludes the order was lost. It is merged into the SAME
+   /api/orders response the account and orders pages already use, so no client
+   code needed to change.
+
+   60 seconds: long enough that opening the account page and then the orders
+   page is one API call, short enough that a status staff just changed shows up
+   while the customer is still looking at it. */
+const REMOTE_ORDERS_TTL_MS = 60_000;
+const REMOTE_ORDERS = new Map();          // email -> { at, orders }
+
+async function remoteOrdersCached(email) {
+  if (!email) return [];
+  const key = String(email).toLowerCase();
+  const hit = REMOTE_ORDERS.get(key);
+  if (hit && Date.now() - hit.at < REMOTE_ORDERS_TTL_MS) return hit.orders;
+  let orders = [];
+  try { orders = await ecwidSync().remoteOrdersFor(key); } catch (e) { orders = []; }
+  REMOTE_ORDERS.set(key, { at: Date.now(), orders });
+  /* Entries are small and keyed per signed-in customer, but this process is
+     long-lived, so expired ones are swept rather than kept forever. */
+  if (REMOTE_ORDERS.size > 500) {
+    const cutoff = Date.now() - REMOTE_ORDERS_TTL_MS;
+    for (const [k, v] of REMOTE_ORDERS) if (v.at < cutoff) REMOTE_ORDERS.delete(k);
+  }
+  return orders;
+}
+
 const ORDER_LOADERS = {
   loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
   loadUser: async order => {
@@ -2475,6 +2508,16 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const r = db.register(b);
         if (r.error) return json(400, authErr(r.error, lang));
         setSessionCookie(res, req, r.session.raw, r.session.expires);
+        /* Give Ecwid the customer record now, not at the first order, so staff
+           can find the person the moment they ring in — and so their history
+           builds in the one place staff already work.
+
+           Deliberately NOT awaited, and its failure is ignored: signing up
+           must not be slowed by an Ecwid round trip, nor fail because Ecwid is
+           unreachable or (as on the test store's public_ token) refuses the
+           write. The push path links the customer anyway, since Ecwid files an
+           order under the email it carries. */
+        try { ecwidSync().linkCustomer(r.user).catch(() => {}); } catch (e) {}
         return json(200, { ok: true, user: r.user });
       }
 
@@ -2564,8 +2607,23 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         return json(200, { ok: true });
       }
 
-      if (u.pathname === '/api/orders' && req.method === 'GET')
-        return json(200, { orders: db.ordersFor(me.id) });
+      if (u.pathname === '/api/orders' && req.method === 'GET') {
+        /* Merged with what Ecwid holds for this customer, so an order staff
+           typed in — a phone sale, a showroom sale — appears in the
+           customer's own list rather than seeming to have been lost.
+
+           The local orders are returned regardless: remoteOrdersCached never
+           throws and yields [] when Ecwid is off, unreachable, or (as with the
+           test store's public_ token) not readable at all. mergeOrders keys on
+           our own SDK- reference, so an order placed here and mirrored back
+           appears once. */
+        const local = db.ordersFor(me.id);
+        const remote = await remoteOrdersCached(me.email);
+        return json(200, {
+          orders: remote.length ? mergeOrders(local, remote) : local,
+          ecwidLinked: remote.length > 0,
+        });
+      }
 
       if (u.pathname === '/api/orders' && req.method === 'POST') {
         const b = await readJson(req);
@@ -2630,6 +2688,24 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     if (!p) return json(404, { error: 'not_found', id });
     res.setHeader('cache-control', 'no-cache');
     return json(200, { source: 'ecwid', product: p });
+  }
+
+  /* ---- delivery, and why it still has no total -------------------------
+     Ecwid's calculator DOES return a figure, and it is the wrong one: no
+     method in this store has a destination zone, so the Greater Cairo rate of
+     250 comes back for Aswan and Marsa Matrouh too. This serves what the
+     store genuinely states about delivery, plus quotable:false and the
+     reasons — see engine/ecwid-shipping.mjs for the full evidence. */
+  if (u.pathname === '/api/shipping-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
+    let methods = [], counts = {};
+    try {
+      const st = ecwidStore();
+      methods = st ? st.allShippingMethods() : [];
+      const stats = st ? st.stats() : null;
+      counts = { productCount: (stats && stats.products) || 0,
+                 productsWithWeight: (stats && stats.withWeight) || 0 };
+    } catch (e) { methods = []; }
+    return json(200, toStorefrontShipping(methods, counts));
   }
 
   if (u.pathname === '/api/payment-methods' && (req.method === 'GET' || req.method === 'HEAD')) {

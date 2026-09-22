@@ -456,31 +456,101 @@
       box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    /* The live payment methods, so an Ecwid method id on an order can be
+       shown as the plan the customer actually chose. Loaded once and cached
+       for the page; a failure leaves it null and payName falls back to the
+       legacy keys, which is the pre-Ecwid behaviour. */
+    let PAYMETHODS = null;
+    function loadPayMethods() {
+      if (PAYMETHODS) return Promise.resolve(PAYMETHODS);
+      return fetch(A.P('api/payment-methods'))
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => { PAYMETHODS = (d && Array.isArray(d.methods)) ? d.methods : []; return PAYMETHODS; })
+        .catch(() => { PAYMETHODS = []; return PAYMETHODS; });
+    }
+
     async function loadOrders() {
       const box = root.querySelector('#ordersBox');
       if (!box) return;
-      const list = await Au.orders();
+      /* Both in parallel: the method names are needed to render the table, so
+         fetching them after it would print ids and then replace them. */
+      const [list] = await Promise.all([Au.orders(), loadPayMethods()]);
       const h = '<h3 class="panel__h">' + t('طلباتى', 'My orders') + '</h3>';
       if (!list.length) {
         box.innerHTML = h + '<p class="muted small">' + t('لا طلبات بعد.', 'No orders yet.') + '</p>' +
           '<a class="btn btn--teal btn--sm mt8" href="' + A.P('shop.html') + '">' + t('اتفضل على المتجر', 'Browse the shop') + '</a>';
         return;
       }
+      /* An order SADKO staff created — a phone sale on 19140, or a showroom
+         sale — reaches this list through Ecwid. Saying so matters: an order
+         the customer never placed on this site, appearing in their list
+         unlabelled, reads as an error rather than as their own purchase. */
+      const anyEcwid = list.some(o => o.origin === 'ecwid');
       box.innerHTML = h + '<div style="overflow-x:auto"><table class="tbl tbl--rows"><thead><tr>' +
         ['#', t('التاريخ', 'Date'), t('الأصناف', 'Items'), t('الإجمالى', 'Subtotal'), t('الدفع', 'Payment'), t('الحالة', 'Status')]
           .map(x => '<th>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>' +
-        list.map(o => '<tr><td class="ltr"><b>' + esc(o.ref) + '</b></td><td>' + esc(A.date(o.createdAt)) + '</td>' +
-          '<td>' + A.num(o.items.reduce((n, i) => n + i.qty, 0)) + '</td><td>' + A.money(o.subtotal) + '</td>' +
+        list.map(o => '<tr><td class="ltr"><b>' + esc(o.ref) + '</b>' +
+            (o.origin === 'ecwid' ? '<br><em class="badge">' + t('طلب من خدمة العملاء', 'via customer care') + '</em>' : '') +
+          '</td><td>' + esc(A.date(o.createdAt)) + '</td>' +
+          '<td>' + A.num(o.items.reduce((n, i) => n + i.qty, 0)) + '</td>' +
+          /* The grand total when Ecwid genuinely holds one — which means staff
+             entered the delivery charge — and otherwise the goods subtotal,
+             labelled as such. Never a total this page assembled itself. */
+          '<td>' + A.money(o.total != null ? o.total : o.subtotal) +
+            (o.total != null ? '' : ' <small class="muted">' + t('(أجهزة فقط)', '(goods only)') + '</small>') + '</td>' +
           '<td>' + esc(payName(o.payment)) + '</td>' +
-          '<td><span class="chip chip--mute">' + t('اتسجّل', 'Received') + '</span></td></tr>').join('') +
+          '<td><span class="chip ' + statusChip(o.status) + '">' + esc(statusName(o.status)) + '</span></td></tr>').join('') +
         '</tbody></table></div>' +
+        (anyEcwid ? '<p class="muted small mt8">' + t(
+          'الطلبات المعلَّمة «طلب من خدمة العملاء» سجّلها فريق صادكو بعد اتصالك أو زيارتك للمعرض.',
+          'Orders marked "via customer care" were recorded by the SADKO team after you called or visited a showroom.') + '</p>' : '') +
         '<div class="note note--soft small mt16">' + t(
           'سُجِّل الطلب لدينا وستتواصل معك خدمة العملاء على 19140 لتأكيد التوصيل والتركيب ورسومهما. ولا يوجد دفع إلكترونى بالبطاقة فى هذه النسخة.',
           'Your order is recorded and customer care will contact you on 19140 to confirm delivery, installation and their charges. Online card payment is not available on this version.') + '</div>';
     }
     function payName(k) {
+      /* An Ecwid method id first: that is what checkout sends now, and it is
+         what made the instalment plans selectable at all. Printing the id
+         ("51353-1761549067023") is what this column actually did.
+
+         Then the three legacy keys, for orders placed before Ecwid and for
+         when the method list cannot be loaded. Anything left is already a
+         human title — the name staff chose on a phone order typed into Ecwid —
+         so it is shown as written. */
+      const hit = (PAYMETHODS || []).find(m => String(m.id) === String(k));
+      if (hit) return hit.title;
       return { cod: t('الدفع عند الاستلام', 'Cash on delivery'), bank: t('تحويل بنكى', 'Bank transfer'),
                showroom: t('الدفع فى المعرض', 'Pay at a showroom') }[k] || k;
+    }
+
+    /* The status the order ACTUALLY has.
+
+       This cell used to be the literal string "اتسجّل / Received" on every
+       row, so the whole status round-trip — staff move the order in Ecwid, the
+       webhook maps it through toLocalStatus, the server stores it — ended at a
+       column that ignored the answer, and a delivered order told its customer
+       it had merely been received.
+
+       The vocabulary is engine/ecwid-map.mjs's FULFILMENT table: received,
+       preparing, shipping, delivered, cancelled. An unrecognised value is
+       shown as "being processed" rather than guessed at or left blank. */
+    function statusName(k) {
+      return {
+        received:  t('اتسجّل', 'Received'),
+        preparing: t('بيتجهّز', 'Being prepared'),
+        shipping:  t('فى الطريق', 'On the way'),
+        delivered: t('اتسلّم', 'Delivered'),
+        cancelled: t('ملغى', 'Cancelled'),
+      }[k] || t('تحت التنفيذ', 'Being processed');
+    }
+    /* Only the four chip variants app.css actually defines: ok, warn, bad,
+       mute. A class that does not exist renders an unstyled chip, which is
+       how a status silently loses its colour. */
+    function statusChip(k) {
+      if (k === 'delivered') return 'chip--ok';
+      if (k === 'cancelled') return 'chip--bad';
+      if (k === 'shipping' || k === 'preparing') return 'chip--warn';
+      return 'chip--mute';
     }
   }
 

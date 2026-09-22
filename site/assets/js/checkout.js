@@ -86,7 +86,17 @@
 
     const PAYMENTS = () => (LIVE ? fromLive() : BUILTIN());
 
-    Promise.all([Au.me(true), loadPayments()]).then(function (r) { render(r[0]); });
+    /* What the store states about delivery, from Ecwid. Fails soft to null,
+       in which case the summary reads exactly as it did before. */
+    var SHIP = null;
+    function loadShipping() {
+      return fetch(A.P('api/shipping-methods'))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { SHIP = d; })
+        .catch(function () { SHIP = null; });
+    }
+
+    Promise.all([Au.me(true), loadPayments(), loadShipping()]).then(function (r) { render(r[0]); });
 
     function render(user) {
       const items = window.skCart.items();
@@ -109,12 +119,48 @@
           '<li><span class="k">' + esc(String(i.title).replace(/&nbsp;/g, ' ').slice(0, 60)) +
           (i.qty > 1 ? ' × ' + A.num(i.qty) : '') + '</span><span class="v">' + A.money((i.price || 0) * i.qty) + '</span></li>').join('') +
         '<li><span class="k"><b>' + t('إجمالى الأجهزة', 'Goods subtotal') + '</b></span><span class="v"><b>' + A.money(subtotal) + '</b></span></li>' +
+        /* Still "confirmed by customer care", and deliberately so: Ecwid
+           reports quotable:false because none of its twelve shipping methods
+           is bound to a region, so its calculator returns the Greater Cairo
+           rate of 250 for Aswan as readily as for Cairo. Quoting that would
+           undercharge every customer outside Cairo and Giza.
+
+           If the owner binds the zones and product weights exist, the gate
+           flips and this is the line that should start showing a real figure —
+           it must NOT be made to show one before then. */
         '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v unknown">' + t('تؤكده خدمة العملاء', 'confirmed by customer care') + '</span></li>' +
         '<li><span class="k">' + t('التركيب', 'Installation') + '</span><span class="v unknown">' + t('تؤكده خدمة العملاء', 'confirmed by customer care') + '</span></li>' +
         '</ul>' +
         '<div class="note note--soft small mt16">' + t(
           'تختلف رسوم التوصيل والتركيب بحسب الجهاز والعنوان، وتُؤكَّد معك قبل التنفيذ — ولذلك لا نعرضها هنا صفراً.',
-          'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment — which is why we do not show them as zero here.') + '</div></div>';
+          'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment — which is why we do not show them as zero here.') + '</div>' +
+        /* A SIBLING of the summary panel, not a child. Nesting a .panel
+           inside a .panel gives it a second border and a second layer of
+           padding — which is exactly what it did on first render. */
+        '</div>' + shippingPolicy();
+    }
+
+    /* The store's OWN delivery sentences, quoted and attributed — not
+       computed, and not summarised into a promise of ours. Staff wrote these
+       in Ecwid ("الحد الأقصى للشحن لعدد القطع هو 350 جنيه", "يرجى العلم بأن
+       التوصيل يكون خلال 7 أيام") and the shopper never saw them.
+
+       Any figure inside these sentences is the STORE speaking, inside its own
+       quoted text. Nothing here is added up, and no delivery total is
+       produced. */
+    function shippingPolicy() {
+      if (!SHIP || !SHIP.notes || !SHIP.notes.length) return '';
+      return '<div class="panel mt16"><h2 class="panel__h">' + t('ما تقوله صادكو عن التوصيل', 'What SADKO states about delivery') + '</h2>' +
+        '<ul class="specs">' + SHIP.notes.slice(0, 6).map(function (n) {
+          return '<li><span class="k">' + esc(n.method) + '</span><span class="v">' + esc(n.text) + '</span></li>';
+        }).join('') + '</ul>' +
+        (SHIP.zones && SHIP.zones.length
+          ? '<p class="muted small mt8">' + t('مناطق التوصيل: ', 'Delivery areas: ') +
+            esc(SHIP.zones.slice(0, 8).join(' · ')) + '</p>'
+          : '') +
+        '<p class="muted small mt8">' + t(
+          'تُحدَّد الرسوم النهائية حسب منطقتك وحجم الجهاز، وتؤكدها خدمة العملاء قبل التنفيذ.',
+          'The final charge depends on your area and the size of the appliance, and customer care confirms it before fulfilment.') + '</p></div>';
     }
 
     function offlineBox(items) {

@@ -64,8 +64,50 @@ test('checkout still has the built-in three as a fallback', () => {
 
 test('the methods are loaded before the first render', () => {
   /* Rendering first and patching later would flash three methods and then
-     replace them, losing anything the customer had already selected. */
-  assert.match(checkout, /Promise\.all\(\[Au\.me\(true\), loadPayments\(\)\]\)/);
+     replace them, losing anything the customer had already selected.
+
+     Asserted as "loadPayments is inside the Promise.all that gates render"
+     rather than as the exact argument list: the list legitimately grew when
+     the delivery policy read was added beside it, and pinning the literal
+     shape failed on a change that kept the property intact. */
+  const gate = /Promise\.all\(\[([^\]]*)\]\)\.then\(function \(r\) \{ render/.exec(checkout);
+  assert.ok(gate, 'the gated render call is gone');
+  assert.match(gate[1], /Au\.me\(true\)/);
+  assert.match(gate[1], /loadPayments\(\)/);
+});
+
+test('the delivery policy is loaded on the same gate, not after the render', () => {
+  const gate = /Promise\.all\(\[([^\]]*)\]\)\.then\(function \(r\) \{ render/.exec(checkout);
+  assert.match(gate[1], /loadShipping\(\)/);
+});
+
+test('checkout still quotes NO delivery figure of its own', () => {
+  /* Ecwid's calculator returns the Greater Cairo rate for every address in
+     Egypt, because none of its twelve methods is bound to a region. The
+     summary must keep saying customer care confirms. */
+  assert.match(checkout, /تؤكده خدمة العملاء/);
+  assert.ok(!/shippingRate|SHIP\.rate|SHIP\.total/.test(checkout),
+    'checkout reads a shipping rate — it must not, while quotable is false');
+});
+
+test('the delivery notes are attributed to the method that states them', () => {
+  /* They are the store speaking, quoted — not a promise the site invents. */
+  const fn = /function shippingPolicy\(\)[\s\S]{0,1400}/.exec(checkout)[0];
+  assert.match(fn, /esc\(n\.method\)/);
+  assert.match(fn, /esc\(n\.text\)/);
+});
+
+test('the delivery panel is a sibling of the summary, not nested inside it', () => {
+  /* It shipped nested on first render: a .panel inside a .panel draws a
+     second border and a second layer of padding. */
+  const fn = /function summary\(items\)[\s\S]{0,2600}?\n    \}/.exec(checkout)[0];
+  assert.match(fn, /'<\/div>' \+ shippingPolicy\(\);/,
+    'shippingPolicy() is called before the summary panel closes');
+});
+
+test('no delivery panel is rendered when Ecwid states nothing', () => {
+  const fn = /function shippingPolicy\(\)[\s\S]{0,1400}/.exec(checkout)[0];
+  assert.match(fn, /if \(!SHIP \|\| !SHIP\.notes \|\| !SHIP\.notes\.length\) return '';/);
 });
 
 test('a restricted method states its restriction at the point of choice', () => {

@@ -113,6 +113,11 @@ export function openEcwidStore(file) {
     "WHERE json_extract(data_json,'$.enabled') = 1 AND json_extract(data_json,'$.inStock') = 1");
   const cntDisc = db.prepare("SELECT COUNT(*) c FROM products WHERE json_extract(data_json,'$.compareToPrice') IS NOT NULL");
   const cntIncomplete = db.prepare("SELECT COUNT(*) c FROM products WHERE json_extract(data_json,'$.incomplete') = 1");
+  /* How many products carry a real weight. It is 0 of 1,453 in the live store,
+     which is one of the two reasons delivery cannot be quoted — so it is
+     COUNTED rather than assumed, and the gate in ecwid-shipping.mjs opens by
+     itself once staff start entering weights. */
+  const cntWeight = db.prepare("SELECT COUNT(*) c FROM products WHERE json_extract(data_json,'$.weight') > 0");
 
   /* ---- order push queue ----
      An order is written locally FIRST and only then queued here, so a push
@@ -215,6 +220,7 @@ export function openEcwidStore(file) {
         outOfStock: cntOos.get().c,
         discounted: cntDisc.get().c,
         incomplete: cntIncomplete.get().c,
+        withWeight: cntWeight.get().c,
         paymentMethods: allPay.all().length,
         shippingMethods: allShip.all().length,
         lastSync: this.getState('last_sync'),

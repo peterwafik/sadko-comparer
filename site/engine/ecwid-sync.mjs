@@ -15,6 +15,7 @@
    ========================================================================== */
 
 import { toSadkoProduct, toSadkoCategory, toEcwidOrder } from './ecwid-map.mjs';
+import { toEcwidCustomer, customerNeedsUpdate, fromEcwidOrder } from './ecwid-customers.mjs';
 
 const PAGE = 100;
 
@@ -48,6 +49,18 @@ function toShippingMethod(o, i) {
     carrier: o.carrier ? String(o.carrier) : null,
     minimumOrderSubtotal: o.minimumOrderSubtotal ?? null,
     deliveryTimeDays: o.deliveryTimeDays ?? null,
+    /* The store's own delivery policy, which staff wrote in Ecwid and the
+       site was showing none of: "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+       "يرجى العلم بأن التوصيل يكون خلال 7 أيام". */
+    description: String(o.description || '').trim() || null,
+    /* WHY THIS FLAG EXISTS. destinationZone is {} on all twelve of this
+       store's methods, so none is bound to a region and Ecwid matches the
+       first enabled one — /order/calculate returns the Greater Cairo rate of
+       250 for Aswan and Marsa Matrouh alike. Recorded as data so the gate in
+       ecwid-shipping.mjs can refuse to quote a total, and so the admin panel
+       can tell the owner what to change. It flips on its own once the zones
+       are configured. */
+    zoneConfigured: !!(o.destinationZone && Object.keys(o.destinationZone).length),
   };
 }
 
@@ -228,10 +241,57 @@ export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCat
     return { pushed, failed };
   }
 
+  /* ---- link a site account to an Ecwid customer -------------------------
+     By email, which is the key Ecwid itself files orders under. Creates the
+     record when it is missing and otherwise only FILLS what Ecwid lacks —
+     it never overwrites a detail staff corrected there, because staff are
+     closer to the customer than a registration form is.
+
+     Returns a result rather than throwing: a customer whose record cannot be
+     linked must still be able to register and to order. */
+  async function linkCustomer(user) {
+    if (!api.configured) return { ok: false, reason: 'not-configured' };
+    const desired = toEcwidCustomer(user);
+    if (!desired) return { ok: false, reason: 'no-email' };
+    try {
+      const existing = await api.customerByEmail(desired.email);
+      if (!existing) {
+        const made = await api.createCustomer(desired);
+        return { ok: true, created: true, id: made && made.id != null ? String(made.id) : null };
+      }
+      if (customerNeedsUpdate(existing, desired)) {
+        await api.updateCustomer(existing.id, { name: desired.name });
+        return { ok: true, updated: true, id: String(existing.id) };
+      }
+      return { ok: true, id: String(existing.id) };
+    } catch (e) {
+      /* A public_ token answers 403 here. That is a configuration state, not
+         a fault, and it must never surface to the customer. */
+      const msg = String((e && e.message) || e);
+      return { ok: false, reason: /ecwid-40[13]/.test(msg) ? 'no-access' : 'error', message: msg };
+    }
+  }
+
+  /* ---- the orders Ecwid holds for one customer --------------------------
+     So a phone order or a showroom sale, typed in by staff, reaches the
+     customer's own account page instead of seeming to have been lost.
+
+     An empty array on ANY failure: the customer's local orders have to render
+     regardless of whether Ecwid answered. */
+  async function remoteOrdersFor(email) {
+    if (!api.configured || !email) return [];
+    try {
+      const raw = await api.ordersByEmail(email);
+      return (Array.isArray(raw) ? raw : []).map(fromEcwidOrder).filter(Boolean);
+    } catch (e) { return []; }
+  }
+
   return {
     syncProducts,
     pushOrder,
     pushPendingOrders,
+    linkCustomer,
+    remoteOrdersFor,
     syncCategories,
     syncSettings,
     fullReconcile,

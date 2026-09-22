@@ -133,6 +133,31 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
       };
     },
 
+    /* ---- customers ---------------------------------------------------
+       Ecwid can read, create and update a customer, but it cannot verify one
+       password — so these support LINKING, never login. See the note at the
+       top of engine/ecwid-customers.mjs.
+
+       Every one of these needs a secret_ token. The test store's token is a
+       public_ one, so they answer 403 there and every caller treats that as
+       "not available" rather than as an error. */
+    customerByEmail: async email => {
+      const page = await call('/customers' + qs({ email: String(email || '').trim().toLowerCase(), limit: 10 }));
+      const want = String(email || '').trim().toLowerCase();
+      const hit = ((page && page.items) || []).find(c => String(c.email || '').toLowerCase() === want);
+      return hit || null;
+    },
+    createCustomer: payload => call('/customers', { method: 'POST', body: payload }),
+    updateCustomer: (id, payload) => call(`/customers/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+
+    /* ---- a customer's orders -----------------------------------------
+       Includes the ones staff created by hand, which is the whole reason for
+       reading this rather than relying on what the site pushed. */
+    ordersByEmail: async (email, limit = 50) => {
+      const page = await call('/orders' + qs({ email: String(email || '').trim().toLowerCase(), limit }));
+      return (page && page.items) || [];
+    },
+
     createOrder: payload => call('/orders', { method: 'POST', body: payload }),
     getOrder: id => call(`/orders/${encodeURIComponent(id)}`, { allow404: true }),
 

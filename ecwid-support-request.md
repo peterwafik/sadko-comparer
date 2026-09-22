@@ -7,7 +7,7 @@ support will match it against the store.
 
 **To:** apps@ecwid.com
 
-**Subject:** Store 142682751 — custom app: "Internal problem has occurred" on both Reinstall and Create App
+**Subject:** Store 142682751 — custom app access scopes are never applied (two apps, both stuck on three scopes)
 
 ---
 
@@ -66,15 +66,39 @@ This is not a plan limitation as far as I can tell. `GET /profile` reports:
 - `account.suspended`: `false`
 - `account.availableFeatures` includes `API` (158 features in total)
 
+### I then created a SECOND app, and it behaves identically
+
+App namespace: `custom-app-142682751-2`
+
+1. Create App eventually succeeded (it had failed with the internal-problem
+   message at first).
+2. I ticked **every** access scope in the list and saved.
+3. I installed the app — this was a first install, not a reinstall.
+4. I copied its secret token and used it.
+
+With that brand-new token, from a brand-new app, with all scopes ticked and
+installed, the API grants **exactly the same three scopes as the first app**:
+
+| Request | Result |
+|---|---|
+| `GET /products?limit=1` | 200 |
+| `GET /orders?limit=1` | 200 |
+| `POST /orders` | **403** |
+| `GET /customers?limit=1` | **403** |
+| `POST /customers` | **403** |
+
+So this is not specific to one app, and not a stale token: two independent
+custom apps on this store both grant only `read_store_profile`, `read_catalog`
+and `read_orders`, no matter which scopes are selected. Selected scopes appear
+to be saved in the UI and then ignored when tokens are issued.
+
 ### What I need
 
-Either:
-
-1. Apply the saved access scopes to custom app `custom-app-142682751-1` so
-   that `create_orders`, `read_customers`, `create_customers` and
-   `update_customers` take effect; **or**
-2. Fix whatever prevents Create App from working, so I can create a new custom
-   app with those scopes instead.
+Please make the selected access scopes actually take effect on this store, for
+either app, so that `create_orders`, `read_customers`, `create_customers` and
+`update_customers` work. Right now no combination of editing scopes,
+reinstalling, regenerating a token, or creating a fresh app changes what the
+issued token is allowed to do.
 
 One more detail in case it is relevant: the control panel URL for this store
 carries `?partner=tier_migration`, so the store may be part of a plan

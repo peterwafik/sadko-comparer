@@ -1423,6 +1423,14 @@ the startup log and in the admin panel rather than left to be guessed:
 Square tiles never appear on a category page: the frame there is 1600×608 and a
 1:1 tile would lose two-thirds of its own printed message.
 
+**Each block is dealt artwork of its own shape.** On the shop page the wide
+block takes `wide` artwork and the tile grid takes `square` artwork; a block with
+none of its shape renders nothing rather than borrowing the wrong one. Before
+this, adverts were dealt in list order, which was invisible while only one wide
+advert existed — the second landed in the 1:1 grid and was stretched 2.6× tall.
+So a wide advert beyond the first appears only where a wide frame exists: the
+shop page has one, and every category page has one.
+
 #### The banner at the top of a CATEGORY page
 
 A category page shows hero and wide artwork only, chosen in this order:

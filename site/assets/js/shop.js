@@ -229,11 +229,32 @@
   // meets a new one every screen or so instead of one banner at the top. Returns
   // '' once the list is used up, which is what keeps this safe for an owner who
   // edits promos.json down to a single ad.
+  // Each block is dealt artwork of ITS OWN SHAPE.
+  //
+  // It used to deal in list order regardless, which was invisible while the
+  // only wide promo happened to be first: a second wide advert landed in the
+  // square grid and was stretched 2.6x vertically to fill a 1:1 frame. The
+  // frames are fixed per layout (storefront.css: solo is 1600/608, duo and
+  // grid are 1/1) and the image fills them, so the shape has to be matched
+  // here or the artwork is deformed.
+  //
+  // A block with no artwork of its shape renders NOTHING rather than
+  // borrowing the wrong shape — an absent advert beats a deformed one.
+  var SHAPE_FOR_LAYOUT = { solo: 'wide', duo: 'square', grid: 'square' };
   function adDealer(slots) {
-    var at = 0;
+    var used = [];
     return function (n, layout) {
-      var take = slots.slice(at, at + n);
-      at += take.length;
+      var want = SHAPE_FOR_LAYOUT[layout] || 'square';
+      var take = [];
+      for (var i = 0; i < slots.length && take.length < n; i++) {
+        if (used.indexOf(i) >= 0) continue;
+        var art = slots[i] && slots[i].art;
+        // An entry with no art declared is treated as square, which is the
+        // shape promos.json has always defaulted to.
+        if ((art || 'square') !== want) continue;
+        used.push(i);
+        take.push(slots[i]);
+      }
       return take.length ? U.adSlot(take, layout) : '';
     };
   }

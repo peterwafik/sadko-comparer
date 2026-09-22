@@ -390,10 +390,17 @@ test('"shop by price" is not on the hub, but the browse facets still have it', (
 // adDealer hands out each ad once and then stops, so an owner who trims
 // promos.json to one ad gets one ad — not the same one repeated down the page.
 test('the ad dealer never repeats or overruns its list', () => {
-  const body = functionBody(src, 'adDealer');
-  assert.match(body, /slots\.slice\(at, at \+ n\)/, 'adDealer no longer takes a fresh slice');
-  assert.match(body, /at \+= take\.length/, 'adDealer does not advance past what it handed out');
-  assert.match(body, /take\.length \?/, 'adDealer renders an empty slot instead of nothing');
+  /* Asserted behaviourally rather than against the implementation. It used to
+     pin `slots.slice(at, at + n)` and `at += take.length`, which broke the
+     moment the dealer had to pick by artwork shape instead of in order — a
+     change that kept both properties intact. The dealer harness is defined
+     with the shape tests below. */
+  const deal = dealer()([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+  const first = JSON.parse(deal(2, 'grid'));
+  const second = JSON.parse(deal(2, 'grid'));
+  assert.deepEqual(first.ids, ['a', 'b']);
+  assert.deepEqual(second.ids, ['c'], 'the dealer repeated an advert or overran its list');
+  assert.equal(deal(2, 'grid'), '', 'an exhausted dealer must render nothing, not an empty block');
 });
 
 /* ------------------------------------------- gaps the fix-wave re-review found --- */
@@ -478,4 +485,67 @@ test('with no family the match falls back to the single id', () => {
   const mine = { id: 'acs', slot: 'slot', art: 'wide', href: 'shop.html?cat=206629766' };
   assert.deepEqual(ids(adsFor([mine], '206629766', [], null).hero), ['acs']);
   assert.deepEqual(ids(adsFor([mine], '206642016', [], null).hero), []);
+});
+
+/* ======================================================================
+   Each ad block gets artwork of its own shape.
+
+   Measured bug: with two wide adverts, the second landed in the square
+   grid and was stretched 2.6x vertically — natural 1500x570 rendered into a
+   309x309 frame. The frames are fixed per layout and the image fills them
+   (object-fit: fill), so the shape has to be matched when dealing.
+   ================================================================== */
+
+function dealer() {
+  const body =
+    'var U = { adSlot: function (items, layout) { return JSON.stringify({ layout: layout, ids: items.map(function (x) { return x.id; }) }); } };\n' +
+    'function adDealer(slots) {' + functionBody(src, 'adDealer') + '}\n' +
+    'var SHAPE_FOR_LAYOUT = { solo: "wide", duo: "square", grid: "square" };\n' +
+    'return adDealer;';
+  return new Function(body)();
+}
+
+const WIDE = n => ({ id: 'w' + n, art: 'wide' });
+const SQ = n => ({ id: 's' + n, art: 'square' });
+
+test('a WIDE advert never lands in the square grid', () => {
+  const deal = dealer()([WIDE(1), WIDE(2), SQ(1), SQ(2), SQ(3)]);
+  const solo = JSON.parse(deal(1, 'solo'));
+  const grid = JSON.parse(deal(4, 'grid'));
+  assert.deepEqual(solo.ids, ['w1'], 'the solo block should take wide artwork');
+  assert.deepEqual(grid.ids, ['s1', 's2', 's3'], 'a wide advert was dealt into the 1:1 grid');
+});
+
+test('a SQUARE advert never fills the wide solo frame', () => {
+  const deal = dealer()([SQ(1), SQ(2), WIDE(1)]);
+  assert.deepEqual(JSON.parse(deal(1, 'solo')).ids, ['w1']);
+});
+
+test('an advert is dealt at most once', () => {
+  const deal = dealer()([WIDE(1), SQ(1)]);
+  deal(1, 'solo');
+  assert.deepEqual(JSON.parse(deal(1, 'solo') || '{"ids":[]}').ids, [],
+    'the same wide advert was dealt twice');
+});
+
+test('a block with no artwork of its shape renders nothing', () => {
+  /* An absent advert beats a deformed one. */
+  const deal = dealer()([SQ(1), SQ(2)]);
+  assert.equal(deal(1, 'solo'), '');
+  assert.deepEqual(JSON.parse(deal(4, 'grid')).ids, ['s1', 's2']);
+});
+
+test('an entry with no art declared counts as square', () => {
+  /* promos.json has always defaulted to square artwork. */
+  const deal = dealer()([{ id: 'x' }]);
+  assert.equal(deal(1, 'solo'), '');
+  assert.deepEqual(JSON.parse(deal(4, 'grid')).ids, ['x']);
+});
+
+test('the real promos still fill both blocks', () => {
+  /* Guard against a fix that empties the page: the live set is 2 wide and 3
+     square (plus 2 hero, which this dealer never sees). */
+  const deal = dealer()([WIDE(1), WIDE(2), SQ(1), SQ(2), SQ(3)]);
+  assert.deepEqual(JSON.parse(deal(1, 'solo')).ids, ['w1']);
+  assert.deepEqual(JSON.parse(deal(4, 'grid')).ids, ['s1', 's2', 's3']);
 });

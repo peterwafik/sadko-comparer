@@ -289,3 +289,10 @@ test('the runbook records the duplicate-SKU limit and both uniquifiers', () => {
 test('the runbook says an ad folder is never a destination', () => {
   assert.match(section[0], /never a destination/i);
 });
+
+test('the runbook records that each ad block takes its own artwork shape', () => {
+  /* Otherwise the next wide advert silently lands in the 1:1 grid and is
+     stretched, which is exactly what happened. */
+  assert.match(section[0], /own shape/i);
+  assert.match(section[0], /2\.6/);
+});

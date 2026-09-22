@@ -1242,16 +1242,91 @@ unit-tested; swap the token and the path completes. Until then a placed order
 is still recorded locally and simply parks in the push queue for retry, which
 is verified live: the 403 parks it with backoff and nothing is lost.
 
-**Delivery totals are blocked.** **0 of 1,453 products carry a weight** or any
-dimension, and `POST /order/calculate` returns zero shipping options for a Cairo
-address. The 18 configured shipping methods are banded by appliance size and 11
-of them use `table` rate calculation, which needs a number to look up. Until
-weights are entered in Ecwid, checkout keeps today's behaviour: items subtotal
-only, with delivery and installation confirmed by customer care on 19140.
+**Delivery totals are blocked — by TWO things, and the first one is not what
+this section used to say.**
+
+An earlier version of this runbook claimed `POST /order/calculate` returns zero
+shipping options for a Cairo address, and blamed the missing weights alone.
+Both were wrong, and the correction matters: entering weights would **not** have
+been enough.
+
+Ecwid does return a figure, and it needs no weight to do it:
+
+```
+POST /order/calculate   one 65" TV, Cairo address
+  → shippingOption: { shippingMethodName: "القاهرة الكبرى", shippingRate: 250 }
+```
+
+Note the field is `shippingOption` — **singular**, an object. The earlier "zero
+options" reading came from looking for a plural `availableShippings` array,
+which this response does not have.
+
+Then the same call, against every governorate:
+
+| Destination | Method Ecwid chose | Rate |
+|---|---|---|
+| Cairo | القاهرة الكبرى | 250 |
+| Giza | القاهرة الكبرى | 250 |
+| Alexandria | القاهرة الكبرى | 250 |
+| Qalyubia | القاهرة الكبرى | 250 |
+| Dakahlia | القاهرة الكبرى | 250 |
+| Sohag | القاهرة الكبرى | 250 |
+| Aswan | القاهرة الكبرى | 250 |
+| Marsa Matrouh | القاهرة الكبرى | 250 |
+| Red Sea | القاهرة الكبرى | 250 |
+
+**Every address in Egypt gets the Greater Cairo method.** It should not — the
+store defines twelve methods precisely because the Delta and Upper Egypt cost
+more than Cairo. The cause is in the profile: `destinationZone` is `{}` on all
+twelve methods, so none is bound to a region and Ecwid matches the first enabled
+one for everything. `ratesTable` is `{}` on all twelve too, and only one method
+(handicrafts, flat 50) carries a rate of any kind.
+
+So there are two independent blockers, and **both** must be cleared:
+
+1. **No destination zones.** Ecwid → Shipping & Pickup → open each of the twelve
+   methods → set the governorates it covers. Until then any rate Ecwid returns
+   is the Cairo rate, and showing it would undercharge every customer outside
+   Cairo and Giza.
+2. **No product weights.** 0 of 1,453. Eight of the twelve methods are size
+   bands ("منتجات صغيرة" … "منتجات كبيرة جدا"), so even with the zones bound
+   there is nothing to choose the band with. Ecwid → Products → set a weight
+   per product, **or** replace the size bands with one rate per region.
+
+The rate does scale with quantity today (250 / 300 / 350 / 450 for 1 / 2 / 3 / 5
+pieces), so the per-piece part of the policy is configured; it is the region and
+the size band that are not.
+
+You do not have to tell the site when this is fixed. `engine/ecwid-shipping.mjs`
+reports `quotable: false` with both reasons and their fixes, computed from the
+live profile and a SQL count of weights — `GET /api/shipping-methods` shows the
+current state. Clear both and `quotable` flips to true on its own.
+
+Meanwhile checkout shows the store's own delivery policy, quoted from Ecwid and
+attributed to the method that states it (the 350 cap, the 7-day and 14-day
+windows, the holiday exclusions), and keeps delivery and installation as
+confirmed by customer care on 19140.
 
 Do not work around this by letting the customer pick the band. They can select
 the LE 275 small-appliance rate for a refrigerator, and a displayed total that
 is too low is a price SADKO would have to honour or retract.
+
+**Customer and order reads need the SECRET token too.** `/customers` and
+`/orders` both return **403** with the public token, which is why the account
+page shows `ecwidLinked: false` today. The customer link and the merged order
+list are BUILT and unit-tested (`engine/ecwid-customers.mjs`, 28 tests) but are
+**unverified against a real payload** — this project has already guessed four
+Ecwid field names wrong, so every reader there accepts the plausible spellings.
+Check the real shapes once the secret token is in: place a phone order in Ecwid
+against a registered customer's email and confirm it appears in their account
+page marked "via customer care".
+
+**Sign-in cannot move to Ecwid, and no amount of work will change that.** Ecwid
+has no API that verifies a customer's password, and its SSO runs the other way
+round — the merchant's site is the identity provider and signs a token *for*
+Ecwid. The site therefore keeps its own accounts (scrypt, HttpOnly sessions) and
+the two are linked by **email**, which is the key Ecwid itself files orders
+under. If anyone asks for "log in with Ecwid", this is the answer.
 
 ### The customer confirmation email
 
@@ -1281,6 +1356,47 @@ Note also that Ecwid hides disabled categories from `GET /categories` unless you
 pass `hidden_categories=true`, and even then returns them as id-only stubs with
 no name — which is why the banner category does not appear in the taxonomy.
 
+### The product page is the site's own, not Ecwid's
+
+Until this change, clicking any product left the site: cards hrefed `p.url`
+(the Ecwid storefront, `sadko-test.company.site/products/…`) and the product
+page's one primary button did the same in a new tab. The page that exists to
+give buying guidance ended by handing the buyer to a different shop.
+
+Everything now stays on the site and renders Ecwid's data:
+
+| On the page | Where it comes from |
+|---|---|
+| Image gallery | `images[]` — 427 products carry 2–7, and only the first used to show |
+| Rich description | `descriptionHtml`, sanitised — see below |
+| In stock / "only N left" | `inStock`, and `quantity` **only when `stockTracked`** |
+| Product code | `sku` |
+| Weight | `weight`, only when staff entered one (0 is Ecwid's "unset") |
+| Payment and instalment plans | `/api/payment-methods`, live from Ecwid |
+| Was-price and discount % | `compareToPrice`, only when genuinely above the price |
+
+Two things worth knowing before editing it:
+
+**The rich description is sanitised, and that is not optional.** Ecwid stores
+descriptions as rich-text HTML (all 981 of them carry tags, including `img` and
+`a`). `safeHtml()` in `engine/ecwid-map.mjs` keeps an allow-list of structural
+tags and drops **every attribute** — no `href`, `src`, `style` or `on*` survives
+— and removes `script`/`style`/`iframe` with their contents. It is written into
+`innerHTML` on the site's own origin, so anything that survived would run or
+beacon with the shopper's session. Staff-authored is not the same as trusted.
+Verified in the browser: the rendered description carries 0 attributes.
+
+**It rides `/api/product/:id`, not `products.json`.** The catalogue list is
+fetched by `nav.js` on *every page of the site* and is already ~1.8 MB for 990
+products; carrying the rich description in it would add roughly another megabyte
+to every page load to serve something one page reads. `listShape()` in
+`engine/ecwid-source.mjs` strips it from the list, and the detail endpoint is
+scoped to what the storefront actually serves — a disabled product, an empty
+shell or a banner entry 404s rather than opening as a product.
+
+With `SADKO_ECWID` off the page falls back to the list entry and behaves exactly
+as it did before, so the flag is still a clean rollback.
+
 ### Who owns what
 
 | Concern | Owner |
@@ -1293,7 +1409,11 @@ no name — which is why the banner category does not appear in the taxonomy.
 | Bilingual banner copy (`promos.json`) | SADKO control room — Ecwid has no usable translations |
 | Buying guides, finder questions | SADKO control room |
 | Product `badge` | SADKO control room — this store sets no Ecwid ribbons |
-| Customer accounts, sessions, saved homes | **SADKO** — Ecwid exposes no customer-login API for a headless frontend |
+| Product page content: images, description, SKU, availability | **Ecwid** — the site renders it, Ecwid holds it |
+| Customer accounts, sessions, saved homes | **SADKO** — Ecwid has no API that verifies a customer's password |
+| Customer identity across the two | **Email**, the key Ecwid files orders under |
+| A customer's order history | **Both**, merged — site orders plus the ones staff type into Ecwid |
+| Delivery charge | **Nobody yet** — blocked on zones + weights, see above |
 | The price comparer | SADKO — unaffected by Ecwid |
 
 ### Diagnosing

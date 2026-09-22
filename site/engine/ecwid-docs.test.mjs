@@ -91,3 +91,77 @@ test('the runbook says who owns what after launch', () => {
 test('rolling back is documented, because a flag you cannot unset is not a flag', () => {
   assert.match(section[0], /SADKO_ECWID=\s*$|unset|roll ?back/im);
 });
+
+/* ======================================================================
+   The delivery finding.
+
+   An earlier version of this runbook said /order/calculate returns zero
+   shipping options and blamed the missing weights alone. Both were wrong,
+   and the correction is load-bearing: entering weights would NOT have been
+   enough, because no method is bound to a region either. If the section
+   ever reverts to the single-cause story, the owner fixes half the problem
+   and then trusts a Cairo rate for Aswan.
+   ================================================================== */
+
+test('the runbook does NOT claim the calculator returns no shipping options', () => {
+  assert.ok(!/returns zero shipping options/.test(section[0]),
+    'the disproved claim is back in the runbook');
+});
+
+test('the runbook records BOTH delivery blockers, not just the weights', () => {
+  assert.match(section[0], /destinationZone/, 'the missing destination zones are undocumented');
+  assert.match(section[0], /0 of 1,453/, 'the weight count is undocumented');
+});
+
+test('the runbook shows the evidence, not just the conclusion', () => {
+  /* The by-governorate table is what makes the finding checkable by someone
+     who doubts it. */
+  for (const place of ['Aswan', 'Marsa Matrouh', 'Sohag']) {
+    assert.match(section[0], new RegExp(place), place + ' is missing from the evidence table');
+  }
+  assert.match(section[0], /القاهرة الكبرى/, 'the method Ecwid actually chose is not named');
+});
+
+test('the runbook names the singular shippingOption field that caused the misreading', () => {
+  assert.match(section[0], /shippingOption/);
+  assert.match(section[0], /singular/i);
+});
+
+test('the runbook gives a fix for each delivery blocker, not just a diagnosis', () => {
+  const del = /Delivery totals are blocked[\s\S]*?(?=\n\*\*Customer and order reads)/.exec(section[0]);
+  assert.ok(del, 'the delivery blocker section is gone');
+  assert.match(del[0], /Shipping & Pickup/, 'no fix given for the zones');
+  assert.match(del[0], /Ecwid → Products/, 'no fix given for the weights');
+});
+
+test('the runbook still forbids letting the customer pick the shipping band', () => {
+  /* The standing rule: they could choose the small-appliance rate for a
+     refrigerator, and a total that is too low is a price SADKO would have to
+     honour or retract. */
+  assert.match(section[0], /must not|Do not work around/i);
+  assert.match(section[0], /pick the band|picks the band/i);
+});
+
+test('the site can report the delivery state itself, so the runbook is not the only record', () => {
+  assert.match(section[0], /api\/shipping-methods/);
+  assert.match(section[0], /quotable/);
+});
+
+/* --------------------------- the accounts limit ------------------------ */
+
+test('the runbook states that sign-in cannot move to Ecwid', () => {
+  /* Asked repeatedly, and the answer is a hard API limit rather than a
+     backlog item. */
+  assert.match(section[0], /no API that verifies a customer's password|cannot move to Ecwid/i);
+  assert.match(section[0], /identity provider/i, 'the SSO direction is not explained');
+  assert.match(section[0], /linked by \*\*email\*\*|linked by email/i);
+});
+
+test('the runbook flags the customer and order reads as UNVERIFIED', () => {
+  /* They are built and unit-tested against a shape no real payload has
+     confirmed, because the test store's token cannot read either endpoint.
+     Claiming them as working would be the exact mistake this project has
+     already made four times with Ecwid field names. */
+  assert.match(section[0], /unverified/i);
+  assert.match(section[0], /four Ecwid field names|guessed four/i);
+});

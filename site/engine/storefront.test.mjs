@@ -147,17 +147,44 @@ test('card exposes id and category as data attributes', () => {
   assert.ok(html.includes('data-cat="38003882"'));
 });
 
-// enhanceCategoryCards resolves products via new URL(link.href).pathname against
-// the catalogue's own urls. An internal href would make every lookup miss and
-// add-to-cart would silently never appear on any card.
-test('card__imgwrap hrefs the catalogue url so nav.js can resolve the product', () => {
+/* A card used to href p.url — Ecwid's own storefront page — so clicking any
+   product left the site. Both links now go to the site's product page, and
+   NEITHER may contain the Ecwid host. */
+test('card__imgwrap hrefs the site product page, not Ecwid', () => {
   const html = ui.card(P, {});
+  assert.match(html, /class="card__imgwrap" href="product\.html\?id=157676934"/);
+  assert.ok(!html.includes('example.test/p'), 'the card still links out to Ecwid');
+});
+
+test('card__buy hrefs the site product page too', () => {
+  const html = ui.card(P, {});
+  assert.match(html, /class="card__buy" href="product\.html\?id=157676934"/);
+});
+
+test('the buy link does not open a new tab — it is the same site now', () => {
+  assert.ok(!/card__buy[^>]*target="_blank"/.test(ui.card(P, {})));
+});
+
+test('an explicit opts.href still wins', () => {
+  assert.match(ui.card(P, { href: 'shop.html?x=1' }), /class="card__imgwrap" href="shop\.html\?x=1"/);
+});
+
+test('the product id is URL-encoded into the href', () => {
+  /* Ecwid ids are numeric, but a seed/derived id must not break the query. */
+  assert.match(ui.card({ ...P, id: 'a b&c' }, {}), /href="product\.html\?id=a%20b%26c"/);
+});
+
+test('a product with no id falls back to its catalogue url rather than a dead link', () => {
+  const html = ui.card({ ...P, id: '' }, {});
   assert.match(html, /class="card__imgwrap" href="https:\/\/example\.test\/p"/);
 });
 
-test('card__buy hrefs the catalogue url too', () => {
-  const html = ui.card(P, {});
-  assert.match(html, /class="card__buy" href="https:\/\/example\.test\/p"/);
+test('nav.js resolves a card by data-id, so the internal href cannot break add-to-cart', () => {
+  /* This is the pairing the change depends on: if nav.js went back to
+     resolving only by pathname, every card would lose its add-to-cart. */
+  const nav = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../assets/js/nav.js'), 'utf8');
+  const fn = /function enhanceCategoryCards\(\)[\s\S]{0,2000}/.exec(nav)[0];
+  assert.match(fn, /byId\[String\(card\.getAttribute\('data-id'\)/);
 });
 
 test('card escapes HTML in the title', () => {
@@ -212,23 +239,25 @@ test('card in AR mode (default) keeps title, teaser and buy label unchanged', ()
     assert.ok(html.includes('>' + P.title + '<'));
     assert.ok(html.includes('>' + P.description + '<'));
     assert.ok(!/class="card__teaser"[^>]*\bhidden\b/.test(html));
-    assert.match(html, /class="card__buy"[^>]*>اشترى الآن</);
-    assert.ok(!html.includes('Buy now'));
+    assert.match(html, /class="card__buy"[^>]*>اعرض المنتج</);
+    assert.ok(!html.includes('View product'));
   } finally {
     if (savedWindow === undefined) delete global.window;
     else global.window = savedWindow;
   }
 });
 
-// EN mode: the buy button must read the English default, never the Arabic
+// EN mode: the card's link must read the English default, never the Arabic
 // literal, and an explicit opts.buyLabel must still win over both defaults.
-test('card in EN mode uses the English buy label by default, and honours an explicit override', () => {
+// The label reads "View product" because that is where it now goes — the
+// site's own product page. It used to say "Buy now ↗" and jump to Ecwid.
+test('card in EN mode uses the English link label by default, and honours an explicit override', () => {
   const savedWindow = global.window;
   global.window = { skLang: { get: () => 'en' } };
   try {
     const html = ui.card(P, {});
-    assert.match(html, /class="card__buy"[^>]*>Buy now/);
-    assert.ok(!html.includes('اشترى الآن'));
+    assert.match(html, /class="card__buy"[^>]*>View product</);
+    assert.ok(!html.includes('اعرض المنتج'));
     const overridden = ui.card(P, { buyLabel: 'Custom label' });
     assert.match(overridden, /class="card__buy"[^>]*>Custom label</);
   } finally {

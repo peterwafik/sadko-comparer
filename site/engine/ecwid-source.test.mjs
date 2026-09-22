@@ -348,3 +348,86 @@ test('the slot helper reads both the bare and the prefixed SKU form', async () =
   assert.equal(bannerSlotOf({ sku: '' }), 'square');
   assert.equal(bannerSlotOf({}), 'square');
 });
+
+
+/* ======================================================================
+   The product page's own read.
+
+   The rich description belongs to ONE page, so it must not ride along in the
+   list every other page fetches — and the detail read must not become a way
+   to reach a product the storefront refuses to serve.
+   ================================================================== */
+
+test('the list drops descriptionHtml — it must not ship to every page', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { descriptionHtml: '<h2>مواصفات</h2>' })]);
+    const out = await src.catalogBase();
+    assert.equal(out.length, 1);
+    assert.ok(!('descriptionHtml' in out[0]),
+      'descriptionHtml is in /data/products.json, which every page loads');
+    /* the plain one is still there — cards and search read it */
+    assert.equal(out[0].description, 'وصف');
+  } finally { cleanup(); }
+});
+
+test('productDetail returns the rich description the list withheld', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { descriptionHtml: '<h2>مواصفات</h2><ul><li>أ</li></ul>' })]);
+    const d = src.productDetail('1');
+    assert.equal(d.id, '1');
+    assert.equal(d.descriptionHtml, '<h2>مواصفات</h2><ul><li>أ</li></ul>');
+  } finally { cleanup(); }
+});
+
+test('productDetail takes a number id as readily as a string', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    assert.ok(src.productDetail(1));
+  } finally { cleanup(); }
+});
+
+test('productDetail refuses a disabled product', () => {
+  /* Ecwid disabling a product is a withdrawal. Guessing its id must not
+     resurrect a page for it. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { enabled: false })]);
+    assert.equal(src.productDetail('1'), null);
+  } finally { cleanup(); }
+});
+
+test('productDetail refuses an incomplete shell', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { incomplete: true })]);
+    assert.equal(src.productDetail('1'), null);
+  } finally { cleanup(); }
+});
+
+test('productDetail refuses a banner entry, so an advert cannot be opened as a product', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { sku: 'banner-hero-1' })]);
+    assert.equal(src.productDetail('1'), null);
+  } finally { cleanup(); }
+});
+
+test('productDetail returns null for an unknown id rather than throwing', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    assert.equal(src.productDetail('nope'), null);
+    assert.equal(src.productDetail(null), null);
+  } finally { cleanup(); }
+});
+
+test('productDetail is null with the flag off — there is no mirror to read', () => {
+  const { src, store, cleanup } = fresh({ enabled: false });
+  try {
+    store.upsertProducts([M(1)]);
+    assert.equal(src.productDetail('1'), null);
+  } finally { cleanup(); }
+});

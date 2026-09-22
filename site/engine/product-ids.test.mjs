@@ -68,3 +68,175 @@ test('the section functions the PDP relies on all still exist', () => {
     assert.match(src, new RegExp('function\\s+' + fn + '\\s*\\('), 'missing ' + fn);
   }
 });
+
+/* ======================================================================
+   The PDP stops handing the shopper to Ecwid.
+
+   The page's one primary button used to be an outbound link to p.url —
+   Ecwid's own storefront — opened in a new tab. So the page that exists to
+   give buying guidance ended by sending the buyer somewhere else to buy.
+   These guards are what stop that regressing, and they are source-level for
+   the same reason as the ids above: nothing throws when a button quietly
+   goes back to being a link.
+   ================================================================== */
+
+const galleryBody = functionBody(src, 'gallery');
+const payPanelBody = functionBody(src, 'payPanel');
+const stockLineBody = functionBody(src, 'stockLine');
+const wireBody = functionBody(src, 'wire');
+const specsBody = functionBody(src, 'specsPanel');
+
+test('NOTHING on the product page links out to the Ecwid storefront any more', () => {
+  /* p.url is the Ecwid product URL. The page may still carry it in the cart
+     record, but it must not be rendered as a destination. */
+  assert.ok(!/href="'\s*\+\s*esc\(p\.url\)/.test(src),
+    'the page hrefs p.url again — that is the Ecwid storefront');
+  assert.ok(!/target="_blank"/.test(headBody),
+    'head() opens a new tab again, which it only ever did to reach Ecwid');
+});
+
+test('head() offers add-to-cart and buy-now instead', () => {
+  assert.ok(hasId(headBody, 'btnAdd'), 'head() no longer emits id btnAdd');
+  assert.ok(hasId(headBody, 'btnBuy'), 'head() no longer emits id btnBuy');
+});
+
+test('buy-now goes to the site checkout, not anywhere else', () => {
+  assert.match(headBody, /btnBuy[\s\S]{0,120}checkout\.html/);
+});
+
+test('wire() binds both buy controls, or they are dead markup', () => {
+  assert.match(wireBody, /#btnAdd/);
+  assert.match(wireBody, /#btnBuy/);
+});
+
+test('add-to-cart honours a refusal rather than claiming success', () => {
+  /* skCart.add returns false for a product Ecwid reports out of stock. The
+     button must not say "added" in that case. */
+  assert.match(wireBody, /skCart\.add\(p\) === false/);
+});
+
+test('buy-now does not add a second copy of something already in the cart', () => {
+  assert.match(wireBody, /skCart\.items\(\)[\s\S]{0,160}String\(p\.id\)/);
+});
+
+/* ------------------------------- gallery -------------------------------- */
+
+test('the gallery renders the whole images[] array, not just the first image', () => {
+  /* 427 products in the live store carry 2-7 images and the page rendered
+     one. This is the single most visible thing Ecwid's page had that ours
+     did not. */
+  assert.match(galleryBody, /p\.images/);
+  assert.match(galleryBody, /imgs\.map/);
+});
+
+test('a single-image product gets no thumbnail strip', () => {
+  assert.match(galleryBody, /imgs\.length < 2/);
+});
+
+test('the gallery falls back to p.image when images[] is absent', () => {
+  /* The seed catalogue has no images[] at all, so the Ecwid flag being off
+     must not blank the product page. */
+  assert.match(galleryBody, /\[p\.image\]/);
+});
+
+test('thumbnails are real buttons, so they are reachable by keyboard', () => {
+  assert.match(galleryBody, /<button type="button" class="pdp__thumb/);
+  assert.match(galleryBody, /aria-label=/);
+});
+
+test('render() actually calls gallery() — the frame is no longer inline', () => {
+  assert.match(renderBody, /\bgallery\s*\(/);
+});
+
+test('wire() switches the main image when a thumbnail is chosen', () => {
+  assert.match(wireBody, /pdpMain/);
+  assert.match(wireBody, /pdp__thumb/);
+});
+
+/* --------------------------- Ecwid-only fields -------------------------- */
+
+test('the page shows availability, which it never used to', () => {
+  assert.match(renderBody + headBody, /stockLine\(/);
+});
+
+test('a remaining count is printed ONLY when Ecwid is tracking the quantity', () => {
+  /* An untracked product's quantity field is not a stock figure. Printing it
+     would invent scarcity the store never claimed. */
+  assert.match(stockLineBody, /stockTracked === true/);
+  const low = /q <= 5[\s\S]{0,400}/.exec(stockLineBody);
+  assert.ok(low, 'the low-stock branch is gone');
+  assert.ok(/tracked &&/.test(stockLineBody), 'the count is no longer gated on tracking');
+});
+
+test('the SKU reaches the spec table', () => {
+  assert.match(specsBody, /skuLine\(p\)/);
+});
+
+test('a weight is shown only when one was actually entered', () => {
+  /* 0 is Ecwid "unset" and the mapper already nulls it; a weight decides a
+     real delivery charge, so it must never be implied. */
+  assert.match(specsBody, /p\.weight \?/);
+});
+
+/* ------------------------ instalments and payment ----------------------- */
+
+test('the payment and instalment plans come from Ecwid, not a hardcoded list', () => {
+  /* Appliances here are bought on instalments more often than outright, and
+     the plans were visible only at the end of checkout — after the shopper
+     had already decided. */
+  assert.match(src, /api\/payment-methods/);
+  assert.match(renderBody, /payPanel\(/);
+});
+
+test('a restricted plan names the brand it is restricted to', () => {
+  /* Ecwid cannot enforce a product restriction on a manual method, so the
+     page says it rather than silently offering an 18-month Kiriazi plan on a
+     Samsung television. */
+  assert.match(payPanelBody, /m\.restricted/);
+  assert.match(payPanelBody, /m\.brand/);
+});
+
+test('the payment panel quotes no instalment figure', () => {
+  /* A monthly amount depends on the term and the provider approval. Printing
+     one would be a quoted price with no basis. */
+  assert.ok(!/شهرياً|\/month|per month/.test(payPanelBody),
+    'the panel appears to quote a monthly instalment');
+});
+
+test('the panel still says plainly that no card is taken', () => {
+  assert.match(payPanelBody, /بيانات بطاقة/);
+  assert.match(payPanelBody, /card details/);
+});
+
+test('an empty methods list renders nothing rather than an empty panel', () => {
+  assert.match(payPanelBody, /if \(!list\.length\) return '';/);
+});
+
+/* ---------------------------- the description --------------------------- */
+
+test('the rich description is rendered when the detail endpoint supplied one', () => {
+  assert.match(specsBody, /p\.descriptionHtml/);
+});
+
+test('the plain description is still the fallback, so the flag being off is safe', () => {
+  assert.match(specsBody, /S\.norm\(p\.description\)/);
+});
+
+test('the description is no longer folded shut', () => {
+  assert.match(specsBody, /<details class="mt16" open>/);
+});
+
+/* -------------------------- the loads fail soft ------------------------- */
+
+test('the detail and payment reads both fail soft — neither can blank the page', () => {
+  const mount = functionBody(src, 'mountProduct');
+  const detail = functionBody(mount, 'detail');
+  const pays = functionBody(mount, 'pays');
+  assert.match(detail, /\.catch\(\(\) => null\)/);
+  assert.match(pays, /\.catch\(\(\) => \[\]\)/);
+});
+
+test('a product still renders from the list entry when there is no detail endpoint', () => {
+  const mount = functionBody(src, 'mountProduct');
+  assert.match(mount, /extra \? Object\.assign\(\{\}, p, extra\) : p/);
+});

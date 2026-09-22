@@ -51,6 +51,52 @@ const text = v => decodeEntities(v).replace(/\s+/g, ' ').trim();
    &lt;script&gt; in the copy into a real tag that the stripper then removes,
    silently changing the author's text. Stripping first keeps escaped text
    escaped. */
+/* The PDP's rich description. stripHtml flattens; this one KEEPS structure.
+
+   An allow-list of structural tags, with every attribute dropped. No
+   attribute allow-list, because none is needed to render a description and
+   maintaining one is how sanitisers grow holes: no href, src, style or on*
+   handler can survive, so this HTML cannot navigate, execute, or fetch from a
+   third party when the page writes it into innerHTML on our own origin.
+
+   Two things are removed WITH their contents rather than unwrapped —
+   script and style (plus iframe/object/embed/svg/math, which can carry
+   script) — because unwrapping would leave the code sitting in the page as
+   text for some later innerHTML to execute.
+
+   Like stripHtml, entities are NOT decoded: "&lt;script&gt;" in the copy is
+   text the author typed and must stay text. */
+const ALLOWED = new Set(['p', 'br', 'hr', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u',
+                         'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr',
+                         'td', 'th', 'blockquote', 'sup', 'sub', 'span', 'div', 'small']);
+
+/* Void elements must not be given a closing tag. */
+const VOID = new Set(['br', 'hr']);
+
+export function safeHtml(html) {
+  if (html == null) return '';
+  /* Drop the dangerous elements together with everything inside them. An
+     unclosed one swallows the rest of the description, which is the safe
+     direction to fail. */
+  let s = String(html).replace(
+    /<\s*(script|style|iframe|object|embed|svg|math|template|noscript)\b[\s\S]*?(?:<\s*\/\s*\1\s*>|$)/gi, '');
+
+  /* Then rewrite every remaining tag: allowed ones keep only their name,
+     everything else is unwrapped so the author's words survive. */
+  s = s.replace(/<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (m, slash, name) => {
+    const tag = name.toLowerCase();
+    if (!ALLOWED.has(tag)) return '';
+    if (VOID.has(tag)) return slash ? '' : '<' + tag + '>';
+    return '<' + slash + tag + '>';
+  });
+
+  /* Anything left that looks like a tag was not one (a bare "<" in "< 10 لتر")
+     or was malformed; comments and doctypes go too. */
+  s = s.replace(/<!--[\s\S]*?-->/g, '').replace(/<![^>]*>/g, '');
+
+  return s.replace(/[ \t\r\n]+/g, ' ').replace(/>\s+</g, '><').trim();
+}
+
 export function stripHtml(html) {
   if (html == null) return '';
   const withBreaks = String(html)
@@ -138,6 +184,9 @@ export function toSadkoProduct(e) {
     images,
     price,
     description: stripHtml(e.description),
+    /* Structure preserved for the product page; flattened above for cards,
+       search and skSpecs. Sanitised, never trusted — see safeHtml. */
+    descriptionHtml: safeHtml(e.description),
     categoryId: defaultCat,
     categoryIds: catIds,
     brand: brandOf(e),

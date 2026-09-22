@@ -106,7 +106,19 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     const inStock = [], out = [];
     for (const p of served) (p.inStock === false ? out : inStock).push(p);
 
-    return inStock.concat(out);
+    return inStock.concat(out).map(listShape);
+  }
+
+  /* The LIST shape. descriptionHtml is dropped here, and only here: it exists
+     for the product page, which renders one product, while this list ships to
+     every page of the site through /data/products.json — already 1.74 MB for
+     990 products. Carrying the rich copy in it would add about another
+     megabyte to every page load for something one page reads. productDetail()
+     below is how the PDP gets it. */
+  function listShape(p) {
+    if (!p || p.descriptionHtml == null) return p;
+    const { descriptionHtml, ...rest } = p;
+    return rest;
   }
 
   return {
@@ -120,6 +132,23 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
       if (!rows.length) return seed();
       cache = build(rows);
       return cache;
+    },
+
+    /* ONE product, in full — the shape the product page needs, including the
+       rich description the list deliberately omits.
+
+       Scoped to what the storefront actually SERVES. A disabled product, an
+       incomplete shell or a banner entry must not become reachable just
+       because someone guessed its id: the PDP would render an advert as a
+       product, or offer something Ecwid has withdrawn. Returns null instead,
+       and the page shows its "not found" state. */
+    productDetail(id) {
+      if (!enabled || id == null) return null;
+      let rows = [];
+      try { rows = store.allProducts(); } catch (e) { return null; }
+      const want = String(id);
+      const hit = rows.find(p => p && String(p.id) === want);
+      return hit && isServed(hit) ? hit : null;
     },
 
     /* Banner entries, for the promo rail. Deliberately a separate read: they

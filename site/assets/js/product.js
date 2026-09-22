@@ -61,15 +61,47 @@
     const id = A.qs('id', '');
     if (!id) { root.innerHTML = A.empty(t('لم يُحدَّد منتج.', 'No product selected.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
 
-    Promise.all([A.byId(id), A.products()]).then(([p, all]) => {
+    /* Three reads, and only the first is required.
+
+       detail() fetches /api/product/:id for the fields the catalogue list
+       deliberately withholds — chiefly the rich description, which would add
+       about a megabyte to the products.json every page of the site loads. It
+       resolves to null when the Ecwid flag is off or the server is static, and
+       the page then renders from the list entry exactly as it did before.
+
+       pays() is the Ecwid payment and instalment methods. Appliances here are
+       bought on instalments far more often than outright, and the plans were
+       visible only at the very end of checkout — after the shopper had already
+       decided. They belong on the page where the decision is made. */
+    Promise.all([A.byId(id), A.products(), detail(id), pays()]).then(([p, all, extra, methods]) => {
       if (!p) { root.innerHTML = A.empty(t('هذا المنتج غير موجود.', 'That product was not found.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
-      const spec = S.of(p);
-      const peers = all.filter(x => String(x.categoryId) === String(p.categoryId) && String(x.id) !== String(p.id));
-      render(p, spec, peers);
+      /* The detail is the same mapped record, freshly read, so it wins on
+         every field it carries — a price or a stock flag that changed in Ecwid
+         since the list was cached should not be shown stale on the one page
+         the shopper is deciding from. */
+      const prod = extra ? Object.assign({}, p, extra) : p;
+      const spec = S.of(prod);
+      const peers = all.filter(x => String(x.categoryId) === String(prod.categoryId) && String(x.id) !== String(prod.id));
+      render(prod, spec, peers, methods);
     });
 
+    /* Both reads fail SOFT. A product page that renders without its rich
+       description is a smaller failure than one that renders not at all. */
+    function detail(pid) {
+      return fetch(A.P('api/product/') + encodeURIComponent(pid))
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => (d && d.product) || null)
+        .catch(() => null);
+    }
+    function pays() {
+      return fetch(A.P('api/payment-methods'))
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => (d && Array.isArray(d.methods) ? d.methods : []))
+        .catch(() => []);
+    }
+
     /* ================= render ================= */
-    function render(p, s, peers) {
+    function render(p, s, peers, methods) {
       const U = window.skShopUI;
       // EN shoppers arrive here from a translated shop/category card — route the
       // title through the same rule-based translator so the PDP title, tab
@@ -90,15 +122,14 @@
           { label: t('تفاصيل المنتج', 'Product details') }
         ]) +
         '<div class="pdp">' +
-          '<div class="pdp__media"><div class="panel pdp__frame">' +
-            '<img src="' + esc(p.image) + '" alt="' + esc(dispTitle) + '">' +
-          '</div></div>' +
+          '<div class="pdp__media">' + gallery(p, dispTitle) + '</div>' +
           '<div class="pdp__buy">' + head(p, s, dispTitle) + '</div>' +
         '</div>' +
         '<div class="grid2 mt24">' +
           '<div>' + suitability(p, s) + spaceCheck(p, s) + '</div>' +
           '<div>' + goodToKnow(p, s, peers) + energyPanel(p, s, peers) + '</div>' +
         '</div>' +
+        payPanel(methods) +
         specsPanel(p, s) +
         '<div class="grid2 mt16"><div>' + reviewsPanel(p) + '</div><div>' + qaPanel(p) + '</div></div>' +
         '<div id="guidesBox"></div>' +
@@ -106,6 +137,66 @@
       wire(p, s, peers);
       guides(p);
       U.afterGrid(root);
+    }
+
+    /* ---- the gallery ----------------------------------------------------
+       427 products in the store carry between 2 and 7 images and the page
+       rendered only the first, which is a large part of why Ecwid's own
+       product page looked more complete than ours.
+
+       Rendered as real <button>s in a list, not a script-built carousel: the
+       whole set is in the DOM at first paint, every thumbnail is reachable by
+       keyboard, and a product with one image simply gets no thumbnail strip.
+       Only the main image is eager — the thumbnails are small and below it. */
+    function gallery(p, dispTitle) {
+      const imgs = (Array.isArray(p.images) && p.images.length ? p.images : [p.image]).filter(Boolean);
+      const main = imgs[0] || '';
+      const frame = '<div class="panel pdp__frame">' +
+        (main
+          ? '<img id="pdpMain" src="' + esc(main) + '" alt="' + esc(dispTitle) + '">'
+          : '<span class="pdp__noimg">' + t('لا توجد صورة', 'No image') + '</span>') +
+        '</div>';
+      if (imgs.length < 2) return frame;
+      return frame +
+        '<ul class="pdp__thumbs" role="list">' + imgs.map((src, i) =>
+          '<li><button type="button" class="pdp__thumb' + (i === 0 ? ' is-on' : '') + '"' +
+            ' data-src="' + esc(src) + '" aria-label="' +
+            esc(t('صورة ' + (i + 1) + ' من ' + imgs.length, 'Image ' + (i + 1) + ' of ' + imgs.length)) + '">' +
+            '<img loading="lazy" decoding="async" src="' + esc(src) + '" alt=""></button></li>').join('') +
+        '</ul>';
+    }
+
+    /* ---- payment and instalment plans, straight from Ecwid --------------
+       Staff maintain these in the Ecwid control panel; nothing here is
+       hardcoded. Two of the plans are restricted to one manufacturer's
+       products and Ecwid cannot enforce that on a manual method, so the
+       restriction is SAID rather than silently applied — the same rule
+       checkout follows, for the same reason.
+
+       No figures: a monthly instalment depends on the term and the provider's
+       own approval, and inventing one on a product page would be a quoted
+       price we have no basis for. */
+    function payPanel(methods) {
+      const list = (methods || []).filter(m => m && m.title);
+      if (!list.length) return '';
+      const plans = list.filter(m => /تقسيط|مبادرة|valu|souhoola|forsa|mogo|seven|aman/i.test(m.title));
+      const rest = list.filter(m => plans.indexOf(m) === -1);
+      const row = m =>
+        '<li><span class="k">' + esc(m.title) +
+          (m.restricted ? ' <em class="badge badge--warn">' +
+            esc(t('منتجات ' + (m.brand || '') + ' فقط', (m.brandEn || m.brand || '') + ' products only')) + '</em>' : '') +
+        '</span><span class="v">' + esc(m.instructions || t('تؤكده خدمة العملاء', 'confirmed by customer care')) + '</span></li>';
+      return '<div class="panel mt16"><h2 class="panel__h">' + t('طرق الدفع والتقسيط', 'Payment and instalment options') + '</h2>' +
+        '<p class="panel__sub">' + t('المتاح فعلياً على هذا الطلب، كما تسجله صادكو — وتختاره وقت تأكيد الطلب.',
+          'What is actually available on this order, as SADKO records it — you choose at checkout.') + '</p>' +
+        (plans.length ? '<h3 class="small" style="font-weight:800;margin:4px 0 6px">' + t('تقسيط', 'Instalments') + '</h3>' +
+          '<ul class="specs">' + plans.map(row).join('') + '</ul>' : '') +
+        (rest.length ? '<h3 class="small" style="font-weight:800;margin:14px 0 6px">' + t('دفع مباشر', 'Pay outright') + '</h3>' +
+          '<ul class="specs">' + rest.map(row).join('') + '</ul>' : '') +
+        '<div class="note note--soft small mt16">' + t(
+          'لا تُدفع أى أموال على الموقع ولا نطلب بيانات بطاقة. تُحدَّد قيمة القسط ومدته مع جهة التقسيط نفسها بعد تأكيد الطلب.',
+          'No money is taken on the site and we never ask for card details. The instalment amount and term are set with the provider itself after you place the order.') +
+        '</div></div>';
     }
 
     /* ---- headline + actions ---- */
@@ -130,6 +221,7 @@
                     ' <em class="pdp__off" style="font-size:.55em;font-weight:800;color:var(--ok,#2f6b46);font-style:normal">-' + offPct + '%</em>' : '') +
         '</p>' +
         '<p class="muted small pdp__caveat" style="margin:0 0 16px">' + t('سعر صادكو وقت آخر تحديث للكتالوج — أكّد السعر قبل الشراء.', 'SADKO price at the last catalogue update — confirm before buying.') + '</p>' +
+        stockLine(p) +
         (out ? '<p class="note note--warn" style="margin:0 0 16px">' +
                  t('هذا المنتج غير متوفر حالياً. يمكنك حفظه أو الاتصال بخدمة العملاء على 19140 للسؤال عن موعد توفره.',
                    'This product is out of stock. You can save it, or call customer care on 19140 to ask when it will be available.') +
@@ -137,13 +229,51 @@
         '<div class="chips">' +
           /* Out of stock keeps Compare, Save and Add-to-plan — all still useful —
              but loses the buy button, because the shop cannot ship it. */
-          (out ? '' : '<a class="btn btn--primary" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + t('اشترى من صادكو', 'Buy from SADKO') + '</a>') +
+          /* This was an outbound link to p.url — Ecwid's own storefront —
+             so the page that gives the buying guidance handed the buyer to a
+             different shop to complete the purchase. It adds to the site's own
+             cart now, and checkout pushes the order into Ecwid. */
+          (out ? '' : '<button class="btn btn--primary" id="btnAdd" type="button">' + t('أضف للسلة', 'Add to cart') + '</button>') +
+          (out ? '' : '<a class="btn btn--teal" id="btnBuy" href="' + A.P('checkout.html') + '">' + t('اشترى الآن', 'Buy now') + '</a>') +
           '<a class="btn btn--teal" href="' + A.P('compare.html') + '?q=' + encodeURIComponent(cleanTitle(p.title)) + '">' + t('قارن الأسعار', 'Compare prices') + '</a>' +
           '<button class="btn btn--ghost" id="btnSave">' + (saved ? t('محفوظ ✓', 'Saved ✓') : t('احفظ', 'Save')) + '</button>' +
           '<a class="btn btn--ghost" href="' + A.P('plan.html') + '?add=' + encodeURIComponent(p.id) + '">' + t('ضيفه لخطة', 'Add to a plan') + '</a>' +
         '</div>';
     }
     function cleanTitle(x) { return String(x).replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60); }
+
+    /* ---- availability, as Ecwid actually records it ----------------------
+       Three genuinely different states, and the page used to show none of
+       them. A remaining count is printed ONLY when Ecwid is tracking the
+       quantity, because an untracked product's "quantity" field is not a
+       stock figure and printing it would invent scarcity. The low-stock nudge
+       is likewise a fact being reported, not a countdown. */
+    function stockLine(p) {
+      if (p.inStock === false) return '';
+      const tracked = p.stockTracked === true;
+      const q = Number(p.quantity);
+      if (tracked && isFinite(q) && q > 0 && q <= 5) {
+        return '<p class="pdp__stock pdp__stock--low small" style="margin:0 0 12px;font-weight:800;color:var(--warn,#a4551b)">' +
+          esc(t('باقى ' + A.num(q) + ' فقط فى المخزن', 'Only ' + q + ' left in stock')) + '</p>';
+      }
+      if (p.inStock === true) {
+        return '<p class="pdp__stock small" style="margin:0 0 12px;font-weight:800;color:var(--ok,#2f6b46)">' +
+          t('متوفر', 'In stock') + '</p>';
+      }
+      return '';
+    }
+
+    /* ---- the SKU line ---------------------------------------------------
+       Worth showing because it is the number customer care asks for on the
+       phone, and the shopper otherwise has to read out a 60-character Arabic
+       title. Banner entries never reach this page (the detail endpoint
+       refuses them), so the banner- prefix cannot appear here. */
+    function skuLine(p) {
+      const sku = String(p.sku || '').trim();
+      if (!sku) return '';
+      return '<li><span class="k">' + t('كود المنتج', 'Product code') + '</span>' +
+        '<span class="v ltr">' + esc(sku) + '</span></li>';
+    }
 
     /* ---- 1. suitable for ---- */
     function suitability(p, s) {
@@ -332,13 +462,37 @@
         [t('قدرة التبريد', 'Cooling capacity'), s.cap.btu ? A.num(s.cap.btu) + ' BTU' : null],
         [t('الضمان', 'Warranty'), s.f.warranty ? t(s.f.warranty + ' سنة', s.f.warranty + ' years') : null],
       ];
+      /* Not a read-from-the-description guess like the rows above — the code
+         and the weight come from Ecwid's own fields, so they are appended
+         after them rather than mixed in. A weight is shown only when staff
+         actually entered one: 0 is Ecwid's "unset", and the mapper has
+         already turned that into null. */
+      const facts = skuLine(p) +
+        (p.weight ? '<li><span class="k">' + t('الوزن', 'Weight') + '</span><span class="v">' +
+          A.num(p.weight) + ' ' + t('كجم', 'kg') + '</span></li>' : '');
       return '<div class="panel mt16"><h2 class="panel__h">' + t('المواصفات', 'Specifications') + '</h2>' +
         '<p class="panel__sub">' + t('مقروءة آلياً من وصف المنتج — وما لا يُذكر نصفه بـ«غير متوفر» بدلاً من تخمينه.',
           'Read automatically from the product description — anything missing is shown as "not stated" rather than guessed.') + '</p>' +
         '<ul class="specs">' + rows.map(r => '<li><span class="k">' + esc(r[0]) + '</span><span class="v' + (r[1] ? '' : ' unknown') + '">' +
-          esc(r[1] == null ? t('غير متوفر', 'not stated') : r[1]) + '</span></li>').join('') + '</ul>' +
-        '<details class="mt16"><summary style="cursor:pointer;font-weight:800">' + t('الوصف الأصلى من صادكو', 'Original SADKO description') + '</summary>' +
-        '<p class="small muted mt8" style="line-height:1.9">' + esc(S.norm(p.description) || t('لا يوجد وصف.', 'No description.')) + '</p></details></div>';
+          esc(r[1] == null ? t('غير متوفر', 'not stated') : r[1]) + '</span></li>').join('') + facts + '</ul>' +
+        /* Ecwid's own copy, with the structure it was written in.
+
+           It used to be flattened to one paragraph by the mapper's stripHtml,
+           so a bulleted spec list arrived as a run-on sentence — and it was
+           folded inside a <details> that nobody opens. It is open by default
+           now, because it is the manufacturer's own description of the product
+           and the main thing a shopper scrolls down for.
+
+           descriptionHtml is sanitised server-side by safeHtml(): an
+           allow-list of structural tags with every attribute dropped, so no
+           href, src, style or handler reaches this innerHTML. The plain
+           description is the fallback when the detail endpoint is absent (the
+           Ecwid flag off, or a static host). */
+        '<details class="mt16" open><summary style="cursor:pointer;font-weight:800">' + t('الوصف الأصلى من صادكو', 'Original SADKO description') + '</summary>' +
+        (p.descriptionHtml
+          ? '<div class="pdp__desc small mt8">' + p.descriptionHtml + '</div>'
+          : '<p class="small muted mt8" style="line-height:1.9">' + esc(S.norm(p.description) || t('لا يوجد وصف.', 'No description.')) + '</p>') +
+        '</details></div>';
     }
 
     /* ---- 6. structured reviews (device-local) ---- */
@@ -418,6 +572,49 @@
 
     /* ================= wiring ================= */
     function wire(p, s, peers) {
+      /* ---- gallery ----
+         One listener on the strip rather than one per thumbnail. */
+      const thumbs = root.querySelector('.pdp__thumbs');
+      if (thumbs) {
+        thumbs.addEventListener('click', e => {
+          const b = e.target.closest('.pdp__thumb');
+          if (!b) return;
+          const main = root.querySelector('#pdpMain');
+          if (main) main.src = b.getAttribute('data-src');
+          thumbs.querySelectorAll('.pdp__thumb').forEach(x => x.classList.remove('is-on'));
+          b.classList.add('is-on');
+        });
+      }
+
+      /* ---- add to cart ----
+         skCart.add refuses a product Ecwid reports out of stock, so the
+         button reports that rather than pretending it worked. */
+      const add = root.querySelector('#btnAdd');
+      if (add) {
+        add.addEventListener('click', () => {
+          if (window.skCart.add(p) === false) {
+            add.textContent = t('غير متوفر', 'Out of stock');
+            add.disabled = true;
+            return;
+          }
+          add.textContent = t('✓ أُضيف للسلة', '✓ Added to cart');
+          add.classList.add('is-done');
+          setTimeout(() => { add.textContent = t('أضف للسلة', 'Add to cart'); add.classList.remove('is-done'); }, 1600);
+        });
+      }
+
+      /* ---- buy now ----
+         Adds, then goes to checkout. The href is a real link so it works
+         without JS; this only makes sure the item is in the cart first, and
+         does not double-add when it is already there. */
+      const buy = root.querySelector('#btnBuy');
+      if (buy) {
+        buy.addEventListener('click', e => {
+          const have = (window.skCart.items() || []).some(i => String(i.id) === String(p.id));
+          if (!have && window.skCart.add(p) === false) { e.preventDefault(); return; }
+        });
+      }
+
       const $ = sel => root.querySelector(sel);
 
       $('#btnSave') && $('#btnSave').addEventListener('click', () => {

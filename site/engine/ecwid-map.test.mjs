@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { toSadkoProduct, decodeEntities } from './ecwid-map.mjs';
+import { toSadkoProduct, decodeEntities, safeHtml } from './ecwid-map.mjs';
 
 const FIX = JSON.parse(readFileSync(path.join(import.meta.dirname, 'fixtures', 'ecwid-product.json'), 'utf8'));
 
@@ -521,4 +521,93 @@ test('the REAL captured description comes out clean', () => {
   const p = toSadkoProduct(FIX);
   assert.ok(!/[<>]/.test(p.description), 'markup in the real payload survived');
   assert.ok(p.description.length > 0, 'the description was emptied entirely');
+});
+
+
+/* ======================================================================
+   safeHtml — the PDP's rich description.
+
+   stripHtml flattens Ecwid's rich text to a single line, which is right for a
+   card and wrong for a product page: a spec list becomes a run-on sentence.
+   safeHtml keeps the STRUCTURE and drops everything else.
+
+   It is an allow-list with no attributes at all. That is deliberate and it is
+   the whole security argument: this HTML is written into innerHTML on the
+   site's own origin, so a surviving href/src/style/on* would run or beacon
+   with the shopper's session. Staff-authored is not the same as trusted.
+   ================================================================== */
+
+test('safeHtml keeps the structure a description is written in', () => {
+  const html = safeHtml('<h2>المواصفات</h2><ul><li>سعة ١٠ قدم</li><li>انفرتر</li></ul>');
+  assert.match(html, /<h2>المواصفات<\/h2>/);
+  assert.match(html, /<ul><li>سعة ١٠ قدم<\/li><li>انفرتر<\/li><\/ul>/);
+});
+
+test('safeHtml drops every attribute, including the harmless-looking ones', () => {
+  /* An allow-list of attributes is a maintenance trap; none are needed to
+     render a description. */
+  const html = safeHtml('<p class="x" style="color:red" dir="rtl">نص</p>');
+  assert.equal(html, '<p>نص</p>');
+});
+
+test('safeHtml removes an event handler with the tag that carried it', () => {
+  const html = safeHtml('<p onclick="alert(1)">نص</p>');
+  assert.ok(!/onclick/i.test(html));
+  assert.equal(html, '<p>نص</p>');
+});
+
+test('safeHtml removes script and its CONTENT, not just the tags', () => {
+  /* Dropping only the tags would leave the code as text — and a later
+     innerHTML of that text could execute it. */
+  const html = safeHtml('<p>قبل</p><script>alert(1)</script><p>بعد</p>');
+  assert.ok(!html.includes('alert'), 'script body survived: ' + html);
+  assert.equal(html, '<p>قبل</p><p>بعد</p>');
+});
+
+test('safeHtml removes style and iframe bodies too', () => {
+  assert.ok(!safeHtml('<style>body{display:none}</style><p>ن</p>').includes('display'));
+  assert.equal(safeHtml('<iframe src="https://evil.test"></iframe><p>ن</p>'), '<p>ن</p>');
+});
+
+test('safeHtml drops images and links but keeps the link TEXT', () => {
+  /* Ecwid descriptions carry both. An <img> from a third-party host would
+     report every product view to it; a link could be swapped for a phishing
+     target. The words the author wrote are kept. */
+  const html = safeHtml('<p>شوف <a href="https://evil.test">الصفحة</a></p><img src="https://evil.test/x.gif">');
+  assert.ok(!html.includes('evil.test'));
+  assert.ok(!/<img/i.test(html));
+  assert.equal(html, '<p>شوف الصفحة</p>');
+});
+
+test('safeHtml keeps escaped markup escaped rather than reviving it', () => {
+  /* &lt;script&gt; in the copy is TEXT the author wrote. Decoding it first —
+     which stripHtml deliberately avoids — would turn it into a real tag. */
+  const html = safeHtml('<p>اكتب &lt;script&gt; كنص</p>');
+  assert.match(html, /&lt;script&gt;/);
+  assert.ok(!html.includes('<script'));
+});
+
+test('safeHtml does not mistake a bare < for a tag', () => {
+  assert.match(safeHtml('<p>السعة < 10 لتر</p>'), /السعة/);
+});
+
+test('safeHtml returns an empty string for nothing, never null or "undefined"', () => {
+  for (const v of [null, undefined, '', '   ']) assert.equal(safeHtml(v), '');
+});
+
+test('safeHtml on plain text wraps nothing and invents nothing', () => {
+  assert.equal(safeHtml('نص عادى'), 'نص عادى');
+});
+
+test('a mapped product carries both the plain and the rich description', () => {
+  const p = toSadkoProduct({ id: 1, name: 'ث', price: 10,
+    description: '<h2>مواصفات</h2><ul><li>أ</li></ul>' });
+  /* plain: what cards, search and skSpecs read */
+  assert.equal(p.description, 'مواصفات أ');
+  /* rich: what the PDP renders */
+  assert.match(p.descriptionHtml, /<h2>مواصفات<\/h2>/);
+});
+
+test('descriptionHtml is empty when there is no description, not "undefined"', () => {
+  assert.equal(toSadkoProduct({ id: 1, name: 'ث', price: 10 }).descriptionHtml, '');
 });

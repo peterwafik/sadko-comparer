@@ -471,38 +471,54 @@
      The promise is CLEARED on failure so a transient error (offline, a dropped
      connection mid-scroll) cannot latch permanently and leave add-to-cart broken
      for the rest of the session — the next render retries. */
-  let CATALOG_BY_PATH = null;
-  function catalogByPath() {
-    if (!CATALOG_BY_PATH) {
-      CATALOG_BY_PATH = fetch(P('data/products.json')).then(r => r.json()).then(d => {
-        const byPath = {};
+  /* Indexed BOTH ways. By id is what cards are matched on now that they link
+     to product.html (see storefront.js card()); by path is kept because a card
+     rendered before that change — or any anchor that still points at the
+     catalogue url — must keep resolving. */
+  let CATALOG_INDEX = null;
+  function catalogIndex() {
+    if (!CATALOG_INDEX) {
+      CATALOG_INDEX = fetch(P('data/products.json')).then(r => r.json()).then(d => {
+        const byPath = {}, byId = {};
         (d.products || []).forEach(p => {
+          if (p.id != null) byId[String(p.id)] = p;
           try { byPath[decodeURIComponent(new URL(p.url).pathname)] = p; } catch (e) {}
         });
-        return byPath;
-      }).catch(err => { CATALOG_BY_PATH = null; throw err; });
+        return { byPath, byId };
+      }).catch(err => { CATALOG_INDEX = null; throw err; });
     }
-    return CATALOG_BY_PATH;
+    return CATALOG_INDEX;
   }
 
   function enhanceCategoryCards() {
-    catalogByPath().then(byPath => {
+    catalogIndex().then(({ byPath, byId }) => {
       document.querySelectorAll('article.card').forEach(card => {
-        const link = card.querySelector('a.card__imgwrap') || card.querySelector('a[href]');
-        if (!link) return;
         if (card.__skProduct) return;   // already enhanced; re-runs must not double the buttons
-        let prod = null;
-        try { prod = byPath[decodeURIComponent(new URL(link.href).pathname)]; } catch (e) {}
+        /* data-id first: it is on every card storefront.js renders and needs no
+           URL parsing. The pathname fallback covers anything still hrefing the
+           catalogue url. */
+        let prod = byId[String(card.getAttribute('data-id') || '')] || null;
+        const link = card.querySelector('a.card__imgwrap') || card.querySelector('a[href]');
+        if (!prod) {
+          if (!link) return;
+          try { prod = byPath[decodeURIComponent(new URL(link.href).pathname)]; } catch (e) {}
+        }
         if (!prod) return;
         card.__skProduct = prod;      // lets the preference filter reason about this card
         const row = card.querySelector('.card__row') || card.querySelector('.card__body') || card;
-        // Internal product page: the catalogue card links straight out to the
-        // shop, which skips the suitability / space / running-cost guidance.
-        const det = document.createElement('a');
-        det.className = 'sk-detbtn';
-        det.href = P('product.html') + '?id=' + encodeURIComponent(prod.id);
-        det.textContent = N.details;
-        row.appendChild(det);
+        /* The "details" button existed because the card linked OUT to Ecwid's
+           storefront, so the site's own product page needed its own way in.
+           The card image and the buy link both go there now, so a third
+           control to the same place is noise — it is appended only when the
+           card still points somewhere else. */
+        const internal = !!(link && /product\.html/.test(link.getAttribute('href') || ''));
+        if (!internal) {
+          const det = document.createElement('a');
+          det.className = 'sk-detbtn';
+          det.href = P('product.html') + '?id=' + encodeURIComponent(prod.id);
+          det.textContent = N.details;
+          row.appendChild(det);
+        }
         const b = document.createElement('button');
         b.type = 'button';
         /* An out-of-stock product keeps its card and its details link — it is

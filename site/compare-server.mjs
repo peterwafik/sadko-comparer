@@ -2612,6 +2612,26 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      seed catalogue it was captured against. */
   /* Checkout needs the payment methods before a customer has an account, so
      this is public — it is shop configuration, not customer data. */
+  /* ---- one product, in full -------------------------------------------
+     The product page used to link OUT to Ecwid's own page. It renders the
+     product itself now, and needs the rich description that
+     /data/products.json deliberately withholds — see listShape() in
+     ecwid-source.mjs for why the list stays lean.
+
+     404 rather than an empty object for anything the storefront does not
+     serve (disabled, incomplete, a banner entry, unknown), so the page shows
+     its "not found" state instead of a blank PDP. With the Ecwid flag off
+     there is no mirror, so this 404s and the page falls back to the list
+     entry it already has — which is exactly the pre-Ecwid behaviour. */
+  if (u.pathname.startsWith('/api/product/') && (req.method === 'GET' || req.method === 'HEAD')) {
+    const id = decodeURIComponent(u.pathname.slice('/api/product/'.length));
+    let p = null;
+    try { p = ecwidSource().productDetail(id); } catch (e) { p = null; }
+    if (!p) return json(404, { error: 'not_found', id });
+    res.setHeader('cache-control', 'no-cache');
+    return json(200, { source: 'ecwid', product: p });
+  }
+
   if (u.pathname === '/api/payment-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
     const methods = activePaymentMethods();
     return json(200, {

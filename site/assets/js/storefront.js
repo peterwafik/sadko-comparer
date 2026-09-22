@@ -49,9 +49,16 @@
     return isEN() ? v.toLocaleString('en-EG') : v.toLocaleString('ar-EG');
   }
 
-  // MUST keep every class nav.js/prefs.js query, and MUST href the catalogue url:
-  // enhanceCategoryCards resolves products by URL pathname, so an internal href
-  // breaks add-to-cart on every card. See storefront.test.mjs.
+  // MUST keep every class nav.js/prefs.js query.
+  //
+  // The href is the site's OWN product page, not p.url — p.url is the Ecwid
+  // storefront ("https://sadko-test.company.site/products/…"), and hrefing it
+  // sent every shopper out of the site the moment they clicked a product. The
+  // product page renders the same Ecwid data inside the site's own UI.
+  //
+  // This is why nav.js's enhanceCategoryCards() had to stop resolving a card's
+  // product by URL pathname: with an internal href every lookup missed, so
+  // add-to-cart silently disappeared from every card. It reads data-id now.
   // Same convention as nav.js's translateCategoryPage(): in EN the title runs
   // through the rule-based catalog translator (specs/teasers exist only in
   // Arabic, so the teaser is hidden rather than mistranslated), and the buy
@@ -66,16 +73,37 @@
     return s;
   }
 
+  // The 30 /category/*.html pages sit one level down, everything else at the
+  // site root — the same test appshell.js:14 makes. Guarded like isEN() above,
+  // so every renderer here stays callable from node --test where there is no
+  // location.
+  function root() {
+    try {
+      if (typeof location !== 'undefined' && /\/category\//.test(location.pathname)) return '../';
+    } catch (e) {}
+    return '';
+  }
+
+  // p.url (Ecwid's own storefront page) is the LAST resort, for a catalogue
+  // entry with no id. It should not happen — the mapper marks such a product
+  // incomplete — but a card with a dead '#' would be worse than one that
+  // reaches Ecwid.
+  function productHref(p) {
+    if (p && p.id != null && p.id !== '') return root() + 'product.html?id=' + encodeURIComponent(p.id);
+    return (p && p.url) || '#';
+  }
+
   function card(p, opts) {
     opts = opts || {};
-    var href = opts.href || p.url || '#';
+    var href = opts.href || productHref(p);
     var en = isEN();
     var title = en ? translateForEN(clean(p.title)) : clean(p.title);
     var teaser = clean(p.description).slice(0, 120);
     var img = p.image
       ? '<img loading="lazy" decoding="async" src="' + esc(p.image) + '" alt="' + esc(title) + '">'
       : '<span class="card__noimg" aria-hidden="true"></span>';
-    var buyLabel = opts.buyLabel || (en ? 'Buy now ↗' : 'اشترى الآن');
+    // The arrow said "this leaves the site", which it no longer does.
+    var buyLabel = opts.buyLabel || (en ? 'View product' : 'اعرض المنتج');
 
     // ---- availability -------------------------------------------------
     // Ecwid reports stock; the July seed catalogue did not. A product with no
@@ -113,7 +141,7 @@
         '<div class="card__row">' +
           (out
             ? '<span class="card__soldout">' + esc(soldOut) + '</span>'
-            : '<a class="card__buy" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(buyLabel) + '</a>') +
+            : '<a class="card__buy" href="' + esc(href) + '">' + esc(buyLabel) + '</a>') +
         '</div>' +
       '</div>' +
     '</article>';
@@ -575,5 +603,5 @@
     try { wireRails(rootEl); } catch (e) {}
   }
 
-  return { esc: esc, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, suggestList: suggestList, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid, wireRails: wireRails };
+  return { esc: esc, productHref: productHref, clean: clean, money: money, translateForEN: translateForEN, card: card, categoryTile: categoryTile, brandTile: brandTile, priceBands: priceBands, rail: rail, facets: facets, searchBox: searchBox, suggestList: suggestList, adHero: adHero, adSlot: adSlot, advancedSearch: advancedSearch, toolbar: toolbar, pager: pager, breadcrumb: breadcrumb, afterGrid: afterGrid, wireRails: wireRails };
 });

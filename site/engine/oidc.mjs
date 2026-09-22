@@ -159,3 +159,37 @@ export async function verifyIdToken(providerId, token, opts = {}) {
     },
   };
 }
+
+/* ============================================================================
+   Passwordless mode — whether this deployment stores credentials at all.
+
+   WHY. Ecwid has no API that verifies a password, so the site cannot delegate
+   sign-in to Ecwid. The only way to stop STORING credentials is to stop having
+   them: sign-in moves entirely to a provider, and accounts.signInWithIdentity
+   already creates users with `salt` and `hash` both null. A stolen database
+   with no hashes in it is worth very little, which is a larger security win
+   than moving anything else off the server.
+
+   THE REFUSAL. Turning passwords off with no provider configured locks every
+   customer out of the site. Both silent outcomes are wrong — leaving passwords
+   on means the operator believes a door is shut that is open; turning them off
+   means nobody can sign in — so this is FATAL and the server refuses to start.
+   An operator making a deliberate config change sees it immediately; the fix
+   is to configure a provider or unset the flag.
+   ========================================================================== */
+export function authMode(env = {}, providerCount = 0) {
+  const want = /^(1|true|yes|on)$/i.test(String(env.SADKO_AUTH_PASSWORDLESS || '').trim());
+  if (!want) return { passwordless: false };
+  if (!providerCount) {
+    return {
+      passwordless: false,
+      fatal: true,
+      reason: 'no-provider',
+      message: 'SADKO_AUTH_PASSWORDLESS is set but no sign-in provider is configured, ' +
+               'so nobody could sign in. Set GOOGLE_CLIENT_ID (Google Cloud Console → ' +
+               'APIs & Services → Credentials → OAuth client ID, type "Web application") ' +
+               'or unset SADKO_AUTH_PASSWORDLESS.',
+    };
+  }
+  return { passwordless: true };
+}

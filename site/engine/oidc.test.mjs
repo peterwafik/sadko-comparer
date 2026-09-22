@@ -162,3 +162,51 @@ test('a JWKS outage fails closed', async () => {
   assert.equal(r.ok, false);
   assert.equal(r.error, 'jwks-unavailable');
 });
+
+/* ======================================================================
+   Passwordless mode.
+
+   The reason it exists: Ecwid has no API that verifies a password, so the
+   only way the site stops STORING credentials is to stop having them —
+   sign-in moves entirely to a provider, and signInWithIdentity already
+   creates accounts with salt and hash both null.
+
+   The danger it has to refuse: turning passwords off with no provider
+   configured locks every customer out of the site, permanently and
+   silently. GOOGLE_CLIENT_ID is currently unset, so that is not a
+   hypothetical — it is the live state of this deployment.
+   ================================================================== */
+import { authMode } from './oidc.mjs';
+
+test('by default, passwords stay on', () => {
+  assert.equal(authMode({}, 1).passwordless, false);
+  assert.equal(authMode({}, 0).passwordless, false);
+});
+
+test('the flag turns passwords off when a provider is configured', () => {
+  const m = authMode({ SADKO_AUTH_PASSWORDLESS: '1' }, 1);
+  assert.equal(m.passwordless, true);
+  assert.ok(!m.fatal);
+});
+
+test('the flag is accepted in the spellings an operator will actually type', () => {
+  for (const v of ['1', 'true', 'TRUE', 'yes', 'on', ' 1 '])
+    assert.equal(authMode({ SADKO_AUTH_PASSWORDLESS: v }, 1).passwordless, true, v + ' should enable it');
+  for (const v of ['0', 'false', 'no', 'off', '', '  '])
+    assert.equal(authMode({ SADKO_AUTH_PASSWORDLESS: v }, 1).passwordless, false, v + ' should not');
+});
+
+test('the flag with NO provider is fatal, and does not quietly leave passwords on', () => {
+  /* Both silent outcomes are wrong. Leaving passwords on means the operator
+     believes a door is shut that is open. Turning them off means nobody can
+     sign in at all. So it refuses to start and says which. */
+  const m = authMode({ SADKO_AUTH_PASSWORDLESS: '1' }, 0);
+  assert.equal(m.fatal, true);
+  assert.equal(m.passwordless, false, 'it must not half-apply');
+  assert.match(m.reason, /provider/);
+});
+
+test('the fatal message names the actual fix, not the symptom', () => {
+  const m = authMode({ SADKO_AUTH_PASSWORDLESS: 'yes' }, 0);
+  assert.match(m.message, /GOOGLE_CLIENT_ID/);
+});

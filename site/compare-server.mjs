@@ -57,7 +57,7 @@ import { extractProduct } from './engine/extract.mjs';
 import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
 import { openAccounts, ORDER_STATUSES } from './engine/accounts.mjs';
-import { verifyIdToken, enabledProviders } from './engine/oidc.mjs';
+import { verifyIdToken, enabledProviders, authMode } from './engine/oidc.mjs';
 import { openCatalogAdmin, EDITABLE_FIELDS } from './engine/catalog-admin.mjs';
 import { openAnalytics, EVENT_TYPES, FUNNEL_STAGES } from './engine/analytics.mjs';
 /* Ecwid — design: docs/superpowers/specs/2026-09-15-ecwid-integration-design.md
@@ -2134,6 +2134,27 @@ async function remoteOrdersCached(email) {
   return orders;
 }
 
+/* Whether this deployment stores passwords at all. Resolved once, at boot:
+   a per-request read could change under a running server and leave the
+   config route and the auth routes disagreeing. */
+const AUTH_MODE = authMode(process.env, enabledProviders().length);
+if (AUTH_MODE.fatal) {
+  console.error('FATAL: ' + AUTH_MODE.message);
+  process.exit(1);
+}
+const PASSWORDLESS = AUTH_MODE.passwordless;
+if (PASSWORDLESS)
+  console.log('auth: passwordless — sign-in is provider-only, no credentials are stored');
+
+/* One refusal, worded for a customer rather than an operator: they did not
+   choose this and cannot fix it, so it says what to do instead. */
+const passwordsOff = lang => ({
+  error: 'passwords-disabled',
+  message: lang === 'en'
+    ? 'This site now signs in with Google only — there is no password to enter. Use the Google button, or call 19140.'
+    : 'الدخول الآن بحساب جوجل فقط — لا توجد كلمة سر. استخدم زر جوجل، أو اتصل بـ19140.',
+});
+
 const ORDER_LOADERS = {
   loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
   /* The sync layer writes a status through this seam rather than reaching
@@ -2770,7 +2791,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
          *_CLIENT_ID configured this returns [], and the UI says so rather
          than rendering a button that cannot work. */
       if (u.pathname === '/api/auth/config' && req.method === 'GET')
-        return json(200, { providers: enabledProviders(), passwordAuth: true });
+        return json(200, { providers: enabledProviders(), passwordAuth: !PASSWORDLESS });
 
       /* Social sign-in. The browser sends the provider's ID token; it is only
          trusted after engine/oidc.mjs checks signature, issuer, audience and
@@ -2794,6 +2815,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       }
 
       if (u.pathname === '/api/auth/register' && req.method === 'POST') {
+        if (PASSWORDLESS) return json(403, passwordsOff(lang));
         const b = await readJson(req);
         const r = db.register(b);
         if (r.error) return json(400, authErr(r.error, lang));
@@ -2812,6 +2834,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       }
 
       if (u.pathname === '/api/auth/login' && req.method === 'POST') {
+        if (PASSWORDLESS) return json(403, passwordsOff(lang));
         const b = await readJson(req);
         const r = db.login({ email: b.email, password: b.password, ip });
         if (r.error) return json(r.error === 'too-many' ? 429 : 401, authErr(r.error, lang));
@@ -2843,6 +2866,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       }
 
       if (u.pathname === '/api/auth/password' && req.method === 'POST') {
+        if (PASSWORDLESS) return json(403, passwordsOff(lang));
         const b = await readJson(req);
         const r = db.changePassword(me.id, b.current, b.next);
         if (r.error) return json(400, authErr(r.error, lang));

@@ -64,7 +64,40 @@
        the pattern people expect from a real store. Login shows first; a link
        flips to signup in place, no reload. Social sign-in sits on top; email +
        password below. */
+    /* Passwords are gone only when the server SAYS so. cfg starts as
+       { providers: [] } and Au.config() can fail, so an absent flag means
+       "passwords on" — a failed config read must not hide the only way in. */
+    function passwordsOn() { return cfg.passwordAuth !== false; }
+
     function authScreen() {
+      return passwordsOn() ? authScreenWithPasswords() : authScreenProviderOnly();
+    }
+
+    /* Provider-only: one button, and a sentence saying why there is no
+       password box — otherwise the card reads as broken rather than as a
+       deliberate choice. */
+    function authScreenProviderOnly() {
+      return '<div class="sk-auth">' +
+        '<div class="sk-auth__inner">' +
+          '<a class="sk-auth__logo" href="' + A.P('index.html') + '" aria-label="SADKO">' +
+            '<img src="' + A.P('assets/img/sadko-logo.png') + '" alt="صادكو جروب"></a>' +
+          '<div class="sk-auth__card">' +
+            '<h1 id="authTitle">' + t('أهلاً بيك', 'Welcome') + '</h1>' +
+            '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك لتُتم طلبك وتتابعه، ولتجد ترشيحاتك على مقاس منزلك.',
+              'Sign in to complete and track your orders, and get suggestions sized to your home.') + '</p>' +
+            socialRow() +
+            '<p class="sk-auth__mini">' + t('الدخول بحساب جوجل فقط — لا نحتفظ بكلمة سر لك على أى حال. لو لم يكن لديك حساب جوجل، اتصل بـ',
+              'Sign-in is with Google only — we hold no password for you at all. If you do not have a Google account, call ') +
+              '<a href="tel:19140" dir="ltr">19140</a>.</p>' +
+            '<p class="sk-auth__mini">' + t('بالدخول أنت موافق على ', 'By signing in you agree to our ') +
+              '<a href="' + A.P('terms.html') + '">' + t('شروط الاستخدام', 'terms') + '</a>' + t(' و', ' and ') +
+              '<a href="' + A.P('privacy.html') + '">' + t('سياسة الخصوصية', 'privacy') + '</a>.</p>' +
+          '</div>' +
+          '<a class="sk-auth__home" href="' + A.P('index.html') + '">' + t('← العودة إلى الرئيسية', '← Back to home') + '</a>' +
+        '</div></div>';
+    }
+
+    function authScreenWithPasswords() {
       return '<div class="sk-auth">' +
         '<div class="sk-auth__inner">' +
           '<a class="sk-auth__logo" href="' + A.P('index.html') + '" aria-label="SADKO">' +
@@ -224,7 +257,9 @@
                 '</form>'
               : '<div class="note note--soft small">' + t('حسابك بيدخل عن طريق ', 'Your account signs in with ') +
                   esc((u.providers || []).join(', ') || t('مزوّد خارجى', 'a provider')) +
-                  t('، فلا كلمة مرور هنا. وإن أردت كلمة مرور، فاتصل بخدمة العملاء.', ', so there is no password here. If you would like one, contact customer care.') + '</div>') +
+                  (passwordsOn()
+                    ? t('، فلا كلمة مرور هنا. وإن أردت كلمة مرور، فاتصل بخدمة العملاء.', ', so there is no password here. If you would like one, contact customer care.')
+                    : t('، فلا كلمة مرور هنا — ولا نحتفظ بواحدة لأى عميل.', ', so there is no password here — and we hold none for any customer.')) + '</div>') +
           '</div>' +
         '</div>' +
 

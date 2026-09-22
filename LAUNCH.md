@@ -1938,6 +1938,126 @@ sqlite3 data/accounts.db "SELECT ref, status, created_at FROM orders ORDER BY cr
 `data/accounts.db` is the only copy of the site's customers and orders — it is
 what the backup in §5G exists for.
 
+### Storing less on this server
+
+The goal, set by the owner: keep as little as possible on SADKO's own hardware
+and let Ecwid hold what it can, because a hosted platform is better defended
+than a small company VM. That is a fair reading. What follows is what can
+actually move, what cannot, and in which order.
+
+#### Start by knowing what is where
+
+`data/ecwid.db` holds **nothing sensitive**: 1,462 products, 30 categories, the
+payment and shipping method lists, sync bookmarks, and the `order_push` rows
+(our own references and error strings). It is a cache of the public catalogue —
+the same information any visitor reads off the shop page. Deleting it buys no
+security and costs availability, since every page load would then depend on
+Ecwid answering. It is already disposable: delete the file and it rebuilds.
+
+`data/accounts.db` is where the argument applies. It holds email, name, phone,
+address, **password salt and hash**, session tokens, saved home profiles and
+orders.
+
+#### The wall: Ecwid cannot verify a password
+
+There is no endpoint for it. Ecwid's own customer sign-in happens inside
+Ecwid's storefront, and its SSO runs the other way round — the merchant's site
+is the identity provider. So "delete the users table and let Ecwid authenticate
+people" is not difficult, it is impossible.
+
+The way out is to stop having passwords. `signInWithIdentity` already creates
+accounts with `salt` and `hash` both null, so a provider-only deployment holds
+no credential material for new customers at all. **That is the single largest
+security win available here** — larger than moving anything else — because a
+stolen database with no hashes in it is worth very little.
+
+#### What can leave, and what cannot
+
+| Piece | Can it leave? | How | Blocked on |
+|---|---|---|---|
+| Password salts and hashes | **yes** | passwordless mode + `tools/auth-erase-passwords.mjs` | `GOOGLE_CLIENT_ID` |
+| Name, phone, address | yes → Ecwid `/customers` | `linkCustomer` already writes it | a `secret_` token |
+| Orders | yes → Ecwid `/orders` becomes the record | push exists; reading back needs access | a `secret_` token |
+| Login-failure counters | yes | in memory; resets on restart | nothing |
+| Saved home / room profiles | **no obvious home in Ecwid** | browser storage, or they stay | see below |
+| An order still in flight | **should not** | a short outbox, pruned on confirmation | — |
+| Session records | not worth it | see below | — |
+
+Two of those deserve their reasoning written down, because both look like
+oversights.
+
+**Sessions stay.** The table holds a token *hash*, a user id and an expiry —
+a stolen copy yields hashes that cannot be turned back into cookies, so there
+is almost nothing to gain. Against that, a stateless signed cookie cannot be
+revoked: "sign out everywhere" and sign-out-on-account-deletion both stop
+working. Removing it would trade a real capability for a notional gain.
+
+**A short outbox stays.** If checkout wrote straight to Ecwid and Ecwid were
+unreachable for thirty seconds, a real customer's order would be lost along
+with the money. A queue that holds an order until Ecwid accepts it is not the
+exposure this exercise is about, and losing orders is the worse outcome.
+
+**Saved homes have no confirmed place in Ecwid.** Whether a customer record
+takes arbitrary custom fields is not something a `public_` token can discover;
+`tools/ecwid-preflight.mjs` answers it once a secret token exists. Moving them
+to the browser would make them per-device, so a customer's saved home would not
+follow them from phone to laptop. They are also the least sensitive thing in
+the database — a room name and some dimensions.
+
+#### Passwordless mode — how to turn it on
+
+```
+SADKO_AUTH_PASSWORDLESS=1
+```
+
+The server **refuses to start** if that is set while no sign-in provider is
+configured. Both silent alternatives are wrong: leaving passwords on means the
+operator believes a door is shut that is open, and turning them off with no
+provider locks every customer out permanently. A failed start is visible and
+one edit away from fixed.
+
+With it on: `/api/auth/register`, `/api/auth/login` and `/api/auth/password`
+answer **403** with a bilingual message pointing at the Google button and
+19140; `/api/auth/config` reports `passwordAuth: false`; and the sign-in screen
+renders the provider button alone, with a sentence explaining that there is no
+password box rather than leaving the card looking broken.
+
+Order of operations — the middle two steps are what stop customers being
+stranded:
+
+1. Create the OAuth client: Google Cloud Console → APIs & Services →
+   Credentials → OAuth client ID, type **Web application**, with the site's
+   origin as an authorised origin. Put the id in `GOOGLE_CLIENT_ID`.
+2. Restart with the provider configured but **passwords still on**, and confirm
+   the Google button actually signs someone in.
+3. Set `SADKO_AUTH_PASSWORDLESS=1` and restart. Existing password holders can
+   still get in with Google: it links by verified email automatically.
+4. Give them time to do that. Then erase the hashes:
+
+```
+node tools/auth-erase-passwords.mjs            # counts only, changes nothing
+node tools/auth-erase-passwords.mjs --erase    # irreversible
+sqlite3 data/accounts.db "VACUUM;"             # reclaim the pages
+```
+
+The dry run reports how many accounts have a password and **no** linked
+provider — those are the ones who would be stranded. It prints counts, never
+an email address.
+
+#### The part that is not solved by moving data
+
+A `secret_` token has full read and write over the whole store. Once it sits on
+this server, compromising this server means compromising **every customer and
+every order of sadko-group.com** — not only the new site's. Today the same
+compromise yields this database alone.
+
+So the security gain here comes mostly from **what stops being stored**
+(credentials, and PII at rest) rather than from where the remainder lives. That
+makes protecting the token the real job: `/etc/sadko.env` at `0600`, owned by
+root, never in git, never in a log line, and rotated if it is ever pasted
+anywhere. Nothing in the code prints it, and the admin panel has tests
+asserting it cannot.
+
 ### Who owns what
 
 | Concern | Owner |
@@ -1951,7 +2071,7 @@ what the backup in §5G exists for.
 | Buying guides, finder questions | SADKO control room |
 | Product `badge` | SADKO control room — this store sets no Ecwid ribbons |
 | Product page content: images, description, SKU, availability | **Ecwid** — the site renders it, Ecwid holds it |
-| Customer accounts, sessions, saved homes | **SADKO** — Ecwid has no API that verifies a customer's password |
+| Customer accounts, sessions, saved homes | **SADKO** — Ecwid has no API that verifies a customer's password. Credentials themselves can be eliminated: see *Storing less on this server* |
 | Customer identity across the two | **Email**, the key Ecwid files orders under |
 | A customer's order history | **Both**, merged — site orders plus the ones staff type into Ecwid |
 | Delivery charge | **Nobody yet** — blocked on zones + weights, see above |

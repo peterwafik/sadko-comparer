@@ -11,7 +11,11 @@ const SITE = path.join(import.meta.dirname, '..');
 const src = readFileSync(path.join(SITE, 'compare-server.mjs'), 'utf8');
 const accounts = readFileSync(path.join(SITE, 'engine', 'accounts.mjs'), 'utf8');
 
-const orderHandler = /u\.pathname === '\/api\/orders' && req\.method === 'POST'[\s\S]{0,2200}/.exec(src)[0];
+/* Scoped to the route's own final response rather than a character window:
+   the window was 2200 and broke when catalogue re-pricing was added above
+   createOrder, which said nothing about whether the order wiring still held. */
+const orderHandler = /u\.pathname === '\/api\/orders' && req\.method === 'POST'[\s\S]*?return json\(200, \{ ok: true, order: r\.order \}\);/
+  .exec(src)[0];
 
 /* --------------------------- checkout -> queue --------------------------- */
 
@@ -232,4 +236,47 @@ test('the guest confirmation still refuses to invent a grand total', () => {
   const fn = /async function placeGuestOrder\([\s\S]{0,1400}?\n    \}/.exec(CO)[0];
   assert.match(fn, /totals: d\.totals/);
   assert.ok(!/grandTotal:/.test(fn), 'the client must not compute a total');
+});
+
+/* ======================================================================
+   Both order routes re-price against the catalogue.
+
+   The guest route did; the signed-in one did not. A session proves who a
+   customer is, not that the figures their browser posted are the ones on
+   the shop page — and the order goes on to their own receipt and into
+   Ecwid as the agreed price.
+   ================================================================== */
+
+test('ONE re-pricing helper serves both routes', () => {
+  /* Two copies drift, and the one that drifts is the one nobody tests. */
+  assert.match(src, /async function repriceOrder\(items\)/);
+  assert.equal((src.match(/await repriceOrder\(/g) || []).length, 2,
+    'both order routes should call it, and only they');
+  assert.match(src, /import \{ repriceLines \} from '\.\/engine\/order-pricing\.mjs';/);
+});
+
+test('the SIGNED-IN route re-prices before the order is created', () => {
+  /* After createOrder would be too late: the receipt would already exist. */
+  const route = /u\.pathname === '\/api\/orders' && req\.method === 'POST'[\s\S]*?return json\(200, \{ ok: true, order: r\.order \}\);/
+    .exec(src);
+  assert.ok(route, 'the account order route is gone');
+  const at = route[0].indexOf('await repriceOrder(');
+  const created = route[0].indexOf('db.createOrder(');
+  assert.ok(at > -1, 'the signed-in route does not re-price');
+  assert.ok(at < created, 're-pricing must happen BEFORE the order is created');
+});
+
+test('the re-priced lines are what actually get stored', () => {
+  /* Re-pricing and then storing the posted body would change nothing. */
+  assert.match(src, /db\.createOrder\(me\.id, \{ \.\.\.b, items: priced\.items \}\)/);
+});
+
+test('an unreadable catalogue REFUSES the order rather than trusting the browser', () => {
+  /* Failing open restores exactly the bug this closes. */
+  const fn = /async function repriceOrder\(items\)[\s\S]{0,600}?\n\}/.exec(src)[0];
+  assert.match(fn, /catalogue-unavailable/);
+  assert.ok(!/\breturn \{ ok: true/.test(fn.split('catch')[1] || ''),
+    'the failure path must not return a success');
+  /* And both routes must handle it as a refusal, not ignore it. */
+  assert.equal((src.match(/priced\.error === 'catalogue-unavailable'/g) || []).length, 2);
 });

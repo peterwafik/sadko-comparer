@@ -73,6 +73,7 @@ import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.m
 import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
 import { mergeOrders } from './engine/ecwid-customers.mjs';
 import { validateGuestOrder, guestUserOf } from './engine/guest-orders.mjs';
+import { repriceLines } from './engine/order-pricing.mjs';
 import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
 import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
@@ -2156,6 +2157,19 @@ const passwordsOff = lang => ({
     : 'الدخول الآن بحساب جوجل فقط — لا توجد كلمة سر. استخدم زر جوجل، أو اتصل بـ19140.',
 });
 
+/* Re-price an order's lines against the catalogue, for BOTH order routes.
+
+   Returns { ok: true, items, subtotal } or { ok: false, error }, where
+   'catalogue-unavailable' means the mirror could not be read at all — which
+   must refuse the order rather than fall back to the browser's figures,
+   because failing open restores exactly the bug this closes. */
+async function repriceOrder(items) {
+  let cat;
+  try { cat = await ecwidSource().catalogBase(); }
+  catch (e) { return { ok: false, error: 'catalogue-unavailable' }; }
+  return repriceLines(items, cat);
+}
+
 /* A public endpoint that creates orders is a spam channel into the owner's
    Ecwid store unless it is bounded. In memory deliberately: it resets on
    restart, which is the right trade for something that must never become
@@ -2394,28 +2408,20 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     if (!activePaymentMethods().map(m => String(m.id)).includes(order.payment))
       return bad('bad-payment', 'طريقة دفع غير مدعومة.', 'Unsupported payment method.');
 
-    /* RE-PRICE from the catalogue. The browser sent these figures and this
-       endpoint needs no session, so trusting them would let anyone push an
-       order at a price of their choosing into the owner's store. A line whose
-       product is not in the served catalogue is refused outright: it is
-       disabled, unpriced or gone, so it is not for sale. */
-    try {
-      const cat = await ecwidSource().catalogBase();
-      const byId = new Map(cat.map(p => [String(p.id), p]));
-      for (const it of order.items) {
-        const p = byId.get(String(it.id));
-        if (!p) return bad('item-unavailable', 'أحد الأصناف لم يعد متاحاً. حدّث السلة.',
-                                               'One of the items is no longer available. Please refresh your cart.');
-        it.price = Number(p.price) || 0;
-        it.title = String(p.title || it.title).slice(0, 300);
-      }
-      order.subtotal = order.items.reduce((n, i) => n + i.price * i.qty, 0);
-      order.totals.subtotal = order.subtotal;
-    } catch (e) {
-      return json(503, { error: 'catalogue-unavailable', message: lang === 'en'
-        ? 'We could not confirm prices just now. Please try again, or call 19140.'
-        : 'تعذّر تأكيد الأسعار الآن. حاول مرة أخرى أو اتصل بـ19140.' });
+    /* The catalogue is the authority for price — see engine/order-pricing.mjs.
+       The same call is made by the signed-in route. */
+    const priced = await repriceOrder(order.items);
+    if (!priced.ok) {
+      if (priced.error === 'catalogue-unavailable')
+        return json(503, { error: priced.error, message: lang === 'en'
+          ? 'We could not confirm prices just now. Please try again, or call 19140.'
+          : 'تعذّر تأكيد الأسعار الآن. حاول مرة أخرى أو اتصل بـ19140.' });
+      return bad('item-unavailable', 'أحد الأصناف لم يعد متاحاً. حدّث السلة.',
+                                     'One of the items is no longer available. Please refresh your cart.');
     }
+    order.items = priced.items;
+    order.subtotal = priced.subtotal;
+    order.totals.subtotal = priced.subtotal;
 
     const st = ecwidStore(), esy = ecwidSync();
     if (!st || !esy)
@@ -3114,7 +3120,24 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (b.payment && !allowed.includes(b.payment))
           return json(400, { error: 'bad-payment', message: lang === 'en'
             ? 'Unsupported payment method.' : 'طريقة دفع غير مدعومة.' });
-        const r = db.createOrder(me.id, b);
+        /* The catalogue is the authority for price here too. A session says
+           who the customer is, not that the figures their browser posted are
+           the ones on the shop page — and the order goes on to their receipt
+           and into Ecwid as the agreed price. Same helper as the guest route
+           so the two cannot drift. */
+        const priced = await repriceOrder(b.items);
+        if (!priced.ok) {
+          if (priced.error === 'catalogue-unavailable')
+            return json(503, { error: priced.error, message: lang === 'en'
+              ? 'We could not confirm prices just now. Please try again, or call 19140.'
+              : 'تعذّر تأكيد الأسعار الآن. حاول مرة أخرى أو اتصل بـ19140.' });
+          if (priced.error === 'empty-cart') return json(400, authErr('empty-cart', lang));
+          return json(400, { error: 'item-unavailable', message: lang === 'en'
+            ? 'One of the items is no longer available. Please refresh your cart.'
+            : 'أحد الأصناف لم يعد متاحاً. حدّث السلة.' });
+        }
+
+        const r = db.createOrder(me.id, { ...b, items: priced.items });
         if (r.error) return json(400, authErr(r.error, lang));
         // Close the funnel: record a purchase event per line item, server-side so
         // it is authoritative (the browser cannot fabricate a purchase).

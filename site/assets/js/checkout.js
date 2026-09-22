@@ -1,8 +1,13 @@
 /* ============================================================================
    SADKO checkout — turns the cart into a real, recorded order.
    ----------------------------------------------------------------------------
-   PAYMENT, STATED PLAINLY: this page offers cash on delivery, bank transfer and
-   paying at a showroom. It does NOT ask for a card number, and there is no
+   PAYMENT, STATED PLAINLY: the methods come from Ecwid (GET /api/payment-methods)
+   — cash on delivery plus the Egyptian instalment services SADKO has set up:
+   ValU, Souhoola, Fawry, Mogo, SEVEN, Forsa and two National Bank plans. Every
+   one is an OFFLINE method: the order records which the customer chose and
+   staff follow up, per the Arabic instructions Ecwid carries for each. With
+   Ecwid off the built-in three are used instead.
+   It does NOT ask for a card number, and there is no
    hidden card form anywhere in this codebase. Accepting cards requires a
    PCI-compliant gateway (Paymob or Fawry, locally) that takes the customer to
    the provider's own hosted page; that integration does not exist yet, so a
@@ -19,19 +24,69 @@
   function mountCheckout(root) {
     const A = window.skApp, t = A.t, esc = A.esc, Au = window.skAuth;
 
-    const PAYMENTS = () => [
+    /* Ecwid's list, fetched once. If the request fails — offline, or the
+       endpoint missing on an older server — the built-in three below are used,
+       so checkout always works. */
+    let LIVE = null;
+    function loadPayments() {
+      return fetch(A.P('api/payment-methods'))
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => { LIVE = (d && Array.isArray(d.methods) && d.methods.length) ? d.methods : null; })
+        .catch(() => { LIVE = null; });
+    }
+
+    /* Basket titles drive the eligibility hint on a restricted plan. The
+       catalogue has no brand field, so this reads titles — guidance for the
+       customer, never a block: customer care confirms on the call they
+       already make. */
+    function basketHint(m) {
+      if (!m.restricted || !m.brandKey) return null;
+      var titles = (window.skCart.items() || []).map(function (i) { return String(i.title || ''); }).join(' ');
+      var norm = titles.replace(/[\u064B-\u065F\u0670]/g, '')
+        .replace(/[\u0622\u0623\u0625\u0627]/g, '\u0627')
+        .replace(/\u0649/g, '\u064A').replace(/\u0629/g, '\u0647');
+      if (!norm.trim()) return null;
+      return norm.indexOf(m.brandKey) === -1 ? 'unlikely' : null;
+    }
+
+    /* Ecwid's methods, shaped like the built-in ones. No English titles: the
+       store holds no usable translations, and the method name is what the
+       customer will be told on the phone anyway. */
+    function fromLive() {
+      return LIVE.map(function (m) {
+        var hint = basketHint(m);
+        var d = m.instructions || '';
+        if (m.restricted) {
+          d = (d ? d + ' — ' : '') + t('متاح على منتجات ' + (m.brand || '') + ' فقط، وتؤكده خدمة العملاء.',
+                                       'Available on ' + (m.brandEn || m.brand || '') + ' products only; customer care confirms.');
+        }
+        if (hint === 'unlikely') {
+          d += ' ' + t('لا يبدو أن سلتك تحتوى على منتجات ' + (m.brand || '') + ' — راجع خدمة العملاء قبل الاختيار.',
+                       'Your basket does not appear to contain ' + (m.brandEn || m.brand || '') + ' products — check with customer care first.');
+        }
+        return { k: m.id, l: m.title, d: d, ok: true, warn: hint === 'unlikely' };
+      }).concat([CARD_NOTE()]);
+    }
+
+    /* The card row is not a method — it exists to say plainly that cards are
+       not accepted, so nobody hunts for a field that is deliberately absent. */
+    const CARD_NOTE = () => ({ k: 'card', l: t('بطاقة أونلاين', 'Online card payment'),
+      d: t('غير متاح بعد فى هذه النسخة — فالدفع بالبطاقة يتطلب بوابة دفع معتمدة (مثل باي موب أو فورى)، ولذلك لا نطلب بيانات بطاقة هنا البتة.',
+           'Not available on this version — card payment needs a certified gateway (such as Paymob or Fawry), which is why we do not ask for card details here at all.'), ok: false });
+
+    const BUILTIN = () => [
       { k: 'cod', l: t('الدفع عند الاستلام', 'Cash on delivery'),
         d: t('بتدفع للمندوب وقت التسليم. متاح داخل مناطق التوصيل.', 'Pay the courier on delivery. Available inside our delivery areas.'), ok: true },
       { k: 'bank', l: t('تحويل بنكى', 'Bank transfer'),
         d: t('سترسل لك خدمة العملاء بيانات الحساب بعد تأكيد الطلب.', 'Customer care will send you the account details after confirming the order.'), ok: true },
       { k: 'showroom', l: t('الدفع فى المعرض', 'Pay at a showroom'),
         d: t('تعاين الجهاز وتدفع فى أقرب معرض، والتوصيل من هناك.', 'Inspect the appliance and pay at your nearest showroom; delivery follows from there.'), ok: true },
-      { k: 'card', l: t('بطاقة أونلاين', 'Online card payment'),
-        d: t('غير متاح بعد فى هذه النسخة — فالدفع بالبطاقة يتطلب بوابة دفع معتمدة (مثل باي موب أو فورى)، ولذلك لا نطلب بيانات بطاقة هنا البتة.',
-             'Not available on this version — card payment needs a certified gateway (such as Paymob or Fawry), which is why we do not ask for card details here at all.'), ok: false },
+      CARD_NOTE(),
     ];
 
-    Au.me(true).then(render);
+    const PAYMENTS = () => (LIVE ? fromLive() : BUILTIN());
+
+    Promise.all([Au.me(true), loadPayments()]).then(function (r) { render(r[0]); });
 
     function render(user) {
       const items = window.skCart.items();
@@ -110,7 +165,11 @@
             '<div class="stack">' + PAYMENTS().map((m, i) =>
               '<label class="co-pay' + (m.ok ? '' : ' is-off') + '">' +
                 '<input type="radio" name="payment" value="' + m.k + '"' + (m.ok && i === 0 ? ' checked' : '') + (m.ok ? '' : ' disabled') + '>' +
-                '<span><b>' + esc(m.l) + (m.ok ? '' : ' <em class="badge">' + t('غير متاح', 'unavailable') + '</em>') + '</b>' +
+                '<span><b>' + esc(m.l) + (m.ok ? '' : ' <em class="badge">' + t('غير متاح', 'unavailable') + '</em>') +
+                  /* A restricted plan the basket does not appear to qualify for
+                     stays selectable — customer care confirms on the call they
+                     already make — but it says so, so the choice is informed. */
+                  (m.warn ? ' <em class="badge badge--warn">' + t('راجع خدمة العملاء', 'check first') + '</em>' : '') + '</b>' +
                 '<i>' + esc(m.d) + '</i></span></label>').join('') + '</div>' +
 
             '<div id="coErr"></div>' +
@@ -174,6 +233,11 @@
         '</div></div>';
     }
     function payName(k) {
+      /* An Ecwid method id is not human-readable, so the receipt looks the
+         chosen method up in whatever list was offered rather than printing a
+         raw id at the customer. */
+      var hit = (LIVE || []).find(function (m) { return m.id === k; });
+      if (hit) return hit.title;
       return { cod: t('الدفع عند الاستلام', 'Cash on delivery'), bank: t('تحويل بنكى', 'Bank transfer'),
                showroom: t('الدفع فى المعرض', 'Pay at a showroom') }[k] || k;
     }

@@ -307,3 +307,7 @@ body.sk-auth-mode { overflow: hidden; }
   .foot__cols { grid-template-columns: repeat(2, 1fr); gap: 20px; }
   .phero { padding-top: clamp(22px,5vw,64px); }
 }
+
+/* A payment plan the basket may not qualify for: selectable, but flagged.
+   Semantic amber, deliberately not the brand accent. */
+.badge--warn { color: #8f5500; background: #fbf0df; border-color: #f0dcb8; }

@@ -69,6 +69,7 @@ import { createEcwidSync } from './engine/ecwid-sync.mjs';
 import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
 import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwid-rails.mjs';
+import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -1671,6 +1672,25 @@ function storeLinks(q, lang) {
    collecting payment details under false pretences. */
 const PAYMENT_METHODS = ['cod', 'bank', 'showroom'];
 
+/* The methods actually on offer. Ecwid's store carries ten — cash on delivery
+   plus nine Egyptian instalment and payment services — all of them "manual"
+   methods, so no card data is handled and PCI scope is unaffected. With Ecwid
+   off this returns exactly the three the site has always offered.
+
+   Two of the ten are restricted to one manufacturer's products, and Ecwid
+   cannot enforce that; engine/ecwid-payments.mjs detects it from the label so
+   checkout can say so at the point of choice. */
+function activePaymentMethods() {
+  const store = ecwidStore();
+  if (store && ecwidSource().activeSource() === 'ecwid') {
+    try {
+      const live = toStorefrontMethods(store.allPaymentMethods());
+      if (live.length) return live;
+    } catch (e) { /* fall through to the built-in three */ }
+  }
+  return FALLBACK_METHODS;
+}
+
 /* ---- Ecwid ---------------------------------------------------------------
    The flag gates everything. `enabled` additionally requires a token: with the
    flag on but no token the server still boots and serves the seed catalogue,
@@ -2504,7 +2524,10 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
       if (u.pathname === '/api/orders' && req.method === 'POST') {
         const b = await readJson(req);
-        if (b.payment && !PAYMENT_METHODS.includes(b.payment))
+        /* Validated against the LIVE list, so an Ecwid instalment plan is a
+           valid choice and a method the owner has retired is not. */
+        const allowed = activePaymentMethods().map(m => m.id);
+        if (b.payment && !allowed.includes(b.payment))
           return json(400, { error: 'bad-payment', message: lang === 'en'
             ? 'Unsupported payment method.' : 'طريقة دفع غير مدعومة.' });
         const r = db.createOrder(me.id, b);
@@ -2529,6 +2552,20 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      so a product removed in Ecwid can never leave a dangling curated id; with
      Ecwid off, fall through to the static file, which is still correct for the
      seed catalogue it was captured against. */
+  /* Checkout needs the payment methods before a customer has an account, so
+     this is public — it is shop configuration, not customer data. */
+  if (u.pathname === '/api/payment-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const methods = activePaymentMethods();
+    return json(200, {
+      source: methods === FALLBACK_METHODS ? 'builtin' : 'ecwid',
+      note: 'All methods are offline: nothing here takes a card number. Two of the ' +
+            'Ecwid methods are restricted to the products of a single manufacturer, ' +
+            'flagged as restricted with the brand named, because Ecwid cannot ' +
+            'enforce a product restriction on a manual payment method itself.',
+      methods,
+    });
+  }
+
   if (u.pathname === '/data/collections.json' && (req.method === 'GET' || req.method === 'HEAD')) {
     if (ecwidSource().activeSource() === 'ecwid') {
       try {

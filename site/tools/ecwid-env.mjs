@@ -78,6 +78,15 @@ export function ecwidEnv() {
     /* Everything below is safe to print. */
     hasToken: !!token,
     tokenLength: token ? token.value.length : 0,
+    /* 'secret' | 'public' | 'unknown' | null — the PREFIX only, which is safe
+       to print and is what decides how to read a 403: with a public token it
+       means the wrong token, with a secret one it means a missing app scope.
+       Callers that guessed "public" when refused sent the reader to fix the
+       wrong thing. */
+    tokenKind: token
+      ? (token.value.startsWith('secret_') ? 'secret'
+        : token.value.startsWith('public_') ? 'public' : 'unknown')
+      : null,
     tokenKey: token ? token.key : null,
     tokenFrom: token ? token.from : null,
     hasSecret: !!secret,

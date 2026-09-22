@@ -137,35 +137,71 @@ async function main() {
     return;
   }
 
-  /* --- can this token see them at all? --- */
+  /* --- can this token see them at all? ---
+
+     ACCESS and DATA are tracked separately, because "readable but the store
+     has none yet" is a real third state and the first version treated it as
+     no access: a brand-new store answers 200 with zero orders, and the tool
+     then claimed the scope was missing. */
+  const access = { customers: false, orders: false };
   let customers = null, orders = null, blocked = false;
   for (const [label, path] of [['customers', '/customers?limit=1'], ['orders', '/orders?limit=1']]) {
     try {
       const page = await call(path);
       const items = (page && page.items) || [];
-      console.log(`${g('✓')} /${label} readable — ${page.total ?? items.length} in the store`);
+      const total = page && page.total != null ? page.total : items.length;
+      access[label] = true;
+      console.log(`${g('✓')} /${label} readable — ${total} in the store`
+        + (total === 0 ? dim('  (nothing to check the shapes against yet)') : ''));
       if (label === 'customers') customers = items[0] || null;
       else orders = items[0] || null;
     } catch (e) {
       if (e.status === 403 || e.status === 401) {
         blocked = true;
-        console.log(`${r('✗')} /${label} → ${e.status}. This is a ${r('public_')} token; reading ` +
-          `${label} needs a ${g('secret_')} one.`);
+        /* Report the token this deployment ACTUALLY has, rather than assuming
+           a public one — once a secret token is in place, blaming the token
+           sends the reader to fix the wrong thing. With a secret token a 403
+           means the APP was never granted the scope. */
+        const kind = env.tokenKind || (env.hasToken ? 'unknown' : 'none');
+        console.log(`${r('✗')} /${label} → ${e.status}. `
+          + (kind === 'secret'
+              ? `The token is a ${g('secret_')} one, so this is a missing ${r('scope')}: `
+                + `the app was never granted ${label} access.`
+              : `This is a ${r('public_')} token; reading ${label} needs a ${g('secret_')} one.`));
       } else {
         console.log(`${r('✗')} /${label} → ${e.message}`);
       }
     }
   }
 
-  if (blocked) {
-    console.log(y('\nNothing below could be checked.') +
-      '\nIn the Ecwid panel: Apps → your custom app → grant the customer and order\n' +
-      'scopes, then put the secret_ token in /etc/sadko.env and run this again.\n' +
-      '\nUntil then the site behaves correctly and visibly: orders are stored\n' +
-      'locally and queued, the admin orders desk says the token cannot read\n' +
-      'orders, and no customer is shown a history that silently omits their\n' +
-      'phone orders.');
+  /* PARTIAL access is the normal half-way state, not a dead end: a custom app
+     is commonly granted order scopes and not customer scopes, or the reverse.
+     Bailing out entirely here was wrong — it hid the order shapes, which are
+     the ones that decide what a customer sees on their own orders page, at
+     exactly the moment they first became checkable. So each half is reported
+     on its own and whatever IS readable still gets verified. */
+  const SCOPES_FIX = '\nIn the Ecwid panel: Apps → Custom apps → Edit → Access scopes.\n' +
+    'Grant read AND write for the missing one, then run this again.';
+
+  if (!access.customers && !access.orders) {
+    console.log(y('\nNeither customers nor orders can be read, so nothing below could be checked.')
+      + SCOPES_FIX);
     process.exitCode = 1;
+    return;
+  }
+  if (blocked) {
+    console.log(y('\nPartial access: ')
+      + (access.orders ? g('orders yes') : r('orders no')) + ', '
+      + (access.customers ? g('customers yes') : r('customers no'))
+      + '. Only the readable half is checked below.' + SCOPES_FIX);
+  }
+  if (!customers && !orders) {
+    /* Readable, but empty. Not a failure — and specifically not a scope
+       problem, which is what the first version reported. */
+    console.log(y('\nNothing to check the shapes against yet: the store has no '
+      + (access.orders && access.customers ? 'orders or customers'
+        : access.orders ? 'orders' : 'customers') + ' at all.'));
+    console.log('Run this again once one exists — pushing a waiting order creates both.');
     return;
   }
 

@@ -67,19 +67,35 @@ function askHidden(question) {
 
 const STORE_ID = process.env.SADKO_ECWID_STORE_ID || '142682751';
 
-/* Ask Ecwid what this token can actually do, before trusting it with anything. */
+/* Ask Ecwid what this token can actually do, before trusting it with anything.
+
+   READING and WRITING are separate scopes and are checked separately. The
+   first version tested GET /orders only and reported "orders — so orders can
+   be sent to Ecwid: works" — on a token that could read orders and not create
+   them, which is a real and common grant. That is precisely the claim that
+   must not be wrong: sending orders is the whole job.
+
+   The write check POSTs a deliberately EMPTY body. A permitted-but-invalid
+   call answers 400 or 422; a forbidden one answers 403. So permission is
+   established without creating anything in the owner's store. */
 async function probe(token) {
-  const call = async p => {
+  const call = async (p, opt) => {
     try {
       const res = await fetch(`https://app.ecwid.com/api/v3/${STORE_ID}${p}`, {
-        headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, accept: 'application/json',
+                   'content-type': 'application/json' },
+        ...(opt || {}),
       });
       return res.status;
     } catch (e) { return 0; }
   };
+  const canWrite = s => s !== 403 && s !== 401 && s !== 0;
+  const postOrders = await call('/orders', { method: 'POST', body: '{}' });
   return {
     products: await call('/products?limit=1'),
-    orders: await call('/orders?limit=1'),
+    ordersRead: await call('/orders?limit=1'),
+    ordersWrite: postOrders,
+    ordersWriteOk: canWrite(postOrders),
     customers: await call('/customers?limit=1'),
   };
 }
@@ -147,11 +163,11 @@ async function main() {
   const p = await probe(token);
 
   const ok = s => s === 200;
-  const line = (label, status) =>
-    `  ${ok(status) ? g('works') : r('NO (' + (status || 'no answer') + ')')}   ${label}`;
-  console.log(line('products — the catalogue', p.products));
-  console.log(line('orders — so orders can be sent to Ecwid', p.orders));
-  console.log(line('customers — so customer details are saved in Ecwid', p.customers));
+  const mark = good => (good ? g('works') : r('NO'));
+  console.log(`  ${mark(ok(p.products))}   the catalogue — products and prices`);
+  console.log(`  ${mark(ok(p.ordersRead))}   reading orders — so staff changes show on the site`);
+  console.log(`  ${mark(p.ordersWriteOk)}   SENDING orders to Ecwid — the important one`);
+  console.log(`  ${mark(ok(p.customers))}   customers — so customer details are saved in Ecwid`);
 
   if (!ok(p.products)) {
     console.log(r('\nEcwid refused this token even for the catalogue, so it was NOT saved.'));
@@ -160,17 +176,21 @@ async function main() {
     return;
   }
 
-  if (!ok(p.orders) || !ok(p.customers)) {
-    /* The token is real but the APP lacks the scopes. Saving it would be an
-       improvement over the public one, but the missing half needs saying
-       plainly, because this is the mistake that otherwise gets discovered
-       through a customer's order going missing. */
-    console.log(y('\nThe token is real, but this app is not allowed to use') +
-                y(!ok(p.orders) && !ok(p.customers) ? ' orders or customers.'
-                  : !ok(p.orders) ? ' orders.' : ' customers.'));
-    console.log('In Ecwid, on the same page as the token, scroll to "Access scopes"');
-    console.log('and switch on read AND write for orders and customers, then run this again.');
-    console.log(y('\nSaving anyway — it is still better than the public token.'));
+  const missing = [];
+  if (!ok(p.ordersRead)) missing.push('read orders');
+  if (!p.ordersWriteOk) missing.push('create/update orders');
+  if (!ok(p.customers)) missing.push('read/update customers');
+
+  if (missing.length) {
+    /* The token is real but the APP lacks scopes. Saved anyway — it beats the
+       public token — but the missing half is named exactly, because this is
+       the fault that otherwise surfaces weeks later as a customer's order
+       never arriving in Ecwid. */
+    console.log(y('\nThe token is real, but this app has not been granted:'));
+    for (const m of missing) console.log(y('   · ' + m));
+    console.log('\nTo fix, on the SAME page you copied the token from:');
+    console.log('   scroll down to "Access scopes" and switch those on, then run this again.');
+    console.log('Nothing else needs redoing — the token itself is fine and is being saved.');
   }
 
   const { replaced, locked } = writeToken(TARGET, token);

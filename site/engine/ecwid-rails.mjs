@@ -170,7 +170,8 @@ function bannerHref(p, bannerCategoryId) {
   return 'shop.html';
 }
 
-export function deriveBanners(bannerProducts = [], { bannerCategoryId = null } = {}) {
+export function deriveBanners(bannerProducts = [],
+                              { bannerCategoryId = null, slotOf = null } = {}) {
   const out = [];
   for (const p of bannerProducts) {
     if (!p) continue;
@@ -180,14 +181,28 @@ export function deriveBanners(bannerProducts = [], { bannerCategoryId = null } =
        beats rendering an empty strip on the homepage. */
     if (!title || !image) continue;
 
-    /* The SKU may be a bare slot ("hero") or the prefixed form
-       ("banner-hero"). The prefixed form is what identifies a banner when no
-       category is used at all — see BANNER_SKU_PREFIX in ecwid-source.mjs,
-       and the reason it exists: Ecwid does not report a DISABLED category in a
-       product's categoryIds, so a hidden banner category is hidden from us too. */
-    let slotRaw = String(p.sku || '').trim().toLowerCase();
-    if (slotRaw.startsWith('banner-')) slotRaw = slotRaw.slice('banner-'.length);
-    const slot = SLOTS.has(slotRaw) ? slotRaw : 'square';
+    /* The slot, in order of authority:
+
+         1. slotOf(p) — the AD FOLDER the entry sits in. Supplied by the
+            caller because only the sync can know it: Ecwid omits a disabled
+            category from a product's categoryIds, and an ad folder has to be
+            disabled, so folder membership is recorded at sync time and cannot
+            be read off the product here.
+
+         2. its SKU, bare ("hero") or prefixed ("banner-hero"). The original
+            convention, kept working so a store using it needs no migration.
+
+         3. square, for a banner marked as one but with no usable slot —
+            better a tile than nothing. */
+    let slot = null;
+    if (typeof slotOf === 'function') {
+      try { const v = slotOf(p); if (v && SLOTS.has(v)) slot = v; } catch (e) {}
+    }
+    if (!slot) {
+      let slotRaw = String(p.sku || '').trim().toLowerCase();
+      if (slotRaw.startsWith('banner-')) slotRaw = slotRaw.slice('banner-'.length);
+      slot = SLOTS.has(slotRaw) ? slotRaw : 'square';
+    }
 
     out.push({
       id: 'ecwid-' + p.id,

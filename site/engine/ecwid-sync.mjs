@@ -16,6 +16,7 @@
 
 import { toSadkoProduct, toSadkoCategory, toEcwidOrder } from './ecwid-map.mjs';
 import { toEcwidCustomer, customerNeedsUpdate, fromEcwidOrder } from './ecwid-customers.mjs';
+import { AD_SLOTS, buildSlotMap } from './ecwid-ads.mjs';
 
 const PAGE = 100;
 
@@ -64,7 +65,8 @@ function toShippingMethod(o, i) {
   };
 }
 
-export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCategory, toEcwidOrder } }) {
+export function createEcwidSync({ api, store, adFolders = {},
+                                 map = { toSadkoProduct, toSadkoCategory, toEcwidOrder } }) {
   const fail = (where, e) => {
     const msg = `${where}: ${(e && e.message) || e}`;
     try { store.setState('last_error', msg); } catch (x) {}
@@ -152,9 +154,13 @@ export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCat
     const c = await syncCategories();
     const s = await syncSettings();
     const r = await fullReconcile();
+    /* Last, and only when folders are configured. It is one request per
+       folder and it must not delay the catalogue, which is what the
+       storefront actually needs first. */
+    const a = await syncAdFolders(adFolders);
     return {
       products: r.written, removed: r.removed, categories: c.written,
-      payment: s.payment, shipping: s.shipping,
+      payment: s.payment, shipping: s.shipping, ads: a.ads,
     };
   }
 
@@ -241,6 +247,93 @@ export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCat
     return { pushed, failed };
   }
 
+  /* ---- which products are advertisements, and in which slot -------------
+     One request per configured folder, and only ids come back.
+
+     Stored in the mirror rather than recomputed per request, because the
+     membership cannot be derived from the products themselves: Ecwid omits a
+     disabled category from a product's categoryIds, and an ad folder must be
+     disabled. So this map IS the only record, and it has to survive between
+     syncs the way the catalogue does.
+
+     A folder whose fetch fails keeps its PREVIOUS contents rather than
+     emptying: a transient API error must not blank the homepage's adverts.
+     That is the whole reason each folder is merged individually instead of
+     the map being rebuilt wholesale. */
+  async function syncAdFolders(folders = adFolders) {
+    const slots = AD_SLOTS.filter(sl => folders[sl]);
+    /* No token: leave the stored state ALONE. That is a transient condition,
+       and clearing it would drop every advert during an outage. */
+    if (!api.configured) return { slots: 0, ads: 0, failed: [] };
+    /* No folders configured: clear it. That is a deliberate configuration
+       change, and the stored contents must not go on marking products as
+       adverts — adFolderState() already refuses to use them, and this stops
+       them accumulating in the mirror as well. */
+    if (!slots.length) {
+      try { store.setState('ad_folders', null); } catch (e) {}
+      return { slots: 0, ads: 0, failed: [] };
+    }
+
+    const prev = (store.getState('ad_folders') || {});
+    const prevContents = prev.contents || {};
+    const contents = {};
+    const failed = [];
+
+    for (const slot of slots) {
+      const id = String(folders[slot]);
+      try {
+        contents[id] = await api.listCategoryProductIds(id);
+      } catch (e) {
+        failed.push({ slot, id, error: String((e && e.message) || e) });
+        if (prevContents[id]) contents[id] = prevContents[id];
+      }
+    }
+
+    const { map, conflicts } = buildSlotMap(folders, contents);
+    store.setState('ad_folders', {
+      folders, contents, map, conflicts, failed,
+      at: new Date().toISOString(),
+    });
+    return { slots: slots.length, ads: Object.keys(map).length, conflicts, failed };
+  }
+
+  /* The stored map, for the storefront and the admin panel. Shaped so a store
+     that has never synced ads reads as "no ads configured" rather than
+     throwing. */
+  function adFolderState() {
+    let st = null;
+    try { st = store.getState('ad_folders'); } catch (e) { st = null; }
+    if (!st || typeof st !== 'object') {
+      return { folders: {}, map: {}, contents: {}, conflicts: [], failed: [], at: null };
+    }
+    /* The map is REBUILT from the folders configured RIGHT NOW, not read back
+       from the stored one.
+
+       The bug this fixes, measured: after a run with SADKO_ECWID_ADS_SQUARE
+       set, removing the variable and restarting still served 983 products
+       instead of 990 and still showed the folder's contents as adverts — the
+       stored map outlived the configuration that produced it. Unsetting a
+       folder has to take effect at once, not at whatever point the next sync
+       happens to overwrite the state.
+
+       Stored `contents` is keyed by folder id, so intersecting it with the
+       live config is exact: a folder that is no longer configured contributes
+       nothing, and one that still is keeps working from the last good read. */
+    const contents = st.contents || {};
+    const { map, conflicts } = buildSlotMap(adFolders, contents);
+    return {
+      folders: adFolders,
+      map,
+      contents,
+      conflicts,
+      failed: st.failed || [],
+      at: st.at || null,
+      /* What the last sync actually recorded, so the admin panel can show a
+         folder that was configured, read, and then unconfigured. */
+      storedFolders: st.folders || {},
+    };
+  }
+
   /* ---- link a site account to an Ecwid customer -------------------------
      By email, which is the key Ecwid itself files orders under. Creates the
      record when it is missing and otherwise only FILLS what Ecwid lacks —
@@ -292,6 +385,8 @@ export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCat
     pushPendingOrders,
     linkCustomer,
     remoteOrdersFor,
+    syncAdFolders,
+    adFolderState,
     syncCategories,
     syncSettings,
     fullReconcile,

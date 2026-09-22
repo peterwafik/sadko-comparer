@@ -70,10 +70,18 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
   };
 
   /* Page through any Ecwid list endpoint. Ecwid returns {items,total,count}. */
-  async function pageAll(pathBase, { limit = 100 } = {}) {
+  /* `params` are merged into the SAME query string as offset/limit.
+
+     They used to be the caller's problem, which produced a real bug the live
+     API caught: passing '/products' + qs({category: id}) as pathBase made
+     this append a SECOND '?', so the URL read
+     "/products?category=206629525?offset=0&limit=100" and Ecwid answered
+     WRONG_PARAMETER — the category value had become "206629525?offset=0".
+     One query string, built in one place. */
+  async function pageAll(pathBase, { limit = 100, params = {} } = {}) {
     const out = [];
     for (let offset = 0; ; ) {
-      const page = await call(pathBase + qs({ offset, limit }));
+      const page = await call(pathBase + qs({ ...params, offset, limit }));
       const items = (page && page.items) || [];
       out.push(...items);
       offset += items.length;
@@ -91,6 +99,28 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
     getProduct: id => call(`/products/${encodeURIComponent(id)}`, { allow404: true }),
 
     listCategories: () => pageAll('/categories'),
+
+    /* The product ids inside ONE category, by id.
+
+       This is the only way to see inside a DISABLED category, and the ad
+       folders have to be disabled or Ecwid shows them to its own shoppers.
+       Measured against the live store: GET /products?category=<disabledId>
+       returns its products (the disabled "Wedding List" answers with 32),
+       even though GET /categories omits the category, hidden_categories=true
+       returns it as an id-only stub with no name, and a product inside it
+       does not list it in its own categoryIds.
+
+       Ids only: the products themselves already come down in the ordinary
+       catalogue sync, so re-fetching their bodies here would double the
+       traffic to learn something we already have. */
+    listCategoryProductIds: async categoryId => {
+      const ids = [];
+      /* Through `params`, NOT concatenated onto the path — see pageAll. */
+      for (const p of await pageAll('/products', { params: { category: categoryId } })) {
+        if (p && p.id != null) ids.push(String(p.id));
+      }
+      return ids;
+    },
 
     /* The full id set, used by the daily reconcile to find DELETIONS — which
        updatedFrom can never report. */

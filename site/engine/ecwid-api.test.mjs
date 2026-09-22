@@ -169,3 +169,64 @@ test('every method rejects with a clear code when the api is unconfigured', asyn
   for (const call of [() => a.listProducts({}), () => a.getProfile(), () => a.calculateOrder({})])
     await assert.rejects(call, e => e.message === 'ecwid-not-configured');
 });
+
+/* ======================================================================
+   One query string.
+
+   listCategoryProductIds is how an ad folder is read, and it needs a
+   `category` parameter alongside pagination. The first version concatenated
+   it onto the path and pageAll then appended its own '?', so the real URL
+   was "/products?category=206629525?offset=0&limit=100" and Ecwid answered
+
+     ecwid-400 WRONG_PARAMETER: Wrong numeric parameter 'category' value:
+     not a number or a number out of range
+
+   because the value had become "206629525?offset=0". Only the live API
+   caught it, so it is pinned here.
+   ================================================================== */
+
+test('a paged request with parameters builds ONE query string', async () => {
+  const urls = [];
+  const api = openEcwidApi({
+    storeId: 'S', token: 'T',
+    fetchImpl: async (url) => {
+      urls.push(url);
+      return { ok: true, status: 200, text: async () => JSON.stringify({ items: [], total: 0 }) };
+    },
+  });
+  await api.listCategoryProductIds('206629525');
+  assert.equal(urls.length, 1);
+  const qs = urls[0].slice(urls[0].indexOf('?'));
+  assert.equal((qs.match(/\?/g) || []).length, 1, 'more than one "?" in ' + urls[0]);
+  const p = new URLSearchParams(qs);
+  assert.equal(p.get('category'), '206629525', 'the category value was corrupted: ' + p.get('category'));
+  assert.equal(p.get('offset'), '0');
+  assert.equal(p.get('limit'), '100');
+});
+
+test('the ids of every page are collected, not just the first', async () => {
+  let call = 0;
+  const api = openEcwidApi({
+    storeId: 'S', token: 'T',
+    fetchImpl: async () => {
+      call++;
+      const items = call === 1
+        ? Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }))
+        : [{ id: 101 }, { id: 102 }];
+      return { ok: true, status: 200, text: async () => JSON.stringify({ items, total: 102 }) };
+    },
+  });
+  const ids = await api.listCategoryProductIds('1');
+  assert.equal(ids.length, 102);
+  assert.equal(ids[0], '1');
+  assert.equal(ids[101], '102');
+  assert.ok(ids.every(x => typeof x === 'string'), 'ids must be strings for the slot map');
+});
+
+test('a category with no products returns an empty list, not a throw', async () => {
+  const api = openEcwidApi({
+    storeId: 'S', token: 'T',
+    fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ items: [], total: 0 }) }),
+  });
+  assert.deepEqual(await api.listCategoryProductIds('206811031'), []);
+});

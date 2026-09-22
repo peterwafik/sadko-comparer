@@ -73,6 +73,7 @@ import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.m
 import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
 import { mergeOrders } from './engine/ecwid-customers.mjs';
 import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
+import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -1712,6 +1713,13 @@ const ECWID_OWNED_FIELDS = ['title', 'price', 'image', 'description', 'categoryI
 const ECWID_ON = process.env.SADKO_ECWID === '1';
 const ECWID_STORE_ID = process.env.SADKO_ECWID_STORE_ID || '142682751';
 const ECWID_TOKEN = process.env.SADKO_ECWID_TOKEN || '';
+/* One Ecwid category per advertisement slot — SADKO_ECWID_ADS_HERO / _WIDE /
+   _SQUARE, each a category id. Everything in a folder becomes an ad of that
+   slot, so staff drop the artwork in the right folder instead of typing a
+   magic SKU. Unset folders fall back to the banner- SKU convention. See
+   engine/ecwid-ads.mjs for why the folders are addressed by ID and not by
+   name (a disabled Ecwid category has no readable name). */
+const ECWID_AD_FOLDERS = adFoldersFromEnv(process.env);
 const ECWID_BANNER_CATEGORY = process.env.SADKO_ECWID_BANNER_CATEGORY || null;
 let ECWID_STORE = null, ECWID_API = null, ECWID_SYNC = null, ECWID_SOURCE = null;
 
@@ -1732,7 +1740,7 @@ function ecwidApi() {
 function ecwidSync() {
   const store = ecwidStore(), api = ecwidApi();
   if (!store || !api || !api.configured) return null;
-  if (ECWID_SYNC === null) ECWID_SYNC = createEcwidSync({ api, store });
+  if (ECWID_SYNC === null) ECWID_SYNC = createEcwidSync({ adFolders: ECWID_AD_FOLDERS, api, store });
   return ECWID_SYNC;
 }
 /* Always returns a source, even with the flag off — it is what decides to
@@ -1741,6 +1749,11 @@ function ecwidSource() {
   if (ECWID_SOURCE === null) {
     const store = ecwidStore();
     ECWID_SOURCE = createEcwidSource({
+      /* A getter, not a value: every sync rebuilds this map, and a value
+         captured here would pin the storefront to whatever the ad folders
+         held at boot — the same stale-value trap that once made
+         activeSource() serve July's catalogue. */
+      adSlotMap: () => { try { return ecwidSync().adFolderState().map; } catch (e) { return {}; } },
       store: store || {
         allProducts: () => [],
         stats: () => ({ products: 0, enabled: 0, buyable: 0, categories: 0, outOfStock: 0,
@@ -2437,12 +2450,30 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           offers: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
           bestSellers: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
         });
-        let banners = 0;
-        try { banners = (await ecwidSource().banners()).length; } catch (e) {}
+        let banners = 0, bannerList = [];
+        try { bannerList = await ecwidSource().banners(); banners = bannerList.length; } catch (e) {}
+        /* The advertisement folders, per slot, with anything that cannot
+           render NAMED. deriveBanners drops a banner with no artwork or no
+           headline, correctly and silently — so the owner drops three images
+           in a folder, two appear, and nothing says why. This is where that
+           gets answered, alongside "which folder am I even reading". */
+        let ads = null;
+        try {
+          const st = ecwidSync().adFolderState();
+          ads = {
+            folders: st.folders,
+            bySlot: adCounts(bannerList, st.map),
+            issues: adIssues(bannerList, st.map),
+            conflicts: st.conflicts,
+            failed: st.failed,
+            lastRead: st.at,
+          };
+        } catch (e) { ads = null; }
         return json(200, {
           ecwid: ecwidSource().describe(),
           storeId: ECWID_STORE_ID,
           ownedFields: ECWID_OWNED_FIELDS,
+          ads,
           /* Which curated categories the rails resolved to, by Arabic name.
              Shown because a rail silently resolving to nothing is otherwise
              invisible until someone notices an empty row on the shop page. */
@@ -2797,32 +2828,66 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     }
   }
 
-  /* Advertisement banners. Ecwid has no banner entity, so these are entries in
-     a dedicated disabled category (SADKO_ECWID_BANNER_CATEGORY). If that
-     category holds nothing usable we fall through to the static
-     data/promos.json, which stays the bilingual source — derived banners carry
-     no English, because Ecwid holds no usable translations for this store. */
+  /* Advertisement banners. Ecwid has no banner entity, so an ad is an ordinary
+     product in a disabled category: either one of the per-slot AD FOLDERS
+     (SADKO_ECWID_ADS_HERO / _WIDE / _SQUARE) or the older single banner
+     category (SADKO_ECWID_BANNER_CATEGORY).
+
+     MERGED PER SLOT, not wholesale. This route used to return Ecwid's banners
+     and discard promos.json entirely, which meant configuring only the square
+     folder emptied the hero strap at the top of the shop page — both local
+     hero banners went with it. A slot Ecwid has ads for is Ecwid's; every
+     other slot keeps its local entries and their bilingual copy, which matters
+     because a derived banner carries no English at all. That is what makes a
+     staged rollout possible: take over the squares, leave hero and wide alone,
+     come back for them later. */
   if (u.pathname === '/data/promos.json' && (req.method === 'GET' || req.method === 'HEAD')) {
-    if (ecwidSource().activeSource() === 'ecwid' && ECWID_BANNER_CATEGORY) {
+    /* Either source is enough to run. Gating on the legacy banner category
+       alone meant a store using only ad folders never reached this at all. */
+    if (ecwidSource().activeSource() === 'ecwid' &&
+        (ECWID_BANNER_CATEGORY || Object.keys(ECWID_AD_FOLDERS).length)) {
       try {
         /* The banner category is passed so a banner's own category is never
            offered as its destination. */
-        const promos = deriveBanners(await ecwidSource().banners(),
-                                     { bannerCategoryId: ECWID_BANNER_CATEGORY });
-        if (promos.length) {
+        const derived = deriveBanners(await ecwidSource().banners(), {
+          bannerCategoryId: ECWID_BANNER_CATEGORY,
+          /* The folder wins over the SKU, so moving an ad between folders
+             changes its slot even if its SKU still says otherwise. */
+          slotOf: p => ecwidSource().adSlotOf(p),
+        });
+        if (derived.length) {
+          /* The local file is the fallback PER SLOT. A read failure leaves it
+             null, which mergePromos treats as "no local entries" rather than
+             throwing — so a missing promos.json degrades to Ecwid-only
+             instead of to no banners. */
+          let local = null;
+          try {
+            local = JSON.parse(await readFile(path.join(ROOT, 'data', 'promos.json'), 'utf8')).promos;
+          } catch (e) { local = null; }
+          const merged = mergePromos(derived, local);
+          const promos = merged.promos;
           res.setHeader('content-type', 'application/json; charset=utf-8');
           res.setHeader('cache-control', 'no-cache');
           return res.end(JSON.stringify({
             note: 'Derived from Ecwid category ' + ECWID_BANNER_CATEGORY + '. Each entry is a ' +
                   'BANNER, not a product: image = artwork, name = headline, description = ' +
-                  'subtitle, SKU = slot. The CLICK-THROUGH is the ordinary category the ' +
+                  'subtitle. The SLOT is the ad folder the entry sits in ' +
+                  '(SADKO_ECWID_ADS_HERO / _WIDE / _SQUARE), falling back to a banner- SKU. ' +
+                  'Slots with no Ecwid ads keep their promos.json entries — see slotsFromLocal. ' +
+                  'The CLICK-THROUGH is the ordinary category the ' +
                   'banner entry is also assigned to (its page on THIS site), or the shop when ' +
                   'it has none — never the Ecwid product URL, which would send the shopper to ' +
                   'another storefront. These entries are ' +
                   'excluded from the catalogue, search and rails. No English fields: Ecwid ' +
                   'holds no usable translations, and copying Arabic into an English field ' +
                   'would be worse than omitting it.',
-            source: 'ecwid',
+            source: merged.fromLocal.length ? 'ecwid+local' : 'ecwid',
+            /* Which slots each source supplied, so "my hero banner is still
+               the old one" has an answer in the payload rather than needing a
+               guess. */
+            slotsFromEcwid: merged.fromEcwid,
+            slotsFromLocal: merged.fromLocal,
+            adFolders: ECWID_AD_FOLDERS,
             derivedAt: new Date().toISOString(),
             promos,
           }));
@@ -2967,17 +3032,45 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
   if (es) {
     console.log(`Ecwid sync ON — store ${ECWID_STORE_ID}` +
       (ECWID_BANNER_CATEGORY ? `, banners from category ${ECWID_BANNER_CATEGORY}` : ', no banner category set'));
+    /* Named at boot so a misconfigured folder is visible in the log rather
+       than only as "my adverts did not appear". */
+    {
+      const fold = Object.entries(ECWID_AD_FOLDERS);
+      console.log(fold.length
+        ? '[ecwid] ad folders: ' + fold.map(([sl, id]) => sl + '=' + id).join(', ')
+        : '[ecwid] no ad folders configured — banners fall back to the banner- SKU convention');
+    }
     const after = r => { ecwidSource().invalidate(); return r; };
 
-    es.syncAll().then(r => {
+    es.syncAll().then(async r => {
       after(r);
       console.log(`[ecwid] first sync: ${r.products} products, ${r.categories} categories, ` +
-        `${r.payment} payment, ${r.shipping} shipping, ${r.removed} removed`);
+        `${r.payment} payment, ${r.shipping} shipping, ${r.removed} removed` +
+        (r.ads != null ? `, ${r.ads} ads` : ''));
+      /* Per slot, plus anything that cannot render, because "3 ads" does not
+         answer "why is the square row still the old artwork". */
+      try {
+        const st = es.adFolderState();
+        if (Object.keys(st.folders).length) {
+          const ads = (await ecwidSource().banners());
+          const counts = adCounts(ads, st.map);
+          console.log('[ecwid] ads by slot: ' +
+            Object.entries(counts).filter(([k]) => k !== 'none').map(([k, v]) => k + '=' + v).join(', '));
+          const bad = adIssues(ads, st.map);
+          for (const b of bad) console.warn('[ecwid] ad ' + b.id + ' (' + b.slot + ') cannot render: ' + b.reasons.join(', '));
+          for (const c of st.conflicts) console.warn('[ecwid] ad ' + c.id + ' is in two folders — using ' + c.kept + ', ignoring ' + c.also);
+          for (const x of st.failed) console.warn('[ecwid] ad folder ' + x.slot + ' (' + x.id + ') could not be read: ' + x.error);
+        }
+      } catch (e) {}
     }).catch(e => console.error('[ecwid] first sync failed:', e.message));
 
     setInterval(() => {
       const from = es.lastSyncedUnix();
       es.syncProducts(from ? { updatedFrom: from } : {}).then(after).catch(() => {});
+      /* Folder membership needs its own refresh: moving an ad between folders
+         changes no product field, so updatedFrom would never report it and the
+         ad would keep its old slot until the daily full sync. */
+      es.syncAdFolders().then(after).catch(() => {});
     }, 15 * 60 * 1000).unref();
 
     setInterval(() => {

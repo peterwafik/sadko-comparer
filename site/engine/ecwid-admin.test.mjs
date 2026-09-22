@@ -26,9 +26,16 @@ test('there is a manual sync route', () => {
 });
 
 test('the status route reports through describe(), not by reading env directly', () => {
-  /* describe() is the only surface that is guaranteed token-free. */
-  const route = /rest === 'ecwid' && req\.method === 'GET'[\s\S]{0,900}/.exec(adminBlock[0])[0];
-  assert.match(route, /ecwidSource\(\)\.describe\(\)/);
+  /* describe() is the only surface that is guaranteed token-free.
+
+     Scoped to the route's own response object rather than a fixed character
+     window: the window was 900 and broke when the ad-folder diagnostics were
+     added above the return, which said nothing about whether describe() was
+     still being used. */
+  const route = /rest === 'ecwid' && req\.method === 'GET'[\s\S]*?return json\(200, \{[\s\S]*?\n        \}\);/
+    .exec(adminBlock[0]);
+  assert.ok(route, 'the ecwid status route is gone');
+  assert.match(route[0], /ecwidSource\(\)\.describe\(\)/);
 });
 
 /* ---------------------------- token safety ------------------------------ */

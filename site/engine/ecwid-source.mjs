@@ -22,6 +22,7 @@
    cannot be bought, and hiding them would understate the range SADKO carries.
    They are ordered last instead.
    ========================================================================== */
+import { adSlotOf, isAd } from './ecwid-ads.mjs';
 
 /* The slot a banner occupies is carried in its Ecwid SKU, so the owner sets it
    in the same field they already use. Exported so the storefront and the
@@ -44,7 +45,16 @@ export function bannerSlotOf(product) {
   return BANNER_CATEGORY_SKU.includes(tail) ? tail : 'square';
 }
 
-export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId = null }) {
+export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId = null,
+                                    adSlotMap = null }) {
+  /* A GETTER, not a value. The map is rebuilt by every sync, and a value
+     captured at construction would pin the storefront to whatever the folders
+     held when the process started — the same stale-value trap that made
+     activeSource() serve July's catalogue. */
+  const slotMap = () => {
+    try { return (typeof adSlotMap === 'function' ? adSlotMap() : adSlotMap) || {}; }
+    catch (e) { return {}; }
+  };
   let cache = null;                       // built catalogue, invalidated on write
 
   /* Which source is live, computed FRESH every time rather than remembered
@@ -78,10 +88,13 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
   const hasBannerSku = p =>
     String((p && p.sku) || '').trim().toLowerCase().startsWith(BANNER_SKU_PREFIX);
 
-  /* EITHER signal makes something a banner. Neither is load-bearing alone, so
-     a store that uses a visible category and a store that uses only the SKU
-     convention both work. */
-  const isBanner = p => !!p && (inBannerCategory(p) || hasBannerSku(p));
+  /* ANY signal makes something a banner, so the three ways of marking one all
+     work and can be mixed during a changeover:
+       · membership of an ad FOLDER (the product->slot map from the sync)
+       · the banner- SKU convention
+       · membership of the legacy single banner category
+     None is load-bearing alone. */
+  const isBanner = p => !!p && (isAd(p, slotMap(), banner) || inBannerCategory(p) || hasBannerSku(p));
 
   async function seed() {
     try { return await seedLoader(); } catch (e) { return []; }
@@ -166,6 +179,10 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
          build() above, which filters the banner category outright. */
       return rows.filter(p => isBanner(p) && !p.incomplete);
     },
+
+    /* The slot one product occupies, folder first then SKU. Handed to
+       deriveBanners so the folder decides the slot rather than the SKU. */
+    adSlotOf: p => adSlotOf(p, slotMap()),
 
     invalidate() { cache = null; },
 

@@ -28,6 +28,22 @@
    banner sync cannot drift on the vocabulary. */
 export const BANNER_CATEGORY_SKU = ['hero', 'wide', 'square'];
 
+/* A banner can also be identified by its SKU alone: "banner-hero",
+   "banner-wide", "banner-square". This exists because Ecwid does NOT report a
+   DISABLED category in a product's categoryIds — verified against the live
+   store — so a banner category that is hidden from shoppers is also hidden
+   from us. The SKU needs no category at all, so nothing extra can appear in
+   Ecwid's own storefront menu. */
+export const BANNER_SKU_PREFIX = 'banner-';
+
+/* The slot a banner occupies: from its SKU when the SKU carries one, else from
+   a bare slot word, else square. */
+export function bannerSlotOf(product) {
+  const sku = String((product && product.sku) || '').trim().toLowerCase();
+  const tail = sku.startsWith(BANNER_SKU_PREFIX) ? sku.slice(BANNER_SKU_PREFIX.length) : sku;
+  return BANNER_CATEGORY_SKU.includes(tail) ? tail : 'square';
+}
+
 export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId = null }) {
   let cache = null;                       // built catalogue, invalidated on write
 
@@ -57,13 +73,23 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     String(p.categoryId) === banner ||
     (Array.isArray(p.categoryIds) && p.categoryIds.map(String).includes(banner)));
 
+  /* The SKU signal. Independent of category visibility, which is the whole
+     point — see BANNER_SKU_PREFIX. */
+  const hasBannerSku = p =>
+    String((p && p.sku) || '').trim().toLowerCase().startsWith(BANNER_SKU_PREFIX);
+
+  /* EITHER signal makes something a banner. Neither is load-bearing alone, so
+     a store that uses a visible category and a store that uses only the SKU
+     convention both work. */
+  const isBanner = p => !!p && (inBannerCategory(p) || hasBannerSku(p));
+
   async function seed() {
     try { return await seedLoader(); } catch (e) { return []; }
   }
 
   /* One predicate, used by both build() and describe(), so the count the admin
      panel shows can never disagree with what the storefront actually serves. */
-  const isServed = p => !!p && p.enabled !== false && !p.incomplete && !inBannerCategory(p);
+  const isServed = p => !!p && p.enabled !== false && !p.incomplete && !isBanner(p);
 
   function build(rows) {
     const served = rows.filter(isServed);
@@ -100,7 +126,8 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
        are excluded from the catalogue above, so this is the only way to reach
        them, and nothing can accidentally render one as a product. */
     async banners() {
-      if (!enabled || banner == null) return [];
+      /* No category needed: the SKU convention works on its own. */
+      if (!enabled) return [];
       let rows = [];
       try { rows = store.allProducts(); } catch (e) { return []; }
       /* Deliberately does NOT require enabled. Banner entries are kept DISABLED
@@ -108,7 +135,7 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
          description tells staff exactly that — so requiring enabled here would
          find nothing, ever. They are still excluded from the catalogue by
          build() above, which filters the banner category outright. */
-      return rows.filter(p => p && inBannerCategory(p) && !p.incomplete);
+      return rows.filter(p => isBanner(p) && !p.incomplete);
     },
 
     invalidate() { cache = null; },

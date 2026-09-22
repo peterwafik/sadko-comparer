@@ -1118,6 +1118,20 @@ broken.
 accepted by the local tools (which tolerate it and warn) and ignored by the
 server.
 
+**Use the SECRET token, not the public one.** Ecwid issues TWO tokens per
+custom app. The `public_…` one is read-only and limited to catalogue data — it
+is meant to be embedded in a storefront. The `secret_…` one carries the app's
+actual access scopes.
+
+With a public token the catalogue syncs perfectly — products, categories and
+the store profile all return 200 — and then `/orders` returns 403 and every
+write returns 403. **That looks exactly like a missing scope and is not.** This
+cost real diagnosis time once: the app already had "Read orders, Update orders"
+granted, and the token simply could not use them. `--check` now detects a
+public token and says so.
+
+Find the secret one at Ecwid > Apps > Custom Apps > Edit > "Show secret token".
+
 Then restart and check the connection, which reports the token as
 present-with-a-length and never its value:
 
@@ -1174,16 +1188,36 @@ full reconcile daily. The reconcile is the only thing that finds deletions.
 
 ### Advertisement banners
 
-Ecwid has no banner entity, so banners are entries in a dedicated **disabled**
-category (`206811031` on the test store, created for this purpose). Each entry
-is a banner, not a product:
+Ecwid has no banner entity, so a banner is a PRODUCT that the site recognises
+and keeps out of the catalogue. It is recognised by **either** of two signals,
+and neither is load-bearing on its own:
+
+1. **Its SKU begins `banner-`** — `banner-hero`, `banner-wide`,
+   `banner-square`. This is the recommended way: it needs no category at all,
+   so nothing extra can ever appear in Ecwid's own storefront menu.
+2. **It is in the category named by `SADKO_ECWID_BANNER_CATEGORY`** — which
+   only works if that category is **enabled**, for the reason below.
+
+**Do not rely on a disabled category.** The original design used a disabled
+category so banners would be hidden from Ecwid's own shoppers. Testing the live
+store showed that **Ecwid omits a disabled category from a product's
+`categoryIds`** — a real product assigned to the disabled banner category kept
+reporting only its enabled category, and the panel's own count went to (1)
+while the API said nothing. A banner category hidden from shoppers is therefore
+hidden from us too. Category `206811031` exists on the test store and is
+disabled; it is kept as documentation, but the SKU signal is what works.
+
+Keep each banner entry itself **disabled** — a disabled product never appears
+in Ecwid's storefront, and the site reads it regardless.
+
+Each entry is a banner, not a product:
 
 | Ecwid field | Becomes |
 |---|---|
 | product image | the artwork |
 | name | the headline |
 | description | the subtitle |
-| **SKU** | the slot: `hero`, `wide` or `square` |
+| **SKU** | `banner-hero`, `banner-wide` or `banner-square` — identifies it AND sets the slot |
 | product URL | the click-through target |
 
 Keep each banner entry **disabled** and keep the category **disabled**, so they
@@ -1200,11 +1234,13 @@ remains the bilingual source, editable in the control room under Content.
 
 ### Known blockers, recorded so they are not rediscovered
 
-**Order push is blocked.** `/orders` returns **403**: the custom app was not
-granted order access. Add order **read, create and update** scopes in
-Apps then Custom Apps. Until then Tasks 11–13 cannot be built, and the question
-of which Ecwid order field can carry our `SDK-` reference — the thing that stops
-one sale becoming two orders — cannot be settled.
+**Order push needs the SECRET token.** `/orders` returns **403** with the
+public token. The app's scopes are already correct — this is the token-type
+trap described under Configuration above, not a permissions problem. The order
+mapper, the idempotent push queue and the status-flow-back are all BUILT and
+unit-tested; swap the token and the path completes. Until then a placed order
+is still recorded locally and simply parks in the push queue for retry, which
+is verified live: the 403 parks it with backoff and nothing is lost.
 
 **Delivery totals are blocked.** **0 of 1,453 products carry a weight** or any
 dimension, and `POST /order/calculate` returns zero shipping options for a Cairo

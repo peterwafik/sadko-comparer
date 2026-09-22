@@ -222,3 +222,10 @@ test('featured omits itself when every discount is already in offers', () => {
   assert.deepEqual(r.offers.ids, ['1']);
   assert.ok(!('featured' in r), 'no complementary discounts means no featured rail');
 });
+
+test('deriveBanners reads the prefixed SKU form as the slot', () => {
+  assert.equal(deriveBanners([B(1, { sku: 'banner-hero' })])[0].slot, 'hero');
+  assert.equal(deriveBanners([B(1, { sku: 'banner-wide' })])[0].slot, 'wide');
+  assert.equal(deriveBanners([B(1, { sku: 'BANNER-SQUARE' })])[0].slot, 'square');
+  assert.equal(deriveBanners([B(1, { sku: 'banner-nonsense' })])[0].slot, 'square');
+});

@@ -286,3 +286,65 @@ test('the served count matches what catalogBase actually returns', () => {
     }).finally(cleanup);
   } catch (e) { cleanup(); throw e; }
 });
+
+/* ---------------- banners without a category (the SKU signal) ----------- */
+
+test('a product whose SKU starts with banner- is a banner, with NO category', async () => {
+  /* This signal exists because Ecwid does NOT report a DISABLED category in a
+     product's categoryIds — verified against the live store by assigning a
+     real product to the disabled banner category and watching the API keep
+     reporting only its enabled one. A hidden banner category is therefore
+     hidden from us too, so the SKU carries the signal instead and no category
+     is needed at all. */
+  const { src, store, cleanup } = fresh({ bannerCategoryId: null });
+  try {
+    store.upsertProducts([M(1), M(2, { sku: 'banner-hero' })]);
+    const b = await src.banners();
+    assert.equal(b.length, 1);
+    assert.equal(b[0].id, '2');
+  } finally { cleanup(); }
+});
+
+test('a banner identified by SKU is kept OUT of the catalogue', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: null });
+  try {
+    store.upsertProducts([M(1), M(2, { sku: 'banner-wide' })]);
+    assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1'],
+      'a banner must never be purchasable');
+  } finally { cleanup(); }
+});
+
+test('an ordinary SKU is not mistaken for a banner', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: null });
+  try {
+    /* Real SKUs in the live store look like 600330254. */
+    store.upsertProducts([M(1, { sku: '600330254' }), M(2, { sku: 'bannerette' })]);
+    assert.deepEqual(await src.banners(), []);
+    assert.equal((await src.catalogBase()).length, 2);
+  } finally { cleanup(); }
+});
+
+test('either signal works, and both together do not double-count', async () => {
+  const { src, store, cleanup } = fresh({ bannerCategoryId: '999' });
+  try {
+    store.upsertProducts([
+      M(1),
+      M(2, { categoryId: '999', categoryIds: ['999'] }),   // by category
+      M(3, { sku: 'banner-square' }),                      // by SKU
+      M(4, { categoryId: '999', categoryIds: ['999'], sku: 'banner-hero' }),  // both
+    ]);
+    const b = await src.banners();
+    assert.deepEqual(b.map(p => p.id).sort(), ['2', '3', '4']);
+    assert.deepEqual((await src.catalogBase()).map(p => p.id), ['1']);
+  } finally { cleanup(); }
+});
+
+test('the slot helper reads both the bare and the prefixed SKU form', async () => {
+  const { bannerSlotOf, BANNER_SKU_PREFIX } = await import('./ecwid-source.mjs');
+  assert.equal(BANNER_SKU_PREFIX, 'banner-');
+  assert.equal(bannerSlotOf({ sku: 'banner-hero' }), 'hero');
+  assert.equal(bannerSlotOf({ sku: 'hero' }), 'hero');
+  assert.equal(bannerSlotOf({ sku: 'banner-nonsense' }), 'square');
+  assert.equal(bannerSlotOf({ sku: '' }), 'square');
+  assert.equal(bannerSlotOf({}), 'square');
+});

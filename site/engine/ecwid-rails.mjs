@@ -132,7 +132,13 @@ export function deriveBanners(bannerProducts = []) {
        beats rendering an empty strip on the homepage. */
     if (!title || !image) continue;
 
-    const slotRaw = String(p.sku || '').trim().toLowerCase();
+    /* The SKU may be a bare slot ("hero") or the prefixed form
+       ("banner-hero"). The prefixed form is what identifies a banner when no
+       category is used at all — see BANNER_SKU_PREFIX in ecwid-source.mjs,
+       and the reason it exists: Ecwid does not report a DISABLED category in a
+       product's categoryIds, so a hidden banner category is hidden from us too. */
+    let slotRaw = String(p.sku || '').trim().toLowerCase();
+    if (slotRaw.startsWith('banner-')) slotRaw = slotRaw.slice('banner-'.length);
     const slot = SLOTS.has(slotRaw) ? slotRaw : 'square';
 
     out.push({

@@ -412,6 +412,16 @@ export function openAccounts(file) {
        orders sat in the queue with "db.getUser is not a function" against
        them, so order push would not have started working the moment a secret
        token arrived. */
+    /* By email, the key Ecwid files customers under. Normalised and
+       credential-stripped for the same reasons as getUser above. */
+    getUserByEmail(email) {
+      const em = norm(email);
+      const u = em ? store.getUserByEmail(em) : null;
+      if (!u) return null;
+      const { salt, hash, ...safe } = u;
+      return safe;
+    },
+
     getUser(userId) {
       const u = userId ? store.getUser(userId) : null;
       if (!u) return null;

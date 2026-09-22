@@ -2090,6 +2090,9 @@ async function pollEcwid() {
         const os = await es.syncOrderStatuses(ORDER_LOADERS);
         if (os && os.blocked) ECWID_ORDERS_READABLE = false;
         else if (os && os.checked) ECWID_ORDERS_READABLE = true;
+        /* Customers whose link has not succeeded yet. This is what makes a
+           signup eventually reach Ecwid rather than only on the first try. */
+        await es.linkPendingCustomers(LINK_LOADER);
       }
       ECWID_POLL_TICK++;
 
@@ -2156,6 +2159,42 @@ const passwordsOff = lang => ({
     ? 'This site now signs in with Google only — there is no password to enter. Use the Google button, or call 19140.'
     : 'الدخول الآن بحساب جوجل فقط — لا توجد كلمة سر. استخدم زر جوجل، أو اتصل بـ19140.',
 });
+
+/* Put a customer in the queue and try immediately.
+
+   The immediate attempt is what makes a normal signup appear in Ecwid at
+   once; the queue is what makes it eventually true when the attempt fails.
+   Not awaited by the caller — signing up must not wait on Ecwid — but the
+   failure is LOGGED, which is the part that was missing. */
+function linkCustomerSoon(user) {
+  if (!user || !user.email) return;
+  try {
+    const st = ecwidStore(), esy = ecwidSync();
+    if (!st || !esy) return;
+    st.enqueueCustomerLink(user.email);
+    esy.linkCustomer(user).then(r => {
+      if (r && r.ok) {
+        st.markCustomerLinked(user.email, r.id || null);
+        return;
+      }
+      /* Said out loud, once. A silent failure here is why an account could
+         be created on the site and simply not exist in Ecwid. */
+      const why = (r && r.reason) || 'unknown';
+      if (why === 'no-access')
+        console.warn('[ecwid] customer not written (403 — this token cannot write customers); queued');
+      else if (why !== 'not-configured')
+        console.warn('[ecwid] customer link failed (' + why + '); queued for retry');
+    }).catch(e => console.warn('[ecwid] customer link error:', e && e.message));
+  } catch (e) { console.warn('[ecwid] could not queue customer link:', e && e.message); }
+}
+
+/* The accounts lookup the link queue needs. The queue stores only an email,
+   so the name and phone are read from here at attempt time — which is what
+   keeps it from becoming a second copy of the customer. */
+const LINK_LOADER = async email => {
+  const db = accounts();
+  return db ? db.getUserByEmail(email) : null;
+};
 
 /* Re-price an order's lines against the catalogue, for BOTH order routes.
 
@@ -2799,6 +2838,14 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
              rather than leaving the panel showing an empty queue that reads
              as "no orders yet". */
           ordersReadable: ECWID_ORDERS_READABLE,
+          /* Customers waiting to reach Ecwid. The owner's complaint was that
+             an account on the site was absent from Ecwid's customers tab with
+             nothing saying why — this is where that is answered. */
+          customers: store ? {
+            linked: store.linkedCustomerCount(),
+            pending: store.pendingCustomerLinks().length,
+            parked: store.failedCustomerLinks().length,
+          } : null,
           pendingPushes: store ? store.pendingPushes() : [],
           failedPushes: store ? store.failedPushes() : [],
         });
@@ -2879,6 +2926,23 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const r = await es.pushOrder(ref, ORDER_LOADERS);
         cadm.log(actor, 'ecwid.order.retry', ref, r);
         return json(200, { ok: !!r.ok, ...r, row: store.pushRow(ref) });
+      }
+
+      /* ------- push every waiting customer to Ecwid now -------
+         Clears the backoff on everything parked and works the queue, so the
+         owner does not have to wait for a tick after fixing the token. */
+      if (seg[0] === 'ecwid' && seg[1] === 'customers' && seg[2] === 'link' && req.method === 'POST') {
+        const store = ecwidStore(), esy = ecwidSync();
+        if (!store || !esy) return json(503, { error: 'ecwid-off' });
+        for (const row of store.failedCustomerLinks()) store.resetCustomerLink(row.email);
+        const r = await esy.linkPendingCustomers(LINK_LOADER, 200);
+        cadm.log(actor, 'ecwid.customers.link', null, r);
+        return json(200, {
+          ok: !r.blocked, ...r,
+          pending: store.pendingCustomerLinks().length,
+          parked: store.failedCustomerLinks().length,
+          linkedTotal: store.linkedCustomerCount(),
+        });
       }
 
       /* ------- what Ecwid holds for ONE customer -------
@@ -2996,7 +3060,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
            unreachable or (as on the test store's public_ token) refuses the
            write. The push path links the customer anyway, since Ecwid files an
            order under the email it carries. */
-        try { ecwidSync().linkCustomer(r.user).catch(() => {}); } catch (e) {}
+        linkCustomerSoon(r.user);
         return json(200, { ok: true, user: r.user });
       }
 
@@ -3028,7 +3092,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
            that does not happen. Not awaited and its failure ignored, exactly
            as at registration — saving a profile must not wait on Ecwid or
            fail because Ecwid refused the write. */
-        try { ecwidSync().linkCustomer(r.user).catch(() => {}); } catch (e) {}
+        linkCustomerSoon(r.user);
         return json(200, { ok: true, user: r.user });
       }
 
@@ -3528,6 +3592,28 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
         }
       } catch (e) {}
     }).catch(e => console.error('[ecwid] first sync failed:', e.message));
+
+    /* BACKFILL. Every account that has never been linked goes into the queue
+       once, at startup. Without this, the accounts created before a working
+       token existed would never be tried again — which is precisely the
+       situation the owner found: an account on the site, absent from Ecwid.
+
+       enqueueCustomerLink is INSERT OR IGNORE, so this is safe to run on
+       every boot and cannot reset a customer that is already linked. */
+    try {
+      const adb = accounts(), est = ecwidStore();
+      if (adb && est) {
+        let queued = 0;
+        for (const u of adb.listUsersAdmin()) {
+          if (!u.email) continue;
+          const row = est.customerLinkRow(u.email);
+          if (row && row.linked_at) continue;
+          est.enqueueCustomerLink(u.email);
+          queued++;
+        }
+        if (queued) console.log('[ecwid] ' + queued + ' account(s) queued for customer linking');
+      }
+    } catch (e) { console.warn('[ecwid] customer backfill skipped:', e && e.message); }
 
     if (ECWID_POLL_MS > 0) {
       console.log(`[ecwid] polling every ${Math.round(ECWID_POLL_MS / 1000)}s` +

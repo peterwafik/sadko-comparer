@@ -484,3 +484,20 @@ test('getUser on an unknown id is null, not a throw', () => {
     assert.equal(db.getUser(null), null);
   } finally { cleanup(); }
 });
+
+test('getUserByEmail finds an account and strips the credential too', () => {
+  /* The customer link queue holds only an email — the name and phone are
+     read back through this at attempt time, which is what keeps the queue
+     from becoming a second copy of the customer. */
+  const { db, cleanup } = fresh();
+  try {
+    db.register(GOOD);
+    const u = db.getUserByEmail('NOUR@example.COM');
+    assert.ok(u, 'the lookup must be case-insensitive, as Ecwid files emails');
+    assert.equal(u.name, 'نور');
+    assert.equal(u.hash, undefined);
+    assert.equal(u.salt, undefined);
+    assert.equal(db.getUserByEmail('nobody@example.com'), null);
+    assert.equal(db.getUserByEmail(''), null);
+  } finally { cleanup(); }
+});

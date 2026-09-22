@@ -1476,7 +1476,7 @@ Ordered by what it costs the business, not by effort.
 |---|---|---|---|
 | 1 | **Orders never reach Ecwid.** A completed order is stored locally and parked in a retry queue. | The configured token is a `public_` one; `POST /orders` answers **403**. | The owner issues a `secret_` token with order scope. The push code, its idempotency ref and the two-minute retry are written and waiting. |
 | 2 | **No delivery charge is ever shown.** Checkout states delivery is arranged after the order, and no grand total is invented. | Two independent causes, both in Ecwid's data: **no shipping method has a destination zone** (so the first one, Greater Cairo, would apply to every address in Egypt), and **0 of 1,453 products have a weight** (the methods are banded by product size, so the band cannot be chosen). | Ecwid → Shipping & Pickup → set each method's governorates; then enter product weights. Never let the customer pick the band — they could choose the LE 275 small-appliance rate for a refrigerator. |
-| 3 | **Customer accounts are SADKO's, not Ecwid's.** Sign-in, sessions and saved homes are local. | Ecwid has **no API that verifies a customer's password**. This is a hard limit, not a missing task. | Nothing. Email is the key: a customer's Ecwid orders are merged into their SADKO history by email once the secret token lands. |
+| 3 | **Customer accounts are SADKO's, not Ecwid's.** Sign-in and sessions are local. Customer *records* now queue for Ecwid and are backfilled — see *the link queue* above — but none has been written yet. | Sign-in: Ecwid has **no API that verifies a customer's password** — a hard limit, not a missing task. The records: `POST /customers` answers 403 on this token. | For the records, the secret token; the queue then drains on the first poll. For sign-in, nothing — passwordless mode removes the credential instead. |
 | 4 | **Order history shows only site orders.** Orders staff typed directly into Ecwid do not appear. | `GET /orders` answers 403 on this token. The merge is written but **unverified against a real payload**. | The same secret token as #1 — then run `node tools/ecwid-preflight.mjs`, which checks the shapes against a real customer and a real order before anything trusts them. |
 | 5 | **Adverts must stay Enabled in Ecwid.** They therefore also appear in Ecwid's own storefront. | A `public_` token cannot read a disabled product, so a disabled advert arrives as an id-only stub with no image. | The secret token. Then the eight adverts can be disabled and will still render here. |
 | 6 | **Guides, care articles, finder questions, reviews and Q&A are local.** | Ecwid has no field for any of them. | Nothing to unblock — they stay in the SADKO panel by design. |
@@ -1907,6 +1907,82 @@ Two rules worth knowing, because both look like bugs and are not:
 
 - Linking a customer **only ever fills what Ecwid lacks.** It never overwrites a detail staff corrected in Ecwid — staff are closer to the customer than a registration form is.
 - An Ecwid fulfilment status the site does not recognise **leaves the local status alone.** Inventing a transition would tell the customer something untrue about their order; a stale status is the lesser harm.
+
+#### Customers reaching Ecwid — the link queue
+
+The complaint that produced this: an account was created through the website
+and did not appear in Ecwid's **Customers** tab.
+
+The cause was the `public_` token — `POST /customers` answers **403**. But the
+linking code had three faults of its own, and they are why it was a surprise
+rather than a known state:
+
+1. **The failure was silent.** The call was `linkCustomer(user).catch(() => {})`
+   — no log line, nothing in the admin panel. The only way to discover it was
+   to open Ecwid and look.
+2. **It never retried.** Linking was attempted once, at registration. Every
+   account created before a working token existed would have stayed missing
+   from Ecwid **forever**, even after the token was fixed.
+3. **Guests were never linked at all.** A guest order relied on Ecwid creating
+   a customer from the order's email, which would carry no phone and no
+   address — and the phone is what staff ring.
+
+##### How it works now
+
+| When | What happens |
+|---|---|
+| Someone registers | queued, then tried immediately; a failure is logged with its reason |
+| Someone edits their name, phone or address | same — Ecwid's copy is kept current |
+| A guest completes checkout | their details are linked during the order push, from the order itself |
+| Every fifth poll (5 min) | the queue is worked: anything not yet linked is retried |
+| Server start | **every** account with no successful link is queued — the backfill |
+
+The backfill is what makes the fix retroactive. Without it, this would only
+have helped accounts created after it shipped.
+
+##### What the queue holds, and what it does not
+
+`customer_link` in `data/ecwid.db` holds the **email** — the key Ecwid files
+customers under — plus attempt bookkeeping: `attempts`, `next_attempt_at`,
+`last_error`, `ecwid_customer_id`, `linked_at`.
+
+**No name, phone or address.** Those are read from `accounts.db` at the moment
+of the attempt, so the queue is a work list and never becomes a second copy of
+the customer. Same reasoning that keeps guest orders out of `accounts.db`.
+
+##### Two behaviours worth knowing
+
+**A 403 stops the tick without counting an attempt against anybody.** This
+matters more than it looks: the retry limit is six, and spending all six
+against a token that cannot write would leave every customer *permanently
+parked* the moment a working token arrived. So on today's token the queue
+simply grows, with `attempts` at 0, and the log says why once per tick.
+
+**An email with no account behind it leaves the queue rather than parking.**
+The account was deleted between being queued and being attempted; there is
+nothing to link, and retrying it five more times would achieve nothing.
+
+##### Where to see it
+
+Admin panel → the Ecwid panel shows **Customers in Ecwid**: how many are
+linked, how many are waiting, how many have stopped. When any are waiting a
+**Link them now** button appears, which clears the backoff on everything
+parked and works the whole queue immediately — so after fixing the token you
+do not have to wait for a tick.
+
+```
+GET  /api/admin/ecwid                    includes the customers counts
+POST /api/admin/ecwid/customers/link     clear the backoff and link everything now
+GET  /api/admin/ecwid/customer?email=…   what Ecwid holds for one person
+```
+
+##### Today's state
+
+Four accounts are queued and none is linked, because the token cannot write
+customers. Verified against a copy of the live queue with a stub standing in
+for a working token: all four are created correctly, with their names and
+phone numbers, and the queue drains to zero. **The moment a `secret_` token is
+in place, the first poll links them** — nothing has to be re-entered by hand.
 
 #### Checking the shapes before trusting them
 

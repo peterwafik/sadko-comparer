@@ -42,12 +42,52 @@ test('registering links the customer in Ecwid', () => {
 
 test('the link never blocks or fails a signup', () => {
   /* An Ecwid round trip must not slow registration, and Ecwid being
-     unreachable must not stop someone creating an account. */
+     unreachable must not stop someone creating an account.
+
+     Asserted against linkCustomerSoon() rather than against the shape of the
+     call in the route: this test used to require the literal
+     `try { ecwidSync().linkCustomer(...).catch(` and broke when that moved
+     into a helper — which said nothing about whether a signup could still be
+     blocked by Ecwid. */
   const route = /'\/api\/auth\/register' && req\.method === 'POST'[\s\S]{0,1400}/.exec(src)[0];
-  assert.ok(!/await\s+ecwidSync\(\)\.linkCustomer/.test(route),
-    'the signup awaits the Ecwid link');
-  assert.match(route, /linkCustomer\([^)]*\)\.catch\(/, 'a rejected link would become an unhandled rejection');
-  assert.match(route, /try \{ ecwidSync\(\)\.linkCustomer/, 'the call itself is not guarded');
+  assert.ok(!/await\s+\w*[lL]inkCustomer/.test(route), 'the signup awaits the Ecwid link');
+
+  const fn = /function linkCustomerSoon\(user\)[\s\S]{0,2000}?\n\}/.exec(src);
+  assert.ok(fn, 'linkCustomerSoon is gone');
+  assert.match(fn[0], /\.catch\(/, 'a rejected link would become an unhandled rejection');
+  assert.match(fn[0], /try \{/, 'the call itself is not guarded');
+  assert.ok(!/\bawait\b/.test(fn[0]), 'the helper must not await, or it would block the response');
+});
+
+test('a failed link is LOGGED, not swallowed', () => {
+  /* The fault the owner hit: an account was created on the site and simply
+     was not in Ecwid, with nothing anywhere saying why. The old code was
+     `.catch(() => {})`. */
+  const fn = /function linkCustomerSoon\(user\)[\s\S]{0,2000}?\n\}/.exec(src)[0];
+  assert.match(fn, /console\.warn/);
+  assert.match(fn, /403/, 'the 403 case should name itself, since it is the likely one');
+  assert.ok(!/catch\(\(\) => \{\}\)/.test(fn), 'the failure must not be swallowed');
+});
+
+test('a customer who could not be linked is QUEUED, not forgotten', () => {
+  /* Linking ran once, at registration. Every account created before a
+     working token existed would have stayed missing from Ecwid forever. */
+  const fn = /function linkCustomerSoon\(user\)[\s\S]{0,2000}?\n\}/.exec(src)[0];
+  assert.match(fn, /enqueueCustomerLink\(user\.email\)/);
+  assert.match(src, /linkPendingCustomers\(LINK_LOADER\)/, 'nothing works the queue');
+});
+
+test('existing accounts are backfilled into the queue at startup', () => {
+  /* Otherwise the fix would only help accounts created after it shipped. */
+  assert.match(src, /customerLinkRow\(u\.email\)/);
+  assert.match(src, /queued for customer linking/);
+});
+
+test('the queue reads the customer from accounts at attempt time', () => {
+  /* So the queue holds only an email and never becomes a second copy of the
+     customer — the same reasoning that keeps guest orders out of accounts.db. */
+  assert.match(src, /const LINK_LOADER = async email =>/);
+  assert.match(src, /db\.getUserByEmail\(email\)/);
 });
 
 test('linkCustomer only ADDS to Ecwid, never overwrites what staff corrected', () => {

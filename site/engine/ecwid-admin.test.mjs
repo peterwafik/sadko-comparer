@@ -325,5 +325,7 @@ test('a profile edit updates the Ecwid customer too', () => {
   /* It only ran at registration, so a corrected phone number never left the
      site — and the phone number is how staff ring the customer back. */
   const route = /u\.pathname === '\/api\/auth\/profile'[\s\S]{0,900}?\n      \}/.exec(src)[0];
-  assert.match(route, /linkCustomer\(/);
+  /* linkCustomerSoon, since the call moved into a helper that also queues and
+     logs — what matters is that the profile route still triggers a link. */
+  assert.match(route, /linkCustomerSoon\(/);
 });

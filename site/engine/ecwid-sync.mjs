@@ -223,7 +223,7 @@ export function createEcwidSync({ api, store, adFolders = {},
 
     if (!api.configured) return park('ecwid is not configured');
 
-    let payload;
+    let payload, loaded = null;
     try {
       const order = await loadOrder(ref);
       if (!order) return park('local order not found');
@@ -231,7 +231,33 @@ export function createEcwidSync({ api, store, adFolders = {},
       /* Throws on an unknown payment method — a wrong payment status on a real
          order is worse than a failed push. */
       payload = map.toEcwidOrder(order, user, store.allPaymentMethods());
+      loaded = order;
     } catch (e) { return park(String((e && e.message) || e)); }
+
+    /* A GUEST has no account, so nothing else will ever create their customer
+       record from the details they typed. Ecwid does create one off the order's
+       email, but it would carry no phone and no address — and the phone is what
+       staff ring to arrange delivery. So the details go onto the customer
+       record too, taken from the order's own delivery block.
+
+       Best effort, deliberately: the ORDER is the thing that must not be lost,
+       so a failed link never fails the push — and because each retry of the
+       push runs this again, a link that failed once gets another chance.
+
+       An account holder is skipped here on purpose: the link queue owns them,
+       and doing it in both places would double the API calls per order. */
+    if (loaded && loaded.guest) {
+      try {
+        const d = loaded.delivery || {};
+        await linkCustomer({
+          email: loaded.email,
+          name: d.name || '',
+          phone: d.phone || '',
+          address: d.address || null,
+          profile: { governorate: d.governorate || '' },
+        });
+      } catch (e) { /* the order matters more than the customer record */ }
+    }
 
     try {
       const existing = await api.findOrderByRef(ref);
@@ -440,6 +466,68 @@ export function createEcwidSync({ api, store, adFolders = {},
     return { changed, checked, blocked };
   }
 
+  /* ---- work the customer link queue -------------------------------------
+
+     The fault this fixes: linking ran once, at registration, and its failure
+     was swallowed. On a public_ token every account failed silently, and
+     nothing would ever have tried again — so the accounts created before a
+     secret token arrived would have stayed missing from Ecwid forever, which
+     is exactly what the owner noticed.
+
+     `loadByEmail` reads the account from accounts.db. The queue holds only
+     an email, so this is where the name and phone are fetched: no second
+     copy of the customer is kept anywhere.
+
+     A 403 STOPS the tick without counting an attempt against anyone. That
+     matters more than it looks: burning all six attempts against a token
+     that cannot write would leave every customer permanently parked the
+     moment a working token arrived. */
+  async function linkPendingCustomers(loadByEmail, limit = 25) {
+    if (!api.configured || typeof loadByEmail !== 'function')
+      return { linked: 0, dropped: 0, failed: 0 };
+
+    let linked = 0, dropped = 0, failed = 0, blocked = false;
+    const schedule = n => new Date(Date.now() + BACKOFF_MS[Math.min(n, BACKOFF_MS.length - 1)]).toISOString();
+
+    for (const row of store.dueCustomerLinks(limit)) {
+      const email = row.email;
+
+      let user = null;
+      try { user = await loadByEmail(email); }
+      catch (e) {
+        /* Reading the accounts database failed — not this customer's fault
+           and not a reason to spend an attempt. */
+        continue;
+      }
+
+      /* The account was deleted between enqueue and attempt. There is nothing
+         to link, so it leaves the queue rather than parking for good. */
+      if (!user) {
+        store.markCustomerLinked(email, null);
+        dropped++;
+        continue;
+      }
+
+      const r = await linkCustomer(user);
+      if (r.ok) {
+        store.markCustomerLinked(email, r.id || null);
+        linked++;
+        continue;
+      }
+      if (r.reason === 'no-access') { blocked = true; break; }
+      store.markCustomerLinkFailed(email, r.message || r.reason || 'unknown', schedule(row.attempts));
+      failed++;
+    }
+
+    if (blocked)
+      console.warn('[ecwid] customers cannot be written with this token (403) — ' +
+        store.pendingCustomerLinks().length + ' waiting. A secret_ token is needed.');
+    else if (linked)
+      console.log('[ecwid] linked ' + linked + ' customer(s) into Ecwid');
+
+    return { linked, dropped, failed, blocked };
+  }
+
   /* ---- the orders Ecwid holds for one customer --------------------------
      So a phone order or a showroom sale, typed in by staff, reaches the
      customer's own account page instead of seeming to have been lost.
@@ -459,6 +547,7 @@ export function createEcwidSync({ api, store, adFolders = {},
     pushOrder,
     pushPendingOrders,
     linkCustomer,
+    linkPendingCustomers,
     remoteOrdersFor,
     syncOrderStatuses,
     syncAdFolders,

@@ -557,3 +557,146 @@ test('dropping the payload of an ACCOUNT order is harmless', () => {
     } finally { cleanup(); }
   })();
 });
+
+/* ======================================================================
+   Linking customers into Ecwid, reliably.
+
+   The complaint this answers: an account was created on the site and did
+   not appear in Ecwid's customers tab. The cause was the public_ token
+   answering 403 — but the real faults were that the failure was silent
+   and that nothing ever tried again, so every account created before the
+   secret token arrives would have stayed missing forever.
+   ================================================================== */
+
+function linkHarness(over = {}) {
+  const created = [], updated = [];
+  const api = stubApi({
+    customerByEmail: async e => over.existing ? over.existing(e) : null,
+    createCustomer: async p => { created.push(p); return { id: 501 }; },
+    updateCustomer: async (id, p) => { updated.push([id, p]); return { id }; },
+    ...over.api,
+  });
+  return { api, created, updated };
+}
+
+/* The accounts lookup the server injects. The queue holds only an email, so
+   the details are read from accounts.db at attempt time. */
+const USERS = {
+  'nour@example.com': { email: 'nour@example.com', name: 'نور حسن', phone: '01012345678' },
+  'peter@example.com': { email: 'peter@example.com', name: 'Peter', phone: '' },
+};
+const loadByEmail = async e => USERS[e] || null;
+
+test('a queued customer is created in Ecwid and marked linked', async () => {
+  const { api, created } = linkHarness();
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('nour@example.com');
+    const r = await sync.linkPendingCustomers(loadByEmail);
+    assert.equal(r.linked, 1, JSON.stringify(r));
+    assert.equal(created.length, 1);
+    assert.equal(created[0].email, 'nour@example.com');
+    const row = store.customerLinkRow('nour@example.com');
+    assert.equal(row.ecwid_customer_id, '501');
+    assert.ok(row.linked_at);
+  } finally { cleanup(); }
+});
+
+test('an already-linked customer is not asked about again', async () => {
+  const { api, created } = linkHarness();
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('nour@example.com');
+    await sync.linkPendingCustomers(loadByEmail);
+    const r = await sync.linkPendingCustomers(loadByEmail);
+    assert.equal(r.linked, 0);
+    assert.equal(created.length, 1, 'the customer must not be created twice');
+  } finally { cleanup(); }
+});
+
+test('a customer Ecwid ALREADY has is adopted, not duplicated', async () => {
+  /* Staff may have typed them in from a phone order first. */
+  const { api, created } = linkHarness({ existing: () => ({ id: 909, name: 'نور حسن' }) });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('nour@example.com');
+    const r = await sync.linkPendingCustomers(loadByEmail);
+    assert.equal(r.linked, 1);
+    assert.equal(created.length, 0, 'Ecwid already had them');
+    assert.equal(store.customerLinkRow('nour@example.com').ecwid_customer_id, '909');
+  } finally { cleanup(); }
+});
+
+test('a 403 records the reason and STOPS, rather than burning every attempt', async () => {
+  /* The live state today. Spending all six attempts on a token that cannot
+     write would leave every customer permanently parked the moment a real
+     token arrived. */
+  const { api } = linkHarness({ api: {
+    customerByEmail: async () => { const e = new Error('ecwid-403: '); e.status = 403; throw e; } } });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('nour@example.com');
+    store.enqueueCustomerLink('peter@example.com');
+    const r = await sync.linkPendingCustomers(loadByEmail);
+    assert.equal(r.blocked, true);
+    assert.equal(r.linked, 0);
+    /* Neither is burned: attempts stay at 0 so they are retried in full once
+       the token can write. */
+    assert.equal(store.customerLinkRow('nour@example.com').attempts, 0);
+    assert.equal(store.customerLinkRow('peter@example.com').attempts, 0);
+    assert.equal(store.pendingCustomerLinks().length, 2);
+  } finally { cleanup(); }
+});
+
+test('an ordinary failure DOES count an attempt and backs off', async () => {
+  const { api } = linkHarness({ api: {
+    customerByEmail: async () => { throw new Error('ecwid-500: boom'); } } });
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('nour@example.com');
+    await sync.linkPendingCustomers(loadByEmail);
+    const row = store.customerLinkRow('nour@example.com');
+    assert.equal(row.attempts, 1);
+    assert.match(row.last_error, /500/);
+    assert.ok(row.next_attempt_at, 'a retry has to be scheduled');
+  } finally { cleanup(); }
+});
+
+test('an email with no account row is dropped, not retried forever', async () => {
+  /* The account was deleted between enqueue and attempt. There is nothing
+     to link, and retrying would park it for good. */
+  const { api } = linkHarness();
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('gone@example.com');
+    const r = await sync.linkPendingCustomers(loadByEmail);
+    assert.equal(r.linked, 0);
+    assert.equal(r.dropped, 1);
+    assert.equal(store.pendingCustomerLinks().length, 0, 'it should leave the queue');
+  } finally { cleanup(); }
+});
+
+test('one tick is bounded', async () => {
+  const { api, created } = linkHarness();
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    for (let i = 0; i < 60; i++) {
+      const em = 'u' + i + '@example.com';
+      USERS[em] = { email: em, name: 'u' + i, phone: '' };
+      store.enqueueCustomerLink(em);
+    }
+    await sync.linkPendingCustomers(loadByEmail, 25);
+    assert.ok(created.length <= 25, 'created ' + created.length + ' in one tick');
+    for (let i = 0; i < 60; i++) delete USERS['u' + i + '@example.com'];
+  } finally { cleanup(); }
+});
+
+test('linkPendingCustomers never throws, whatever the loader does', async () => {
+  const { api } = linkHarness();
+  const { store, sync, cleanup } = fresh(api);
+  try {
+    store.enqueueCustomerLink('nour@example.com');
+    const r = await sync.linkPendingCustomers(async () => { throw new Error('db gone'); });
+    assert.ok(r, 'it must return a result rather than throw out of the poll');
+  } finally { cleanup(); }
+});

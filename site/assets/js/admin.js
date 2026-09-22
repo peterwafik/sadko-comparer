@@ -30,6 +30,7 @@
       ecwidCats: 'أقسام', ecwidPay: 'طرق دفع', ecwidShip: 'طرق شحن', ecwidBanners: 'لافتات',
       ecwidLastSync: 'آخر مزامنة', ecwidLastErr: 'آخر خطأ', ecwidNone: 'لا يوجد',
       ecwidRails: 'صفوف المنتجات', ecwidUnresolved: 'لم يتم العثور على القسم',
+      ecwidCustomers: 'العملاء فى إيكويد', ecwidLinkNow: 'سجّلهم الآن',
       th_ecwid: 'فى إيكويد', ecwidInStore: 'مُسجَّل', ecwidWaitingPush: 'فى الانتظار',
       ecwidParked: 'متوقّف', ecwidNotPushed: 'لم يُرسل', ecwidRetry: 'أعد المحاولة',
       ecwidRetried: 'تمت إعادة الإرسال', ecwidNoOrderAccess: 'هذا المفتاح لا يقرأ الطلبات من إيكويد (‏403). الطلبات محفوظة هنا وستُرسل فور تفعيل مفتاح secret_.',
@@ -82,6 +83,7 @@
       ecwidCats: 'Categories', ecwidPay: 'Payment methods', ecwidShip: 'Shipping methods', ecwidBanners: 'Banners',
       ecwidLastSync: 'Last sync', ecwidLastErr: 'Last error', ecwidNone: 'none',
       ecwidRails: 'Product rails', ecwidUnresolved: 'category not found',
+      ecwidCustomers: 'Customers in Ecwid', ecwidLinkNow: 'Link them now',
       th_ecwid: 'In Ecwid', ecwidInStore: 'Filed', ecwidWaitingPush: 'Waiting',
       ecwidParked: 'Stopped', ecwidNotPushed: 'Not sent', ecwidRetry: 'Retry',
       ecwidRetried: 'Sent again', ecwidNoOrderAccess: 'This token cannot read orders from Ecwid (403). Orders are safe here and will be sent the moment a secret_ token is in place.',
@@ -364,6 +366,13 @@
       + row(t('ecwidPay'), num(e.paymentMethods))
       + row(t('ecwidShip'), num(e.shippingMethods))
       + row(t('ecwidBanners'), num(d.banners))
+      + (d.customers ? '<tr><th>' + esc(t('ecwidCustomers')) + '</th><td>'
+          + esc(t('مُسجَّل', 'linked')) + ': ' + num(d.customers.linked)
+          + (d.customers.pending ? ' · <span class="err">' + esc(t('فى الانتظار', 'waiting')) + ': ' + num(d.customers.pending) + '</span>' : '')
+          + (d.customers.parked ? ' · <span class="err">' + esc(t('متوقّف', 'stopped')) + ': ' + num(d.customers.parked) + '</span>' : '')
+          + ((d.customers.pending || d.customers.parked)
+              ? ' <button class="btn btn--ghost btn--sm" id="adm-ecwid-link">' + esc(t('ecwidLinkNow')) + '</button>' : '')
+          + '</td></tr>' : '')
       + row(t('ecwidLastSync'), (e.lastSync && e.lastSync.at) ? when(e.lastSync.at) : t('ecwidNone'))
       + row(t('ecwidLastErr'), e.lastError || t('ecwidNone'), e.lastError ? 'err' : '')
       + '<tr><th>' + esc(t('ecwidRails')) + '</th><td>'
@@ -374,6 +383,15 @@
   }
 
   function bindEcwidPanel() {
+    const lk = $('adm-ecwid-link');
+    if (lk) lk.addEventListener('click', async () => {
+      lk.disabled = true;
+      try {
+        const r = await api('/api/admin/ecwid/customers/link', { method: 'POST' });
+        toast(r.blocked ? t('ecwidNoOrderAccess') : t('ecwidSynced'), r.blocked ? 'err' : 'ok');
+        route();
+      } catch (e) { toast(e.message, 'err'); lk.disabled = false; }
+    });
     const b = $('adm-ecwid-sync');
     if (!b) return;
     b.addEventListener('click', async () => {

@@ -70,6 +70,24 @@ const MIGRATIONS = [{
     data_json  TEXT NOT NULL
   );
   `,
+}, {
+  id: 5, name: 'customer link queue',
+  sql: `
+  -- Who still needs a customer record in Ecwid. Deliberately holds NO name,
+  -- phone or address: the email is the key Ecwid files under, and the details
+  -- are read from accounts.db when the attempt is made. So this is a work
+  -- list, not a second copy of the customer.
+  CREATE TABLE IF NOT EXISTS customer_link (
+    email             TEXT PRIMARY KEY,
+    created_at        TEXT NOT NULL,
+    attempts          INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at   TEXT,
+    last_error        TEXT,
+    ecwid_customer_id TEXT,
+    linked_at         TEXT
+  );
+  CREATE INDEX IF NOT EXISTS customer_link_due ON customer_link(linked_at, next_attempt_at);
+  `,
 }];
 
 const nowISO = () => new Date().toISOString();
@@ -150,6 +168,18 @@ export function openEcwidStore(file) {
   /* The orders that actually reached Ecwid, newest first. Only these have an
      Ecwid id to ask about, and only Ecwid can say what staff did to them
      after the push. */
+  /* INSERT OR IGNORE, not REPLACE: re-enqueueing an email that is already
+     linked must not wipe its ecwid_customer_id and make it look unlinked. */
+  const clIns  = db.prepare('INSERT OR IGNORE INTO customer_link (email, created_at, attempts) VALUES (?,?,0)');
+  const clGet  = db.prepare('SELECT * FROM customer_link WHERE email = ?');
+  const clDue  = db.prepare('SELECT * FROM customer_link WHERE linked_at IS NULL AND attempts < ' + MAX_ATTEMPTS
+    + ' AND (next_attempt_at IS NULL OR next_attempt_at <= ?) ORDER BY created_at LIMIT ?');
+  const clOk   = db.prepare('UPDATE customer_link SET ecwid_customer_id = ?, linked_at = ?, last_error = NULL WHERE email = ?');
+  const clBad  = db.prepare('UPDATE customer_link SET attempts = attempts + 1, last_error = ?, next_attempt_at = ? WHERE email = ?');
+  const clPend = db.prepare('SELECT * FROM customer_link WHERE linked_at IS NULL AND attempts < ' + MAX_ATTEMPTS + ' ORDER BY created_at');
+  const clFail = db.prepare('SELECT * FROM customer_link WHERE linked_at IS NULL AND attempts >= ' + MAX_ATTEMPTS + ' ORDER BY created_at');
+  const clReset = db.prepare('UPDATE customer_link SET attempts = 0, next_attempt_at = NULL WHERE email = ?');
+  const clLinked = db.prepare('SELECT COUNT(*) c FROM customer_link WHERE linked_at IS NOT NULL');
   const goPut  = db.prepare('INSERT OR REPLACE INTO guest_order (ref, created_at, data_json) VALUES (?,?,?)');
   const goGet  = db.prepare('SELECT * FROM guest_order WHERE ref = ?');
   const goDrop = db.prepare('DELETE FROM guest_order WHERE ref = ?');
@@ -232,6 +262,27 @@ export function openEcwidStore(file) {
        putGuestOrder / getGuestOrder / dropGuestOrder. The drop is the point:
        it runs as soon as Ecwid has the order, so a guest's name, phone and
        address normally sit on this server for a few seconds. */
+    /* ---- the customer link queue ----
+       Emails are the key, so they are normalised here rather than trusting
+       every caller to remember. */
+    enqueueCustomerLink(email) {
+      const em = String(email || '').trim().toLowerCase();
+      if (!em) return;
+      clIns.run(em, nowISO());
+    },
+    customerLinkRow(email) { return clGet.get(String(email || '').trim().toLowerCase()) || null; },
+    dueCustomerLinks(limit = 25, at) { return clDue.all(at || nowISO(), Number(limit) || 25); },
+    markCustomerLinked(email, id) {
+      clOk.run(id == null ? null : String(id), nowISO(), String(email || '').trim().toLowerCase());
+    },
+    markCustomerLinkFailed(email, error, nextAttemptAt) {
+      clBad.run(String(error).slice(0, 500), nextAttemptAt || null, String(email || '').trim().toLowerCase());
+    },
+    pendingCustomerLinks: () => clPend.all(),
+    failedCustomerLinks: () => clFail.all(),
+    linkedCustomerCount: () => clLinked.get().c,
+    resetCustomerLink(email) { clReset.run(String(email || '').trim().toLowerCase()); },
+
     putGuestOrder(order) {
       if (!order || !order.ref) throw new Error('putGuestOrder: no ref');
       goPut.run(String(order.ref), order.createdAt || nowISO(), JSON.stringify(order));

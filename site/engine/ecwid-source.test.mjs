@@ -502,3 +502,74 @@ test('a normal priced product is unaffected', () => {
     return src.catalogBase().then(list => assert.equal(list.length, 2));
   } finally { cleanup(); }
 });
+
+/* ======================================================================
+   Advert destinations are checked against the real catalogue.
+
+   The SKU says where the owner wants the advert to go. Nothing was
+   checking that the destination still exists — square advert 3 shipped
+   pointing at product:837495061, which had been removed from the store,
+   so the advert was a link to a 404.
+   ================================================================== */
+
+test('an advert pointing at a product that is served keeps its link', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1), M(77, { sku: 'product:1' })]);
+    await src.catalogBase();
+    assert.equal(src.adDestinationOf({ sku: 'product:1' }), 'product.html?id=1');
+  } finally { cleanup(); }
+});
+
+test('an advert pointing at a product that is GONE loses its link', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    await src.catalogBase();
+    assert.equal(src.adDestinationOf({ sku: 'product:837495061' }), null,
+      'a dead product id must not become an href');
+  } finally { cleanup(); }
+});
+
+test('a product that is disabled or unpriced is just as dead a destination', async () => {
+  /* Both 404 on the product page, so both are broken links. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1), M(2, { enabled: false }), M(3, { price: 0 })]);
+    await src.catalogBase();
+    assert.equal(src.adDestinationOf({ sku: 'product:2' }), null);
+    assert.equal(src.adDestinationOf({ sku: 'product:3' }), null);
+    assert.equal(src.adDestinationOf({ sku: 'product:1' }), 'product.html?id=1');
+  } finally { cleanup(); }
+});
+
+test('a site page destination is not subject to any lookup', async () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    await src.catalogBase();
+    assert.equal(src.adDestinationOf({ sku: 'contact' }), 'contact.html');
+  } finally { cleanup(); }
+});
+
+test('the destination world is rebuilt after invalidate(), not frozen at boot', async () => {
+  /* A product added in Ecwid must become a usable destination on the next
+     sync rather than at the next restart. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1)]);
+    await src.catalogBase();
+    assert.equal(src.adDestinationOf({ sku: 'product:9' }), null);
+    store.upsertProducts([M(9)]);
+    src.invalidate();
+    assert.equal(src.adDestinationOf({ sku: 'product:9' }), 'product.html?id=9');
+  } finally { cleanup(); }
+});
+
+test('an empty mirror strips no destinations at all', async () => {
+  /* A failed read must not silently un-link every advert on the site. */
+  const { src, cleanup } = fresh();
+  try {
+    assert.equal(src.adDestinationOf({ sku: 'product:837495061' }), 'product.html?id=837495061');
+  } finally { cleanup(); }
+});

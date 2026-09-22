@@ -365,3 +365,34 @@ export function byAdPosition(a, b) {
   if (pb != null) return 1;
   return 0;
 }
+
+/* Does the thing an advert points at actually exist?
+
+   adDestination above validates the SHAPE of what the owner typed. It cannot
+   know whether product 837495061 is in the catalogue — and that one was not:
+   square advert 3 shipped pointing at a product that had been removed from
+   the store, so the advert was a link to a 404. Products also leave the
+   catalogue later, by being deleted, disabled, or left unpriced, and a
+   category can be renamed away underneath a `cat:` SKU.
+
+   `world` supplies the two lookups. Both are optional: with neither, this is
+   the identity function, which keeps the pure ad tests independent of any
+   store. A lookup that throws drops the destination rather than the page —
+   a broken mirror read must not take out the whole advert rail.
+
+   The advert still renders. It just stops being clickable. */
+export function liveDestination(dest, world = {}) {
+  if (!dest) return null;
+  const m = /^product\.html\?id=(\d+)$/.exec(dest);
+  if (m) {
+    if (typeof world.hasProduct !== 'function') return dest;
+    try { return world.hasProduct(m[1]) ? dest : null; } catch (e) { return null; }
+  }
+  const c = /^shop\.html\?cat=(\d+)$/.exec(dest);
+  if (c) {
+    if (typeof world.hasCategory !== 'function') return dest;
+    try { return world.hasCategory(c[1]) ? dest : null; } catch (e) { return null; }
+  }
+  /* A site page ships with the site; there is nothing to look up. */
+  return dest;
+}

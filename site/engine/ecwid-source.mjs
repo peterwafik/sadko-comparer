@@ -22,7 +22,7 @@
    cannot be bought, and hiding them would understate the range SADKO carries.
    They are ordered last instead.
    ========================================================================== */
-import { adSlotOf, isAd, adDestination } from './ecwid-ads.mjs';
+import { adSlotOf, isAd, adDestination, liveDestination } from './ecwid-ads.mjs';
 
 /* The slot a banner occupies is carried in its Ecwid SKU, so the owner sets it
    in the same field they already use. Exported so the storefront and the
@@ -153,6 +153,34 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     return rest;
   }
 
+  /* What the adverts are allowed to point AT.
+
+     adDestination validates the shape of the SKU the owner typed; this says
+     whether the thing it names is really there. Square advert 3 pointed at
+     product:837495061, a product that had been removed from the store, so
+     the advert linked to a 404 — the same dead end as a `cat:` SKU whose
+     category has since been deleted.
+
+     Scoped to what the storefront SERVES, deliberately: a disabled or
+     unpriced product 404s on the product page exactly like a missing one,
+     so linking to it would be just as broken.
+
+     Built lazily and dropped by invalidate() alongside the catalogue, because
+     an advert rail asks this once per advert and must not re-read the mirror
+     each time. An empty read yields NO lookups rather than an empty world —
+     a failed query must not silently strip every destination on the site. */
+  let world = null;
+  function adWorld() {
+    if (world) return world;
+    const ids = new Set(), cats = new Set();
+    try { for (const p of store.allProducts()) if (isServed(p)) ids.add(String(p.id)); } catch (e) {}
+    try { for (const c of store.allCategories()) cats.add(String(c.id)); } catch (e) {}
+    world = {};
+    if (ids.size) world.hasProduct = id => ids.has(String(id));
+    if (cats.size) world.hasCategory = id => cats.has(String(id));
+    return world;
+  }
+
   return {
     async catalogBase() {
       if (!enabled) return seed();
@@ -207,9 +235,9 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
        allow-list in ecwid-ads.mjs, so nothing arbitrary reaches an href. Null
        when the SKU is empty or is not a destination, and the category
        fallback then applies. */
-    adDestinationOf: p => adDestination(p && p.sku),
+    adDestinationOf: p => liveDestination(adDestination(p && p.sku), adWorld()),
 
-    invalidate() { cache = null; },
+    invalidate() { cache = null; world = null; },
 
     activeSource: () => liveSource(),
 

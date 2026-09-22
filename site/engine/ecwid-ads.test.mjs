@@ -595,3 +595,54 @@ test('the allow-list still applies to the stem', () => {
 test('a slot marker with a suffix is still not a destination', () => {
   assert.equal(adDestination('banner-hero#2'), null);
 });
+
+/* ======================================================================
+   A destination that points at nothing.
+
+   adDestination validates the SHAPE of what the owner typed — product:NNN,
+   cat:NNN, a known page — but not that the thing exists. Square advert 3
+   shipped pointing at product:837495061, which is not in the store at all:
+   GET /api/product/837495061 answers 404, so the advert was a link to an
+   error page. A product can also stop existing later — deleted, disabled,
+   or left unpriced — and nothing would notice.
+
+   The advert still SHOWS. It just stops being clickable, which is the
+   honest degradation: artwork with a dead link is worse than artwork.
+   ================================================================== */
+import { liveDestination } from './ecwid-ads.mjs';
+
+const WORLD = {
+  hasProduct: id => id === '111',
+  hasCategory: id => id === '222',
+};
+
+test('a product destination survives when the product is actually served', () => {
+  assert.equal(liveDestination('product.html?id=111', WORLD), 'product.html?id=111');
+});
+
+test('a product destination is dropped when the product is not there', () => {
+  /* The live bug: 837495061 does not exist in the store. */
+  assert.equal(liveDestination('product.html?id=837495061', WORLD), null);
+});
+
+test('a category destination is dropped when the category is gone', () => {
+  assert.equal(liveDestination('shop.html?cat=222', WORLD), 'shop.html?cat=222');
+  assert.equal(liveDestination('shop.html?cat=999', WORLD), null);
+});
+
+test('a plain page destination needs no existence check', () => {
+  /* contact.html ships with the site; there is nothing to look up. */
+  assert.equal(liveDestination('contact.html', WORLD), 'contact.html');
+});
+
+test('null in, null out, and a missing world never throws', () => {
+  assert.equal(liveDestination(null, WORLD), null);
+  assert.equal(liveDestination('product.html?id=111', {}), 'product.html?id=111');
+  assert.equal(liveDestination('product.html?id=111'), 'product.html?id=111');
+});
+
+test('a lookup that throws drops the destination rather than the page', () => {
+  /* A broken mirror read must not take out the whole advert rail. */
+  const angry = { hasProduct: () => { throw new Error('db gone'); } };
+  assert.equal(liveDestination('product.html?id=111', angry), null);
+});

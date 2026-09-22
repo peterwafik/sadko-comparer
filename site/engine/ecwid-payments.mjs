@@ -28,6 +28,8 @@
 
 /* Arabic normalisation, matching engine/ecwid-rails.mjs: the same brand is
    written كريازى and كريازي, العربى and العربي. */
+import { stripHtml as _stripHtml } from './ecwid-map.mjs';
+
 export function normAr(s) {
   return String(s == null ? '' : s)
     .replace(/[ً-ٰٟ]/g, '')
@@ -112,7 +114,7 @@ export function toStorefrontMethods(mirrored = []) {
            copying Arabic into an English field is the bug the category mapper
            refuses. The English side shows the Arabic method name, which is what
            the customer will be told on the phone anyway. */
-        instructions: stripHtml(m.instructions),
+        instructions: _stripHtml(m.instructions),
         restricted: r.restricted,
         brand: r.brand,
         brandEn: r.brandEn,
@@ -123,18 +125,6 @@ export function toStorefrontMethods(mirrored = []) {
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 }
 
-/* Ecwid stores the instructions as HTML written in its rich-text editor. The
-   storefront renders text, so the markup is removed rather than injected. */
-export function stripHtml(html) {
-  if (!html) return '';
-  return String(html)
-    .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/<\/p>/gi, ' ')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+/* Shared with the product mapper so the two cannot diverge — Ecwid writes
+   the same rich-text HTML in both places. */
+export { stripHtml } from './ecwid-map.mjs';

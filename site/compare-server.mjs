@@ -1948,6 +1948,39 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
    test script the adapters without binding the port */
 export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProducts, htmlHarvest, understandQuery, extractPrices };
 
+/* How the push worker finds an order and its customer. In one place so the
+   timer, the immediate push and the admin retry all load identically. */
+const ORDER_LOADERS = {
+  loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
+  loadUser: async order => {
+    const db = accounts();
+    const u = db && order ? db.getUser(order.userId) : null;
+    return u || { email: '', name: (order.delivery || {}).name || '', phone: (order.delivery || {}).phone || '' };
+  },
+};
+
+/* Status flowing back from Ecwid: staff mark an order shipped there, the
+   customer sees it here. An unmapped Ecwid status leaves the local status
+   ALONE — inventing a transition would lie to the customer about their order. */
+async function applyEcwidOrderEvent(ev) {
+  const api = ecwidApi(), db = accounts();
+  if (!api || !api.configured || !db) return;
+  const remote = await api.getOrder(ev.entityId);
+  if (!remote) return;
+  /* Our own ref, from the dedicated field or from the comments it is also
+     written into — see engine/ecwid-map.mjs toEcwidOrder(). */
+  const ref = remote.externalOrderId ||
+    (/(SDK-[A-Z0-9]{6})/.exec(String(remote.orderComments || '')) || [])[1];
+  if (!ref) return;
+  const status = toLocalStatus(remote);
+  if (!status) return;
+  const local = db.orderByRefAny(ref);
+  if (!local || local.status === status) return;
+  const r = db.setOrderStatus(ref, status);
+  if (r && r.error) return console.error('[ecwid] status update rejected:', r.error);
+  console.log(`[ecwid] order ${ref} -> ${status} (from Ecwid ${ev.entityId})`);
+}
+
 const HTTP_SERVER = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   const secure = isSecure(req);
@@ -2048,39 +2081,6 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      The check is server-side and identical for reads and writes; there is no
      "admin cookie" a browser could forge. Writes also pass the global same-origin
      gate above. All mutations are recorded in the catalog-admin audit log. */
-/* How the push worker finds an order and its customer. In one place so the
-   timer, the immediate push and the admin retry all load identically. */
-const ORDER_LOADERS = {
-  loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
-  loadUser: async order => {
-    const db = accounts();
-    const u = db && order ? db.getUser(order.userId) : null;
-    return u || { email: '', name: (order.delivery || {}).name || '', phone: (order.delivery || {}).phone || '' };
-  },
-};
-
-/* Status flowing back from Ecwid: staff mark an order shipped there, the
-   customer sees it here. An unmapped Ecwid status leaves the local status
-   ALONE — inventing a transition would lie to the customer about their order. */
-async function applyEcwidOrderEvent(ev) {
-  const api = ecwidApi(), db = accounts();
-  if (!api || !api.configured || !db) return;
-  const remote = await api.getOrder(ev.entityId);
-  if (!remote) return;
-  /* Our own ref, from the dedicated field or from the comments it is also
-     written into — see engine/ecwid-map.mjs toEcwidOrder(). */
-  const ref = remote.externalOrderId ||
-    (/(SDK-[A-Z0-9]{6})/.exec(String(remote.orderComments || '')) || [])[1];
-  if (!ref) return;
-  const status = toLocalStatus(remote);
-  if (!status) return;
-  const local = db.orderByRefAny(ref);
-  if (!local || local.status === status) return;
-  const r = db.setOrderStatus(ref, status);
-  if (r && r.error) return console.error('[ecwid] status update rejected:', r.error);
-  console.log(`[ecwid] order ${ref} -> ${status} (from Ecwid ${ev.entityId})`);
-}
-
   /* ---- Ecwid webhooks ----------------------------------------------------
      PUBLIC route. Answer 200 the moment the event is verified, then work
      asynchronously: Ecwid retries anything slow or non-200, and a retry storm

@@ -449,3 +449,76 @@ test('every value toLocalStatus can return is a real site status', () => {
     if (s !== null) assert.ok(ALLOWED.has(s), f + ' produced "' + s + '", not a site status');
   }
 });
+
+/* ===================== descriptions are HTML ============================ */
+
+import { stripHtml } from './ecwid-map.mjs';
+
+test('a product description is stripped to plain text', () => {
+  /* ALL 981 descriptions in the live store are HTML from Ecwid's rich-text
+     editor. The seed catalogue was plain text, so nothing on the site ever
+     stripped markup and the shop page rendered "<ul><li>تليفزيون…" as visible
+     text on every single card. */
+  const p = toSadkoProduct(P({
+    description: '<h2>جهاز المشي</h2><p>قم بترقية تمارينك</p><ul><li>محرك قوى</li><li>شاشة رقمية</li></ul>',
+  }));
+  assert.ok(!/[<>]/.test(p.description), 'no markup may survive: ' + p.description);
+  assert.match(p.description, /جهاز المشي/);
+  assert.match(p.description, /محرك قوى/);
+});
+
+test('block boundaries become spaces, so words do not run together', () => {
+  const p = toSadkoProduct(P({ description: '<li>أ</li><li>ب</li>' }));
+  assert.equal(p.description, 'أ ب');
+  assert.equal(toSadkoProduct(P({ description: '<p>أ</p><p>ب</p>' })).description, 'أ ب');
+  assert.equal(toSadkoProduct(P({ description: 'أ<br>ب' })).description, 'أ ب');
+});
+
+test('the tags the live catalogue actually uses are all removed', () => {
+  /* Measured across the store: a, br, div, em, h2, h4, img, label, li, main,
+     p, pre, section, span, strong, u, ul. */
+  const html = '<main><section><h2>ع</h2><h4>ن</h4><div><p><span><strong>أ</strong></span>' +
+               '<em>ب</em><u>ج</u></p><ul><li>د</li></ul><pre>ه</pre>' +
+               '<a href="x">و</a><img src="y"><label>ز</label><br></div></section></main>';
+  const out = stripHtml(html);
+  assert.ok(!/[<>]/.test(out), 'markup survived: ' + out);
+  for (const ch of ['ع','ن','أ','ب','ج','د','ه','و','ز']) assert.ok(out.includes(ch), 'lost ' + ch);
+});
+
+test('an img or a tag cannot leave a URL in the visible text', () => {
+  const out = stripHtml('<img src="https://cdn/x.jpg" alt="ص"><a href="https://evil/">نص</a>');
+  assert.ok(!out.includes('https://'), 'a URL leaked into the description: ' + out);
+  assert.match(out, /نص/);
+});
+
+test('escaped markup in the copy stays escaped, and is not turned into a tag', () => {
+  /* Stripping runs BEFORE decoding on purpose. Decoding first would turn
+     &lt;b&gt; in the author's text into a real tag that the stripper then
+     silently deleted, changing what staff wrote. */
+  const out = stripHtml('&lt;b&gt;مهم&lt;/b&gt;');
+  assert.match(out, /<b>مهم<\/b>/, 'the author wrote those characters; they must survive');
+});
+
+test('a script fragment cannot survive as markup', () => {
+  const out = stripHtml('<script>alert(1)</script>نص');
+  assert.ok(!/[<>]/.test(out));
+  assert.match(out, /نص/);
+});
+
+test('a plain-text description is left alone', () => {
+  /* The entire July seed catalogue is plain text. */
+  const p = toSadkoProduct(P({ description: 'العلامة التجارية: كولدير سعة 3.2 لتر' }));
+  assert.equal(p.description, 'العلامة التجارية: كولدير سعة 3.2 لتر');
+});
+
+test('stripHtml on nothing is an empty string', () => {
+  assert.equal(stripHtml(null), '');
+  assert.equal(stripHtml(undefined), '');
+  assert.equal(stripHtml(''), '');
+});
+
+test('the REAL captured description comes out clean', () => {
+  const p = toSadkoProduct(FIX);
+  assert.ok(!/[<>]/.test(p.description), 'markup in the real payload survived');
+  assert.ok(p.description.length > 0, 'the description was emptied entirely');
+});

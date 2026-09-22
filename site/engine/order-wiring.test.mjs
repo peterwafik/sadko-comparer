@@ -122,3 +122,41 @@ test('no grand total is ever synthesised on the way to Ecwid', () => {
   assert.ok(!/shippingRate/.test(fn), 'a shipping rate must never be fabricated');
   assert.match(fn, /total: subtotal/, 'the total must be the items subtotal');
 });
+
+/* ------------------- scope: the bug tests did not catch ----------------- */
+
+test('ORDER_LOADERS is declared at MODULE scope, not inside the request handler', () => {
+  /* The bug this pins cost a crashed server. ORDER_LOADERS was declared inside
+     the http.createServer callback, so the push timer — which lives in the
+     listen callback — could not see it. The module loaded fine, `node --check`
+     passed, and every source assertion above passed, because they only ask
+     whether the text exists. The server then died the first time the 2-minute
+     timer fired, with "ORDER_LOADERS is not defined".
+
+     Asserting POSITION is what catches it: a declaration the timer needs must
+     appear before the server is created. */
+  const decl = src.indexOf('const ORDER_LOADERS');
+  const server = src.indexOf('http.createServer');
+  assert.ok(decl > -1, 'ORDER_LOADERS not found');
+  assert.ok(server > -1, 'createServer not found');
+  assert.ok(decl < server,
+    'ORDER_LOADERS is declared inside the request handler — the push timer cannot see it');
+});
+
+test('applyEcwidOrderEvent is also at module scope', () => {
+  const decl = src.indexOf('async function applyEcwidOrderEvent');
+  const server = src.indexOf('http.createServer');
+  assert.ok(decl > -1 && decl < server,
+    'the order-event handler must be reachable from outside the request handler');
+});
+
+test('everything the timers reference is declared before the server is created', () => {
+  /* Generalised: any identifier used inside the listen callback must be in
+     scope there. These are the ones the Ecwid timers use. */
+  const server = src.indexOf('http.createServer');
+  for (const name of ['const ORDER_LOADERS', 'function ecwidSync', 'function ecwidSource']) {
+    const at = src.indexOf(name);
+    assert.ok(at > -1, name + ' not found');
+    assert.ok(at < server, name + ' is declared after createServer, so the timers cannot use it');
+  }
+});

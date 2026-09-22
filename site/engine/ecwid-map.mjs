@@ -41,6 +41,26 @@ const num = v => {
    never renders with a stray gap, but keep the text otherwise untouched. */
 const text = v => decodeEntities(v).replace(/\s+/g, ' ').trim();
 
+/* Ecwid descriptions are HTML from its rich-text editor — all 981 in the live
+   store carry tags, including img and a. The storefront renders descriptions as
+   TEXT (the seed catalogue was plain), so markup is removed rather than
+   escaped-and-displayed, which is what produced "<ul><li>…" on every card.
+
+   Block-level boundaries become spaces so words do not run together, and the
+   tag strip runs BEFORE entity decoding: decoding first could turn a
+   &lt;script&gt; in the copy into a real tag that the stripper then removes,
+   silently changing the author's text. Stripping first keeps escaped text
+   escaped. */
+export function stripHtml(html) {
+  if (html == null) return '';
+  const withBreaks = String(html)
+    .replace(/<\s*(br|\/p|\/div|\/li|\/h[1-6]|\/tr|\/section)\s*[^>]*>/gi, ' ')
+    .replace(/<\s*li[^>]*>/gi, ' ');
+  return decodeEntities(withBreaks.replace(/<[^>]*>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /* Ecwid's stock model: `unlimited: true` means stock is not tracked at all.
    When it IS tracked, `quantity` is authoritative and `inStock` is Ecwid's own
    derived flag — prefer the flag, fall back to the quantity. */
@@ -117,7 +137,7 @@ export function toSadkoProduct(e) {
     image: images[0] || '',
     images,
     price,
-    description: text(e.description),
+    description: stripHtml(e.description),
     categoryId: defaultCat,
     categoryIds: catIds,
     brand: brandOf(e),
@@ -183,7 +203,7 @@ export function toSadkoCategory(e) {
     image: e.imageUrl || e.originalImageUrl || e.thumbnailUrl || '',
     productCount: num(e.productCount) ?? 0,
     url: e.url || '',
-    description: text(e.description),
+    description: stripHtml(e.description),
   };
 }
 

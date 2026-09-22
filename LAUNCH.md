@@ -1340,6 +1340,99 @@ and enable it only if the fees-to-be-confirmed line survives in the template. An
 email implying free delivery is a false statement to a customer — leave it off
 and report back rather than shipping it.
 
+### Advertisement folders — one Ecwid category per banner slot
+
+The site reads adverts from Ecwid categories, one per slot, configured by **id**:
+
+```
+SADKO_ECWID_ADS_HERO=<category id>      the big rotating strap
+SADKO_ECWID_ADS_WIDE=<category id>      the wide strap
+SADKO_ECWID_ADS_SQUARE=206866501        the square tiles
+```
+
+Everything in a folder is an advert of that slot. Created in this store:
+
+| Folder | Id | State |
+|---|---|---|
+| `Ads — إعلانات الموقع (لا تُعرض للعملاء)` | 206866002 | Disabled |
+| `banner-square — الإعلانات المربعة` | 206866501 | Disabled |
+
+Each advert is an ordinary product inside the folder:
+
+| Ecwid field | Becomes |
+|---|---|
+| **Name** | the headline (required) |
+| **Image** | the artwork (required) |
+| **Description** | the subtitle |
+| **SKU** | where it points — see below |
+| Uncheck **Requires shipping or pickup** | an advert is not a parcel |
+
+**Addressed BY ID, NOT BY NAME, and that is forced on us.** A folder must be
+disabled, or Ecwid shows it to its own shoppers and it turns up in this site's
+category rail. But over the API a disabled category is nearly invisible:
+omitted from `GET /categories`, an id-only stub under `hidden_categories=true`
+with **no name**, and absent from the `categoryIds` of the products inside it.
+What does work, measured against the live store: `GET /products?category=<id>`
+returns its contents. Hence ids. Renaming the folders in the panel is therefore
+free — the site never reads their names.
+
+#### Where an advert points
+
+The folder sets the slot, which leaves the SKU field free to carry the
+destination. Only three shapes are accepted; this is staff-typed text going
+into an href on our own pages, so the allow-list is a security boundary rather
+than a convenience:
+
+| SKU | Destination |
+|---|---|
+| `contact` | `contact.html` (any page on the SITE_PAGES list) |
+| `product:837495061` | that product's page |
+| `cat:206629766` | that category — and the advert is also targeted to that aisle |
+| *(empty)* | the category the advert is assigned to, else the shop |
+
+Absolute URLs, `javascript:`, `../` paths, non-numeric ids and any page not on
+the list are all refused and fall back to the category. `admin` is deliberately
+not on the list.
+
+#### It merges with promos.json PER SLOT
+
+A slot Ecwid has usable adverts for is Ecwid's; every other slot keeps its
+`data/promos.json` entries **and their English copy**, which matters because a
+derived advert carries none. So taking over the squares leaves the hero strap
+alone. `GET /data/promos.json` reports `slotsFromEcwid` and `slotsFromLocal`.
+
+An advert with no artwork or no headline is dropped, so until the images are
+uploaded the local tiles simply stay in place. The reason is named per advert in
+the startup log and in the admin panel rather than left to be guessed:
+
+```
+[ecwid] ads by slot: hero=0, wide=0, square=3
+[ecwid] ad 866574542 (square) cannot render: no-image
+```
+
+#### THE BLOCKER: adverts must be ENABLED until the secret token is in place
+
+With the `public_` token, **every disabled PRODUCT comes back as
+`{id, enabled:false}`** — no name, no image, no SKU, the same restriction as
+disabled categories. So the rule written into the old SITE BANNERS category
+description, "keep each banner DISABLED", cannot work on this token: a disabled
+advert has nothing readable and is dropped every time.
+
+The three square adverts are therefore **enabled**, and the cost is real. An
+enabled product is reachable in Ecwid's own storefront by direct URL —
+`https://sadko-test.company.site/products/sdkw-bltqsyt` answers 200 — as a
+0.00 EGP item. It sits in no visible category and is not featured, so it does
+not appear in browsing, but it is not hidden either.
+
+Harmless on the test store. **Before doing this in production, get the secret
+token**, then switch every advert back to Disabled: they stay fully readable to
+the site and become invisible to Ecwid shoppers. It is the same token already
+needed for orders and customers.
+
+This also corrects an earlier reading of the catalogue recorded elsewhere in
+this runbook: the ~463 products described as "empty shells with no name" are in
+fact **disabled products** that the public token cannot see into.
+
 ### Category pages work against either store — read this before "fixing" one
 
 The 30 pages in `site/category/` and the Shop dropdown in `site/assets/js/nav.js`

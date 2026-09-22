@@ -193,3 +193,51 @@ test('the runbook no longer says a new Ecwid category has no page', () => {
     'the superseded claim is back');
   assert.match(section[0], /Nothing is required for it to work/);
 });
+
+/* ------------------------ advertisement folders ------------------------ */
+
+test('the runbook records the ad folder ids that were actually created', () => {
+  /* Configured by id, so the ids ARE the configuration. */
+  assert.match(section[0], /SADKO_ECWID_ADS_SQUARE/);
+  assert.match(section[0], /206866501/);
+  assert.match(section[0], /206866002/);
+});
+
+test('the runbook explains why folders are addressed by id and not by name', () => {
+  /* Otherwise the next person renames a folder expecting it to matter, or
+     tries to look one up by name and finds Ecwid returns no name at all. */
+  assert.match(section[0], /BY ID, NOT BY NAME/i);
+  assert.match(section[0], /products\?category=/);
+});
+
+test('THE BLOCKER is recorded: a disabled product is an id-only stub', () => {
+  /* This is why the adverts are enabled, contradicting the instruction in the
+     old SITE BANNERS category description. Without it written down, someone
+     switches them to Disabled and the adverts silently vanish. */
+  assert.match(section[0], /disabled PRODUCT/i);
+  assert.match(section[0], /\{id, enabled:false\}/);
+  assert.match(section[0], /secret token/i);
+});
+
+test('the runbook admits the cost of enabling them', () => {
+  /* An enabled advert is reachable in Ecwid's own storefront. Recording the
+     benefit without the cost would be a half-truth. */
+  assert.match(section[0], /reachable in Ecwid's own storefront/i);
+  assert.match(section[0], /0\.00 EGP/);
+});
+
+test('the runbook corrects the "463 empty shells" reading', () => {
+  assert.match(section[0], /463/);
+  assert.match(section[0], /disabled products/i);
+});
+
+test('the destination allow-list is documented as a security boundary', () => {
+  assert.match(section[0], /security boundary/i);
+  assert.match(section[0], /javascript:/);
+  assert.match(section[0], /admin/);
+});
+
+test('the per-slot merge is documented, so nobody expects hero to vanish', () => {
+  assert.match(section[0], /PER SLOT/);
+  assert.match(section[0], /slotsFromEcwid/);
+});

@@ -186,11 +186,18 @@ async function main() {
        public token — but the missing half is named exactly, because this is
        the fault that otherwise surfaces weeks later as a customer's order
        never arriving in Ecwid. */
-    console.log(y('\nThe token is real, but this app has not been granted:'));
+    console.log(y('\nThis token is real, but it is not allowed to:'));
     for (const m of missing) console.log(y('   · ' + m));
-    console.log('\nTo fix, on the SAME page you copied the token from:');
-    console.log('   scroll down to "Access scopes" and switch those on, then run this again.');
-    console.log('Nothing else needs redoing — the token itself is fine and is being saved.');
+    console.log('\nTwo different things cause this, and the second one catches everybody:');
+    console.log('\n  1. The app was never granted the permission.');
+    console.log('     Fix: same page as the token -> "Access scopes" -> switch it on.');
+    console.log('\n  2. The permission IS granted, but this token is OLDER than the grant.');
+    console.log('     An Ecwid token carries the permissions it was issued with, so');
+    console.log('     changing the scopes does not upgrade a token you already copied.');
+    console.log('     Fix: after saving the scopes, copy the secret token AGAIN and');
+    console.log('     re-run this. Regenerate it if the page offers that.');
+    console.log(y('\nIf you have already switched the scopes on, it is number 2.'));
+    console.log('\nSaving this token anyway — it is still better than the public one.');
   }
 
   const { replaced, locked } = writeToken(TARGET, token);

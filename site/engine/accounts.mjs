@@ -392,6 +392,12 @@ export function openAccounts(file) {
       return { ok: true, order };
     },
     ordersFor: userId => store.ordersFor(userId),
+
+    /* A webhook carries no session, so a status update arriving from Ecwid
+       needs the order by ref alone. Deliberately separate from
+       orderByRef(userId, ref), which stays scoped to its owner for anything a
+       customer can reach. */
+    orderByRefAny: ref => store.allOrders().find(o => o.ref === ref) || null,
     orderByRef: (userId, ref) => store.orderByRef(userId, ref),
 
     /* ---- privacy: the customer's own data, and erasing it ---- */

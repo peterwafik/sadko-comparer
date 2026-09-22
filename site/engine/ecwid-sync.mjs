@@ -14,7 +14,7 @@
        serve an empty catalogue, because Ecwid did.
    ========================================================================== */
 
-import { toSadkoProduct, toSadkoCategory } from './ecwid-map.mjs';
+import { toSadkoProduct, toSadkoCategory, toEcwidOrder } from './ecwid-map.mjs';
 
 const PAGE = 100;
 
@@ -51,7 +51,7 @@ function toShippingMethod(o, i) {
   };
 }
 
-export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCategory } }) {
+export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCategory, toEcwidOrder } }) {
   const fail = (where, e) => {
     const msg = `${where}: ${(e && e.message) || e}`;
     try { store.setState('last_error', msg); } catch (x) {}
@@ -167,8 +167,71 @@ export function createEcwidSync({ api, store, map = { toSadkoProduct, toSadkoCat
     } catch (e) { fail('applyProductEvent ' + id, e); return { action: 'error' }; }
   }
 
+  /* ---- pushing orders into Ecwid -------------------------------------
+     CHECK-THEN-CREATE. If a previous attempt succeeded but its response was
+     lost, creating again would put a SECOND order in front of staff and the
+     customer would be shipped twice. So we always look for our ref first and
+     adopt what we find. Never reorder these two calls. */
+  const BACKOFF_MS = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 6 * 60 * 60_000, 24 * 60 * 60_000];
+
+  async function pushOrder(ref, { loadOrder, loadUser } = {}) {
+    const row = store.pushRow(ref);
+    if (row && row.ecwid_order_id)
+      return { ok: true, ecwidOrderId: row.ecwid_order_id, already: true };
+
+    const attempts = row ? row.attempts : 0;
+    const schedule = n => new Date(Date.now() + BACKOFF_MS[Math.min(n, BACKOFF_MS.length - 1)]).toISOString();
+    const park = msg => {
+      store.markPushFailed(ref, msg, schedule(attempts));
+      console.error(`[ecwid] order push ${ref} failed: ${msg}`);
+      return { ok: false, error: msg };
+    };
+
+    if (!api.configured) return park('ecwid is not configured');
+
+    let payload;
+    try {
+      const order = await loadOrder(ref);
+      if (!order) return park('local order not found');
+      const user = await loadUser(order);
+      /* Throws on an unknown payment method — a wrong payment status on a real
+         order is worse than a failed push. */
+      payload = map.toEcwidOrder(order, user, store.allPaymentMethods());
+    } catch (e) { return park(String((e && e.message) || e)); }
+
+    try {
+      const existing = await api.findOrderByRef(ref);
+      if (existing && existing.id) {
+        store.markPushed(ref, existing.id);
+        return { ok: true, ecwidOrderId: String(existing.id), adopted: true };
+      }
+      const created = await api.createOrder(payload);
+      const id = created && (created.id ?? created.orderId);
+      if (id == null) return park('ecwid returned no order id');
+      store.markPushed(ref, id);
+      return { ok: true, ecwidOrderId: String(id) };
+    } catch (e) { return park(String((e && e.message) || e)); }
+  }
+
+  async function pushPendingOrders(loaders) {
+    let pushed = 0, failed = 0;
+    for (let i = 0; i < 25; i++) {            // bounded: one tick cannot run forever
+      const due = store.nextDuePush();
+      if (!due) break;
+      const r = await pushOrder(due.ref, loaders);
+      if (r.ok) { pushed++; continue; }
+      failed++;
+      /* Stop on the first failure. The next due order is almost always blocked
+         by the same outage, so retrying them all now just multiplies it. */
+      break;
+    }
+    return { pushed, failed };
+  }
+
   return {
     syncProducts,
+    pushOrder,
+    pushPendingOrders,
     syncCategories,
     syncSettings,
     fullReconcile,

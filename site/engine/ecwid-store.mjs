@@ -42,6 +42,20 @@ const MIGRATIONS = [{
     id TEXT PRIMARY KEY, data_json TEXT NOT NULL, synced_at TEXT NOT NULL
   );
   `,
+}, {
+  id: 3, name: 'order push queue',
+  sql: `
+  CREATE TABLE IF NOT EXISTS order_push (
+    ref TEXT PRIMARY KEY,
+    ecwid_order_id TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at TEXT,
+    last_error TEXT,
+    created_at TEXT NOT NULL,
+    pushed_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS order_push_due ON order_push(pushed_at, next_attempt_at);
+  `,
 }];
 
 const nowISO = () => new Date().toISOString();
@@ -100,6 +114,21 @@ export function openEcwidStore(file) {
   const cntDisc = db.prepare("SELECT COUNT(*) c FROM products WHERE json_extract(data_json,'$.compareToPrice') IS NOT NULL");
   const cntIncomplete = db.prepare("SELECT COUNT(*) c FROM products WHERE json_extract(data_json,'$.incomplete') = 1");
 
+  /* ---- order push queue ----
+     An order is written locally FIRST and only then queued here, so a push
+     that never succeeds costs visibility, never the order itself. */
+  const MAX_ATTEMPTS = 6;
+  const pqIns = db.prepare('INSERT INTO order_push (ref, attempts, next_attempt_at, created_at) VALUES (?,0,NULL,?) ' +
+                           'ON CONFLICT(ref) DO NOTHING');
+  const pqGet = db.prepare('SELECT * FROM order_push WHERE ref = ?');
+  const pqDue = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts < ' + MAX_ATTEMPTS +
+                           ' AND (next_attempt_at IS NULL OR next_attempt_at <= ?) ORDER BY created_at LIMIT 1');
+  const pqOk = db.prepare('UPDATE order_push SET ecwid_order_id = ?, pushed_at = ?, last_error = NULL WHERE ref = ?');
+  const pqBad = db.prepare('UPDATE order_push SET attempts = attempts + 1, last_error = ?, next_attempt_at = ? WHERE ref = ?');
+  const pqPend = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts < ' + MAX_ATTEMPTS + ' ORDER BY created_at');
+  const pqFail = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts >= ' + MAX_ATTEMPTS + ' ORDER BY created_at');
+  const pqReset = db.prepare('UPDATE order_push SET next_attempt_at = NULL WHERE ref = ?');
+
   const parse = rows => rows.map(r => JSON.parse(r.data_json));
   const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.id).localeCompare(String(b.id));
 
@@ -157,6 +186,18 @@ export function openEcwidStore(file) {
     allPaymentMethods: () => parse(allPay.all()).sort(byOrder),
     allShippingMethods: () => parse(allShip.all()).sort(byOrder),
     productIds: () => new Set(idsP.all().map(r => String(r.id))),
+
+    MAX_PUSH_ATTEMPTS: MAX_ATTEMPTS,
+    enqueueOrderPush(ref) { pqIns.run(String(ref), nowISO()); },
+    pushRow(ref) { return pqGet.get(String(ref)) || null; },
+    nextDuePush(at) { return pqDue.get(at || nowISO()) || null; },
+    markPushed(ref, ecwidOrderId) { pqOk.run(String(ecwidOrderId), nowISO(), String(ref)); },
+    markPushFailed(ref, error, nextAttemptAt) {
+      pqBad.run(String(error).slice(0, 500), nextAttemptAt || null, String(ref));
+    },
+    pendingPushes: () => pqPend.all(),
+    failedPushes: () => pqFail.all(),
+    resetPush(ref) { pqReset.run(String(ref)); },
 
     getState(key) {
       const r = getS.get(key);

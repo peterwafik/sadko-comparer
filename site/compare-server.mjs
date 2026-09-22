@@ -70,6 +70,7 @@ import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
 import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwid-rails.mjs';
 import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
+import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -2047,6 +2048,39 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      The check is server-side and identical for reads and writes; there is no
      "admin cookie" a browser could forge. Writes also pass the global same-origin
      gate above. All mutations are recorded in the catalog-admin audit log. */
+/* How the push worker finds an order and its customer. In one place so the
+   timer, the immediate push and the admin retry all load identically. */
+const ORDER_LOADERS = {
+  loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
+  loadUser: async order => {
+    const db = accounts();
+    const u = db && order ? db.getUser(order.userId) : null;
+    return u || { email: '', name: (order.delivery || {}).name || '', phone: (order.delivery || {}).phone || '' };
+  },
+};
+
+/* Status flowing back from Ecwid: staff mark an order shipped there, the
+   customer sees it here. An unmapped Ecwid status leaves the local status
+   ALONE — inventing a transition would lie to the customer about their order. */
+async function applyEcwidOrderEvent(ev) {
+  const api = ecwidApi(), db = accounts();
+  if (!api || !api.configured || !db) return;
+  const remote = await api.getOrder(ev.entityId);
+  if (!remote) return;
+  /* Our own ref, from the dedicated field or from the comments it is also
+     written into — see engine/ecwid-map.mjs toEcwidOrder(). */
+  const ref = remote.externalOrderId ||
+    (/(SDK-[A-Z0-9]{6})/.exec(String(remote.orderComments || '')) || [])[1];
+  if (!ref) return;
+  const status = toLocalStatus(remote);
+  if (!status) return;
+  const local = db.orderByRefAny(ref);
+  if (!local || local.status === status) return;
+  const r = db.setOrderStatus(ref, status);
+  if (r && r.error) return console.error('[ecwid] status update rejected:', r.error);
+  console.log(`[ecwid] order ${ref} -> ${status} (from Ecwid ${ev.entityId})`);
+}
+
   /* ---- Ecwid webhooks ----------------------------------------------------
      PUBLIC route. Answer 200 the moment the event is verified, then work
      asynchronously: Ecwid retries anything slow or non-200, and a retry storm
@@ -2094,9 +2128,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     } else if (/^(profile|payment|shipping)\./.test(ev.eventType)) {
       es.syncSettings().then(done).catch(e => console.error('[ecwid] webhook settings:', e.message));
     } else if (/^order\./.test(ev.eventType)) {
-      /* Order status flowing back is Task 13. Logged rather than silently
-         dropped, so a delivery arriving before that lands is visible. */
-      console.log(`[ecwid] order event ${ev.eventType} ${ev.entityId} — handler arrives in Task 13`);
+      applyEcwidOrderEvent(ev).then(done).catch(e => console.error('[ecwid] webhook order:', e.message));
     } else {
       console.log(`[ecwid] webhook ignored, unhandled type: ${ev.eventType}`);
     }
@@ -2358,8 +2390,21 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           banners,
           /* Order push is Task 12; until it exists the panel says so rather
              than showing a permanently empty queue. */
-          orderPush: 'not-built',
+          pendingPushes: store ? store.pendingPushes() : [],
+          failedPushes: store ? store.failedPushes() : [],
         });
+      }
+
+      /* Retry one parked order push. The order itself was never lost — this
+         only re-attempts handing it to Ecwid. */
+      if (seg[0] === 'ecwid' && seg[1] === 'push' && seg[2] && req.method === 'POST') {
+        const esy = ecwidSync(), est = ecwidStore();
+        if (!esy || !est) return json(503, { error: 'ecwid-off' });
+        const ref = decodeURIComponent(seg[2]);
+        est.resetPush(ref);                       // make it due now
+        const r = await esy.pushOrder(ref, ORDER_LOADERS);
+        cadm.log(actor, 'ecwid.push', ref, r);
+        return json(r.ok ? 200 : 400, r);
       }
 
       if (seg[0] === 'ecwid' && seg[1] === 'sync' && req.method === 'POST') {
@@ -2535,6 +2580,19 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         // Close the funnel: record a purchase event per line item, server-side so
         // it is authoritative (the browser cannot fabricate a purchase).
         try { const an = analytics(); if (an) an.recordPurchase({ vid: b.vid, userId: me.id, items: r.order.items }); } catch (e) {}
+
+        /* Hand the order to Ecwid so staff fulfil it from the desk they know.
+           Deliberately NOT awaited: the customer's receipt already exists, and
+           an Ecwid outage must never block a sale or delay the response. The
+           queue and its timer own delivery from here. */
+        try {
+          const est = ecwidStore(), esy = ecwidSync();
+          if (est && esy) {
+            est.enqueueOrderPush(r.order.ref);
+            esy.pushOrder(r.order.ref, ORDER_LOADERS)
+              .catch(e => console.error('[ecwid] immediate push failed, queued for retry:', e.message));
+          }
+        } catch (e) { console.error('[ecwid] could not queue order push:', e.message); }
         return json(200, { ok: true, order: r.order });
       }
       return json(404, { error: 'not-found' });
@@ -2706,6 +2764,11 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
     setInterval(() => {
       es.syncAll().then(after).catch(() => {});
     }, 24 * 60 * 60 * 1000).unref();
+
+    /* Parked and pending order pushes, retried every 2 minutes. */
+    setInterval(() => {
+      es.pushPendingOrders(ORDER_LOADERS).catch(() => {});
+    }, 2 * 60 * 1000).unref();
   } else if (ECWID_ON) {
     console.log('Ecwid flag is on but no token is configured — serving the seed catalogue');
   }

@@ -186,3 +186,119 @@ export function toSadkoCategory(e) {
     description: text(e.description),
   };
 }
+
+
+/* ============================================================================
+   Orders: SADKO -> Ecwid, and status back again.
+
+   The load-bearing rule: the site deliberately does not know the grand total,
+   because delivery and installation depend on the appliance and the address and
+   are confirmed by customer care. So the push sends the items subtotal, leaves
+   shipping UNSET, and carries the same Arabic sentence the customer's receipt
+   carries. Never add a shippingRate or a computed total here — a number
+   invented in this function becomes a promise on a real order.
+   ========================================================================== */
+
+export const FEES_NOTE_AR =
+  'رسوم التوصيل والتركيب تُؤكَّد من خدمة العملاء قبل التنفيذ.';
+
+/* Every method SADKO offers is an Ecwid MANUAL method: the order records the
+   choice and staff follow up. No money is taken online by any of them, so
+   nothing is ever pushed as paid. */
+export const PAYMENT_STATUS = 'AWAITING_PAYMENT';
+
+/* The three ids the site used before Ecwid. A customer with checkout open from
+   before the switch can still post one, and their order must still push. */
+const LEGACY_METHODS = {
+  cod: 'الدفع عند الاستلام / Cash on delivery',
+  bank: 'تحويل بنكى / Bank transfer',
+  showroom: 'الدفع فى المعرض / Pay at a showroom',
+};
+
+export function toEcwidOrder(order, user = {}, methods = []) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  if (!items.length) throw new Error('toEcwidOrder: no items');
+
+  const chosenId = String(order.payment || '');
+  const method = (methods || []).find(m => String(m.id) === chosenId) || null;
+  const legacy = LEGACY_METHODS[chosenId] || null;
+  if (!method && !legacy)
+    throw new Error(`toEcwidOrder: unknown payment method "${order.payment}"`);
+
+  const d = order.delivery || {};
+  const subtotal = Number(order.subtotal) ||
+    items.reduce((n, i) => n + Number(i.price) * Number(i.qty), 0);
+
+  const lift = d.hasLift ? 'يوجد مصعد' : 'بدون مصعد';
+  const comments = [
+    `مرجع الطلب: ${order.ref}`,               // also the idempotency key
+    FEES_NOTE_AR,
+    d.governorate ? `المحافظة: ${d.governorate}` : null,
+    d.floor ? `الطابق: ${d.floor} (${lift})` : lift,
+    /* A product-restricted instalment plan. The site cannot verify eligibility
+       — the catalogue has no brand field — so it hands staff the fact rather
+       than a silent assumption, on the confirmation call they already make. */
+    (method && method.restricted)
+      ? `تنبيه: طريقة الدفع مقصورة على منتجات ${method.brand || ''} — يُراجع قبل التأكيد.`
+      : null,
+    order.note ? `ملاحظة العميل: ${order.note}` : null,
+  ].filter(Boolean).join('\n');
+
+  return {
+    email: user.email || '',
+    /* The local ref, for check-then-create idempotency. Also repeated in the
+       comments above, so it is findable even if this field is not queryable. */
+    externalOrderId: order.ref,
+    createdDate: order.createdAt,
+
+    items: items.map(i => ({
+      productId: Number(i.id),
+      name: i.title,
+      price: Number(i.price),
+      quantity: Number(i.qty),
+      sku: i.sku || undefined,
+    })),
+
+    /* Items only. Shipping is deliberately ABSENT, not zero: an explicit 0
+       would read as free delivery, which is exactly the claim the customer's
+       receipt refuses to make. */
+    subtotal,
+    total: subtotal,
+
+    paymentMethod: method ? method.title : legacy,
+    paymentStatus: PAYMENT_STATUS,
+    fulfillmentStatus: 'AWAITING_PROCESSING',
+
+    shippingPerson: {
+      name: d.name || user.name || '',
+      phone: d.phone || user.phone || '',
+      street: [d.address, d.floor ? `الطابق ${d.floor}` : null].filter(Boolean).join(' — '),
+      city: d.governorate || '',
+      countryCode: 'EG',
+    },
+
+    orderComments: comments,
+  };
+}
+
+/* Ecwid -> the site's own ORDER_STATUSES (engine/accounts.mjs).
+   Anything unrecognised returns null and the caller leaves the local status
+   alone: inventing a transition would lie to the customer about their order. */
+const FULFILMENT = {
+  AWAITING_PROCESSING: 'received',
+  QUEUED: 'received',
+  PROCESSING: 'preparing',
+  READY_FOR_PICKUP: 'shipping',
+  SHIPPED: 'shipping',
+  OUT_FOR_DELIVERY: 'shipping',
+  DELIVERED: 'delivered',
+  WILL_NOT_DELIVER: 'cancelled',
+  RETURNED: 'cancelled',
+};
+const DEAD_PAYMENT = new Set(['CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED']);
+
+export function toLocalStatus(o) {
+  if (!o) return null;
+  if (DEAD_PAYMENT.has(String(o.paymentStatus || '').toUpperCase())) return 'cancelled';
+  return FULFILMENT[String(o.fulfillmentStatus || '').toUpperCase()] || null;
+}

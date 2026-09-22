@@ -292,3 +292,160 @@ test('the real captured category maps, and its English slot is correctly refused
   assert.ok(c.name.length);
   assert.equal(c.nameEn, null, 'the live store stores Arabic in the en slot');
 });
+
+/* ======================== orders (Task 11) ============================== */
+
+import { toEcwidOrder, toLocalStatus, PAYMENT_STATUS, FEES_NOTE_AR } from './ecwid-map.mjs';
+
+const ORDER = (over = {}) => ({
+  ref: 'SDK-A1B2C3',
+  createdAt: '2026-09-22T10:00:00.000Z',
+  status: 'received',
+  items: [
+    { id: '865565594', title: 'تليفزيون بلوتو 65 بوصة', price: 21499, qty: 1, image: 'i.webp' },
+    { id: '865564749', title: 'مسطح جورنيا 4 شعلة', price: 6999, qty: 2, image: 'j.webp' },
+  ],
+  subtotal: 21499 + 6999 * 2,
+  payment: '6798-1567006926352',
+  delivery: { name: 'محمد على', phone: '+201000000000', governorate: 'القاهرة',
+              address: 'شارع ١٠', floor: '3', hasLift: true },
+  note: 'اتصل قبل التوصيل',
+  totals: { subtotal: 21499 + 6999 * 2, deliveryFee: null, installFee: null,
+            grandTotal: null, currency: 'EGP' },
+  ...over });
+const USER = { email: 'buyer@example.com', name: 'محمد على', phone: '+201000000000' };
+/* The live payment ids, as the mirror holds them. */
+const METHODS = [
+  { id: '6798-1567006926352', title: 'Cash on Delivery  الدفع عند الاستلام', restricted: false },
+  { id: '80361-1761810127405', title: 'تقسيط البنك الاهلي ( ١٨ شهر ) على جميع منتجات كريازى', restricted: true, brand: 'كريازى' },
+];
+
+test('every line item is carried with its id, quantity and price', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.equal(o.items.length, 2);
+  assert.equal(o.items[0].productId, 865565594);
+  assert.equal(o.items[0].quantity, 1);
+  assert.equal(o.items[0].price, 21499);
+  assert.equal(o.items[1].quantity, 2);
+});
+
+test('the local ref travels with the order so the push can be idempotent', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.ok(JSON.stringify(o).includes('SDK-A1B2C3'), 'the SDK- ref must be findable');
+  assert.equal(o.externalOrderId, 'SDK-A1B2C3');
+});
+
+test('the customer and delivery details are carried', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.equal(o.email, 'buyer@example.com');
+  assert.equal(o.shippingPerson.name, 'محمد على');
+  assert.equal(o.shippingPerson.countryCode, 'EG');
+  assert.match(o.shippingPerson.street, /شارع ١٠/);
+});
+
+test('floor and lift reach the order, because they decide how delivery is done', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.match(o.orderComments, /الطابق/);
+  assert.match(o.orderComments, /مصعد/);
+});
+
+/* ---- totals: the honesty rule ---- */
+
+test('the order total is the items subtotal and nothing else', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.equal(o.subtotal, 35497);
+  assert.equal(o.total, 35497);
+});
+
+test('no shipping cost is ever invented', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.ok(!('shippingRate' in o), 'a shipping rate must not be fabricated');
+  assert.equal(o.shippingOption, undefined, 'a shipping option would imply a decided cost');
+});
+
+test('the fees-to-be-confirmed note travels on the order', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.ok(o.orderComments.includes(FEES_NOTE_AR));
+  assert.match(FEES_NOTE_AR, /التوصيل/);
+  assert.match(FEES_NOTE_AR, /التركيب/);
+});
+
+test("the customer's own note is kept alongside the fees note", () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.ok(o.orderComments.includes('اتصل قبل التوصيل'));
+});
+
+/* ---- payment ---- */
+
+test('a live Ecwid payment id maps to that method by name', () => {
+  const o = toEcwidOrder(ORDER(), USER, METHODS);
+  assert.match(o.paymentMethod, /Cash on Delivery/);
+  assert.equal(o.paymentStatus, PAYMENT_STATUS);
+});
+
+test('nothing is ever pushed as PAID — no money is taken at ordering time', () => {
+  assert.equal(PAYMENT_STATUS, 'AWAITING_PAYMENT');
+  for (const m of METHODS)
+    assert.equal(toEcwidOrder(ORDER({ payment: m.id }), USER, METHODS).paymentStatus, 'AWAITING_PAYMENT');
+});
+
+test('a restricted plan records the restriction on the order for staff to check', () => {
+  /* The site cannot verify eligibility — no brand field in the catalogue — so
+     it hands staff the fact rather than a silent assumption. */
+  const o = toEcwidOrder(ORDER({ payment: '80361-1761810127405' }), USER, METHODS);
+  assert.match(o.orderComments, /كريازى/);
+  assert.match(o.orderComments, /يُراجع|تأكيد|راجع/);
+});
+
+test('an unknown payment method THROWS rather than guessing', () => {
+  assert.throws(() => toEcwidOrder(ORDER({ payment: 'not-a-method' }), USER, METHODS),
+    /unknown payment method/i);
+});
+
+test('a missing payment method throws too', () => {
+  assert.throws(() => toEcwidOrder(ORDER({ payment: undefined }), USER, METHODS),
+    /unknown payment method/i);
+});
+
+test('the legacy built-in ids still map, so an order placed before the switch pushes', () => {
+  /* A customer could have checkout open from before Ecwid was turned on. */
+  for (const k of ['cod', 'bank', 'showroom']) {
+    const o = toEcwidOrder(ORDER({ payment: k }), USER, METHODS);
+    assert.equal(o.paymentStatus, 'AWAITING_PAYMENT');
+    assert.ok(o.paymentMethod, k + ' produced no payment method name');
+  }
+});
+
+test('an order with no items throws rather than pushing an empty order', () => {
+  assert.throws(() => toEcwidOrder(ORDER({ items: [] }), USER, METHODS), /no items/i);
+});
+
+/* ---- status coming back ---- */
+
+test('Ecwid fulfilment statuses map onto the site statuses', () => {
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'AWAITING_PROCESSING' }), 'received');
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'PROCESSING' }), 'preparing');
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'SHIPPED' }), 'shipping');
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'DELIVERED' }), 'delivered');
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'READY_FOR_PICKUP' }), 'shipping');
+});
+
+test('a cancelled or refunded order maps to cancelled whatever the fulfilment says', () => {
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'PROCESSING', paymentStatus: 'CANCELLED' }), 'cancelled');
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'SHIPPED', paymentStatus: 'REFUNDED' }), 'cancelled');
+});
+
+test('an unknown Ecwid status maps to null so the local status is left untouched', () => {
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'SOMETHING_NEW' }), null);
+  assert.equal(toLocalStatus({}), null);
+  assert.equal(toLocalStatus(), null);
+});
+
+test('every value toLocalStatus can return is a real site status', () => {
+  const ALLOWED = new Set(['received', 'confirmed', 'preparing', 'shipping', 'delivered', 'cancelled']);
+  for (const f of ['AWAITING_PROCESSING', 'QUEUED', 'PROCESSING', 'SHIPPED', 'DELIVERED',
+                   'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'WILL_NOT_DELIVER', 'RETURNED']) {
+    const s = toLocalStatus({ fulfillmentStatus: f });
+    if (s !== null) assert.ok(ALLOWED.has(s), f + ' produced "' + s + '", not a site status');
+  }
+});

@@ -98,6 +98,10 @@
 
     Promise.all([Au.me(true), loadPayments(), loadShipping()]).then(function (r) { render(r[0]); });
 
+    /* Set when a signed-out visitor chooses to carry on without an account.
+       Starts TRUE: the account is the detour, not the default. */
+    let GUEST = true;
+
     function render(user) {
       const items = window.skCart.items();
       if (!items.length) {
@@ -106,7 +110,13 @@
         return;
       }
       if (!Au.available) { root.innerHTML = offlineBox(items); return; }
-      if (!user) { root.innerHTML = needSignIn(items); wireSummaryOnly(); return; }
+      if (!user) {
+        /* Guest by default. Requiring an account to buy a refrigerator loses
+           the sale, and SADKO already takes orders from people with no
+           account every day on 19140 — this is the same transaction. */
+        if (GUEST) { root.innerHTML = form(null, items); wire(null, items); return; }
+        root.innerHTML = needSignIn(items); wireSummaryOnly(); return;
+      }
       root.innerHTML = form(user, items);
       wire(user, items);
     }
@@ -183,21 +193,37 @@
 
     /* ---- the real form ---- */
     function form(u, items) {
-      const p = u.profile || {};
+      /* u is null for a guest. Everything below reads through these, so the
+         one form serves both and cannot drift into two. */
+      const guest = !u;
+      const p = (u && u.profile) || {};
       return '<div class="grid2"><div>' +
+        (guest ? '<div class="panel"><p class="panel__sub" style="margin:0">' +
+            t('بتكمّل كزائر — من غير حساب. لو عندك حساب، ',
+              'You are checking out as a guest, with no account. If you have an account, ') +
+            '<a href="' + A.P('account.html') + '">' + t('سجّل دخولك', 'sign in') + '</a>' +
+            t(' وهتلاقى عنوانك محفوظاً وتقدر تتابع طلباتك.',
+              ' to have your address remembered and to follow your orders.') +
+          '</p></div>' : '') +
         '<div class="panel"><h2 class="panel__h">' + t('بيانات التوصيل', 'Delivery details') + '</h2>' +
           '<form id="coForm">' +
             '<div class="row">' +
-              lbl('name', t('الاسم', 'Name'), u.name) +
-              lbl('phone', t('الهاتف المحمول', 'Mobile'), u.phone) +
+              lbl('name', t('الاسم', 'Name'), (u && u.name) || '') +
+              lbl('phone', t('الهاتف المحمول', 'Mobile'), (u && u.phone) || '') +
             '</div>' +
+            /* A guest has no account to take an email from, and Ecwid files
+               the order — and the customer record staff search — under it. */
+            (guest ? '<label class="field"><span class="field__l">' + t('البريد الإلكترونى', 'Email') +
+                '</span><input class="input" type="email" name="email" required autocomplete="email" dir="ltr">' +
+                '<span class="field__h">' + t('عليه نسجّل الطلب ونرسل تأكيده.',
+                  'The order is filed under this, and the confirmation goes to it.') + '</span></label>' : '') +
             '<label class="field"><span class="field__l">' + t('المحافظة', 'Governorate') + '</span>' +
               '<select class="select" name="governorate">' +
               ['القاهرة|Cairo', 'الجيزة|Giza', 'الإسكندرية|Alexandria', 'الساحل الشمالى|North Coast', 'أخرى|Other']
                 .map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '"' + (p.governorate === a ? ' selected' : '') + '>' + esc(t(a, e)) + '</option>'; }).join('') +
               '</select></label>' +
             '<label class="field"><span class="field__l">' + t('العنوان بالتفصيل', 'Full address') + '</span>' +
-              '<textarea class="textarea" name="address" maxlength="300" required>' + esc(u.address || '') + '</textarea></label>' +
+              '<textarea class="textarea" name="address" maxlength="300" required>' + esc((u && u.address) || '') + '</textarea></label>' +
             '<div class="row">' +
               lbl('floor', t('الدور', 'Floor'), p.floor || '') +
               '<label class="field"><span class="field__l">' + t('فيه أسانسير؟', 'Is there a lift?') + '</span>' +
@@ -232,6 +258,32 @@
 
     function wireSummaryOnly() {}
 
+    /* The guest post. Returns the same { ok, order } shape the account path
+       returns, so done() renders one confirmation screen for both.
+
+       A push that did not reach Ecwid is still ok:true — the order is queued
+       and retries, and customer care rings either way. Telling a customer
+       their order failed when it is safely recorded would lose a sale that
+       was made. */
+    async function placeGuestOrder(payload) {
+      try {
+        /* An ABSOLUTE path, like skAuth uses. A.P() would make it relative,
+           which resolves wrongly from the generated /category/*.html pages. */
+        const res = await fetch('/api/orders/guest?lang=' + (A.EN ? 'en' : 'ar'), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.ok) return { ok: false, message: d.message || '' };
+        return { ok: true, order: { ref: d.ref, subtotal: d.subtotal, payment: payload.payment,
+                                    totals: d.totals, inEcwid: d.inEcwid } };
+      } catch (e) {
+        return { ok: false, message: '' };
+      }
+    }
+
     function wire(user, items) {
       const f = root.querySelector('#coForm');
       if (!f) return;
@@ -240,21 +292,31 @@
         const fd = new FormData(f);
         const btn = f.querySelector('button[type=submit]');
         btn.disabled = true; btn.textContent = t('جارى التسجيل…', 'Recording…');
-        const r = await Au.placeOrder({
-          items: items.map(i => ({ id: i.id, title: i.title, price: i.price, qty: i.qty, image: i.image })),
-          payment: fd.get('payment') || 'cod',
-          delivery: { name: fd.get('name'), phone: fd.get('phone'), governorate: fd.get('governorate'),
-                      address: fd.get('address'), floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes' },
-          note: fd.get('note'),
-        });
+        const lines = items.map(i => ({ id: i.id, title: i.title, price: i.price, qty: i.qty, image: i.image }));
+        const r = user
+          ? await Au.placeOrder({
+              items: lines,
+              payment: fd.get('payment') || 'cod',
+              delivery: { name: fd.get('name'), phone: fd.get('phone'), governorate: fd.get('governorate'),
+                          address: fd.get('address'), floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes' },
+              note: fd.get('note'),
+            })
+          : await placeGuestOrder({
+              items: lines,
+              payment: fd.get('payment') || 'cod',
+              name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone'),
+              governorate: fd.get('governorate'), address: fd.get('address'),
+              floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes',
+              note: fd.get('note'),
+            });
         btn.disabled = false; btn.textContent = t('أكّد الطلب', 'Place the order');
         if (!r.ok) {
           root.querySelector('#coErr').innerHTML = '<div class="note note--warn mt8 small">' +
             esc(r.message || t('تعذّر تسجيل الطلب.', 'Could not record the order.')) + '</div>';
           return;
         }
-        // Keep the address for next time, then clear the cart.
-        Au.saveProfile({ address: fd.get('address'),
+        // Keep the address for next time — only meaningful for an account.
+        if (user) Au.saveProfile({ address: fd.get('address'),
                          profile: { governorate: fd.get('governorate'), floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes' } });
         window.skCart.clear();
         done(r.order);

@@ -193,6 +193,21 @@ export function createEcwidSync({ api, store, adFolders = {},
      adopt what we find. Never reorder these two calls. */
   const BACKOFF_MS = [60_000, 5 * 60_000, 15 * 60_000, 60 * 60_000, 6 * 60 * 60_000, 24 * 60 * 60_000];
 
+  /* Ecwid now holds the order, so this server should not.
+
+     Only a GUEST order has a payload row here — an account order lives in
+     accounts.db and is untouched by this, so the delete is a harmless no-op
+     for it. The order_push row deliberately survives: it carries the Ecwid
+     order id, which is what stops a retry creating the order twice.
+
+     Wrapped, because failing to clean up must never turn a SUCCESSFUL push
+     into a reported failure. A payload left behind is visible in the admin
+     desk; an order pushed twice is not fixable. */
+  function dropGuestPayload(ref) {
+    try { if (typeof store.dropGuestOrder === 'function') store.dropGuestOrder(ref); }
+    catch (e) { /* the row stays and shows in the desk; the order is fine */ }
+  }
+
   async function pushOrder(ref, { loadOrder, loadUser } = {}) {
     const row = store.pushRow(ref);
     if (row && row.ecwid_order_id)
@@ -222,12 +237,14 @@ export function createEcwidSync({ api, store, adFolders = {},
       const existing = await api.findOrderByRef(ref);
       if (existing && existing.id) {
         store.markPushed(ref, existing.id);
+        dropGuestPayload(ref);
         return { ok: true, ecwidOrderId: String(existing.id), adopted: true };
       }
       const created = await api.createOrder(payload);
       const id = created && (created.id ?? created.orderId);
       if (id == null) return park('ecwid returned no order id');
       store.markPushed(ref, id);
+      dropGuestPayload(ref);
       return { ok: true, ecwidOrderId: String(id) };
     } catch (e) { return park(String((e && e.message) || e)); }
   }

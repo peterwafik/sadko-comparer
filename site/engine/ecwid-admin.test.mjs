@@ -263,7 +263,12 @@ test('the order list separates pushed, waiting and PARKED', () => {
   /* A parked order is the one that needs a human: it has exhausted its
      retries and will never move on its own. Lumping it in with "waiting"
      is how it stays invisible. */
-  const route = /seg\[1\] === 'orders' && req\.method === 'GET'[\s\S]{0,2000}/.exec(adminBlock[0])[0];
+  /* Scoped to the route's own response object rather than a character window:
+     the window was 2000 and broke when the join grew to carry a guest order's
+     name and phone, which said nothing about whether the three groups were
+     still being reported separately. */
+  const route = /seg\[1\] === 'orders' && req\.method === 'GET'[\s\S]*?return json\(200, \{[\s\S]*?\n        \}\);/
+    .exec(adminBlock[0])[0];
   for (const k of ['pushed', 'pending', 'parked'])
     assert.match(route, new RegExp(k + ':'), k + ' is not reported separately');
 });

@@ -447,3 +447,113 @@ test('a 403 answers quietly rather than failing the whole poll', async () => {
     assert.equal(r.blocked, true, 'the caller should be able to tell access is missing');
   } finally { cleanup(); }
 });
+
+/* ======================================================================
+   A guest order leaves this server as soon as Ecwid has it.
+
+   The whole reason guest orders are held in the Ecwid mirror rather than in
+   accounts.db is that they are temporary. If the payload survived a
+   successful push, guest PII would accumulate here exactly like account PII
+   — which is the thing the design exists to avoid.
+   ================================================================== */
+
+const GUEST = ref => ({
+  ref, guest: true, userId: null, status: 'received',
+  email: 'nour@example.com',
+  items: [{ id: '1', title: 'ثلاجة', price: 38999, qty: 1 }],
+  subtotal: 38999, payment: 'cod',
+  delivery: { name: 'نور حسن', phone: '01012345678', governorate: 'القاهرة', address: '12 شارع' },
+  totals: { subtotal: 38999, deliveryFee: null, installFee: null, grandTotal: null },
+});
+
+function guestLoaders(store) {
+  /* What the server wires: the accounts lookup misses for a guest, so it
+     falls through to the outbox. */
+  return {
+    loadOrder: async ref => store.getGuestOrder(ref),
+    loadUser: async o => ({ email: o.email, name: o.delivery.name, phone: o.delivery.phone }),
+  };
+}
+
+test('a successful guest push DELETES the name, phone and address', () => {
+  return (async () => {
+    const api = stubApi({
+      findOrderByRef: async () => null,
+      createOrder: async () => ({ id: 777 }),
+      allPaymentMethods: async () => [],
+    });
+    const { store, sync, cleanup } = fresh(api);
+    try {
+      store.putGuestOrder(GUEST('SDK-G00001'));
+      store.enqueueOrderPush('SDK-G00001');
+      const r = await sync.pushOrder('SDK-G00001', guestLoaders(store));
+      assert.equal(r.ok, true, r.error);
+      assert.equal(store.getGuestOrder('SDK-G00001'), null,
+        'the guest payload must not survive a successful push');
+      /* The push row stays: it carries the Ecwid id, which is what stops a
+         retry creating the order twice. */
+      assert.equal(store.pushRow('SDK-G00001').ecwid_order_id, '777');
+    } finally { cleanup(); }
+  })();
+});
+
+test('a FAILED guest push keeps the payload, so the order is not lost', () => {
+  return (async () => {
+    const api = stubApi({
+      findOrderByRef: async () => { const e = new Error('ecwid-403: no'); e.status = 403; throw e; },
+      allPaymentMethods: async () => [],
+    });
+    const { store, sync, cleanup } = fresh(api);
+    try {
+      store.putGuestOrder(GUEST('SDK-G00002'));
+      store.enqueueOrderPush('SDK-G00002');
+      const r = await sync.pushOrder('SDK-G00002', guestLoaders(store));
+      assert.equal(r.ok, false);
+      assert.ok(store.getGuestOrder('SDK-G00002'), 'a lost order is worse than a retained one');
+      assert.equal(store.getGuestOrder('SDK-G00002').delivery.phone, '01012345678',
+        'the phone has to survive, or nobody can ring the customer');
+    } finally { cleanup(); }
+  })();
+});
+
+test('an ADOPTED guest order drops its payload too', () => {
+  /* findOrderByRef found it already in Ecwid — a previous attempt succeeded
+     and we lost the response. Ecwid has the details, so we should not. */
+  return (async () => {
+    const api = stubApi({
+      findOrderByRef: async () => ({ id: '888' }),
+      allPaymentMethods: async () => [],
+    });
+    const { store, sync, cleanup } = fresh(api);
+    try {
+      store.putGuestOrder(GUEST('SDK-G00003'));
+      store.enqueueOrderPush('SDK-G00003');
+      const r = await sync.pushOrder('SDK-G00003', guestLoaders(store));
+      assert.equal(r.adopted, true);
+      assert.equal(store.getGuestOrder('SDK-G00003'), null);
+    } finally { cleanup(); }
+  })();
+});
+
+test('dropping the payload of an ACCOUNT order is harmless', () => {
+  /* The same code path runs for both; an account order simply has no outbox
+     row, and the delete must not throw. */
+  return (async () => {
+    const api = stubApi({
+      findOrderByRef: async () => null,
+      createOrder: async () => ({ id: 999 }),
+      allPaymentMethods: async () => [],
+    });
+    const { store, sync, cleanup } = fresh(api);
+    try {
+      store.enqueueOrderPush('SDK-ACC001');
+      const r = await sync.pushOrder('SDK-ACC001', {
+        loadOrder: async () => ({ ref: 'SDK-ACC001', status: 'received', payment: 'cod',
+          items: [{ id: '1', title: 'x', price: 10, qty: 1 }], subtotal: 10,
+          delivery: { name: 'n', phone: 'p' }, totals: {} }),
+        loadUser: async () => ({ email: 'a@b.co', name: 'n', phone: 'p' }),
+      });
+      assert.equal(r.ok, true, r.error);
+    } finally { cleanup(); }
+  })();
+});

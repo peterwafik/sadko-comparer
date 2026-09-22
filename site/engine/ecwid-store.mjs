@@ -56,6 +56,20 @@ const MIGRATIONS = [{
   );
   CREATE INDEX IF NOT EXISTS order_push_due ON order_push(pushed_at, next_attempt_at);
   `,
+}, {
+  id: 4, name: 'guest order outbox',
+  sql: `
+  -- A guest order, held ONLY until Ecwid accepts it, then deleted. It lives
+  -- here rather than in accounts.db so that no personal data accumulates in
+  -- the long-lived, backed-up store. A row surviving here means the push has
+  -- not succeeded yet, and the admin orders desk shows it so somebody can
+  -- ring the customer.
+  CREATE TABLE IF NOT EXISTS guest_order (
+    ref        TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    data_json  TEXT NOT NULL
+  );
+  `,
 }];
 
 const nowISO = () => new Date().toISOString();
@@ -136,6 +150,10 @@ export function openEcwidStore(file) {
   /* The orders that actually reached Ecwid, newest first. Only these have an
      Ecwid id to ask about, and only Ecwid can say what staff did to them
      after the push. */
+  const goPut  = db.prepare('INSERT OR REPLACE INTO guest_order (ref, created_at, data_json) VALUES (?,?,?)');
+  const goGet  = db.prepare('SELECT * FROM guest_order WHERE ref = ?');
+  const goDrop = db.prepare('DELETE FROM guest_order WHERE ref = ?');
+  const goAll  = db.prepare('SELECT * FROM guest_order ORDER BY created_at');
   const pqPushed = db.prepare('SELECT * FROM order_push WHERE ecwid_order_id IS NOT NULL '
     + 'ORDER BY pushed_at DESC LIMIT ?');
 
@@ -209,6 +227,28 @@ export function openEcwidStore(file) {
     failedPushes: () => pqFail.all(),
     resetPush(ref) { pqReset.run(String(ref)); },
     pushedOrders: (limit = 200) => pqPushed.all(Number(limit) || 200),
+
+    /* ---- the guest outbox ----
+       putGuestOrder / getGuestOrder / dropGuestOrder. The drop is the point:
+       it runs as soon as Ecwid has the order, so a guest's name, phone and
+       address normally sit on this server for a few seconds. */
+    putGuestOrder(order) {
+      if (!order || !order.ref) throw new Error('putGuestOrder: no ref');
+      goPut.run(String(order.ref), order.createdAt || nowISO(), JSON.stringify(order));
+    },
+    getGuestOrder(ref) {
+      const r = goGet.get(String(ref));
+      if (!r) return null;
+      try { return JSON.parse(r.data_json); } catch (e) { return null; }
+    },
+    dropGuestOrder(ref) { goDrop.run(String(ref)); },
+    /* Everything still waiting. A non-empty list is a list of people whose
+       order has not reached Ecwid — which is why the admin desk shows it. */
+    guestOrders() {
+      return goAll.all().map(r => {
+        try { return JSON.parse(r.data_json); } catch (e) { return null; }
+      }).filter(Boolean);
+    },
 
     getState(key) {
       const r = getS.get(key);

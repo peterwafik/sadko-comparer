@@ -160,3 +160,76 @@ test('everything the timers reference is declared before the server is created',
     assert.ok(at < server, name + ' is declared after createServer, so the timers cannot use it');
   }
 });
+
+/* ======================================================================
+   Guest checkout — buying without an account.
+
+   The delivery form was already almost right; what matters is that the
+   guest path and the account path did not fork into two forms that drift,
+   and that the things a guest order MUST carry are actually carried.
+   ================================================================== */
+
+const CO = readFileSync(path.join(import.meta.dirname, '..', 'assets', 'js', 'checkout.js'), 'utf8');
+
+test('a signed-out visitor gets the order form, not a sign-in wall', () => {
+  assert.match(CO, /if \(GUEST\) \{ root\.innerHTML = form\(null, items\); wire\(null, items\); return; \}/);
+});
+
+test('guest is the DEFAULT, because the account is the detour', () => {
+  assert.match(CO, /let GUEST = true;/);
+});
+
+test('ONE form serves both, so they cannot drift apart', () => {
+  /* Two forms would mean a field added to one and forgotten in the other. */
+  assert.equal((CO.match(/function form\(/g) || []).length, 1, 'there must be exactly one form()');
+  assert.match(CO, /const guest = !u;/);
+});
+
+test('a guest is asked for an email, and it is required', () => {
+  /* Ecwid files the order, and the customer record staff search, under the
+     email. Without it the order lands in Ecwid as an orphan. */
+  /* Anchored on the guest conditional and closed at the next `: '') +`,
+     rather than guessing the punctuation in between. */
+  const field = /\(guest \? '<label[\s\S]*?: ''\) \+/.exec(CO);
+  assert.ok(field, 'no guest-only email field');
+  assert.match(field[0], /name="email"/);
+  assert.match(field[0], /required/);
+  assert.match(field[0], /type="email"/);
+});
+
+test('the account-only fields are read defensively, since u is null for a guest', () => {
+  /* u.name on a null user is a TypeError that blanks the whole page. */
+  assert.match(CO, /\(u && u\.name\) \|\| ''/);
+  assert.match(CO, /\(u && u\.phone\) \|\| ''/);
+  assert.match(CO, /esc\(\(u && u\.address\) \|\| ''\)/);
+  assert.match(CO, /const p = \(u && u\.profile\) \|\| \{\};/);
+});
+
+test('a guest posts to the guest route, on an absolute path', () => {
+  /* A.P() would make it relative, which resolves wrongly from the generated
+     /category/*.html pages. */
+  assert.match(CO, /fetch\('\/api\/orders\/guest\?lang='/);
+  assert.match(CO, /credentials: 'same-origin'/);
+});
+
+test('saving the address for next time is skipped for a guest', () => {
+  /* There is no account to save it to, and Au.saveProfile would 401. */
+  assert.match(CO, /if \(user\) Au\.saveProfile\(/);
+});
+
+test('an order that did not reach Ecwid is still reported as placed', () => {
+  /* It is queued and retries, and customer care rings either way. Telling
+     the customer it failed would lose a sale that was actually made. */
+  const fn = /async function placeGuestOrder\([\s\S]{0,1400}?\n    \}/.exec(CO)[0];
+  assert.match(fn, /inEcwid: d\.inEcwid/);
+  assert.ok(!/d\.inEcwid \?|!d\.inEcwid/.test(fn.replace(/inEcwid: d\.inEcwid/, '')),
+    'inEcwid must not gate whether the order counts as placed');
+});
+
+test('the guest confirmation still refuses to invent a grand total', () => {
+  /* Same receipt, same rule: delivery and installation are confirmed by
+     phone, and a zero would read as free delivery. */
+  const fn = /async function placeGuestOrder\([\s\S]{0,1400}?\n    \}/.exec(CO)[0];
+  assert.match(fn, /totals: d\.totals/);
+  assert.ok(!/grandTotal:/.test(fn), 'the client must not compute a total');
+});

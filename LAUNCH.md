@@ -1938,6 +1938,93 @@ sqlite3 data/accounts.db "SELECT ref, status, created_at FROM orders ORDER BY cr
 `data/accounts.db` is the only copy of the site's customers and orders — it is
 what the backup in §5G exists for.
 
+### Buying without an account
+
+A visitor can complete a purchase with no account at all. They type their
+details at checkout, those details go to Ecwid with the order, and Ecwid files
+both against a customer record keyed on the email address — so staff find the
+person exactly as they would for an order taken on 19140.
+
+This was the missing case. SADKO already sells to people with no account every
+day by phone; requiring one on the website only lost those sales.
+
+#### Where a guest's data lives, and for how long
+
+**Nothing is written to `accounts.db`.** No account is created, and no guest
+PII joins the long-lived, backed-up store.
+
+The order goes into `guest_order` in `data/ecwid.db` — an outbox — and the row
+is **deleted the moment Ecwid accepts the order**. In the normal case a guest's
+name, phone, email and address sit on SADKO's server for a few seconds.
+
+| State | Where the details are | What it means |
+|---|---|---|
+| Pushed | **Ecwid only** | done; the admin desk links to the Ecwid order |
+| Waiting | outbox + Ecwid not yet | retries every two minutes on its own |
+| Stopped | outbox | six attempts failed — **somebody must ring the customer** |
+
+The `order_push` row survives a successful push even though the payload does
+not: it carries the Ecwid order id, and that is what stops a retry creating the
+same order twice. It holds no personal data.
+
+A row surviving in `guest_order` therefore always means the same thing — this
+order has not reached Ecwid. That is why the admin orders desk shows guest
+orders with the customer's **name and phone**: for a guest there is no account
+to look them up in, and that number is the only way to reach them.
+
+#### What the route does before it accepts anything
+
+`POST /api/orders/guest` is public by necessity — the customer has no session —
+so every protection is in the route.
+
+- **Same-origin** is already required for every non-GET request, so a form on
+  another site cannot post orders.
+- **A per-IP rate limit**, six per hour, held in memory. In memory
+  deliberately: it resets on restart, which is the right trade for something
+  that must never become another table of visitor data.
+- **The payment method is checked against the live Ecwid list**, so a method
+  the owner has switched off cannot be chosen.
+- **Every line is re-priced from the catalogue.** The browser sends prices, and
+  an endpoint with no session must not push a figure the customer chose. A line
+  whose product is not in the served catalogue is refused outright: it is
+  disabled, unpriced or deleted, so it is not for sale. Verified — an order
+  posted with a 15,400 refrigerator priced at 1 was stored and pushed at
+  15,400.
+- **Email is required.** Ecwid's customer key is the email address; without one
+  the order arrives as an orphan with no customer record, and pushing the
+  customer's details is the entire point.
+- **A phone is required**, unlike on the account form, because nobody delivers
+  a refrigerator to an address with no number to ring.
+- **No total is invented.** `deliveryFee`, `installFee` and `grandTotal` stay
+  null, exactly as on the account path.
+
+#### Why a failed push still answers "order placed"
+
+If Ecwid is unreachable the route returns `ok: true` with the reference and
+`inEcwid: false`. By that point the order is in the outbox and will retry, so
+telling the customer it failed would lose a sale that was actually made. The
+confirmation screen is the same one an account holder sees, and customer care
+rings either way.
+
+#### What a guest does NOT get
+
+- **No order tracking page.** They have a reference to quote on the phone and
+  nothing else. Ecwid holds the order; the site cannot show it to them, because
+  there is no session to prove who they are. A lookup by reference plus phone
+  number would be the way to add it.
+- **No saved address**, so their next order starts from scratch. That is the
+  honest reason to offer an account, and the checkout page says so with a link
+  rather than a wall.
+
+#### Until the secret token exists
+
+`POST /orders` answers **403** on a `public_` token, so today every guest order
+is accepted, stored in the outbox, retried, and eventually stopped — which is
+why the admin desk shows the name and phone. Nothing is lost, and nothing
+reaches Ecwid. The whole path has therefore been tested against the outbox and
+the 403, **never against a real Ecwid order**; `tools/ecwid-preflight.mjs`
+confirms the shapes the moment a secret token is in place.
+
 ### Storing less on this server
 
 The goal, set by the owner: keep as little as possible on SADKO's own hardware

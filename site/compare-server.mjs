@@ -72,6 +72,7 @@ import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwi
 import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
 import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
 import { mergeOrders } from './engine/ecwid-customers.mjs';
+import { validateGuestOrder, guestUserOf } from './engine/guest-orders.mjs';
 import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
 import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
@@ -2155,8 +2156,47 @@ const passwordsOff = lang => ({
     : 'الدخول الآن بحساب جوجل فقط — لا توجد كلمة سر. استخدم زر جوجل، أو اتصل بـ19140.',
 });
 
+/* A public endpoint that creates orders is a spam channel into the owner's
+   Ecwid store unless it is bounded. In memory deliberately: it resets on
+   restart, which is the right trade for something that must never become
+   another table of visitor data. */
+const GUEST_RATE = new Map();
+const GUEST_RATE_MAX = 6;
+const GUEST_RATE_WINDOW_MS = 60 * 60 * 1000;
+function guestRateOk(ip) {
+  const key = String(ip || 'unknown');
+  const now = Date.now();
+  const hits = (GUEST_RATE.get(key) || []).filter(t => now - t < GUEST_RATE_WINDOW_MS);
+  if (hits.length >= GUEST_RATE_MAX) { GUEST_RATE.set(key, hits); return false; }
+  hits.push(now);
+  GUEST_RATE.set(key, hits);
+  if (GUEST_RATE.size > 5000) {
+    for (const [k, v] of GUEST_RATE) if (!v.some(t => now - t < GUEST_RATE_WINDOW_MS)) GUEST_RATE.delete(k);
+  }
+  return true;
+}
+
+/* A purchase event is written server-side, never accepted from a browser, so
+   it cannot be faked. A guest has no user id — only the anonymous funnel. */
+function trackPurchase(order) {
+  try {
+    const an = analytics();
+    if (!an) return;
+    for (const it of order.items)
+      an.record({ vid: null, userId: null, productId: it.id, type: 'purchase', meta: { qty: it.qty, guest: true } });
+  } catch (e) { /* analytics must never affect an order */ }
+}
+
 const ORDER_LOADERS = {
-  loadOrder: async ref => { const db = accounts(); return db ? db.orderByRefAny(ref) : null; },
+  /* An account order first, then the guest outbox. One queue worker, one
+     retry schedule, one admin desk — a guest order is not a second system. */
+  loadOrder: async ref => {
+    const db = accounts();
+    const own = db ? db.orderByRefAny(ref) : null;
+    if (own) return own;
+    const st = ecwidStore();
+    return st ? st.getGuestOrder(ref) : null;
+  },
   /* The sync layer writes a status through this seam rather than reaching
      into the accounts database itself — the same boundary it already reads
      orders and users across. setOrderStatus validates the transition and
@@ -2168,6 +2208,14 @@ const ORDER_LOADERS = {
     if (r && r.error) throw new Error(r.error);
   },
   loadUser: async order => {
+    /* A guest has no account row; their details are on the order itself.
+       Checked FIRST, because a guest order's userId is null and getUser(null)
+       would answer null anyway — but being explicit is what makes it obvious
+       that the email pushed to Ecwid is the one the customer typed. */
+    if (order && order.guest) {
+      const g = guestUserOf(order);
+      if (g) return g;
+    }
     const db = accounts();
     const u = db && order ? db.getUser(order.userId) : null;
     return u || { email: '', name: (order.delivery || {}).name || '', phone: (order.delivery || {}).phone || '' };
@@ -2205,7 +2253,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     res.setHeader('content-type', 'application/json; charset=utf-8');
     // The comparison endpoints are public data and stay open; anything that
     // touches an account must NOT be readable cross-origin, so no ACAO there.
-    if (!u.pathname.startsWith('/api/auth') && u.pathname !== '/api/orders')
+    if (!u.pathname.startsWith('/api/auth') && !u.pathname.startsWith('/api/orders'))
       res.setHeader('access-control-allow-origin', '*');
     res.end(JSON.stringify(obj)); };
 
@@ -2303,6 +2351,109 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
      See engine/ecwid-webhook.mjs for why the signature does not cover storeId,
      and why this checks it explicitly. */
+  /* ---- guest checkout ----------------------------------------------------
+     Buying without an account. The details the customer types are pushed to
+     Ecwid, which files the order against a customer record keyed on the email
+     — so staff find the person exactly as they would for a phone order.
+
+     The payload is held in the Ecwid mirror ONLY until Ecwid accepts it, then
+     deleted. Nothing is written to accounts.db: no account is created, and no
+     guest PII joins the long-lived store. */
+  if (u.pathname === '/api/orders/guest' && req.method === 'POST') {
+    const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+    const bad = (code, ar, en) => json(400, { error: code, message: lang === 'en' ? en : ar });
+
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+    if (!guestRateOk(ip))
+      return json(429, { error: 'too-many', message: lang === 'en'
+        ? 'Too many orders from this connection. Please call 19140.'
+        : 'طلبات كثيرة من هذا الاتصال. من فضلك اتصل بـ19140.' });
+
+    let body;
+    try { body = await readJson(req, 24_000); } catch (e) { return bad('bad-request', 'طلب غير صالح.', 'Bad request.'); }
+
+    const v = validateGuestOrder(body);
+    if (!v.ok) {
+      const M = {
+        'bad-name': ['اكتب اسمك كاملاً.', 'Please enter your full name.'],
+        'bad-email': ['اكتب بريداً إلكترونياً صحيحاً — نسجّل الطلب عليه.', 'Enter a valid email — the order is filed under it.'],
+        'bad-phone': ['اكتب رقم موبايل مصرى صحيح — التوصيل بيتم بالتليفون.', 'Enter a valid Egyptian mobile number — delivery is arranged by phone.'],
+        'bad-governorate': ['اختر المحافظة.', 'Choose your governorate.'],
+        'bad-address': ['اكتب العنوان بالتفصيل.', 'Please write the address in full.'],
+        'bad-payment': ['اختر طريقة الدفع.', 'Choose a payment method.'],
+        'empty-cart': ['سلتك فارغة.', 'Your cart is empty.'],
+        'too-many-items': ['عدد الأصناف كبير. اتصل بـ19140.', 'Too many items. Please call 19140.'],
+      };
+      const m = M[v.error] || ['بيانات غير مكتملة.', 'Some details are missing.'];
+      return bad(v.error, m[0], m[1]);
+    }
+    const order = v.order;
+
+    /* The payment method has to be one the owner currently offers — the same
+       check the account path makes, against the same live list. */
+    if (!activePaymentMethods().map(m => String(m.id)).includes(order.payment))
+      return bad('bad-payment', 'طريقة دفع غير مدعومة.', 'Unsupported payment method.');
+
+    /* RE-PRICE from the catalogue. The browser sent these figures and this
+       endpoint needs no session, so trusting them would let anyone push an
+       order at a price of their choosing into the owner's store. A line whose
+       product is not in the served catalogue is refused outright: it is
+       disabled, unpriced or gone, so it is not for sale. */
+    try {
+      const cat = await ecwidSource().catalogBase();
+      const byId = new Map(cat.map(p => [String(p.id), p]));
+      for (const it of order.items) {
+        const p = byId.get(String(it.id));
+        if (!p) return bad('item-unavailable', 'أحد الأصناف لم يعد متاحاً. حدّث السلة.',
+                                               'One of the items is no longer available. Please refresh your cart.');
+        it.price = Number(p.price) || 0;
+        it.title = String(p.title || it.title).slice(0, 300);
+      }
+      order.subtotal = order.items.reduce((n, i) => n + i.price * i.qty, 0);
+      order.totals.subtotal = order.subtotal;
+    } catch (e) {
+      return json(503, { error: 'catalogue-unavailable', message: lang === 'en'
+        ? 'We could not confirm prices just now. Please try again, or call 19140.'
+        : 'تعذّر تأكيد الأسعار الآن. حاول مرة أخرى أو اتصل بـ19140.' });
+    }
+
+    const st = ecwidStore(), esy = ecwidSync();
+    if (!st || !esy)
+      return json(503, { error: 'unavailable', message: lang === 'en'
+        ? 'Ordering is unavailable right now. Please call 19140.'
+        : 'الطلب غير متاح الآن. من فضلك اتصل بـ19140.' });
+
+    /* Stored BEFORE the push, so an outage cannot lose it. */
+    try {
+      st.putGuestOrder(order);
+      st.enqueueOrderPush(order.ref);
+    } catch (e) {
+      console.error('[guest] could not queue order:', e && e.message);
+      return json(503, { error: 'unavailable', message: lang === 'en'
+        ? 'Ordering is unavailable right now. Please call 19140.'
+        : 'الطلب غير متاح الآن. من فضلك اتصل بـ19140.' });
+    }
+
+    /* Pushed now so the customer learns immediately whether it landed. A
+       failure is NOT reported as a failed order: it is queued, it retries
+       every two minutes, and the admin desk shows it with the customer's
+       phone number. Telling them it failed would lose a sale already made. */
+    let pushed = null;
+    try { pushed = await esy.pushOrder(order.ref, ORDER_LOADERS); } catch (e) { pushed = null; }
+    if (pushed && pushed.ok) trackPurchase(order);
+
+    return json(200, {
+      ok: true,
+      ref: order.ref,
+      inEcwid: !!(pushed && pushed.ok),
+      ecwidOrderId: (pushed && pushed.ok && pushed.ecwidOrderId) || null,
+      subtotal: order.subtotal,
+      /* Never a grand total: delivery and installation are confirmed by
+         customer care, exactly as on the account path. */
+      totals: order.totals,
+    });
+  }
+
   if (u.pathname === '/api/ecwid/webhook' && req.method === 'POST') {
     const es = ecwidSync();
     if (!es) { res.statusCode = 503; return res.end('ecwid off'); }
@@ -2670,12 +2821,20 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const store = ecwidStore();
         if (!store) return json(503, { error: 'ecwid-off' });
         const db = accounts();
+        const st = store;
         /* The local order carries the customer and the status; the push row
            carries what happened between here and Ecwid. Neither alone tells
            the story. */
         const join = row => {
-          const local = db ? db.orderByRefAny(row.ref) : null;
+          /* An account order, or a guest order still in the outbox. A guest
+             order that has SHIPPED has no payload left here at all, by design
+             — Ecwid has it, and the link in the panel goes there. What matters
+             is that a guest order which has NOT shipped shows its name and
+             phone, because somebody has to ring that customer. */
+          const local = (db ? db.orderByRefAny(row.ref) : null)
+            || (st ? st.getGuestOrder(row.ref) : null);
           return {
+            guest: !!(local && local.guest),
             ref: row.ref,
             ecwidOrderId: row.ecwid_order_id || null,
             pushedAt: row.pushed_at || null,
@@ -2684,6 +2843,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             lastError: row.last_error || null,
             status: local ? local.status : null,
             email: local ? (local.email || null) : null,
+            name: local && local.delivery ? (local.delivery.name || null) : null,
+            phone: local && local.delivery ? (local.delivery.phone || null) : null,
             total: local ? (local.subtotal ?? null) : null,
             createdAt: local ? local.createdAt : (row.created_at || null),
           };

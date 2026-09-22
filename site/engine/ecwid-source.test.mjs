@@ -431,3 +431,74 @@ test('productDetail is null with the flag off — there is no mirror to read', (
     assert.equal(src.productDetail('1'), null);
   } finally { cleanup(); }
 });
+
+/* ======================================================================
+   An unpriced product is not an offer.
+
+   The near miss this closes: an advert lost its ad-folder assignment in the
+   Ecwid panel — the folder is what marks it an advert — so isBanner() stopped
+   catching it. It is an enabled product with a name and a price of 0.00, and
+   it would have been served as an appliance costing nothing.
+   ================================================================== */
+
+test('a product priced at zero is NOT served', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { price: 0 }), M(2, { price: 1500 })]);
+    const out = src.catalogBase();
+    return out.then(list => {
+      assert.deepEqual(list.map(p => p.id), ['2'],
+        'a 0.00 product reached the storefront');
+    });
+  } finally { cleanup(); }
+});
+
+test('a product with no price at all is NOT served', () => {
+  /* The mapper nulls a missing price rather than coercing it to 0, so both
+     shapes have to be refused. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { price: null }), M(2, { price: 1500 })]);
+    return src.catalogBase().then(list => assert.deepEqual(list.map(p => p.id), ['2']));
+  } finally { cleanup(); }
+});
+
+test('an orphaned advert cannot become a sellable product', () => {
+  /* Exactly the near miss: no ad folder, no banner SKU, enabled, named,
+     price 0. Before the price guard this was a purchasable appliance. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([
+      M(1, { title: 'إعلان رئيسى ٢', sku: 'contact2', price: 0, categoryIds: [], categoryId: null }),
+      M(2, { price: 1500 }),
+    ]);
+    return src.catalogBase().then(list => {
+      assert.ok(!list.some(p => String(p.id) === '1'), 'the orphaned advert is on sale');
+      assert.equal(list.length, 1);
+    });
+  } finally { cleanup(); }
+});
+
+test('the served COUNT agrees with what is served', async () => {
+  /* describe() and build() share isServed, so the admin panel cannot report
+     a number the storefront disagrees with.
+
+     async/await, not a returned promise: `finally { cleanup() }` runs the
+     moment the try block returns, so a promise resolved afterwards found the
+     store already closed and describe() reported 0. */
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1, { price: 0 }), M(2, { price: 1500 }), M(3, { price: 900 })]);
+    const list = await src.catalogBase();
+    assert.equal(list.length, 2);
+    assert.equal(src.describe().served, 2);
+  } finally { cleanup(); }
+});
+
+test('a normal priced product is unaffected', () => {
+  const { src, store, cleanup } = fresh();
+  try {
+    store.upsertProducts([M(1), M(2)]);
+    return src.catalogBase().then(list => assert.equal(list.length, 2));
+  } finally { cleanup(); }
+});

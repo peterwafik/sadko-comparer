@@ -100,9 +100,28 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     try { return await seedLoader(); } catch (e) { return []; }
   }
 
+  /* A product with no usable price is not an offer.
+
+     This exists because of a near miss. An advert lost its ad-folder
+     assignment in the Ecwid panel — the folder is what marks it an advert —
+     and instantly stopped being caught by isBanner(). It is an enabled
+     product with a name and a price of 0.00, so it would have been served as
+     a purchasable appliance costing nothing.
+
+     Excluding an unpriced product is the right guard regardless of adverts,
+     and it is consistent with the rule the rest of this site already follows:
+     never show a figure that is not a real one. A 0.00 EGP appliance is not a
+     real one, and the store cannot take payment for it either way. It changes
+     nothing about today's catalogue — all 990 served products carry a real
+     price — which is exactly why it is safe to add. */
+  const priced = p => {
+    const v = Number(p && p.price);
+    return Number.isFinite(v) && v > 0;
+  };
+
   /* One predicate, used by both build() and describe(), so the count the admin
      panel shows can never disagree with what the storefront actually serves. */
-  const isServed = p => !!p && p.enabled !== false && !p.incomplete && !isBanner(p);
+  const isServed = p => !!p && p.enabled !== false && !p.incomplete && !isBanner(p) && priced(p);
 
   function build(rows) {
     const served = rows.filter(isServed);

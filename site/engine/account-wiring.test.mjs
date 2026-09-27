@@ -91,12 +91,27 @@ test('the queue reads the customer from accounts at attempt time', () => {
 });
 
 test('linkCustomer only ADDS to Ecwid, never overwrites what staff corrected', () => {
-  const fn = /async function linkCustomer[\s\S]{0,1600}?\n  \}/.exec(sync)[0];
-  assert.match(fn, /customerNeedsUpdate/);
+  const fn = /async function linkCustomer[\s\S]{0,3000}?\n  \}/.exec(sync)[0];
+  /* The gate is a per-FIELD patch now, not a boolean: PUTting the whole payload
+     would overwrite every OTHER detail staff had corrected, which is exactly why
+     this used to send one hardcoded field and nothing else. */
+  assert.match(fn, /customerUpdatePatch/);
+  assert.match(fn, /api\.updateCustomer\(existing\.id, patch\)/,
+    'only the fields that changed may be written');
+  assert.ok(!/updateCustomer\([^)]*desired\)/.test(fn),
+    'the whole desired payload must never be PUT wholesale');
+});
+
+test('what we last pushed is remembered, or the next push cannot tell user from staff', () => {
+  /* The discriminator. With no snapshot the rule degrades to fill-only, and a
+     customer who corrects their own phone never reaches Ecwid again. */
+  const fn = /async function linkCustomer[\s\S]{0,3000}?\n  \}/.exec(sync)[0];
+  assert.match(fn, /store\.markCustomerLinked\(desired\.email, id, desired\)/, 'on create');
+  assert.match(fn, /store\.customerPushSnapshot\(desired\.email\)/, 'read back on update');
 });
 
 test('a 403 from a public_ token is a configuration state, not an error', () => {
-  const fn = /async function linkCustomer[\s\S]{0,1600}?\n  \}/.exec(sync)[0];
+  const fn = /async function linkCustomer[\s\S]{0,3000}?\n  \}/.exec(sync)[0];
   assert.match(fn, /no-access/);
   assert.ok(!/throw/.test(fn), 'linkCustomer throws — registration would see it');
 });
@@ -229,4 +244,104 @@ test('the grand total is shown only when Ecwid genuinely holds one', () => {
      page assembled from a delivery charge nobody quoted. */
   assert.match(account, /o\.total != null \? o\.total : o\.subtotal/);
   assert.match(account, /goods only/);
+});
+
+/* ============ addresses: every route that changes a saved place ===========
+   A home only reached Ecwid as a side effect of ORDERING, so a customer could
+   add, rename or delete a delivery address and the control panel would never
+   know. Every mutating route must push, deletion included — a mirror that only
+   grows is not a mirror. */
+
+const HOME_ROUTES = [
+  ["POST",   /u\.pathname === '\/api\/auth\/homes' && req\.method === 'POST'[\s\S]{0,900}?\n      \}/],
+  ["PATCH",  /u\.pathname === '\/api\/auth\/homes' && \(req\.method === 'PATCH'[\s\S]{0,900}?\n      \}/],
+  ["DELETE", /u\.pathname === '\/api\/auth\/homes' && req\.method === 'DELETE'[\s\S]{0,900}?\n      \}/],
+  ["active", /u\.pathname === '\/api\/auth\/homes\/active'[\s\S]{0,900}?\n      \}/],
+];
+
+for (const [name, re] of HOME_ROUTES) {
+  test(`the homes ${name} route pushes the customer to Ecwid`, () => {
+    const m = re.exec(src);
+    assert.ok(m, `the homes ${name} route could not be found`);
+    assert.match(m[0], /linkCustomerSoon\(r\.user\)/,
+      'r.user is publicUser(), which carries homes, activeHomeId and address');
+  });
+}
+
+test('the pushed customer payload is built from homes, not invented', () => {
+  /* toEcwidCustomer omits shippingAddresses entirely when there are no homes,
+     which is what stops a push from CLEARING an address Ecwid captured from a
+     real order. An empty array would wipe it. */
+  const cust = readFileSync(path.join(SITE, 'engine', 'ecwid-customers.mjs'), 'utf8');
+  assert.match(cust, /shippingAddresses: homesToAddresses\(user\)/);
+  assert.match(cust, /return out\.length \? out : undefined/,
+    'no homes must mean the key is absent, never []');
+});
+
+/* ================= status, pushed UP from the admin desk ================== */
+
+test('the admin orders desk tells Ecwid about a status it changed', () => {
+  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,1800}?\n      \}/.exec(src)[0];
+  assert.match(route, /esy\.pushOrderStatus\(ref, b\.status\)/);
+});
+
+test('a failed status push does NOT fail the request — the local change happened', () => {
+  /* Returning 400 would tell the operator their click did nothing, which is
+     false: setOrderStatus has already committed and written the audit row. */
+  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,1800}?\n      \}/.exec(src)[0];
+  assert.match(route, /catch \(e\) \{ ecwid = \{ ok: false/);
+  assert.match(route, /json\(200, \{ \.\.\.r, ecwid \}\)/,
+    'the outcome is reported to the caller rather than swallowed or thrown');
+  const afterPush = route.slice(route.indexOf('pushOrderStatus'));
+  assert.ok(!/json\(4\d\d/.test(afterPush), 'no 4xx may be returned after the local write');
+});
+
+test('the two non-failures are not logged as failures', () => {
+  /* not-pushable is `confirmed`, by design; not-in-ecwid is an order still in
+     the push queue, which will carry its status when it is created. Logging
+     either as an error would train the owner to ignore the log. */
+  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,1800}?\n      \}/.exec(src)[0];
+  assert.match(route, /reason !== 'not-pushable' && ecwid\.reason !== 'not-in-ecwid'/);
+});
+
+/* ==================== guests become customers too ======================== */
+
+test('a guest checkout creates the Ecwid customer BEFORE pushing the order', () => {
+  const route = /u\.pathname === '\/api\/orders\/guest' && req\.method === 'POST'[\s\S]*?\n  \}/.exec(src)[0];
+  const cAt = route.indexOf('guestCustomerOf(order)');
+  const oAt = route.indexOf('esy.pushOrder(order.ref');
+  assert.ok(cAt > 0 && oAt > 0, 'both steps must be present');
+  assert.ok(cAt < oAt, 'the customer must exist before the order is filed against it');
+});
+
+test('the guest queue row is created first, or the link is written to nothing', () => {
+  /* linkCustomer records itself with an UPDATE on customer_link. With no row,
+     the customer id and the push snapshot are silently discarded. */
+  const route = /u\.pathname === '\/api\/orders\/guest' && req\.method === 'POST'[\s\S]*?\n  \}/.exec(src)[0];
+  const eAt = route.indexOf('st.enqueueCustomerLink(guestCustomer.email)');
+  const lAt = route.indexOf('esy.linkCustomer(guestCustomer)');
+  assert.ok(eAt > 0 && lAt > 0);
+  assert.ok(eAt < lAt, 'enqueue must precede the link attempt');
+});
+
+test('a guest who cannot be linked can still buy', () => {
+  const route = /u\.pathname === '\/api\/orders\/guest' && req\.method === 'POST'[\s\S]*?\n  \}/.exec(src)[0];
+  const block = route.slice(route.indexOf('guestCustomerOf(order)'), route.indexOf('let pushed = null'));
+  assert.match(block, /catch \(e\)/, 'the link must not be able to throw out of checkout');
+  assert.ok(!/return json/.test(block), 'a failed link must never abort the order');
+});
+
+/* =============== orders that never reached Ecwid, at boot ================= */
+
+test('unsent orders are revived at startup, like accounts already are', () => {
+  assert.match(src, /est\.unsentOrderRefs\(\)/);
+  assert.match(src, /order\(s\) queued for push/, 'a restart says what it is about to do');
+});
+
+test('reviving a parked order restores its retry budget, not just the delay', () => {
+  /* The due query filters attempts < MAX_ATTEMPTS as well as the delay, so
+     clearing only next_attempt_at queues work the poller will never pick up —
+     which is where SDK-DED885 sat with seven attempts and no Ecwid id. */
+  const store = readFileSync(path.join(SITE, 'engine', 'ecwid-store.mjs'), 'utf8');
+  assert.match(store, /UPDATE order_push SET attempts = 0, next_attempt_at = NULL/);
 });

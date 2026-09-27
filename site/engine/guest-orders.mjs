@@ -126,3 +126,31 @@ export function guestUserOf(order) {
   const d = (order && order.delivery) || {};
   return { email, name: d.name || '', phone: d.phone || '' };
 }
+
+/* The same guest, as an Ecwid CUSTOMER record.
+
+   Separate from guestUserOf on purpose. That one carries only what
+   toEcwidOrder needs, because the order already holds the address in its
+   shippingPerson — widening it would quietly change what every pushed order
+   sends. A customer record has nowhere else to get the address from, so it
+   gets its own mapper.
+
+   Deliberately no `homes`: Ecwid captures the address from the order itself,
+   and a shippingAddresses list built out of nothing is a fabricated mirror.
+   toEcwidCustomer omits the key entirely when there are no homes, which is
+   what keeps a real captured address from being cleared.
+
+   Returns null without an email, for the same reason guestUserOf does: a
+   customer record with no key files the order under nobody. */
+export function guestCustomerOf(order) {
+  const email = order && order.email ? String(order.email) : '';
+  if (!email) return null;
+  const d = (order && order.delivery) || {};
+  return {
+    email,
+    name: d.name || '',
+    phone: d.phone || '',
+    address: d.address || '',
+    profile: d.governorate ? { governorate: d.governorate } : {},
+  };
+}

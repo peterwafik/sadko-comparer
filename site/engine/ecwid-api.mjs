@@ -208,6 +208,11 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
     },
 
     createOrder: payload => call('/orders', { method: 'POST', body: payload }),
+    /* A PUT with only the named fields. The admin orders desk uses this to push
+       a status up, and a partial update is the point: staff may have typed a
+       tracking number or a note that the site knows nothing about, and a full
+       replacement would erase them. */
+    updateOrder: (id, payload) => call(`/orders/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
     getOrder: id => call(`/orders/${encodeURIComponent(id)}`, { allow404: true }),
 
     /* Idempotency support: find an order already carrying our SDK- ref, so a

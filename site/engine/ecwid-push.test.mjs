@@ -156,7 +156,12 @@ test('after the attempt cap the order PARKS as failed and is surfaced, never dro
   const { store, sync, cleanup } = fresh(stub({ createOrder: async () => { throw new Error('down'); } }));
   try {
     store.enqueueOrderPush('SDK-A1B2C3');
-    for (let i = 0; i < 8; i++) { store.resetPush('SDK-A1B2C3'); await sync.pushOrder('SDK-A1B2C3', loaders); }
+    /* No resetPush here: it now restores the retry BUDGET as well as clearing
+       the delay (so the boot backfill can revive a parked order), which would
+       stop attempts ever reaching the cap. pushOrder called directly does not
+       consult next_attempt_at — that gate is nextDuePush's job — so the loop
+       accumulates attempts on its own. */
+    for (let i = 0; i < 8; i++) await sync.pushOrder('SDK-A1B2C3', loaders);
     const failed = store.failedPushes();
     assert.equal(failed.length, 1);
     assert.equal(failed[0].ref, 'SDK-A1B2C3');

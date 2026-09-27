@@ -371,3 +371,33 @@ export function toLocalStatus(o) {
   if (DEAD_PAYMENT.has(String(o.paymentStatus || '').toUpperCase())) return 'cancelled';
   return FULFILMENT[String(o.fulfillmentStatus || '').toUpperCase()] || null;
 }
+
+/* The site's own ORDER_STATUSES -> Ecwid, for the admin orders desk pushing a
+   status UP. Ecwid stays the master for anything staff change THERE; this is
+   only so a status changed HERE does not leave the control panel stale.
+
+   WHY THIS IS NOT SIMPLY THE INVERSE OF FULFILMENT. Three Ecwid states collapse
+   into `shipping` and two into `cancelled`, so an inverse has to choose one
+   canonical name per local status. The choice is not cosmetic: the push makes
+   Ecwid fire an order.updated webhook straight back at us, and that echo runs
+   through toLocalStatus. Pick a name that maps back to a DIFFERENT status and
+   the echo silently overwrites the status the operator just set.
+
+   `confirmed` is therefore ABSENT, not mapped. Its only plausible Ecwid name is
+   PROCESSING, which already belongs to `preparing` — so pushing it would come
+   back as `preparing` and change the operator's own choice under them. It stays
+   a site-only status, and Ecwid simply lags by that one step.
+
+   Returns null for anything not safe to push; the caller pushes nothing. */
+const TO_FULFILMENT = {
+  received:  'AWAITING_PROCESSING',
+  preparing: 'PROCESSING',
+  shipping:  'SHIPPED',
+  delivered: 'DELIVERED',
+  cancelled: 'WILL_NOT_DELIVER',
+};
+
+export function toEcwidFulfillment(local) {
+  if (typeof local !== 'string') return null;
+  return TO_FULFILMENT[local] || null;
+}

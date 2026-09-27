@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { openEcwidStore } from './ecwid-store.mjs';
 
 function fresh() {
@@ -272,5 +273,87 @@ test('stats scopes out-of-stock to ENABLED products only', () => {
     assert.equal(s.buyable, 1);
     assert.equal(s.outOfStock, 1, 'the disabled shell must not be counted');
     assert.equal(s.incomplete, 1);
+  } finally { cleanup(); }
+});
+
+/* ==================== the customer push snapshot (id 6) ====================
+   What we last SENT, so a later push can tell a user edit from a staff edit.
+   Held here rather than in accounts.db because it is Ecwid bookkeeping, not
+   customer data — and a NULL must keep meaning "be conservative". */
+
+test('a customer with no snapshot yet reads back null, not undefined', () => {
+  const { db, cleanup } = fresh();
+  try {
+    db.enqueueCustomerLink('Nada@Example.com');
+    assert.equal(db.customerPushSnapshot('nada@example.com'), null);
+  } finally { cleanup(); }
+});
+
+test('the snapshot round-trips as an object, keyed on the normalised email', () => {
+  const { db, cleanup } = fresh();
+  try {
+    db.enqueueCustomerLink('nada@example.com');
+    const sent = { email: 'nada@example.com', name: 'ندى', shippingAddresses: [{ city: 'الجيزة' }] };
+    db.markCustomerLinked('Nada@Example.com', '366742801', sent);
+    assert.deepEqual(db.customerPushSnapshot('NADA@example.com'), sent,
+      'the email is the join key and must be normalised on both sides');
+    assert.equal(db.customerLinkRow('nada@example.com').ecwid_customer_id, '366742801');
+  } finally { cleanup(); }
+});
+
+test('linking without a snapshot does not erase one already stored', () => {
+  /* A later link that cannot build a payload must not destroy the discriminator
+     — losing it silently reverts the customer to the conservative rule. */
+  const { db, cleanup } = fresh();
+  try {
+    db.enqueueCustomerLink('nada@example.com');
+    db.markCustomerLinked('nada@example.com', '1', { name: 'ندى' });
+    db.markCustomerLinked('nada@example.com', '1');
+    assert.deepEqual(db.customerPushSnapshot('nada@example.com'), { name: 'ندى' });
+  } finally { cleanup(); }
+});
+
+test('a corrupt snapshot reads as null rather than throwing', () => {
+  /* Written through a second connection rather than adding a raw() escape hatch
+     to the production API purely so a test can corrupt a row. */
+  const { db, dir, cleanup } = fresh();
+  try {
+    db.enqueueCustomerLink('nada@example.com');
+    const side = new DatabaseSync(path.join(dir, 'ecwid.db'));
+    side.prepare('UPDATE customer_link SET pushed_json = ? WHERE email = ?').run('{not json', 'nada@example.com');
+    side.close();
+    assert.equal(db.customerPushSnapshot('nada@example.com'), null);
+  } finally { cleanup(); }
+});
+
+/* ===================== orders that never reached Ecwid =====================
+   The boot backfill's work list. An order counts as unsent when it has no
+   Ecwid id — whether it was never queued at all (it predates the queue) or
+   queued and exhausted its retries, which is where SDK-DED885 sat. */
+
+test('an order with no Ecwid id is unsent, however it got that way', () => {
+  const { db, cleanup } = fresh();
+  try {
+    db.enqueueOrderPush('SDK-AAA111');                       // queued, never sent
+    db.enqueueOrderPush('SDK-BBB222');
+    db.markPushed('SDK-BBB222', '7483');                     // sent
+    db.enqueueOrderPush('SDK-CCC333');
+    for (let i = 0; i < 9; i++) db.markPushFailed('SDK-CCC333', 'ecwid-403', null);  // exhausted
+    const unsent = db.unsentOrderRefs().sort();
+    assert.deepEqual(unsent, ['SDK-AAA111', 'SDK-CCC333'],
+      'a pushed order must never be resent; an exhausted one must be reachable');
+  } finally { cleanup(); }
+});
+
+test('resetting an exhausted order makes it due again', () => {
+  const { db, cleanup } = fresh();
+  try {
+    db.enqueueOrderPush('SDK-CCC333');
+    for (let i = 0; i < 9; i++) db.markPushFailed('SDK-CCC333', 'ecwid-403', '2099-01-01T00:00:00.000Z');
+    assert.equal(db.nextDuePush(), null, 'exhausted and not yet due');
+    db.resetPush('SDK-CCC333');
+    const due = db.nextDuePush();
+    assert.equal(due && due.ref, 'SDK-CCC333');
+    assert.equal(due.attempts, 0, 'the retry budget is restored, not merely delayed');
   } finally { cleanup(); }
 });

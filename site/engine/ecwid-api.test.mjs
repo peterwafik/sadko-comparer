@@ -283,3 +283,29 @@ test('zero is a real count, not a missing one', async () => {
   });
   assert.equal(await api.productCount(), 0);
 });
+
+/* ======================= updating an order in Ecwid =======================
+   For the admin orders desk pushing a status UP. A PUT rather than a POST:
+   the order already exists and only the named fields change, so nothing the
+   site does not know about — a tracking number staff typed, a note — is
+   disturbed. */
+
+test('updateOrder PUTs only the fields given, to the order it names', async () => {
+  const f = fakeFetch([{ status: 200, body: { updateCount: 1 } }]);
+  const a = openEcwidApi({ storeId: '142682751', token: 'tkn', fetchImpl: f, baseDelayMs: 0 });
+  const r = await a.updateOrder('7483', { fulfillmentStatus: 'SHIPPED' });
+  assert.deepEqual(r, { updateCount: 1 });
+  assert.equal(f.calls.length, 1);
+  assert.match(f.calls[0].url, /\/orders\/7483$/);
+  assert.equal(f.calls[0].opts.method, 'PUT');
+  assert.deepEqual(JSON.parse(f.calls[0].opts.body), { fulfillmentStatus: 'SHIPPED' },
+    'nothing beyond the named fields may be sent');
+});
+
+test('an order id needing escaping is escaped, not concatenated raw', async () => {
+  const f = fakeFetch([{ status: 200, body: {} }]);
+  const a = openEcwidApi({ storeId: '142682751', token: 'tkn', fetchImpl: f, baseDelayMs: 0 });
+  await a.updateOrder('7 483/x', { fulfillmentStatus: 'SHIPPED' });
+  assert.ok(!/\/orders\/7 483\/x/.test(f.calls[0].url), 'the id must be encoded');
+  assert.match(f.calls[0].url, /7%20483%2Fx/);
+});

@@ -295,7 +295,8 @@ test('the real captured category maps, and its English slot is correctly refused
 
 /* ======================== orders (Task 11) ============================== */
 
-import { toEcwidOrder, toLocalStatus, PAYMENT_STATUS, FEES_NOTE_AR } from './ecwid-map.mjs';
+import { toEcwidOrder, toLocalStatus, toEcwidFulfillment, PAYMENT_STATUS, FEES_NOTE_AR } from './ecwid-map.mjs';
+import { ORDER_STATUSES } from './accounts.mjs';
 
 const ORDER = (over = {}) => ({
   ref: 'SDK-A1B2C3',
@@ -610,4 +611,43 @@ test('a mapped product carries both the plain and the rich description', () => {
 
 test('descriptionHtml is empty when there is no description, not "undefined"', () => {
   assert.equal(toSadkoProduct({ id: 1, name: 'ث', price: 10 }).descriptionHtml, '');
+});
+
+/* ===================== site -> Ecwid fulfilment status =====================
+   The reverse of toLocalStatus, for the admin orders desk pushing a status UP.
+   The property that matters is not "every status maps" — it is that every
+   status we DO push survives the round trip, because the webhook echo comes
+   straight back through toLocalStatus and would otherwise rewrite the status
+   the operator just chose. `confirmed` has no Ecwid equivalent (PROCESSING is
+   already `preparing`) so it is deliberately unmapped rather than mapped to
+   something that comes back as a different status. */
+
+test('every pushable status survives the round trip through Ecwid', () => {
+  for (const local of ORDER_STATUSES) {
+    const remote = toEcwidFulfillment(local);
+    if (remote === null) continue;                       // not pushed, by design
+    assert.equal(toLocalStatus({ fulfillmentStatus: remote }), local,
+      `${local} -> ${remote} -> ${toLocalStatus({ fulfillmentStatus: remote })}`);
+  }
+});
+
+test('confirmed is deliberately NOT pushed: it would come back as preparing', () => {
+  assert.equal(toEcwidFulfillment('confirmed'), null);
+  /* Proof the exclusion is not arbitrary: the only sane candidate round-trips
+     to a DIFFERENT status, which would silently overwrite the operator. */
+  assert.equal(toLocalStatus({ fulfillmentStatus: 'PROCESSING' }), 'preparing');
+});
+
+test('the five pushable statuses map to the Ecwid names staff recognise', () => {
+  assert.equal(toEcwidFulfillment('received'), 'AWAITING_PROCESSING');
+  assert.equal(toEcwidFulfillment('preparing'), 'PROCESSING');
+  assert.equal(toEcwidFulfillment('shipping'), 'SHIPPED');
+  assert.equal(toEcwidFulfillment('delivered'), 'DELIVERED');
+  assert.equal(toEcwidFulfillment('cancelled'), 'WILL_NOT_DELIVER');
+});
+
+test('an unknown or empty status is never pushed', () => {
+  for (const v of [null, undefined, '', 'nonsense', 'RECEIVED ']) {
+    assert.equal(toEcwidFulfillment(v), null);
+  }
 });

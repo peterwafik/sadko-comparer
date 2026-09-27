@@ -1,7 +1,7 @@
 // site/engine/guest-orders.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateGuestOrder, guestUserOf } from './guest-orders.mjs';
+import { validateGuestOrder, guestUserOf, guestCustomerOf } from './guest-orders.mjs';
 
 const GOOD = {
   name: 'نور حسن',
@@ -142,4 +142,44 @@ test('nothing the browser sends can add fields to the stored order', () => {
   assert.equal(r.order.guest, true);
   assert.equal(r.order.totals.grandTotal, null);
   assert.equal(r.order.isAdmin, undefined);
+});
+
+/* ===================== a guest, as an Ecwid customer ======================
+   guestUserOf deliberately carries only what toEcwidOrder needs, because the
+   ORDER already holds the address in its shippingPerson. A customer RECORD
+   does not, so it needs its own mapper rather than a widened one — widening
+   guestUserOf would quietly change what every pushed order sends. */
+
+const GUEST = {
+  ref: 'SDK-GUEST1', email: 'Omar@Example.com',
+  delivery: { name: 'عمر', phone: '01000000000', address: '5 شارع النيل',
+              governorate: 'القاهرة', floor: '2', hasLift: true },
+};
+
+test('a guest becomes a customer carrying the address they typed', () => {
+  const c = guestCustomerOf(GUEST);
+  assert.equal(c.email, 'Omar@Example.com', 'toEcwidCustomer normalises it; this is raw');
+  assert.equal(c.name, 'عمر');
+  assert.equal(c.phone, '01000000000');
+  assert.equal(c.address, '5 شارع النيل');
+  assert.equal(c.profile.governorate, 'القاهرة');
+});
+
+test('no email means no customer — the same rule as guestUserOf', () => {
+  assert.equal(guestCustomerOf({ delivery: { name: 'عمر' } }), null);
+  assert.equal(guestCustomerOf(null), null);
+});
+
+test('a guest customer invents no homes, so it can never clear real addresses', () => {
+  /* Ecwid captures the address from the order itself. Sending a shippingAddresses
+     list built from nothing would be a fabricated mirror. */
+  const c = guestCustomerOf(GUEST);
+  assert.ok(!('homes' in c));
+  assert.ok(!('activeHomeId' in c));
+});
+
+test('a guest order with no delivery block does not throw', () => {
+  const c = guestCustomerOf({ email: 'a@b.co' });
+  assert.equal(c.email, 'a@b.co');
+  assert.equal(c.name, '');
 });

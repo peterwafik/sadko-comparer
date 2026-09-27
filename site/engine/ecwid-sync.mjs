@@ -14,8 +14,8 @@
        serve an empty catalogue, because Ecwid did.
    ========================================================================== */
 
-import { toSadkoProduct, toSadkoCategory, toEcwidOrder, toLocalStatus } from './ecwid-map.mjs';
-import { toEcwidCustomer, customerNeedsUpdate, fromEcwidOrder } from './ecwid-customers.mjs';
+import { toSadkoProduct, toSadkoCategory, toEcwidOrder, toLocalStatus, toEcwidFulfillment } from './ecwid-map.mjs';
+import { toEcwidCustomer, customerUpdatePatch, fromEcwidOrder } from './ecwid-customers.mjs';
 import { AD_SLOTS, buildSlotMap } from './ecwid-ads.mjs';
 
 const PAGE = 100;
@@ -393,10 +393,20 @@ export function createEcwidSync({ api, store, adFolders = {},
       const existing = await api.customerByEmail(desired.email);
       if (!existing) {
         const made = await api.createCustomer(desired);
-        return { ok: true, created: true, id: made && made.id != null ? String(made.id) : null };
+        const id = made && made.id != null ? String(made.id) : null;
+        /* Remember what we sent. Without this the NEXT push cannot tell a change
+           the user made here from a correction staff made in Ecwid, and falls
+           back to filling only what is missing. */
+        store.markCustomerLinked(desired.email, id, desired);
+        return { ok: true, created: true, id };
       }
-      if (customerNeedsUpdate(existing, desired)) {
-        await api.updateCustomer(existing.id, { name: desired.name });
+      /* Only the fields that actually changed. Sending the whole payload would
+         overwrite every detail staff corrected in Ecwid, which is why this used
+         to send a single hardcoded field and no more. */
+      const patch = customerUpdatePatch(existing, desired, store.customerPushSnapshot(desired.email));
+      if (Object.keys(patch).length) {
+        await api.updateCustomer(existing.id, patch);
+        store.markCustomerLinked(desired.email, String(existing.id), desired);
         return { ok: true, updated: true, id: String(existing.id) };
       }
       return { ok: true, id: String(existing.id) };
@@ -542,9 +552,44 @@ export function createEcwidSync({ api, store, adFolders = {},
     } catch (e) { return []; }
   }
 
+  /* ---- a status set HERE, pushed UP to Ecwid -----------------------------
+
+     Ecwid is the master for anything staff change THERE; this is the other
+     direction, which simply did not exist: the admin orders desk wrote a status
+     locally and the control panel stayed stale, in the one direction nobody
+     watches.
+
+     THE ECHO IS ALREADY HANDLED, and not by a timer. The push makes Ecwid fire
+     order.updated straight back at us, and applyEcwidOrderEvent returns early
+     when the status it computes equals the one already stored. That holds for
+     every status toEcwidFulfillment will push, because each maps back to
+     itself — which is exactly the property ecwid-map.test.mjs asserts, and the
+     reason `confirmed` is refused here rather than mapped to PROCESSING.
+
+     Never throws: an operator changing a status must not see a 500 because
+     Ecwid was slow. */
+  async function pushOrderStatus(ref, status) {
+    if (!api.configured) return { ok: false, reason: 'not-configured' };
+    const remote = toEcwidFulfillment(status);
+    if (!remote) return { ok: false, reason: 'not-pushable' };
+    const row = store.pushRow(ref);
+    /* No Ecwid id means the order is still in the push queue. Nothing to
+       update, and nothing lost: toEcwidOrder carries the status when the order
+       is finally created. */
+    if (!row || !row.ecwid_order_id) return { ok: false, reason: 'not-in-ecwid' };
+    try {
+      await api.updateOrder(row.ecwid_order_id, { fulfillmentStatus: remote });
+      return { ok: true, id: String(row.ecwid_order_id), fulfillmentStatus: remote };
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      return { ok: false, reason: /ecwid-40[13]/.test(msg) ? 'no-access' : 'error', message: msg };
+    }
+  }
+
   return {
     syncProducts,
     pushOrder,
+    pushOrderStatus,
     pushPendingOrders,
     linkCustomer,
     linkPendingCustomers,

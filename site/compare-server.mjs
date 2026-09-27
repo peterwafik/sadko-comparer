@@ -72,7 +72,7 @@ import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwi
 import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
 import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
 import { mergeOrders } from './engine/ecwid-customers.mjs';
-import { validateGuestOrder, guestUserOf } from './engine/guest-orders.mjs';
+import { validateGuestOrder, guestUserOf, guestCustomerOf } from './engine/guest-orders.mjs';
 import { repriceLines } from './engine/order-pricing.mjs';
 import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
 import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
@@ -2479,6 +2479,28 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         : 'الطلب غير متاح الآن. من فضلك اتصل بـ19140.' });
     }
 
+    /* The guest gets a customer record too, BEFORE the order, so the merchant's
+       customer list matches their buyer list rather than showing account
+       holders only. Ecwid files an order under a customer by email either way;
+       doing it first means the record carries the address and phone the guest
+       typed, not just whatever Ecwid infers.
+
+       Awaited — this route already awaits the push, and a customer that exists
+       by the time the order lands is the point. Never fatal: a guest must be
+       able to buy even when /customers is unavailable. */
+    const guestCustomer = guestCustomerOf(order);
+    if (guestCustomer) {
+      try {
+        /* The row has to exist first: linking records itself with an UPDATE, so
+           without this the guest's customer id and push snapshot would be
+           written to nothing and silently lost. */
+        st.enqueueCustomerLink(guestCustomer.email);
+        const lr = await esy.linkCustomer(guestCustomer);
+        if (lr && lr.ok) st.markCustomerLinked(guestCustomer.email, lr.id || null);
+        else console.warn(`[ecwid] guest customer not linked: ${(lr && lr.reason) || 'unknown'}`);
+      } catch (e) { console.warn('[ecwid] guest customer not linked:', e && e.message); }
+    }
+
     /* Pushed now so the customer learns immediately whether it landed. A
        failure is NOT reported as a failed order: it is queued, it retries
        every two minutes, and the admin desk shows it with the customer's
@@ -2721,10 +2743,28 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         return json(200, { orders: db.allOrders(), statuses: ORDER_STATUSES });
       if (seg[0] === 'orders' && seg[2] === 'status' && req.method === 'POST') {
         const b = await readJson(req);
-        const r = db.setOrderStatus(decodeURIComponent(seg[1]), b.status);
+        const ref = decodeURIComponent(seg[1]);
+        const r = db.setOrderStatus(ref, b.status);
         if (r.error) return json(400, { error: r.error });
-        cadm.log(actor, 'order.status', seg[1], { status: b.status });
-        return json(200, r);
+        cadm.log(actor, 'order.status', ref, { status: b.status });
+        /* AND tell Ecwid. Without this the desk wrote the status here and the
+           control panel stayed stale — staff working in one place could not see
+           what staff in the other had done.
+
+           Reported, never fatal: the status IS changed locally by this point, so
+           failing the request would tell the operator their click did nothing,
+           which would be false. `ecwid` says what became of the push instead,
+           and the admin panel can surface it. */
+        let ecwid = null;
+        const esy = ecwidSync();
+        if (esy) {
+          try { ecwid = await esy.pushOrderStatus(ref, b.status); }
+          catch (e) { ecwid = { ok: false, reason: 'error', message: String((e && e.message) || e) }; }
+          if (ecwid && !ecwid.ok && ecwid.reason !== 'not-pushable' && ecwid.reason !== 'not-in-ecwid') {
+            console.warn(`[ecwid] status push failed for ${ref}: ${ecwid.reason}`);
+          }
+        }
+        return json(200, { ...r, ecwid });
       }
 
       /* ------- customers ------- */
@@ -3115,24 +3155,36 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (r.error) return json(400, r.error === 'too-many-homes'
           ? { error: r.error, message: lang === 'en' ? 'You can keep up to 8 places.' : 'يمكنك الاحتفاظ بثمانية أماكن كحد أقصى.' }
           : authErr(r.error, lang));
+        /* A place the customer saved is a place we may have to deliver to, so
+           Ecwid gets it. Addresses ride on the customer record, which means the
+           same link call that carries a name change carries this. */
+        linkCustomerSoon(r.user);
         return json(200, { ok: true, home: r.home, user: r.user });
       }
       if (u.pathname === '/api/auth/homes' && (req.method === 'PATCH' || req.method === 'PUT')) {
         const b = await readJson(req);
         const r = db.updateHome(me.id, String(b.id || ''), b.patch || b);
         if (r.error) return json(400, authErr(r.error, lang));
+        linkCustomerSoon(r.user);
         return json(200, { ok: true, home: r.home, user: r.user });
       }
       if (u.pathname === '/api/auth/homes' && req.method === 'DELETE') {
         const b = await readJson(req);
         const r = db.removeHome(me.id, String(b.id || ''));
         if (r.error) return json(400, authErr(r.error, lang));
+        /* A DELETE must shrink the mirror too, or Ecwid keeps an address the
+           customer deliberately removed. */
+        linkCustomerSoon(r.user);
         return json(200, { ok: true, user: r.user });
       }
       if (u.pathname === '/api/auth/homes/active' && req.method === 'POST') {
         const b = await readJson(req);
         const r = db.setActiveHome(me.id, b.id ? String(b.id) : null);
         if (r.error) return json(400, authErr(r.error, lang));
+        /* The active home leads the address list in Ecwid, so switching it
+           reorders what staff see first — which is the address checkout will
+           actually use. */
+        linkCustomerSoon(r.user);
         return json(200, { ok: true, user: r.user });
       }
 
@@ -3614,6 +3666,30 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
         if (queued) console.log('[ecwid] ' + queued + ' account(s) queued for customer linking');
       }
     } catch (e) { console.warn('[ecwid] customer backfill skipped:', e && e.message); }
+
+    /* ORDER BACKFILL, the same idea for orders. Every order Ecwid does not have
+       is made due again at startup — including the ones that exhausted their
+       retries while the token was broken, which is precisely where SDK-DED885
+       sat: seven attempts, no Ecwid id, and invisible to nextDuePush because
+       the due query also filters on the retry budget.
+
+       resetPush now clears attempts as well as the delay, so this genuinely
+       revives them rather than queueing work the poller will never pick up.
+
+       This DOES write history into the store on a restart, with no
+       confirmation — that is the chosen behaviour, matching how accounts
+       already work. The count is logged so a restart says what it is about
+       to do. */
+    try {
+      const est = ecwidStore();
+      if (est) {
+        const unsent = est.unsentOrderRefs();
+        for (const ref of unsent) est.resetPush(ref);
+        if (unsent.length) {
+          console.log('[ecwid] ' + unsent.length + ' order(s) queued for push: ' + unsent.join(', '));
+        }
+      }
+    } catch (e) { console.warn('[ecwid] order backfill skipped:', e && e.message); }
 
     if (ECWID_POLL_MS > 0) {
       console.log(`[ecwid] polling every ${Math.round(ECWID_POLL_MS / 1000)}s` +

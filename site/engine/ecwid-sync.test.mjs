@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { openEcwidStore } from './ecwid-store.mjs';
 import { createEcwidSync } from './ecwid-sync.mjs';
+import { toEcwidCustomer } from './ecwid-customers.mjs';
 
 function fresh(api) {
   const dir = mkdtempSync(path.join(tmpdir(), 'sadko-sync-'));
@@ -698,5 +699,118 @@ test('linkPendingCustomers never throws, whatever the loader does', async () => 
     store.enqueueCustomerLink('nour@example.com');
     const r = await sync.linkPendingCustomers(async () => { throw new Error('db gone'); });
     assert.ok(r, 'it must return a result rather than throw out of the poll');
+  } finally { cleanup(); }
+});
+
+/* ================== pushing a status UP, to Ecwid ==========================
+   Ecwid stays the master for anything staff change THERE. This exists only so
+   a status changed on the SADKO admin desk does not leave the control panel
+   stale — which it silently did, in the one direction nobody watches. */
+
+test('a status set on the site is pushed to the order in Ecwid', async () => {
+  const seen = [];
+  const { store, sync, cleanup } = fresh(stubApi({
+    updateOrder: async (id, body) => { seen.push({ id, body }); return { updateCount: 1 }; } }));
+  try {
+    store.enqueueOrderPush('SDK-AB12CD');
+    store.markPushed('SDK-AB12CD', '7483');
+    const r = await sync.pushOrderStatus('SDK-AB12CD', 'shipping');
+    assert.equal(r.ok, true);
+    assert.deepEqual(seen, [{ id: '7483', body: { fulfillmentStatus: 'SHIPPED' } }]);
+  } finally { cleanup(); }
+});
+
+test('an order Ecwid has never seen is not pushed — there is nothing to update', async () => {
+  let called = 0;
+  const { store, sync, cleanup } = fresh(stubApi({ updateOrder: async () => { called++; } }));
+  try {
+    store.enqueueOrderPush('SDK-NOTYET');           // queued, never sent
+    const r = await sync.pushOrderStatus('SDK-NOTYET', 'shipping');
+    assert.equal(r.ok, false);
+    assert.equal(r.reason, 'not-in-ecwid');
+    assert.equal(called, 0, 'the order will carry its status when it is first created');
+  } finally { cleanup(); }
+});
+
+test('confirmed is never pushed, because the echo would rewrite it', async () => {
+  let called = 0;
+  const { store, sync, cleanup } = fresh(stubApi({ updateOrder: async () => { called++; } }));
+  try {
+    store.enqueueOrderPush('SDK-AB12CD');
+    store.markPushed('SDK-AB12CD', '7483');
+    const r = await sync.pushOrderStatus('SDK-AB12CD', 'confirmed');
+    assert.equal(r.ok, false);
+    assert.equal(r.reason, 'not-pushable');
+    assert.equal(called, 0);
+  } finally { cleanup(); }
+});
+
+test('a 403 is a configuration state, not a fault that reaches the operator', async () => {
+  const { store, sync, cleanup } = fresh(stubApi({
+    updateOrder: async () => { throw new Error('ecwid-403: '); } }));
+  try {
+    store.enqueueOrderPush('SDK-AB12CD');
+    store.markPushed('SDK-AB12CD', '7483');
+    const r = await sync.pushOrderStatus('SDK-AB12CD', 'delivered');
+    assert.equal(r.ok, false);
+    assert.equal(r.reason, 'no-access');
+  } finally { cleanup(); }
+});
+
+test('pushing a status never throws, whatever Ecwid does', async () => {
+  const { store, sync, cleanup } = fresh(stubApi({
+    updateOrder: async () => { throw new Error('boom'); } }));
+  try {
+    store.enqueueOrderPush('SDK-AB12CD');
+    store.markPushed('SDK-AB12CD', '7483');
+    const r = await sync.pushOrderStatus('SDK-AB12CD', 'delivered');
+    assert.equal(r.ok, false, 'an admin action must not 500 because Ecwid hiccuped');
+  } finally { cleanup(); }
+});
+
+/* ============== the customer link, with the snapshot rule ================= */
+
+test('a new customer is created and what we sent is remembered', async () => {
+  const { store, sync, cleanup } = fresh(stubApi({
+    customerByEmail: async () => null,
+    createCustomer: async () => ({ id: 366742801 }) }));
+  try {
+    store.enqueueCustomerLink('nada@example.com');
+    const r = await sync.linkCustomer({ email: 'nada@example.com', name: 'ندى', phone: '01000000000' });
+    assert.equal(r.ok, true);
+    assert.equal(r.created, true);
+    const snap = store.customerPushSnapshot('nada@example.com');
+    assert.equal(snap.name, 'ندى', 'without the snapshot the next push cannot tell user from staff');
+  } finally { cleanup(); }
+});
+
+test('only the fields that changed are written, so a staff edit survives', async () => {
+  const puts = [];
+  const { store, sync, cleanup } = fresh(stubApi({
+    customerByEmail: async () => ({ id: 9, name: 'ندى محمد', billingPerson: { phone: '01000000000' } }),
+    updateCustomer: async (id, body) => { puts.push({ id, body }); return {}; } }));
+  try {
+    store.enqueueCustomerLink('nada@example.com');
+    /* We last pushed the old phone; staff have since corrected the name. */
+    store.markCustomerLinked('nada@example.com', '9',
+      { email: 'nada@example.com', name: 'ندى', billingPerson: { phone: '01000000000', countryCode: 'EG' } });
+    await sync.linkCustomer({ email: 'nada@example.com', name: 'ندى', phone: '01111111111' });
+    assert.equal(puts.length, 1);
+    assert.ok(!('name' in puts[0].body), 'the staff-corrected name must not be overwritten');
+    assert.equal(puts[0].body.billingPerson.phone, '01111111111', 'the user\'s new phone must propagate');
+  } finally { cleanup(); }
+});
+
+test('nothing to change means no write at all', async () => {
+  let puts = 0;
+  const { store, sync, cleanup } = fresh(stubApi({
+    customerByEmail: async () => ({ id: 9, name: 'ندى', billingPerson: { phone: '01000000000' } }),
+    updateCustomer: async () => { puts++; return {}; } }));
+  try {
+    store.enqueueCustomerLink('nada@example.com');
+    const user = { email: 'nada@example.com', name: 'ندى', phone: '01000000000' };
+    store.markCustomerLinked('nada@example.com', '9', toEcwidCustomer(user));
+    await sync.linkCustomer(user);
+    assert.equal(puts, 0);
   } finally { cleanup(); }
 });

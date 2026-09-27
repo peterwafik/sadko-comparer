@@ -1984,6 +1984,86 @@ for a working token: all four are created correctly, with their names and
 phone numbers, and the queue drains to zero. **The moment a `secret_` token is
 in place, the first poll links them** — nothing has to be re-entered by hand.
 
+##### What now reaches Ecwid, and when (2026‑09‑27)
+
+The scope fault is fixed and the link is two‑way. Every path below is verified
+against the live test store, not only unit‑tested.
+
+| On the site | In Ecwid |
+|---|---|
+| Register | customer created, with name and phone |
+| Edit name or phone | only the fields the **user** changed are written |
+| Add / rename / delete a saved place | `shippingAddresses` mirrored, deletions included |
+| Switch the active place | that address becomes Ecwid's `defaultAddress` |
+| Guest checkout | customer created *before* the order, carrying the typed address |
+| Admin desk changes an order status | pushed up as `fulfillmentStatus` |
+| Staff change a status in Ecwid | webhook brings it back to the site |
+
+**A saved place is not a postal address.** `PROFILE_KEYS` holds governorate,
+area, floor and lift plus appliance‑fitting data, and no street line — the only
+street the site holds is the one `user.address` field. So several places share a
+street and differ by governorate and access; each address is *named* after the
+place so staff can tell them apart, and the floor and lift ride in the street
+line exactly as a pushed order writes them.
+
+**The active place is marked `defaultAddress`, not merely put first.** Ecwid
+keeps its own address ids and `orderBy` and ignores the order of the array sent
+to it, so position carries no meaning. Found in live testing: switching the
+active place changed nothing visible in the control panel until the flag was
+set explicitly. It is always written explicitly, so switching back **clears**
+the previous default instead of leaving two addresses claiming it.
+
+**Only the fields that changed are written.** The gate is a per‑field patch
+against `customer_link.pushed_json` — what was last sent:
+
+- a value differing from the snapshot was changed by the **user**, so it goes up;
+- a value in Ecwid differing from the snapshot was changed by **staff**, so it is
+  left alone;
+- anything Ecwid is missing is filled, as before.
+
+With no snapshot it degrades to the old fill‑only rule, deliberately: without
+one, a staff correction cannot be told from a stale value, and guessing wrong
+overwrites a human. This replaced a boolean gate that forced the caller to send
+a single hardcoded field, because sending the whole payload would have clobbered
+every other detail staff had corrected.
+
+**`confirmed` is never pushed.** Ecwid has no equivalent — `PROCESSING` already
+means `preparing` — so pushing it would come back through the webhook as
+`preparing` and silently rewrite the operator's own choice. The other five
+statuses each map back to themselves, which is the property
+`ecwid-map.test.mjs` asserts, and it is what makes echo suppression free: the
+webhook handler already returns early when the status it computes equals the one
+stored. No timers, no marker rows.
+
+A failed status push **does not fail the request**. The local change has already
+committed and written its audit row, so a 4xx would tell the operator their
+click did nothing. The outcome is reported as `ecwid` in the response instead.
+
+**Unsent orders are revived at boot**, matching how accounts already work: every
+order with no Ecwid id has its retry budget restored and is pushed within two
+minutes. `resetPush` now clears `attempts` as well as the delay — clearing only
+the delay queued work the poller would never pick up, because the due query
+also filters on the budget, which is where `SDK-DED885` sat for five days with
+seven attempts and no Ecwid id. It pushed as order 7484 on the first boot after
+the fix. Note that a **restart therefore writes history into the store with no
+confirmation** — chosen deliberately, and the count is logged first.
+
+**Guests get a customer record.** `guestCustomerOf()` is separate from
+`guestUserOf()` on purpose: the latter carries only what a pushed order needs,
+because the order already holds the address in its `shippingPerson`, and
+widening it would quietly change what every order sends. The guest's queue row
+is enqueued *before* the link attempt, because linking records itself with an
+`UPDATE` and would otherwise write the customer id and snapshot to nothing.
+A guest who cannot be linked can still buy.
+
+**Never probe a write scope with a bare `POST`.** `tools/set-ecwid-token.mjs`
+POSTed an empty body to `/orders` expecting a validation error; Ecwid answered
+200 and created an "Auto-generated Product" order with a total of 0 in the real
+store, once per token change. Aim a `PUT` at id `999999999999` instead: 404
+proves the scope and creates nothing. Orders **7481 and 7482 are that wreckage**
+and are safe to delete.
+
+
 #### Checking the shapes before trusting them
 
 ```

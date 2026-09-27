@@ -88,6 +88,18 @@ const MIGRATIONS = [{
   );
   CREATE INDEX IF NOT EXISTS customer_link_due ON customer_link(linked_at, next_attempt_at);
   `,
+}, {
+  id: 6, name: "customer link push snapshot",
+  sql: `
+  -- What we last SENT for this customer, as JSON. The discriminator that lets
+  -- a later push tell a change the user made here (desired != pushed) from a
+  -- correction staff made in Ecwid (remote != pushed), so the second is never
+  -- overwritten by the first. See customerUpdatePatch in ecwid-customers.mjs.
+  --
+  -- Still not a copy of the customer: it is only ever compared, never read back
+  -- as truth, and a NULL simply means "no snapshot yet, be conservative".
+  ALTER TABLE customer_link ADD COLUMN pushed_json TEXT;
+  `,
 }];
 
 const nowISO = () => new Date().toISOString();
@@ -164,7 +176,15 @@ export function openEcwidStore(file) {
   const pqBad = db.prepare('UPDATE order_push SET attempts = attempts + 1, last_error = ?, next_attempt_at = ? WHERE ref = ?');
   const pqPend = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts < ' + MAX_ATTEMPTS + ' ORDER BY created_at');
   const pqFail = db.prepare('SELECT * FROM order_push WHERE pushed_at IS NULL AND attempts >= ' + MAX_ATTEMPTS + ' ORDER BY created_at');
-  const pqReset = db.prepare('UPDATE order_push SET next_attempt_at = NULL WHERE ref = ?');
+  /* attempts = 0 as well as the delay. Clearing only next_attempt_at left an
+     order that had burned its budget permanently invisible to nextDuePush,
+     because the due query also filters attempts < MAX_ATTEMPTS — so the admin
+     desk's Retry button did nothing at all on the orders that most needed it.
+     resetCustomerLink always did both; this was the odd one out. */
+  const pqReset = db.prepare('UPDATE order_push SET attempts = 0, next_attempt_at = NULL, last_error = NULL WHERE ref = ?');
+  /* Every order Ecwid does not have, whether it was never queued, is waiting, or
+     has exhausted its retries. The boot backfill's work list. */
+  const pqUnsent = db.prepare('SELECT ref FROM order_push WHERE ecwid_order_id IS NULL ORDER BY created_at');
   /* The orders that actually reached Ecwid, newest first. Only these have an
      Ecwid id to ask about, and only Ecwid can say what staff did to them
      after the push. */
@@ -175,6 +195,11 @@ export function openEcwidStore(file) {
   const clDue  = db.prepare('SELECT * FROM customer_link WHERE linked_at IS NULL AND attempts < ' + MAX_ATTEMPTS
     + ' AND (next_attempt_at IS NULL OR next_attempt_at <= ?) ORDER BY created_at LIMIT ?');
   const clOk   = db.prepare('UPDATE customer_link SET ecwid_customer_id = ?, linked_at = ?, last_error = NULL WHERE email = ?');
+  /* Snapshot written separately so a link that cannot build a payload leaves the
+     stored one intact: losing the discriminator silently reverts the customer to
+     the conservative fill-only rule. */
+  const clSnap = db.prepare('UPDATE customer_link SET pushed_json = ? WHERE email = ?');
+  const clSnapGet = db.prepare('SELECT pushed_json FROM customer_link WHERE email = ?');
   const clBad  = db.prepare('UPDATE customer_link SET attempts = attempts + 1, last_error = ?, next_attempt_at = ? WHERE email = ?');
   const clPend = db.prepare('SELECT * FROM customer_link WHERE linked_at IS NULL AND attempts < ' + MAX_ATTEMPTS + ' ORDER BY created_at');
   const clFail = db.prepare('SELECT * FROM customer_link WHERE linked_at IS NULL AND attempts >= ' + MAX_ATTEMPTS + ' ORDER BY created_at');
@@ -257,6 +282,7 @@ export function openEcwidStore(file) {
     failedPushes: () => pqFail.all(),
     resetPush(ref) { pqReset.run(String(ref)); },
     pushedOrders: (limit = 200) => pqPushed.all(Number(limit) || 200),
+    unsentOrderRefs: () => pqUnsent.all().map(r => r.ref),
 
     /* ---- the guest outbox ----
        putGuestOrder / getGuestOrder / dropGuestOrder. The drop is the point:
@@ -272,8 +298,20 @@ export function openEcwidStore(file) {
     },
     customerLinkRow(email) { return clGet.get(String(email || '').trim().toLowerCase()) || null; },
     dueCustomerLinks(limit = 25, at) { return clDue.all(at || nowISO(), Number(limit) || 25); },
-    markCustomerLinked(email, id) {
-      clOk.run(id == null ? null : String(id), nowISO(), String(email || '').trim().toLowerCase());
+    markCustomerLinked(email, id, pushed) {
+      const em = String(email || '').trim().toLowerCase();
+      clOk.run(id == null ? null : String(id), nowISO(), em);
+      /* Only when a payload was actually sent. Passing nothing must not erase
+         the snapshot a previous push stored. */
+      if (pushed != null) clSnap.run(JSON.stringify(pushed), em);
+    },
+    /* What we last sent for this customer, or null when there is no usable
+       snapshot — including a corrupt one, because "be conservative" is the
+       correct behaviour for an unreadable discriminator, not a crash. */
+    customerPushSnapshot(email) {
+      const row = clSnapGet.get(String(email || '').trim().toLowerCase());
+      if (!row || row.pushed_json == null) return null;
+      try { return JSON.parse(row.pushed_json); } catch (e) { return null; }
     },
     markCustomerLinkFailed(email, error, nextAttemptAt) {
       clBad.run(String(error).slice(0, 500), nextAttemptAt || null, String(email || '').trim().toLowerCase());

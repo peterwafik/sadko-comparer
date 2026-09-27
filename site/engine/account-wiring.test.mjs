@@ -54,9 +54,16 @@ test('the link never blocks or fails a signup', () => {
 
   const fn = /function linkCustomerSoon\(user\)[\s\S]{0,2000}?\n\}/.exec(src);
   assert.ok(fn, 'linkCustomerSoon is gone');
-  assert.match(fn[0], /\.catch\(/, 'a rejected link would become an unhandled rejection');
   assert.match(fn[0], /try \{/, 'the call itself is not guarded');
   assert.ok(!/\bawait\b/.test(fn[0]), 'the helper must not await, or it would block the response');
+
+  /* The rejection guard lives in chainCustomerPush now, which is where the
+     promise is actually retained. Asserted there rather than dropped: an
+     unhandled rejection is still the failure this test exists to prevent. */
+  const chain = /function chainCustomerPush[\s\S]{0,1200}?\n\}/.exec(src);
+  assert.ok(chain, 'chainCustomerPush is gone');
+  assert.match(chain[0], /\.catch\(/, 'a rejected link would become an unhandled rejection');
+  assert.ok(!/\bawait\b/.test(chain[0]), 'the chain must not await either');
 });
 
 test('a failed link is LOGGED, not swallowed', () => {
@@ -344,4 +351,94 @@ test('reviving a parked order restores its retry budget, not just the delay', ()
      which is where SDK-DED885 sat with seven attempts and no Ecwid id. */
   const store = readFileSync(path.join(SITE, 'engine', 'ecwid-store.mjs'), 'utf8');
   assert.match(store, /UPDATE order_push SET attempts = 0, next_attempt_at = NULL/);
+});
+
+/* ======== a status the site just set must not regress on her own page ======
+   FOUND BY THE END-TO-END JOURNEY, and caused by two correct things meeting:
+
+     · mergeOrders takes the REMOTE status for an order that exists in both,
+       because Ecwid is the master; and
+     · remoteOrdersCached holds that remote read for 60 seconds.
+
+   So after staff marked an order delivered on the admin desk, the customer's own
+   page showed it back at "received" for up to a minute — a visible backwards
+   step on the one screen she checks. The local write and the Ecwid push were
+   both already correct; only the cached copy was stale.
+
+   The fix is to drop that customer's cached remote read when the site changes
+   one of their statuses, so the next page load re-reads Ecwid — which by then
+   holds the pushed status. */
+
+test('a local status change invalidates that customer\'s cached Ecwid orders', () => {
+  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,2400}?\n      \}/.exec(src)[0];
+  assert.match(route, /forgetRemoteOrders/,
+    'without this the customer sees the OLD status for up to the cache TTL');
+});
+
+test('the cache is dropped for the order\'s own customer, not flushed wholesale', () => {
+  /* Flushing every entry would make one status change re-read Ecwid for every
+     signed-in customer, which is what the cache exists to prevent. */
+  const fn = /function forgetRemoteOrders[\s\S]{0,900}?\n\}/.exec(src)[0];
+  assert.match(fn, /REMOTE_ORDERS\.delete/);
+  assert.ok(!/REMOTE_ORDERS\.clear/.test(fn), 'a targeted delete, never a clear');
+});
+
+test('forgetting the cache cannot throw out of the status route', () => {
+  /* The status change has already committed by then; a cache miss must never
+     turn a successful admin action into a 500. */
+  const fn = /function forgetRemoteOrders[\s\S]{0,900}?\n\}/.exec(src)[0];
+  assert.match(fn, /try \{/);
+  assert.match(fn, /catch/);
+});
+
+/* ============ two quick edits must not leave Ecwid on the older one =========
+   FOUND BY THE END-TO-END JOURNEY, intermittently, which is the worst way to
+   find anything. Adding two saved places back to back fires two fire-and-forget
+   pushes for the SAME customer. Each carries the user state as it was when the
+   route ran, so the second carries both places and the first carries one — and
+   nothing ordered them. When the one-place push happened to land last, Ecwid was
+   left holding one address and stayed that way, because the next push only
+   happens when the customer edits something again.
+
+   Pushes for one email are therefore serialised: they still never block the
+   request, but they run in the order the edits happened, so the last write is
+   the newest state. Different customers are unaffected and still run in
+   parallel. */
+
+test('customer pushes are serialised per email, so the newest state wins', () => {
+  const fn = /function linkCustomerSoon[\s\S]{0,2600}?\n\}/.exec(src)[0];
+  assert.match(fn, /chainCustomerPush\(user\.email/, 'the push must go through the chain');
+  const chain = /function chainCustomerPush[\s\S]{0,1200}?\n\}/.exec(src)[0];
+  assert.match(chain, /LINK_CHAIN\.get\(/, 'each push waits on the previous one for that email');
+  assert.match(chain, /LINK_CHAIN\.set\(/);
+});
+
+test('the chain is keyed per customer, not one global lock', () => {
+  /* A single global lock would make every customer wait behind every other,
+     turning a signup spike into a queue. */
+  assert.match(src, /const LINK_CHAIN = new Map\(\)/);
+  const chain = /function chainCustomerPush[\s\S]{0,1200}?\n\}/.exec(src)[0];
+  assert.match(chain, /String\(email\).*toLowerCase\(\)/, 'the key is the email, normalised');
+  /* And it must not grow forever in a long-lived process. */
+  assert.match(chain, /LINK_CHAIN\.delete\(key\)/);
+});
+
+test('signing up still never waits on Ecwid', () => {
+  /* The whole point of fire-and-forget: registration must not be slowed or
+     failed by the store. Serialising must not turn into awaiting. */
+  const register = /u\.pathname === '\/api\/auth\/register'[\s\S]{0,1200}?\n      \}/.exec(src)[0];
+  assert.match(register, /linkCustomerSoon\(r\.user\)/);
+  assert.ok(!/await linkCustomerSoon/.test(src), 'it must never be awaited by a route');
+});
+
+test('a failed push does not poison the chain for later edits', () => {
+  /* If a rejection propagated, every subsequent edit for that customer would
+     inherit a rejected promise and never run. The .catch must come BEFORE the
+     .then that runs the next push. */
+  const chain = /function chainCustomerPush[\s\S]{0,1200}?\n\}/.exec(src)[0];
+  /* Order matters: prev.catch(...) must come before .then(work). Checked by
+     position rather than with one regex, because the arrow body carries its
+     own parentheses and a character class cannot span them. */
+  const c = chain.indexOf('prev.catch('), th = chain.indexOf('.then(work)');
+  assert.ok(c > 0 && th > c, 'a failed predecessor must not stop its successor');
 });

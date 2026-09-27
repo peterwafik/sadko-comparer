@@ -1994,7 +1994,7 @@ against the live test store, not only unit‑tested.
 | Register | customer created, with name and phone |
 | Edit name or phone | only the fields the **user** changed are written |
 | Add / rename / delete a saved place | `shippingAddresses` mirrored, deletions included |
-| Switch the active place | that address becomes Ecwid's `defaultAddress` |
+| Switch the active place | that address becomes Ecwid's `defaultAddress` — until the next order, see below |
 | Guest checkout | customer created *before* the order, carrying the typed address |
 | Admin desk changes an order status | pushed up as `fulfillmentStatus` |
 | Staff change a status in Ecwid | webhook brings it back to the site |
@@ -2009,9 +2009,35 @@ line exactly as a pushed order writes them.
 **The active place is marked `defaultAddress`, not merely put first.** Ecwid
 keeps its own address ids and `orderBy` and ignores the order of the array sent
 to it, so position carries no meaning. Found in live testing: switching the
-active place changed nothing visible in the control panel until the flag was
-set explicitly. It is always written explicitly, so switching back **clears**
-the previous default instead of leaving two addresses claiming it.
+active place changed nothing visible in the control panel until the flag was set
+explicitly. It is always written explicitly, so switching back **clears** the
+previous default instead of leaving two addresses claiming it.
+
+**But Ecwid then takes the default back, and adds addresses of its own.** Proven
+end to end: after each order, Ecwid captures that order's `shippingPerson` as a
+*new* entry in the customer's `shippingAddresses` and makes the newest one the
+default. So a customer who has ordered three times ends up with the two entries
+this site mirrors from her saved places **plus** one Ecwid-made entry per order,
+all naming the same street, and the default is Ecwid's last-used address rather
+than her active place.
+
+This is Ecwid's own behaviour and it is defensible — for a merchant, the address
+last delivered to is a sensible default — so the site does **not** fight it. The
+consequences to be honest about:
+
+- the mirror is *additive from Ecwid's side*: our pushes control our own entries,
+  never Ecwid's, and we cannot prune what Ecwid created;
+- "the active place is the Ecwid default" holds **at push time only**. After any
+  order it is whatever that order shipped to, until the customer edits a place
+  again;
+- entries the site mirrored are recognisable because they are **named after the
+  place** (`منزلى`, `شقة الساحل`); Ecwid's own are named after the *person*.
+
+Re-asserting the default after every order would mean re-pushing the whole list
+on every order and still not removing Ecwid's copies — churn for no gain. If the
+duplicate entries ever become a nuisance for staff, the fix is to stop mirroring
+places altogether and let Ecwid capture addresses from orders alone, not to
+fight it from both ends.
 
 **Only the fields that changed are written.** The gate is a per‑field patch
 against `customer_link.pushed_json` — what was last sent:

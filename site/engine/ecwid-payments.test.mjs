@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   restrictionOf, basketFit, toStorefrontMethods, stripHtml, normAr, FALLBACK_METHODS,
+  withRestriction,
 } from './ecwid-payments.mjs';
 
 /* The ten real method titles, copied from the live store's profile. */
@@ -212,4 +213,53 @@ test('every live method title classifies without throwing', () => {
   })));
   assert.equal(shaped.length, 10, 'all ten enabled methods should survive');
   assert.equal(shaped.filter(m => m.restricted).length, 2, 'exactly two are product-restricted');
+});
+
+/* ============ the restriction must survive the ORDER-PUSH path too =========
+   FOUND BY AN END-TO-END TEST, not by a unit test, which is the point of it.
+   `restricted` and `brand` are DERIVED from the Arabic title — they are not
+   columns in the mirror. toStorefrontMethods derived them, so the storefront
+   and the admin panel were right; the order push reads store.allPaymentMethods()
+   raw, so `method.restricted` was always undefined there and toEcwidOrder's
+   warning line was always null.
+
+   The consequence was the exact opposite of what the design intended: the site
+   cannot verify that the basket qualifies for a brand-restricted instalment
+   plan, so it is supposed to hand staff that fact for the confirmation call
+   they already make. Nobody was ever told. */
+
+test('withRestriction adds the derived flags to raw mirrored rows', () => {
+  const rows = [
+    { id: '9599-1', title: 'مبادرة العربى تقسيط ( منتجات العربى فقط )', enabled: true, order: 1 },
+    { id: '6798-1', title: 'Cash on Delivery  الدفع عند الاستلام', enabled: true, order: 0 },
+  ];
+  const out = withRestriction(rows);
+  const arabi = out.find(m => m.id === '9599-1');
+  assert.equal(arabi.restricted, true);
+  assert.ok(arabi.brand, 'a restricted plan must name its brand for the staff warning');
+  assert.equal(out.find(m => m.id === '6798-1').restricted, false);
+});
+
+test('withRestriction does NOT filter, reshape or reorder', () => {
+  /* An order placed with a method later DISABLED must still push. Filtering
+     here would make toEcwidOrder throw "unknown payment method" and park a real
+     customer's order — which is why this is not simply toStorefrontMethods. */
+  const rows = [
+    { id: 'a', title: 'تقسيط كريازى', enabled: false, order: 5, instructions: 'x' },
+    { id: 'b', title: 'Cash', enabled: true, order: 1 },
+  ];
+  const out = withRestriction(rows);
+  assert.equal(out.length, 2, 'a disabled method must survive');
+  assert.equal(out[0].id, 'a', 'the order of the input is preserved');
+  assert.equal(out[0].enabled, false, 'every original field is kept');
+  assert.equal(out[0].instructions, 'x');
+  assert.equal(out[0].order, 5);
+});
+
+test('withRestriction is safe on rubbish', () => {
+  assert.deepEqual(withRestriction(), []);
+  assert.deepEqual(withRestriction(null), []);
+  const out = withRestriction([null, { id: 'x' }]);
+  assert.equal(out.length, 1, 'a null row is dropped, not turned into a method');
+  assert.equal(out[0].restricted, false, 'no title means no restriction claimed');
 });

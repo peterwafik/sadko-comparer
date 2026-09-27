@@ -97,6 +97,32 @@ export const FALLBACK_METHODS = [
   { id: 'showroom', title: 'الدفع فى المعرض', titleEn: 'Pay at a showroom', restricted: false },
 ];
 
+/* The mirrored rows, with the DERIVED restriction flags added and nothing else
+   changed.
+
+   `restricted` and `brand` are parsed out of the Arabic title — they are not
+   columns in the mirror — so any consumer reading store.allPaymentMethods()
+   directly sees `restricted === undefined` and silently behaves as though no
+   plan were restricted. That is what happened to the ORDER PUSH: toEcwidOrder
+   builds a "تنبيه: طريقة الدفع مقصورة على منتجات …" line for staff, because the
+   site cannot verify that a basket qualifies for a brand-restricted instalment
+   plan and is supposed to hand them that fact for the confirmation call they
+   already make. The line was always null, so nobody was ever told. Found by an
+   end-to-end test against the live store, not by any unit test.
+
+   NOT toStorefrontMethods, deliberately: that one FILTERS OUT disabled methods,
+   and an order placed with a method the owner later switched off must still
+   push. Filtering here would make toEcwidOrder throw "unknown payment method"
+   and park a real order. So this adds fields and removes nothing — no
+   filtering, no reshaping, no reordering. */
+export function withRestriction(mirrored = []) {
+  return (Array.isArray(mirrored) ? mirrored : []).filter(Boolean).map(m => {
+    const r = restrictionOf(m.title);
+    return { ...m, restricted: r.restricted, brand: r.brand,
+             brandEn: r.brandEn, brandKey: r.brandKey };
+  });
+}
+
 /* Shape the mirrored methods for the storefront. `instructions` is real Arabic
    copy staff wrote in Ecwid — every instalment plan says some form of
    "سيتم التواصل لارسال الرابط الخاص بالدفع" — and the customer should see it,

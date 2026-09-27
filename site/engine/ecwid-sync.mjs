@@ -16,6 +16,7 @@
 
 import { toSadkoProduct, toSadkoCategory, toEcwidOrder, toLocalStatus, toEcwidFulfillment } from './ecwid-map.mjs';
 import { toEcwidCustomer, customerUpdatePatch, fromEcwidOrder } from './ecwid-customers.mjs';
+import { withRestriction } from './ecwid-payments.mjs';
 import { AD_SLOTS, buildSlotMap } from './ecwid-ads.mjs';
 
 const PAGE = 100;
@@ -230,7 +231,11 @@ export function createEcwidSync({ api, store, adFolders = {},
       const user = await loadUser(order);
       /* Throws on an unknown payment method — a wrong payment status on a real
          order is worse than a failed push. */
-      payload = map.toEcwidOrder(order, user, store.allPaymentMethods());
+      /* withRestriction, NOT the raw rows: restricted and brand are derived from
+         the Arabic title rather than stored, so the raw rows always read as
+         unrestricted and toEcwidOrder silently dropped the staff warning for a
+         brand-restricted instalment plan. */
+      payload = map.toEcwidOrder(order, user, withRestriction(store.allPaymentMethods()));
       loaded = order;
     } catch (e) { return park(String((e && e.message) || e)); }
 

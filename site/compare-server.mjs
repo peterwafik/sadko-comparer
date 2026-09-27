@@ -2139,6 +2139,37 @@ async function remoteOrdersCached(email) {
   return orders;
 }
 
+/* Drop one customer's cached Ecwid orders, by order reference.
+
+   WHY THIS EXISTS. mergeOrders takes the REMOTE status for an order that exists
+   in both places, because Ecwid is the master — and remoteOrdersCached holds
+   that remote read for a minute. Both are right on their own, and together they
+   made the customer's own page show a status the site had just moved BACKWARDS:
+   staff marked an order delivered on the admin desk, she refreshed, and saw
+   "received" again until the cache expired. The local write and the push to
+   Ecwid were both already correct; only the cached copy was stale.
+
+   Targeted, never a clear(): flushing every entry would make one status change
+   re-read Ecwid for every signed-in customer, which is the cost the cache exists
+   to avoid.
+
+   Never throws. By the time this runs the status change has committed and been
+   audited, so a cache miss must not turn a successful admin action into a 500 —
+   and the worst case if it did nothing is the stale minute this removes. */
+function forgetRemoteOrders(ref) {
+  try {
+    const db = accounts();
+    if (!db) return;
+    const order = db.orderByRefAny(String(ref));
+    /* A guest order carries the email on itself; an account order points at a
+       user. Either way it is the email that keys the cache, because that is what
+       Ecwid files orders under. */
+    const email = (order && order.email) ||
+      (order && order.userId && (db.getUser(order.userId) || {}).email) || '';
+    if (email) REMOTE_ORDERS.delete(String(email).toLowerCase());
+  } catch (e) { /* a stale cache entry is not worth failing an admin action */ }
+}
+
 /* Whether this deployment stores passwords at all. Resolved once, at boot:
    a per-request read could change under a running server and leave the
    config route and the auth routes disagreeing. */
@@ -2166,13 +2197,47 @@ const passwordsOff = lang => ({
    once; the queue is what makes it eventually true when the attempt fails.
    Not awaited by the caller — signing up must not wait on Ecwid — but the
    failure is LOGGED, which is the part that was missing. */
+/* One in-flight customer push per email, in the order the edits happened.
+
+   WHY. linkCustomerSoon is deliberately fire-and-forget: signing up or saving an
+   address must never wait on Ecwid, let alone fail because of it. But each call
+   carries the user state as it was when its route ran, and nothing ordered the
+   calls — so adding two saved places back to back raced two pushes, one carrying
+   one place and one carrying both. Whenever the one-place push landed last,
+   Ecwid was left holding one address and STAYED that way, because the next push
+   only happens when the customer edits something again. Found intermittently by
+   tools/ecwid-journey.mjs, which is the worst way to find anything.
+
+   Keyed per email, never one global lock: a single lock would make every
+   customer wait behind every other and turn a signup spike into a queue.
+
+   The chain link always settles, even when a push fails — a rejected promise
+   left in the map would mean every later edit for that customer inherited the
+   rejection and never ran. */
+const LINK_CHAIN = new Map();
+
+function chainCustomerPush(email, work) {
+  const key = String(email).trim().toLowerCase();
+  const prev = LINK_CHAIN.get(key) || Promise.resolve();
+  /* .catch before .then so a failed predecessor cannot stop the successor. */
+  const next = prev.catch(() => {}).then(work).catch(e =>
+    console.warn('[ecwid] customer link error:', e && e.message));
+  LINK_CHAIN.set(key, next);
+  /* Drop the entry once it is the last one, so this map cannot grow without
+     bound in a long-lived process. */
+  next.finally(() => { if (LINK_CHAIN.get(key) === next) LINK_CHAIN.delete(key); });
+  return next;
+}
+
 function linkCustomerSoon(user) {
   if (!user || !user.email) return;
   try {
     const st = ecwidStore(), esy = ecwidSync();
     if (!st || !esy) return;
     st.enqueueCustomerLink(user.email);
-    esy.linkCustomer(user).then(r => {
+    /* Chained, not awaited: the route still returns immediately, but two quick
+       edits to the same customer reach Ecwid in the order they were made. */
+    chainCustomerPush(user.email, () => esy.linkCustomer(user).then(r => {
       if (r && r.ok) {
         st.markCustomerLinked(user.email, r.id || null);
         return;
@@ -2184,7 +2249,7 @@ function linkCustomerSoon(user) {
         console.warn('[ecwid] customer not written (403 — this token cannot write customers); queued');
       else if (why !== 'not-configured')
         console.warn('[ecwid] customer link failed (' + why + '); queued for retry');
-    }).catch(e => console.warn('[ecwid] customer link error:', e && e.message));
+    }));
   } catch (e) { console.warn('[ecwid] could not queue customer link:', e && e.message); }
 }
 
@@ -2764,6 +2829,10 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             console.warn(`[ecwid] status push failed for ${ref}: ${ecwid.reason}`);
           }
         }
+        /* Her own page reads a 60s cache of what Ecwid holds, and mergeOrders
+           prefers that remote status — so without this she would see the OLD
+           status for up to a minute after staff changed it. */
+        forgetRemoteOrders(ref);
         return json(200, { ...r, ecwid });
       }
 

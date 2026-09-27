@@ -814,3 +814,74 @@ test('nothing to change means no write at all', async () => {
     assert.equal(puts, 0);
   } finally { cleanup(); }
 });
+
+/* ============ the brand-restriction warning must reach the order ==========
+   Regression guard for a bug an end-to-end test caught and every unit test
+   missed: pushOrder read store.allPaymentMethods() raw, and `restricted` is
+   DERIVED from the Arabic title rather than stored, so toEcwidOrder never saw
+   it and the staff warning was silently never written. */
+
+test('a brand-restricted plan warns staff in the pushed order', async () => {
+  let sent = null;
+  const { store, sync, cleanup } = fresh(stubApi({
+    findOrderByRef: async () => null,
+    createOrder: async (payload) => { sent = payload; return { id: 9001 }; } }));
+  try {
+    store.upsertPaymentMethods([
+      { id: 'p-arabi', title: 'مبادرة العربى تقسيط ( منتجات العربى فقط )', enabled: true, order: 1 },
+    ]);
+    store.enqueueOrderPush('SDK-RES111');
+    const r = await sync.pushOrder('SDK-RES111', {
+      loadOrder: async () => ({ ref: 'SDK-RES111', payment: 'p-arabi', subtotal: 1000,
+        items: [{ id: '1', title: 'ثلاجة', price: 1000, qty: 1 }],
+        delivery: { name: 'ندى', phone: '0100', governorate: 'الجيزة', address: 'ش' } }),
+      loadUser: async () => ({ email: 'n@e.co', name: 'ندى' }),
+    });
+    assert.equal(r.ok, true, 'the push itself must succeed');
+    assert.match(sent.orderComments, /تنبيه/, 'staff must be warned the plan is restricted');
+    assert.match(sent.orderComments, /مقصورة/);
+  } finally { cleanup(); }
+});
+
+test('an unrestricted method produces no warning line', async () => {
+  let sent = null;
+  const { store, sync, cleanup } = fresh(stubApi({
+    findOrderByRef: async () => null,
+    createOrder: async (payload) => { sent = payload; return { id: 9002 }; } }));
+  try {
+    store.upsertPaymentMethods([
+      { id: 'p-cod', title: 'Cash on Delivery  الدفع عند الاستلام', enabled: true, order: 0 },
+    ]);
+    store.enqueueOrderPush('SDK-COD111');
+    await sync.pushOrder('SDK-COD111', {
+      loadOrder: async () => ({ ref: 'SDK-COD111', payment: 'p-cod', subtotal: 1000,
+        items: [{ id: '1', title: 'ثلاجة', price: 1000, qty: 1 }],
+        delivery: { name: 'ندى', phone: '0100', governorate: 'الجيزة', address: 'ش' } }),
+      loadUser: async () => ({ email: 'n@e.co', name: 'ندى' }),
+    });
+    assert.ok(!/تنبيه/.test(sent.orderComments), 'no warning where nothing is restricted');
+  } finally { cleanup(); }
+});
+
+test('an order on a method the owner later DISABLED still pushes', async () => {
+  /* Why withRestriction must not filter the way toStorefrontMethods does: a
+     filtered-out method makes toEcwidOrder throw and parks a real order. */
+  let sent = null;
+  const { store, sync, cleanup } = fresh(stubApi({
+    findOrderByRef: async () => null,
+    createOrder: async (payload) => { sent = payload; return { id: 9003 }; } }));
+  try {
+    store.upsertPaymentMethods([
+      { id: 'p-off', title: 'تقسيط كريازى', enabled: false, order: 3 },
+    ]);
+    store.enqueueOrderPush('SDK-OFF111');
+    const r = await sync.pushOrder('SDK-OFF111', {
+      loadOrder: async () => ({ ref: 'SDK-OFF111', payment: 'p-off', subtotal: 500,
+        items: [{ id: '1', title: 'بوتجاز', price: 500, qty: 1 }],
+        delivery: { name: 'ندى', phone: '0100', governorate: 'الجيزة', address: 'ش' } }),
+      loadUser: async () => ({ email: 'n@e.co', name: 'ندى' }),
+    });
+    assert.equal(r.ok, true, 'a disabled method must not park the order');
+    assert.match(sent.paymentMethod, /كريازى/);
+  } finally { cleanup(); }
+});

@@ -7,6 +7,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
 const REPO = path.join(import.meta.dirname, '..', '..');
+const SITE = path.join(import.meta.dirname, '..');
 const launch = readFileSync(path.join(REPO, 'LAUNCH.md'), 'utf8');
 const section = /\n## .*Ecwid[\s\S]*?(?=\n## |$)/.exec(launch);
 
@@ -328,4 +329,38 @@ test('the runbook records that the signature is over the event, not the body', (
 test('the runbook keeps the daily reconcile separate and says why', () => {
   assert.match(section[0], /DELETED|deleted/);
   assert.match(section[0], /updatedFrom can never report|never report/);
+});
+
+/* ============ the token tool must not leave wreckage in the store =========
+   PROVEN IN PRODUCTION, the expensive way. The write check POSTed an empty body
+   to /orders on the reasoning that a permitted-but-invalid request answers 4xx
+   while a forbidden one answers 403. Ecwid does not validate: it answered 200
+   and CREATED an order — "Auto-generated Product", total 0 — in the owner's
+   real store, once per token change (order 7481), and again when the same
+   mistake was repeated by hand (7482).
+
+   A write scope is probed by aiming at an id that cannot exist: 404 proves the
+   scope is granted and creates nothing. */
+
+test('the token tool never POSTs to /orders — that CREATES an order', () => {
+  const tool = readFileSync(path.join(SITE, 'tools', 'set-ecwid-token.mjs'), 'utf8');
+  assert.ok(!/\/orders['"`]\s*,\s*\{\s*method:\s*['"`]POST/.test(tool),
+    'a bare POST /orders creates a junk order in the live store');
+  assert.ok(!/method: 'POST', body: '\{\}'/.test(tool),
+    'an empty body is accepted by Ecwid, not rejected');
+});
+
+test('write access is probed with a PUT at an id that cannot exist', () => {
+  const tool = readFileSync(path.join(SITE, 'tools', 'set-ecwid-token.mjs'), 'utf8');
+  assert.match(tool, /method: 'PUT'/, 'a PUT at a ghost id reports the scope and changes nothing');
+  assert.match(tool, /9{10,}/, 'the ghost id must be one no real order can have');
+});
+
+test('the tool still reports order WRITE access, not merely order read', () => {
+  /* The regression this guards: an earlier version tested GET /orders only and
+     told the owner "orders can be sent to Ecwid: works" on a token that could
+     read them and not create them. Sending orders is the whole job. */
+  const tool = readFileSync(path.join(SITE, 'tools', 'set-ecwid-token.mjs'), 'utf8');
+  assert.match(tool, /ordersWriteOk/);
+  assert.match(tool, /SENDING orders to Ecwid/);
 });

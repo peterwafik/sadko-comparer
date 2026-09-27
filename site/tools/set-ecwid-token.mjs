@@ -103,12 +103,18 @@ async function probe(token) {
     } catch (e) { return 0; }
   };
   const canWrite = s => s !== 403 && s !== 401 && s !== 0;
-  const postOrders = await call('/orders', { method: 'POST', body: '{}' });
+  /* Aimed at an id that cannot exist, so a permitted scope answers 404 and
+     NOTHING is created. The previous version POSTed an empty body to /orders
+     on the assumption that Ecwid would reject it as invalid; Ecwid answered 200
+     and created an "Auto-generated Product" order with a total of 0 in the
+     owner's real store, every single time this tool ran. */
+  const GHOST_ORDER = 999999999999;
+  const putOrder = await call(`/orders/${GHOST_ORDER}`, { method: 'PUT', body: '{}' });
   return {
     products: await call('/products?limit=1'),
     ordersRead: await call('/orders?limit=1'),
-    ordersWrite: postOrders,
-    ordersWriteOk: canWrite(postOrders),
+    ordersWrite: putOrder,
+    ordersWriteOk: canWrite(putOrder),
     customers: await call('/customers?limit=1'),
   };
 }

@@ -121,10 +121,15 @@ test('the local order status write still exists', () => {
 });
 
 test('no grand total is ever synthesised on the way to Ecwid', () => {
+  /* Since 2026-09-28 a SERVER-quoted fee may ride along; nothing else may.
+     The behaviour both ways is pinned in ecwid-map.test.mjs; this pins the
+     source: the only rate is the stored deliveryFee, and without it the
+     total is the items subtotal. */
   const map = readFileSync(path.join(SITE, 'engine', 'ecwid-map.mjs'), 'utf8');
-  const fn = /export function toEcwidOrder[\s\S]{0,3000}/.exec(map)[0];
-  assert.ok(!/shippingRate/.test(fn), 'a shipping rate must never be fabricated');
-  assert.match(fn, /total: subtotal/, 'the total must be the items subtotal');
+  const fn = /export function toEcwidOrder[\s\S]{0,4000}/.exec(map)[0];
+  assert.deepEqual(fn.match(/shippingRate: \w+/g), ['shippingRate: fee'], 'the only shipping rate is the quoted fee');
+  assert.match(fn, /const fee = Number\.isFinite\(t\.deliveryFee\)/, 'the fee comes from the stored, server-computed totals');
+  assert.match(fn, /total: fee == null \? subtotal : subtotal \+ fee/, 'without a fee the total is the items subtotal');
 });
 
 /* ------------------- scope: the bug tests did not catch ----------------- */

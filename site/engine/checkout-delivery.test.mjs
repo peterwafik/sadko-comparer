@@ -43,3 +43,11 @@ test('the delivery row shows a readable breakdown, not the raw Ecwid method titl
   assert.match(fn, /QUOTE\.lines/);
   assert.match(JS, /const BAND = \{/);
 });
+
+test('the cart estimates delivery only from a saved governorate, otherwise says checkout', () => {
+  const H = readFileSync(new URL('../cart.html', import.meta.url), 'utf8');
+  assert.match(H, /api\/delivery\/quote/);
+  assert.match(H, /api\/auth\/me/);
+  assert.match(H, /تُحسب عند إتمام الطلب/);
+  assert.match(H, /id="cartDelivery"/);
+});

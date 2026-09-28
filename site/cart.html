@@ -56,6 +56,7 @@
       <h3 data-i18n="summary">ملخص الطلب</h3>
       <div class="row"><span data-i18n="count">عدد القطع</span><b id="sCount">0</b></div>
       <div class="row total"><span data-i18n="total">الإجمالى</span><b id="sTotal">0 جنيه</b></div>
+      <p id="cartDelivery" style="font:600 .8rem 'Cairo',sans-serif;color:#5b6b6e;margin:6px 0 0"></p>
       <a class="act act--checkout" href="checkout.html" data-i18n="checkout">كمّل الطلب</a>
       <a class="act act--call" href="tel:19140" data-i18n="byphone">أو اطلب هاتفياً — 19140</a>
       <a class="act act--mail" id="mailBtn" href="#" data-i18n="byemail">أرسل الطلب بالبريد</a>
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('sCount').textContent = skCart.count();
     document.getElementById('sTotal').textContent = fmt(skCart.total()) + t(' جنيه', ' EGP');
+    estimateDelivery();
 
     const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ' — ' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP'));
     const body = encodeURIComponent(t('السلام عليكم،\nأود طلب هذه الأجهزة:\n', 'Hello,\nI would like to order these appliances:\n')).replace(/%0A/g,'%0D%0A') +
@@ -160,6 +162,28 @@ document.addEventListener('DOMContentLoaded', () => {
     location.href = 'orders.html';
   });
   document.getElementById('clearBtn').addEventListener('click', () => { skCart.clear(); paint(); });
+
+  /* A delivery estimate for a signed-in customer with a saved governorate,
+     priced by the server exactly as checkout will. Anyone else — or any
+     failure — sees "calculated at checkout"; the cart never guesses a fee. */
+  let GOV = null, meAsked = null;
+  async function estimateDelivery() {
+    const box = document.getElementById('cartDelivery'); if (!box) return;
+    box.textContent = t('رسوم التوصيل تُحسب عند إتمام الطلب', 'Delivery is calculated at checkout');
+    try {
+      if (!meAsked) meAsked = fetch('/api/auth/me', { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : null).then(d => { GOV = (d && d.user && d.user.profile && d.user.profile.governorate) || null; })
+        .catch(() => {});
+      await meAsked;
+      const items = skCart.items();
+      if (!GOV || !items.length) return;
+      const r = await fetch('/api/delivery/quote', { method: 'POST', headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin', body: JSON.stringify({ governorate: GOV, items: items.map(i => ({ id: i.id, qty: i.qty })) }) });
+      const d = r.ok ? await r.json() : null;
+      if (d && d.quote && d.quote.quotable)
+        box.textContent = t('توصيل تقديرى إلى ', 'Estimated delivery to ') + GOV + ': ' + fmt(d.quote.fee) + t(' جنيه', ' EGP');
+    } catch (e) { /* keep "calculated at checkout" */ }
+  }
   if (EN) {
     document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
     document.title = 'Shopping cart — SADKO Group';

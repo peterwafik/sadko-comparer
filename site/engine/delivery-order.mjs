@@ -6,14 +6,13 @@
 import { sizeClassOf } from './size-class.mjs';
 import { rateCard, quoteDelivery } from './ecwid-shipping.mjs';
 
-/* The last card that actually priced something, so an Ecwid outage (or a sync
-   that briefly returns nothing) does not stop checkout from quoting. */
-let LAST_GOOD = null;
-
+/* The methods come from the local Ecwid MIRROR, which keeps the last sync
+   through an Ecwid outage — so no extra "last good" cache is needed. An empty
+   or all-disabled mirror is a real change staff made, and it stops quoting
+   (spec §5). A module-level cache here once kept charging old rates after
+   staff disabled every method. */
 export function cardFrom(methods) {
-  const c = rateCard(methods);
-  if (c && (Object.keys(c.metro).length || Object.keys(c.delta).length || Object.keys(c.upper).length)) LAST_GOOD = c;
-  return LAST_GOOD;
+  return rateCard(methods);
 }
 
 export function quoteFor({ items, governorate, catalogue, categoryName, methods }) {

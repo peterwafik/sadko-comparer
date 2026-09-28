@@ -178,7 +178,7 @@ classifier and the product page never disagree about a size.
 
 | Situation | Behaviour |
 |---|---|
-| Ecwid unreachable | The last good rate card is used. With none ever loaded: not quotable, customer-service message. |
+| Ecwid unreachable | The local mirror keeps the methods from the last successful sync, so quoting continues. With none ever synced: not quotable, customer-service message. (No separate in-memory cache: one kept charging old rates after staff disabled every method.) |
 | Quote request fails in the browser | Customer-service message; checkout proceeds. |
 | Fee changed between quote and order | `409` + new quote; the customer re-confirms. |
 | Method disabled or retitled by staff | The affected region or class stops quoting; the admin panel names the method. |

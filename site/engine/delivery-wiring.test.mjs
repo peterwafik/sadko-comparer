@@ -84,3 +84,18 @@ test('the admin dashboard shows the delivery classes panel', () => {
   assert.match(ADMIN, /api\/admin\/delivery-classes/);
   assert.match(ADMIN, /id="adm-delivery"/);
 });
+
+/* Review finding (Important): a module-level "last good" card kept quoting old
+   rates after staff disabled every method. The mirror already survives an Ecwid
+   outage (it keeps the last sync), so an empty or disabled mirror is a real
+   store change and must stop quoting (spec §5). */
+test('disabling every method stops quoting, even after an earlier good quote', () => {
+  const catalogue = [{ id: '1', title: 'مروحة ستاند', categoryId: 'c1' }];
+  const cat = () => 'مبردات هواء ومراوح';
+  const live = [{ title: 'القاهرة الكبرى', enabled: true, calcType: 'table', rates: { rows: [{ from: 0, to: null, perOrder: 200, perItem: 50 }] } }];
+  const good = quoteFor({ items: [{ id: '1', qty: 1 }], governorate: 'القاهرة', catalogue, methods: live, categoryName: cat });
+  assert.equal(good.fee, 250);
+  const off = quoteFor({ items: [{ id: '1', qty: 1 }], governorate: 'القاهرة', catalogue,
+                         methods: live.map(m => ({ ...m, enabled: false })), categoryName: cat });
+  assert.deepEqual(off, { quotable: false, reason: 'no-rates' });
+});

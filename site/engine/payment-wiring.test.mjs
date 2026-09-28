@@ -76,11 +76,6 @@ test('the methods are loaded before the first render', () => {
   assert.match(gate[1], /loadPayments\(\)/);
 });
 
-test('the delivery policy is loaded on the same gate, not after the render', () => {
-  const gate = /Promise\.all\(\[([^\]]*)\]\)\.then\(function \(r\) \{ render/.exec(checkout);
-  assert.match(gate[1], /loadShipping\(\)/);
-});
-
 test('checkout still quotes NO delivery figure of its own', () => {
   /* Ecwid's calculator returns the Greater Cairo rate for every address in
      Egypt, because none of its twelve methods is bound to a region. The
@@ -90,24 +85,13 @@ test('checkout still quotes NO delivery figure of its own', () => {
     'checkout reads a shipping rate — it must not, while quotable is false');
 });
 
-test('the delivery notes are attributed to the method that states them', () => {
-  /* They are the store speaking, quoted — not a promise the site invents. */
-  const fn = /function shippingPolicy\(\)[\s\S]{0,1400}/.exec(checkout)[0];
-  assert.match(fn, /esc\(n\.method\)/);
-  assert.match(fn, /esc\(n\.text\)/);
-});
-
-test('the delivery panel is a sibling of the summary, not nested inside it', () => {
-  /* It shipped nested on first render: a .panel inside a .panel draws a
-     second border and a second layer of padding. */
-  const fn = /function summary\(items\)[\s\S]{0,2600}?\n    \}/.exec(checkout)[0];
-  assert.match(fn, /'<\/div>' \+ shippingPolicy\(\);/,
-    'shippingPolicy() is called before the summary panel closes');
-});
-
-test('no delivery panel is rendered when Ecwid states nothing', () => {
-  const fn = /function shippingPolicy\(\)[\s\S]{0,1400}/.exec(checkout)[0];
-  assert.match(fn, /if \(!SHIP \|\| !SHIP\.notes \|\| !SHIP\.notes\.length\) return '';/);
+/* The "What SADKO states about delivery" panel quoted Ecwid's method notes as
+   the store speaking in the third person. The owner removed it (2026-09-28):
+   this site IS SADKO, so the page does not report what SADKO "states". The
+   delivery time now travels with the fee itself (engine/ecwid-shipping.mjs). */
+test('checkout has no "What SADKO states about delivery" panel', () => {
+  assert.ok(!/function shippingPolicy\(/.test(checkout), 'the panel function is gone');
+  assert.ok(!/What SADKO states about delivery|ما تقوله صادكو عن التوصيل/.test(checkout), 'its heading is gone');
 });
 
 test('a restricted method states its restriction at the point of choice', () => {

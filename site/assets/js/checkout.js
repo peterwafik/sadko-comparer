@@ -86,17 +86,7 @@
 
     const PAYMENTS = () => (LIVE ? fromLive() : BUILTIN());
 
-    /* What the store states about delivery, from Ecwid. Fails soft to null,
-       in which case the summary reads exactly as it did before. */
-    var SHIP = null;
-    function loadShipping() {
-      return fetch(A.P('api/shipping-methods'))
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (d) { SHIP = d; })
-        .catch(function () { SHIP = null; });
-    }
-
-    Promise.all([Au.me(true), loadPayments(), loadShipping()]).then(function (r) { render(r[0]); });
+    Promise.all([Au.me(true), loadPayments()]).then(function (r) { render(r[0]); });
 
     /* Set when a signed-out visitor chooses to carry on without an account.
        Starts TRUE: the account is the detour, not the default. */
@@ -144,33 +134,7 @@
         '<div class="note note--soft small mt16">' + t(
           'تختلف رسوم التوصيل والتركيب بحسب الجهاز والعنوان، وتُؤكَّد معك قبل التنفيذ — ولذلك لا نعرضها هنا صفراً.',
           'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment — which is why we do not show them as zero here.') + '</div>' +
-        /* A SIBLING of the summary panel, not a child. Nesting a .panel
-           inside a .panel gives it a second border and a second layer of
-           padding — which is exactly what it did on first render. */
-        '</div>' + shippingPolicy();
-    }
-
-    /* The store's OWN delivery sentences, quoted and attributed — not
-       computed, and not summarised into a promise of ours. Staff wrote these
-       in Ecwid ("الحد الأقصى للشحن لعدد القطع هو 350 جنيه", "يرجى العلم بأن
-       التوصيل يكون خلال 7 أيام") and the shopper never saw them.
-
-       Any figure inside these sentences is the STORE speaking, inside its own
-       quoted text. Nothing here is added up, and no delivery total is
-       produced. */
-    function shippingPolicy() {
-      if (!SHIP || !SHIP.notes || !SHIP.notes.length) return '';
-      return '<div class="panel mt16"><h2 class="panel__h">' + t('ما تقوله صادكو عن التوصيل', 'What SADKO states about delivery') + '</h2>' +
-        '<ul class="specs">' + SHIP.notes.slice(0, 6).map(function (n) {
-          return '<li><span class="k">' + esc(n.method) + '</span><span class="v">' + esc(n.text) + '</span></li>';
-        }).join('') + '</ul>' +
-        (SHIP.zones && SHIP.zones.length
-          ? '<p class="muted small mt8">' + t('مناطق التوصيل: ', 'Delivery areas: ') +
-            esc(SHIP.zones.slice(0, 8).join(' · ')) + '</p>'
-          : '') +
-        '<p class="muted small mt8">' + t(
-          'تُحدَّد الرسوم النهائية حسب منطقتك وحجم الجهاز، وتؤكدها خدمة العملاء قبل التنفيذ.',
-          'The final charge depends on your area and the size of the appliance, and customer care confirms it before fulfilment.') + '</p></div>';
+        '</div>';
     }
 
     function offlineBox(items) {

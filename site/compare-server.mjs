@@ -70,7 +70,8 @@ import { createEcwidSource } from './engine/ecwid-source.mjs';
 import { verifyWebhook, parseWebhook } from './engine/ecwid-webhook.mjs';
 import { deriveRails, deriveBanners, resolveRailCategories } from './engine/ecwid-rails.mjs';
 import { toStorefrontMethods, FALLBACK_METHODS } from './engine/ecwid-payments.mjs';
-import { toStorefrontShipping } from './engine/ecwid-shipping.mjs';
+import { toStorefrontShipping, rateCard } from './engine/ecwid-shipping.mjs';
+import { sizeClassOf } from './engine/size-class.mjs';
 import { mergeOrders } from './engine/ecwid-customers.mjs';
 import { validateGuestOrder, guestUserOf, guestCustomerOf } from './engine/guest-orders.mjs';
 import { repriceLines } from './engine/order-pricing.mjs';
@@ -2723,6 +2724,29 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           editableFields: EDITABLE_FIELDS, orderStatuses: ORDER_STATUSES });
 
       /* dashboard overview */
+      /* Delivery classes, for the owner to review: how many products fall in
+         each size band, every product that could not be classed and why, and
+         any Ecwid shipping method the rate card could not read. Read-only —
+         a wrong class is fixed by correcting the product in Ecwid. */
+      if (rest === 'delivery-classes' && req.method === 'GET') {
+        let catalogue = [];
+        try { catalogue = await ecwidSource().catalogBase(); } catch (e) {}
+        const st = ecwidStore();
+        const cats = new Map(((st && st.allCategories()) || []).map(c => [String(c.id), c.name || c.title || '']));
+        const counts = { small: 0, medium: 0, large: 0, xl: 0, craft: 0, none: 0 };
+        const unclassified = [], products = [];
+        for (const p of catalogue) {
+          const cat = cats.get(String(p.categoryId)) || '';
+          const r = sizeClassOf(p, cat);
+          counts[r.cls || 'none']++;
+          products.push({ id: p.id, title: p.title, cls: r.cls, why: r.why });
+          if (!r.cls) unclassified.push({ id: p.id, title: p.title, category: cat, why: r.why });
+        }
+        const card = rateCard((st && st.allShippingMethods()) || []);
+        return json(200, { counts, unclassified, products,
+                           problems: card ? card.problems : [{ title: '—', code: 'no-rates' }] });
+      }
+
       if (rest === 'overview' && req.method === 'GET') {
         const base = await baseCatalog();
         const cat = cadm.stats();

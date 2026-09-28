@@ -71,3 +71,16 @@ test('createOrder stores the fee and grand total when a quote is quotable', () =
   const b = acc.createOrder(uid, { items, payment: 'cod', deliveryQuote: { quotable: false, reason: 'no-region' } });
   assert.deepEqual([b.order.totals.deliveryFee, b.order.totals.grandTotal], [null, null]);
 });
+
+test('the admin delivery-classes route exists behind the admin guard', () => {
+  const guard = SRC.indexOf("u.pathname.startsWith('/api/admin/')");
+  const i = SRC.indexOf("rest === 'delivery-classes'");
+  assert.ok(guard > 0 && i > guard, 'must live inside the admin block');
+  assert.ok(SRC.indexOf('isAdminUser(me)', guard) < i, 'the admin check comes first');
+});
+
+test('the admin dashboard shows the delivery classes panel', () => {
+  const ADMIN = readFileSync(new URL('../assets/js/admin.js', import.meta.url), 'utf8');
+  assert.match(ADMIN, /api\/admin\/delivery-classes/);
+  assert.match(ADMIN, /id="adm-delivery"/);
+});

@@ -402,6 +402,41 @@
     });
   }
 
+  /* ================= DELIVERY CLASSES =================
+     Every product's delivery size band, derived automatically on the server
+     (engine/size-class.mjs). Read-only: a wrong band is fixed by correcting the
+     product's title or category in Ecwid; the site re-derives within a minute.
+     Loaded on its own so a slow catalogue never holds up the dashboard. */
+  async function loadDeliveryPanel() {
+    const box = $('adm-delivery'); if (!box) return;
+    const L = (ar, en) => (EN() ? en : ar);
+    const BANDS = [['small', 'صغيرة', 'Small'], ['medium', 'متوسطة', 'Medium'], ['large', 'كبيرة', 'Large'],
+                   ['xl', 'كبيرة جدا', 'Extra-large'], ['craft', 'حرف يدوية', 'Handicrafts'], ['none', 'بدون فئة', 'Unclassified']];
+    const name = c => { const b = BANDS.find(x => x[0] === (c || 'none')); return b ? L(b[1], b[2]) : c; };
+    let d;
+    try { d = await api('/api/admin/delivery-classes'); } catch (e) { box.innerHTML = ''; return; }
+    const chips = BANDS.map(b => '<span class="pill' + (b[0] === 'none' && d.counts.none ? ' err' : '') + '">' +
+      esc(L(b[1], b[2])) + ': <b>' + (d.counts[b[0]] || 0) + '</b></span>').join(' ');
+    const why = w => esc(w ? L(w.ar, w.en) : '');
+    const rows = list => list.map(p => '<tr><td>' + esc(p.title) + '</td><td>' + esc(p.category != null ? p.category : name(p.cls)) +
+      '</td><td class="muted" style="font-size:.8rem">' + why(p.why) + '</td></tr>').join('');
+    box.innerHTML = '<div class="panel"><div class="panel__h"><h2>' + esc(L('فئات التوصيل', 'Delivery classes')) + '</h2></div>' +
+      '<p class="muted" style="font-size:.85rem">' + esc(L('تُحدَّد فئة الشحن لكل منتج تلقائياً من القسم والمقاس. المنتجات بدون فئة تُحسب رسوم توصيلها بواسطة خدمة العملاء؛ لتصحيحها عدّل عنوان المنتج أو قسمه فى إيكويد.',
+        'Each product\'s delivery band is derived from its category and size. Unclassified products fall back to customer care for the fee; to fix one, correct its title or category in Ecwid.')) + '</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0">' + chips + '</div>' +
+      ((d.problems || []).length ? '<p class="err" style="font-size:.85rem">' + esc(L('طرق شحن لم تُقرأ: ', 'Shipping methods not read: ')) +
+        esc(d.problems.map(p => p.title + ' (' + p.code + ')').join(' · ')) + '</p>' : '') +
+      (d.unclassified.length ? '<h3 style="margin:14px 0 6px">' + esc(L('بدون فئة', 'Unclassified')) + ' (' + d.unclassified.length + ')</h3>' +
+        '<div class="tablewrap"><table class="tbl"><tbody>' + rows(d.unclassified) + '</tbody></table></div>' : '') +
+      '<input id="adm-dc-q" class="input" style="margin-top:12px;width:100%" placeholder="' + esc(L('ابحث عن منتج لمعرفة فئته…', 'Search a product to see its band…')) + '">' +
+      '<div id="adm-dc-res" class="tablewrap"></div></div>';
+    $('adm-dc-q').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      const hits = q.length < 2 ? [] : d.products.filter(p => String(p.title).toLowerCase().includes(q)).slice(0, 20);
+      $('adm-dc-res').innerHTML = hits.length ? '<table class="tbl"><tbody>' + rows(hits) + '</tbody></table>' : '';
+    });
+  }
+
   /* ================= DASHBOARD ================= */
   async function viewDashboard() {
     const view = $('view');
@@ -412,6 +447,7 @@
       const ecwidPanel = renderEcwidPanel(await loadEcwid());
       view.innerHTML = `
         ${ecwidPanel}
+        <div id="adm-delivery"></div>
         <div class="vitals">
           ${vital(c.live ?? '—', t('v_liveCat'), t('v_base') + ': ' + (c.base ?? '—'))}
           ${vital(a.orders ?? '—', t('v_orders'), (a.ordersToday ? a.ordersToday.n : 0) + ' ' + t('v_ordersToday'))}
@@ -427,6 +463,7 @@
           }</tbody></table></div>` : `<div class="empty">${t('noActivity')}</div>`}
         </div>`;
       bindEcwidPanel();
+      loadDeliveryPanel();
     } catch (e) { fail(view, e); }
   }
 

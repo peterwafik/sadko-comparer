@@ -136,7 +136,7 @@ function writeValue(file, key, value) {
     if (lines.length && lines[lines.length - 1] !== '') lines.push('');
     lines.push(`${key}=${value}`);
   }
-  writeFileSync(file, lines.join('\n').replace(/\n+$/, '\n'));
+  writeFileSync(file, lines.join('\n').replace(/\n*$/, '\n'));
   try { chmodSync(file, 0o600); } catch (e) {}
   return replaced;
 }
@@ -158,7 +158,7 @@ function writeToken(file, token) {
     if (lines.length && lines[lines.length - 1] !== '') lines.push('');
     lines.push(`SADKO_ECWID_TOKEN=${token}`);
   }
-  writeFileSync(file, lines.join('\n').replace(/\n+$/, '\n'));
+  writeFileSync(file, lines.join('\n').replace(/\n*$/, '\n'));
   /* Owner-read-only. This token has full read and write over the whole store,
      so it must not be readable by any other account on the machine.
 

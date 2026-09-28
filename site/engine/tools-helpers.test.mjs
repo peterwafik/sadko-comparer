@@ -29,3 +29,22 @@ test('set-ecwid-token never claims "Nothing was saved" after it has saved', () =
   assert.ok(!/console\.error\('Nothing was saved\.'\)/.test(tail),
     'the catch-all must say whether the token was already saved, not always "Nothing was saved."');
 });
+
+// On the VM, /etc/sadko.env was left without a final newline after the tool
+// saved the client secret, so the next `>>` append glued SADKO_ECWID=1 onto the
+// secret's line: Ecwid stayed off AND the saved secret was corrupted. A file the
+// tool writes must always end in exactly one newline. `/\n+$/` squeezes several
+// into one but adds none when there are zero, which was the bug.
+test('set-ecwid-token always ends the env file with a newline', () => {
+  const src = readFileSync(path.join(TOOLS, 'set-ecwid-token.mjs'), 'utf8');
+  const writes = [...src.matchAll(/writeFileSync\(file,\s*([^;]+)\);/g)].map(m => m[1]);
+  assert.ok(writes.length >= 2, 'expected the token and secret writers, found ' + writes.length);
+  for (const w of writes) {
+    const m = /\.replace\((\/[^/]+\/[a-z]*),\s*'\\n'\)/.exec(w);
+    assert.ok(m, 'a writer does not normalise its trailing newline: ' + w);
+    const re = eval(m[1]);
+    for (const body of ['A=1', 'A=1\n', 'A=1\n\n\n']) {
+      assert.equal(body.replace(re, '\n'), 'A=1\n', `${m[1]} turns ${JSON.stringify(body)} into ${JSON.stringify(body.replace(re, '\n'))}`);
+    }
+  }
+});

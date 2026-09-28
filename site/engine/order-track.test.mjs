@@ -66,3 +66,10 @@ test('orders.html has a "Track an order" form that asks for the number and the p
   assert.match(h, /\/api\/orders\/track/);
   assert.match(h, /لم نجد طلباً بهذا الرقم وهذا الهاتف/);
 });
+
+// Review finding (Important): a phone typed on an Arabic keyboard never matched.
+test('a phone typed in Arabic-Indic or Persian digits matches the same number', () => {
+  assert.equal(phoneMatches('٠١٠٢٧٨٩٠٥٦٥', '+201027890565'), true);
+  assert.equal(phoneMatches('۰۱۰۲۷۸۹۰۵۶۵', '01027890565'), true);
+  assert.equal(phoneMatches('٠١٠٢٧٨٩٠٥٦٦', '01027890565'), false);
+});

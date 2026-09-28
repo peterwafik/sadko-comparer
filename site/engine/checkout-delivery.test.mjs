@@ -61,3 +61,11 @@ test('the summary total is the server-quoted subtotal plus the fee, and both pay
   assert.match(fn, /QUOTE_SUB != null \? QUOTE_SUB : subtotal/);
   assert.equal((JS.match(/quotedSubtotal:/g) || []).length, 2);
 });
+
+/* Review finding (re-graded Important): if the governorate list failed to load,
+   only the three metro areas were offered, so a Delta customer had to pick Cairo
+   and was quoted — and charged — the Cairo rate. The fallback ends with «أخرى»,
+   which the server maps to no region: customer care confirms the fee. */
+test('the fallback governorate list offers «أخرى» so nobody is forced onto a metro rate', () => {
+  assert.match(JS, /\(GOVS \|\| \[[^\]]*\{ ar: 'أخرى', en: 'Other[^']*' \}\]\)/);
+});

@@ -228,7 +228,7 @@
                  nothing selected, so the customer picks a real one. If the list
                  could not load, the three metro areas keep checkout working. */
               '<select class="select" name="governorate" required><option value="">' + t('اختر المحافظة', 'Choose governorate') + '</option>' +
-              (GOVS || [{ ar: 'القاهرة', en: 'Cairo' }, { ar: 'الجيزة', en: 'Giza' }, { ar: 'الإسكندرية', en: 'Alexandria' }])
+              (GOVS || [{ ar: 'القاهرة', en: 'Cairo' }, { ar: 'الجيزة', en: 'Giza' }, { ar: 'الإسكندرية', en: 'Alexandria' }, { ar: 'أخرى', en: 'Other (fee confirmed by customer care)' }])
                 .map(g => '<option value="' + esc(g.ar) + '"' + (p.governorate === g.ar ? ' selected' : '') + '>' + esc(t(g.ar, g.en)) + '</option>').join('') +
               '</select></label>' +
             '<label class="field"><span class="field__l">' + t('العنوان بالتفصيل', 'Full address') + '</span>' +

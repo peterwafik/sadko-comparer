@@ -36,6 +36,7 @@
    ========================================================================== */
 
 import { stripHtml } from './ecwid-map.mjs';
+import { regionOf, metroKeyOf } from './shipping-regions.mjs';
 
 /* The size-band vocabulary staff actually used in the method titles. */
 const BAND_WORDS = /منتجات\s+(صغيرة|متوسطة|كبيرة)/;
@@ -157,4 +158,95 @@ export function toStorefrontShipping(mirrored = [], counts = {}) {
     notes: deliveryNotes(list),
     methodCount: list.length,
   };
+}
+
+/* ============================================================================
+   The delivery quote (spec 2026-09-28). The two blockers named at the top of
+   this file are resolved without touching Ecwid's data: the region comes from
+   engine/shipping-regions.mjs, and the band from engine/size-class.mjs.
+   Weights were never needed — every banded table starts at weightFrom 0.
+   ========================================================================== */
+
+const NT = s => String(s == null ? '' : s).replace(/[إأآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim();
+
+function bandOf(t) {
+  if (/كبيره\s*جدا/.test(t)) return 'xl';
+  if (/كبيره/.test(t)) return 'large';
+  if (/متوسطه/.test(t)) return 'medium';
+  if (/صغيره/.test(t)) return 'small';
+  return null;
+}
+
+/* One flat figure, or refuse: a single row from zero, or an absolute flat rate. */
+function simpleRate(m) {
+  if (m.calcType === 'flat' && m.flatRate && /ABSOLUTE/i.test(m.flatRate.type))
+    return { perOrder: m.flatRate.rate, perItem: 0 };
+  if (m.calcType === 'table' && m.rates && m.rates.rows.length === 1 &&
+      m.rates.rows[0].from === 0 && m.rates.rows[0].to == null)
+    return { perOrder: m.rates.rows[0].perOrder, perItem: m.rates.rows[0].perItem };
+  return null;
+}
+
+export function rateCard(methods = []) {
+  const list = (methods || []).filter(m => m && m.enabled !== false);
+  if (!list.length) return null;
+  const card = { metro: {}, delta: {}, upper: {}, craft: null, problems: [] };
+  for (const m of list) {
+    const t = NT(m.title);
+    const r = simpleRate(m);
+    const note = stripHtml(m.deliveryTimeDays || m.description || '') || null;
+    const entry = () => ({ ...r, title: String(m.title).trim(), note });
+    const problem = () => card.problems.push({ title: m.title, code: m.calcType === 'table' ? 'tiered' : 'unsupported' });
+    let slot = null;
+    if (/حرف يدويه/.test(t)) slot = ['craft'];
+    else if (/الدلتا/.test(t) && bandOf(t)) slot = ['delta', bandOf(t)];
+    else if (/الصعيد/.test(t) && bandOf(t)) slot = ['upper', bandOf(t)];
+    else if (/القاهره الكبري/.test(t)) slot = ['metro', 'cairo'];
+    else if (t === 'الجيزه') slot = ['metro', 'giza'];
+    else if (t === 'الاسكندريه') slot = ['metro', 'alex'];
+    if (!slot) { card.problems.push({ title: m.title, code: 'unparsed' }); continue; }
+    if (!r) { problem(); continue; }
+    if (slot[0] === 'craft') card.craft = entry();
+    else card[slot[0]][slot[1]] = entry();
+  }
+  return card;
+}
+
+export function quoteDelivery({ lines = [], governorate, card } = {}) {
+  const region = regionOf(governorate);
+  if (!region) return { quotable: false, reason: 'no-region' };
+  if (!card) return { quotable: false, reason: 'no-rates' };
+  const miss = lines.find(l => !l.cls);
+  if (miss) return { quotable: false, reason: 'unclassified', id: String(miss.id) };
+
+  const out = [], perOrder = [], names = new Set(), notes = new Set();
+  const craft = lines.filter(l => l.cls === 'craft'), goods = lines.filter(l => l.cls !== 'craft');
+
+  if (craft.length) {
+    const mk = metroKeyOf(governorate);
+    if (!card.craft || (mk !== 'cairo' && mk !== 'giza')) return { quotable: false, reason: 'craft-area' };
+    perOrder.push({ title: card.craft.title, fee: card.craft.perOrder });
+    names.add(card.craft.title);
+    for (const l of craft) out.push({ id: String(l.id), cls: 'craft', fee: 0 });
+  }
+
+  if (goods.length && region === 'metro') {
+    const rate = card.metro[metroKeyOf(governorate)];
+    if (!rate) return { quotable: false, reason: 'no-rate', id: String(goods[0].id) };
+    perOrder.push({ title: rate.title, fee: rate.perOrder });
+    names.add(rate.title); if (rate.note) notes.add(rate.note);
+    for (const l of goods) out.push({ id: String(l.id), cls: l.cls, fee: rate.perItem * l.qty });
+  } else if (goods.length) {
+    const used = new Set();
+    for (const l of goods) {
+      const rate = card[region][l.cls];
+      if (!rate) return { quotable: false, reason: 'no-rate', id: String(l.id) };
+      if (!used.has(l.cls) && rate.perOrder) perOrder.push({ title: rate.title, fee: rate.perOrder });
+      used.add(l.cls); names.add(rate.title); if (rate.note) notes.add(rate.note);
+      out.push({ id: String(l.id), cls: l.cls, fee: rate.perItem * l.qty });
+    }
+  }
+
+  const fee = out.reduce((n, l) => n + l.fee, 0) + perOrder.reduce((n, p) => n + p.fee, 0);
+  return { quotable: true, fee, lines: out, perOrder, methodName: [...names].join(' + '), notes: [...notes] };
 }

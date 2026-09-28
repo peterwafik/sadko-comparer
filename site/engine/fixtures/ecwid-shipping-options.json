@@ -1,0 +1,712 @@
+[
+ {
+  "id": "58695-1592739336209",
+  "title": "القاهرة الكبرى",
+  "titleTranslated": {
+   "en": "القاهرة الكبرى"
+  },
+  "enabled": true,
+  "orderby": 10,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "ratesTable": {
+   "tableBasedOn": "discountedSubtotal",
+   "rates": [
+    {
+     "conditions": {
+      "discountedSubtotalFrom": 0
+     },
+     "rate": {
+      "perOrder": 200,
+      "perItem": 50
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "carrier": "",
+  "description": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "descriptionTranslated": {
+   "en": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه"
+  }
+ },
+ {
+  "id": "2744-1592736956929",
+  "title": "الجيزة",
+  "titleTranslated": {
+   "en": "الجيزة"
+  },
+  "enabled": true,
+  "orderby": 20,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "ratesTable": {
+   "tableBasedOn": "discountedSubtotal",
+   "rates": [
+    {
+     "conditions": {
+      "discountedSubtotalFrom": 0
+     },
+     "rate": {
+      "perOrder": 200,
+      "perItem": 50
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "carrier": "",
+  "description": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "descriptionTranslated": {
+   "en": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه"
+  }
+ },
+ {
+  "id": "34337-1622180249466",
+  "title": "الاسكندرية",
+  "titleTranslated": {
+   "en": "الاسكندرية"
+  },
+  "enabled": true,
+  "orderby": 30,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "discountedSubtotal",
+   "rates": [
+    {
+     "conditions": {
+      "discountedSubtotalFrom": 0
+     },
+     "rate": {
+      "perOrder": 200,
+      "perItem": 50
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "carrier": "",
+  "description": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه",
+  "descriptionTranslated": {
+   "en": "الحد الأقصى للشحن لعدد القطع هو 350 جنيه"
+  }
+ },
+ {
+  "id": "dced4a1a-96a6-41ef-86c3-ac12288c75bf-1747555190097",
+  "title": "القليوبية - الدلتا - القناة منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)",
+  "titleTranslated": {
+   "en": "القليوبية - الدلتا - القناة منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)"
+  },
+  "enabled": true,
+  "orderby": 40,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 275
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "carrier": "",
+  "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "descriptionTranslated": {
+   "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+  }
+ },
+ {
+  "id": "7d99de70-e62e-44af-a9f3-ccb85e326bc7-1747556408187",
+  "title": "القليوبية - الدلتا - القناة منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)",
+  "titleTranslated": {
+   "en": "القليوبية - الدلتا - القناة منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)"
+  },
+  "enabled": true,
+  "orderby": 50,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 525
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "carrier": "",
+  "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "descriptionTranslated": {
+   "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+  }
+ },
+ {
+  "id": "692ccc8e-4e5f-45a4-a5c4-11f3dd55ec9c-1747556496629",
+  "title": "القليوبية - الدلتا - القناة منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)",
+  "titleTranslated": {
+   "en": "القليوبية - الدلتا - القناة منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)"
+  },
+  "enabled": true,
+  "orderby": 60,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 630
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "carrier": "",
+  "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "descriptionTranslated": {
+   "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+  }
+ },
+ {
+  "id": "c41399a7-73eb-427b-aeb4-453f65bbfdfe-1747556577269",
+  "title": "القليوبية - الدلتا - القناة منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)",
+  "titleTranslated": {
+   "en": "القليوبية - الدلتا - القناة منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)"
+  },
+  "enabled": true,
+  "orderby": 70,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 1140
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "carrier": "",
+  "description": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )",
+  "descriptionTranslated": {
+   "en": "يرجى العلم بأن التوصيل يكون خلال 7 أيام عمل كحد أقصى (عدا العطلات والاجازات الرسمية )"
+  }
+ },
+ {
+  "id": "4fe8b9d8-b6b6-419f-a1fb-c296c58912d9-1747556658666",
+  "title": "الصعيد - مرسى مطروح - البحر الاحمر منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)",
+  "titleTranslated": {
+   "en": "الصعيد - مرسى مطروح - البحر الاحمر منتجات صغيرة(مراوح-اجهزة صغيرة للمطبخ-مكوة-ميكرويف-مكنسة)"
+  },
+  "enabled": true,
+  "orderby": 80,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 330
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "carrier": "",
+  "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "descriptionTranslated": {
+   "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+  }
+ },
+ {
+  "id": "b4e5ca5b-0277-4949-9b4c-552650f0a661-1747556870144",
+  "title": "الصعيد -مرسى مطروح-البحر الاحمر منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)",
+  "titleTranslated": {
+   "en": "الصعيد -مرسى مطروح-البحر الاحمر منتجات متوسطة(بوتجازات-تكييفات-غسالات-مبردات-بيلت ان-شاشات-سخانات)"
+  },
+  "enabled": true,
+  "orderby": 90,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 605
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "carrier": "",
+  "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "descriptionTranslated": {
+   "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+  }
+ },
+ {
+  "id": "07b80758-ddf9-4548-b6a8-60b14efb27d6-1747556934279",
+  "title": "الصعيد - مرسى مطروح - البحر الاحمر منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)",
+  "titleTranslated": {
+   "en": "الصعيد - مرسى مطروح - البحر الاحمر منتجات كبيرة(ثلاجات حتى 450 لتر-ديب فريزر-شاشات 50 حتى 75 بوصة)"
+  },
+  "enabled": true,
+  "orderby": 100,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 845
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "carrier": "",
+  "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "descriptionTranslated": {
+   "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+  }
+ },
+ {
+  "id": "a0829cea-ec4b-4b37-a9a8-c2bde3b517fb-1747556984448",
+  "title": "الصعيد-مرسى مطروح-البحر الاحمر منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)",
+  "titleTranslated": {
+   "en": "الصعيد-مرسى مطروح-البحر الاحمر منتجات كبيرة جدا( ثلاجات فوق 450 لتر-شاشات فوق 75بوصة-غسالات وتش تور)"
+  },
+  "enabled": true,
+  "orderby": 110,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 1320
+     }
+    }
+   ]
+  },
+  "deliveryTimeDays": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "carrier": "",
+  "description": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى",
+  "descriptionTranslated": {
+   "en": "(عدا العطلات والاجازات الرسمية) يرجى العلم بأن التوصيل يكون خلال 14 يوم عمل كحد أقصى"
+  }
+ },
+ {
+  "id": "40290-1713262373619",
+  "title": "القاهرة والجيزة شحن حرف يدوية ومنتجات عضوية",
+  "titleTranslated": {
+   "en": "القاهرة والجيزة شحن حرف يدوية ومنتجات عضوية"
+  },
+  "enabled": true,
+  "orderby": 120,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "flat",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "flatRate": {
+   "rateType": "ABSOLUTE",
+   "rate": 50
+  },
+  "carrier": ""
+ },
+ {
+  "id": "279332-1731411467675",
+  "title": "الوجه القبلي (بني سويف-سوهاج-البحر الأحمر-أسيوط-المينا-الفيوم-قنا-الأقصر ) - مرسى مطروح",
+  "titleTranslated": {
+   "en": "الوجه القبلي (بني سويف-سوهاج-البحر الأحمر-أسيوط-المينا-الفيوم-قنا-الأقصر ) - مرسى مطروح"
+  },
+  "enabled": false,
+  "orderby": 130,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "discountedSubtotal",
+   "rates": [
+    {
+     "conditions": {
+      "discountedSubtotalFrom": 0
+     },
+     "rate": {
+      "perItem": 640
+     }
+    }
+   ]
+  },
+  "carrier": ""
+ },
+ {
+  "id": "150488-1735483287196",
+  "title": "الوجه القبلي - مرسى مطروح ( شاشات فوق ٧٥ بوصة - ثلاجات فوق ٤٤٥ لتر او ٤ باب- غسالات ملابس وتش تور )",
+  "titleTranslated": {
+   "en": "الوجه القبلي - مرسى مطروح ( شاشات فوق ٧٥ بوصة - ثلاجات فوق ٤٤٥ لتر او ٤ باب- غسالات ملابس وتش تور )"
+  },
+  "enabled": false,
+  "orderby": 140,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 1830
+     }
+    }
+   ]
+  },
+  "carrier": ""
+ },
+ {
+  "id": "41468-1731309383669",
+  "title": "(الوجه البحرى (القليوبية-الشرقية-البحيرة-كفر الشيخ-دمياط-الغربية-المنوفية-الدقهلية",
+  "titleTranslated": {
+   "en": "(الوجه البحرى (القليوبية-الشرقية-البحيرة-كفر الشيخ-دمياط-الغربية-المنوفية-الدقهلية"
+  },
+  "enabled": false,
+  "orderby": 150,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "discountedSubtotal",
+   "rates": [
+    {
+     "conditions": {
+      "discountedSubtotalFrom": 0
+     },
+     "rate": {
+      "perItem": 475
+     }
+    }
+   ]
+  },
+  "carrier": ""
+ },
+ {
+  "id": "79466-1731309427666",
+  "title": "القناة (السويس-الإسماعيلية-بورسعيد)",
+  "titleTranslated": {
+   "en": "القناة (السويس-الإسماعيلية-بورسعيد)"
+  },
+  "enabled": false,
+  "orderby": 160,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "discountedSubtotal",
+   "rates": [
+    {
+     "conditions": {
+      "discountedSubtotalFrom": 0
+     },
+     "rate": {
+      "perOrder": 0,
+      "perItem": 475
+     }
+    }
+   ]
+  },
+  "carrier": ""
+ },
+ {
+  "id": "7944-1735482579918",
+  "title": "الوجه البحرى ( شاشات فوق ٧٥ بوصة - ثلاجات فوق ٤٤٥ لتر او ٤ باب- غسالات ملابس وتش تور )",
+  "titleTranslated": {
+   "en": "الوجه البحرى ( شاشات فوق ٧٥ بوصة - ثلاجات فوق ٤٤٥ لتر او ٤ باب- غسالات ملابس وتش تور )"
+  },
+  "enabled": false,
+  "orderby": 170,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 1465
+     }
+    }
+   ]
+  },
+  "carrier": ""
+ },
+ {
+  "id": "43952-1735483189211",
+  "title": "القناة ( شاشات فوق ٧٥ بوصة - ثلاجات فوق ٤٤٥ لتر او ٤ باب- غسالات ملابس وتش تور )",
+  "titleTranslated": {
+   "en": "القناة ( شاشات فوق ٧٥ بوصة - ثلاجات فوق ٤٤٥ لتر او ٤ باب- غسالات ملابس وتش تور )"
+  },
+  "enabled": false,
+  "orderby": 180,
+  "fulfilmentType": "delivery",
+  "ratesCalculationType": "table",
+  "destinationZone": {
+   "id": "WORLD",
+   "name": "WORLD"
+  },
+  "businessHours": "{\"THU\":[[\"09:00\",\"18:00\"]],\"TUE\":[[\"09:00\",\"18:00\"]],\"WED\":[[\"09:00\",\"18:00\"]],\"SAT\":[[\"09:00\",\"18:00\"]],\"FRI\":[[\"09:00\",\"18:00\"]],\"MON\":[[\"09:00\",\"18:00\"]],\"SUN\":[[\"09:00\",\"18:00\"]]}",
+  "minimumOrderSubtotal": 0,
+  "businessHoursLimitationType": "ALLOW_ORDERS_AND_DONT_INFORM_CUSTOMERS",
+  "scheduled": false,
+  "scheduledTimePrecisionType": "DATE",
+  "timeSlotLengthInMinutes": 60,
+  "allowSameDayDelivery": false,
+  "cutoffTimeForSameDayDelivery": "16:00",
+  "ratesTable": {
+   "tableBasedOn": "weight",
+   "rates": [
+    {
+     "conditions": {
+      "weightFrom": 0
+     },
+     "rate": {
+      "perItem": 1465
+     }
+    }
+   ]
+  },
+  "carrier": ""
+ }
+]

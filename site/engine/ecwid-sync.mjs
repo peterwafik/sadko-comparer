@@ -63,8 +63,23 @@ function toShippingMethod(o, i) {
        can tell the owner what to change. It flips on its own once the zones
        are configured. */
     zoneConfigured: !!(o.destinationZone && Object.keys(o.destinationZone).length),
+    /* The rate itself, which the delivery quote reads (engine/ecwid-shipping.mjs
+       rateCard). Kept as Ecwid states it; interpretation happens there. */
+    rates: o.ratesTable ? {
+      basedOn: o.ratesTable.tableBasedOn || null,
+      rows: (o.ratesTable.rates || []).map(r => {
+        const c = r.conditions || {};
+        const from = c.weightFrom ?? c.discountedSubtotalFrom ?? c.subtotalFrom ?? 0;
+        const to = c.weightTo ?? c.discountedSubtotalTo ?? c.subtotalTo ?? null;
+        const rt = r.rate || {};
+        return { from: Number(from) || 0, to: to == null ? null : Number(to),
+                 perOrder: Number(rt.perOrder) || 0, perItem: Number(rt.perItem) || 0 };
+      }),
+    } : null,
+    flatRate: o.flatRate ? { type: String(o.flatRate.rateType || ''), rate: Number(o.flatRate.rate) || 0 } : null,
   };
 }
+export const toShippingMethodForTest = toShippingMethod;
 
 export function createEcwidSync({ api, store, adFolders = {},
                                  map = { toSadkoProduct, toSadkoCategory, toEcwidOrder } }) {

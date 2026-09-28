@@ -79,7 +79,7 @@ import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './en
 import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { isPublicPath } from './engine/static-allow.mjs';
-import { quoteFor, feeMismatch, totalsWith } from './engine/delivery-order.mjs';
+import { quoteFor, feeMismatch, subtotalMismatch, totalsWith } from './engine/delivery-order.mjs';
 import { GOVERNORATES } from './engine/shipping-regions.mjs';
 import { phoneMatches, publicStatus } from './engine/order-track.mjs';
 import { mkdir } from 'node:fs/promises';
@@ -2293,11 +2293,21 @@ async function deliveryFor(items, governorate) {
   } catch (e) {}
   return quoteFor({ items, governorate, catalogue, methods, categoryName: id => cats.get(String(id)) || '' });
 }
-const feeChanged = (lang, quote) => ({ error: 'delivery-fee-changed', quote, message: lang === 'en'
-  ? (quote.quotable ? `The delivery fee is now EGP ${quote.fee.toLocaleString('en-US')}. Please review and confirm.`
-                    : 'The delivery fee will now be confirmed by customer care. Please review and confirm.')
-  : (quote.quotable ? `رسوم التوصيل أصبحت ${quote.fee.toLocaleString('en-US')} جنيه. راجع الطلب وأكّده.`
-                    : 'رسوم التوصيل ستؤكدها خدمة العملاء. راجع الطلب وأكّده.') });
+/* The 409 when what the customer saw is not what the server would charge. A tab
+   opened before delivery fees existed sends no quotedFee at all and can never
+   confirm, so it is told to refresh rather than to "confirm again". */
+const feeChanged = (lang, quote, subtotal, sentFee) => {
+  const fee = quote.quotable ? quote.fee.toLocaleString('en-US') : null;
+  const message = sentFee === undefined
+    ? (lang === 'en' ? 'Prices or delivery have been updated. Refresh the page to see the final total, then place the order.'
+                     : 'تم تحديث الأسعار أو رسوم التوصيل. حدّث الصفحة لترى الإجمالى النهائى ثم أكّد الطلب.')
+    : lang === 'en'
+      ? (fee ? `The total has changed: delivery is now EGP ${fee}. Please review and confirm.`
+             : 'The total has changed, and delivery will be confirmed by customer care. Please review and confirm.')
+      : (fee ? `تغيّر الإجمالى: رسوم التوصيل أصبحت ${fee} جنيه. راجع الطلب وأكّده.`
+             : 'تغيّر الإجمالى، ورسوم التوصيل ستؤكدها خدمة العملاء. راجع الطلب وأكّده.');
+  return { error: 'delivery-fee-changed', quote, subtotal, message };
+};
 
 /* A public endpoint that creates orders is a spam channel into the owner's
    Ecwid store unless it is bounded. In memory deliberately: it resets on
@@ -2578,7 +2588,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     /* The delivery fee is the server's, never the browser's (spec §4.5). A fee
        that changed since checkout showed it goes back to the customer. */
     const quote = await deliveryFor(order.items, order.delivery.governorate);
-    if (feeMismatch(quote, body.quotedFee)) return json(409, feeChanged(lang, quote));
+    if (feeMismatch(quote, body.quotedFee) || subtotalMismatch(priced.subtotal, body.quotedSubtotal))
+      return json(409, feeChanged(lang, quote, priced.subtotal, body.quotedFee));
     order.totals = totalsWith(priced.subtotal, quote);
 
     const st = ecwidStore(), esy = ecwidSync();
@@ -3401,7 +3412,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
         /* The delivery fee, recomputed here exactly as the guest route does. */
         const quote = await deliveryFor(priced.items, (b.delivery && b.delivery.governorate) || '');
-        if (feeMismatch(quote, b.quotedFee)) return json(409, feeChanged(lang, quote));
+        if (feeMismatch(quote, b.quotedFee) || subtotalMismatch(priced.subtotal, b.quotedSubtotal))
+          return json(409, feeChanged(lang, quote, priced.subtotal, b.quotedFee));
 
         const r = db.createOrder(me.id, { ...b, items: priced.items, deliveryQuote: quote });
         if (r.error) return json(400, authErr(r.error, lang));

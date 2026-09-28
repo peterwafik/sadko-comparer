@@ -89,18 +89,20 @@
     /* Delivery: the governorate list and the fee both come from the server,
        which prices the order with the same function (engine/delivery-order.mjs).
        This page never adds a delivery figure up itself. */
-    let GOVS = null, QUOTE = null;
+    /* QUOTE_SUB: the goods subtotal the server re-priced for that quote — the
+       one it will store and push — so the total shown is the total charged. */
+    let GOVS = null, QUOTE = null, QUOTE_SUB = null;
     function loadGovernorates() {
       return fetch('/api/delivery/governorates').then(r => r.ok ? r.json() : null)
         .then(d => { GOVS = d && d.governorates; }).catch(() => { GOVS = null; });
     }
     function requestQuote(items, governorate) {
-      if (!governorate) { QUOTE = null; return Promise.resolve(null); }
+      if (!governorate) { QUOTE = null; QUOTE_SUB = null; return Promise.resolve(null); }
       return fetch('/api/delivery/quote', { method: 'POST', headers: { 'content-type': 'application/json' },
         credentials: 'same-origin', body: JSON.stringify({ governorate, items: items.map(i => ({ id: i.id, qty: i.qty })) }) })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { QUOTE = (d && d.quote) || null; return QUOTE; })
-        .catch(() => { QUOTE = null; return null; });
+        .then(d => { QUOTE = (d && d.quote) || null; QUOTE_SUB = d && d.subtotal != null ? d.subtotal : null; return QUOTE; })
+        .catch(() => { QUOTE = null; QUOTE_SUB = null; return null; });
     }
 
     Promise.all([Au.me(true), loadPayments(), loadGovernorates()]).then(function (r) { render(r[0]); });
@@ -135,7 +137,7 @@
         '<ul class="specs">' + items.map(i =>
           '<li><span class="k">' + esc(String(i.title).replace(/&nbsp;/g, ' ').slice(0, 60)) +
           (i.qty > 1 ? ' × ' + A.num(i.qty) : '') + '</span><span class="v">' + A.money((i.price || 0) * i.qty) + '</span></li>').join('') +
-        '<li><span class="k"><b>' + t('إجمالى الأجهزة', 'Goods subtotal') + '</b></span><span class="v"><b>' + A.money(subtotal) + '</b></span></li>' +
+        '<li><span class="k"><b>' + t('إجمالى الأجهزة', 'Goods subtotal') + '</b></span><span class="v"><b>' + A.money(QUOTE_SUB != null ? QUOTE_SUB : subtotal) + '</b></span></li>' +
         deliveryRows(subtotal) +
         '</ul>' +
         '<div class="note note--soft small mt16">' + (QUOTE && QUOTE.quotable
@@ -173,7 +175,7 @@
           '</span><span class="v">' + A.money(QUOTE.fee) + '</span></li>' +
         (QUOTE.notes && QUOTE.notes[0] ? '<li><span class="k small muted">' + esc(QUOTE.notes[0]) + '</span><span class="v"></span></li>' : '') +
         install +
-        '<li class="total"><span class="k"><b>' + t('الإجمالى', 'Total') + '</b></span><span class="v"><b>' + A.money(subtotal + QUOTE.fee) + '</b></span></li>';
+        '<li class="total"><span class="k"><b>' + t('الإجمالى', 'Total') + '</b></span><span class="v"><b>' + A.money((QUOTE_SUB != null ? QUOTE_SUB : subtotal) + QUOTE.fee) + '</b></span></li>';
     }
 
     function offlineBox(items) {
@@ -283,7 +285,7 @@
           body: JSON.stringify(payload),
         });
         const d = await res.json().catch(() => ({}));
-        if (!res.ok || !d.ok) return { ok: false, message: d.message || '', error: d.error, quote: d.quote };
+        if (!res.ok || !d.ok) return { ok: false, message: d.message || '', error: d.error, quote: d.quote, subtotal: d.subtotal };
         return { ok: true, order: { ref: d.ref, subtotal: d.subtotal, payment: payload.payment,
                                     totals: d.totals, inEcwid: d.inEcwid } };
       } catch (e) {
@@ -320,6 +322,7 @@
                           address: fd.get('address'), floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes' },
               note: fd.get('note'),
               quotedFee: QUOTE && QUOTE.quotable ? QUOTE.fee : null,
+              quotedSubtotal: QUOTE_SUB,
             })
           : await placeGuestOrder({
               items: lines,
@@ -329,12 +332,14 @@
               floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes',
               note: fd.get('note'),
               quotedFee: QUOTE && QUOTE.quotable ? QUOTE.fee : null,
+              quotedSubtotal: QUOTE_SUB,
             });
         btn.disabled = false; btn.textContent = t('أكّد الطلب', 'Place the order');
         /* The server's fee differs from the one shown (a rate changed, or this
            tab is older than the fee). Show the new one and let them confirm. */
         if (!r.ok && r.error === 'delivery-fee-changed') {
           QUOTE = r.quote || null;
+          if (r.subtotal != null) QUOTE_SUB = r.subtotal;
           if (box()) box().innerHTML = summary(items);
           root.querySelector('#coErr').innerHTML = '<div class="note note--warn mt8 small">' + esc(r.message) + '</div>';
           return;

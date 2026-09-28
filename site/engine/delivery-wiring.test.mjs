@@ -99,3 +99,30 @@ test('disabling every method stops quoting, even after an earlier good quote', (
                          methods: live.map(m => ({ ...m, enabled: false })), categoryName: cat });
   assert.deepEqual(off, { quotable: false, reason: 'no-rates' });
 });
+
+test('both order routes also refuse a changed subtotal when the browser sent the one it showed', () => {
+  for (const marker of ["u.pathname === '/api/orders/guest' && req.method === 'POST'",
+                        "u.pathname === '/api/orders' && req.method === 'POST'"]) {
+    assert.match(route(marker, 7000), /subtotalMismatch\(/, marker);
+  }
+});
+
+test('subtotalMismatch only fires when a shown subtotal was sent and differs', async () => {
+  const { subtotalMismatch } = await import('./delivery-order.mjs');
+  assert.equal(subtotalMismatch(65759, 65759), false);
+  assert.equal(subtotalMismatch(65759, 64000), true);
+  assert.equal(subtotalMismatch(65759, undefined), false, 'an old tab has no subtotal to compare');
+});
+
+/* Review finding (re-graded Important): a tab opened before this deploy never
+   sends quotedFee, so "review and confirm" loops forever. It must be told to
+   refresh the page instead. The 409 also carries the server's subtotal so the
+   summary can redraw with the real total. */
+test('the 409 tells an old tab to refresh, and carries the server subtotal', () => {
+  const fn = /const feeChanged = \(lang, quote, subtotal, sentFee\) =>[\s\S]{0,1400}?\n\};/.exec(SRC);
+  assert.ok(fn, 'feeChanged takes the subtotal and the fee the browser sent');
+  assert.match(fn[0], /sentFee === undefined/);
+  assert.match(fn[0], /حدّث الصفحة/);
+  assert.match(fn[0], /Refresh the page/);
+  assert.match(fn[0], /subtotal/);
+});

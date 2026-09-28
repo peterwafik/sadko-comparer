@@ -40,3 +40,12 @@ export function totalsWith(subtotal, quote) {
            grandTotal: q ? subtotal + q.fee : null, currency: 'EGP',
            ...(q ? { methodName: q.methodName, deliveryLines: q.lines } : {}) };
 }
+
+/* The browser also sends the goods subtotal it showed (from the same quote).
+   If the server's re-priced subtotal differs — a price changed since — the
+   total the customer confirmed is wrong, so it goes back to them too. An old
+   tab sends none and is caught by feeMismatch instead. */
+export function subtotalMismatch(serverSubtotal, quotedSubtotal) {
+  if (quotedSubtotal == null) return false;
+  return Number(quotedSubtotal) !== Number(serverSubtotal);
+}

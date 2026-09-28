@@ -30,7 +30,7 @@ test('the summary shows a grand total only from the server quote', () => {
   const fn = /function deliveryRows\(subtotal\)[\s\S]{0,2400}?\n    \}/.exec(JS);
   assert.ok(fn, 'deliveryRows is missing');
   assert.match(fn[0], /QUOTE\.quotable/);
-  assert.match(fn[0], /subtotal \+ QUOTE\.fee/);
+  assert.match(fn[0], /\(QUOTE_SUB != null \? QUOTE_SUB : subtotal\) \+ QUOTE\.fee/);
 });
 
 /* Ecwid's method titles carry their product lists in brackets and ran to four
@@ -50,4 +50,14 @@ test('the cart estimates delivery only from a saved governorate, otherwise says 
   assert.match(H, /api\/auth\/me/);
   assert.match(H, /تُحسب عند إتمام الطلب/);
   assert.match(H, /id="cartDelivery"/);
+});
+
+/* Review finding (Important): the total shown was cart price + fee, while the
+   server stores and pushes REPRICED subtotal + fee. The summary now uses the
+   subtotal the server quoted, and both payloads send it back for a 409 check. */
+test('the summary total is the server-quoted subtotal plus the fee, and both payloads send it back', () => {
+  assert.match(JS, /QUOTE_SUB = /, 'the quote reply subtotal is kept');
+  const fn = /function deliveryRows\(subtotal\)[\s\S]{0,2400}?\n    \}/.exec(JS)[0];
+  assert.match(fn, /QUOTE_SUB != null \? QUOTE_SUB : subtotal/);
+  assert.equal((JS.match(/quotedSubtotal:/g) || []).length, 2);
 });

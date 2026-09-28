@@ -194,7 +194,11 @@ export function rateCard(methods = []) {
   for (const m of list) {
     const t = NT(m.title);
     const r = simpleRate(m);
-    const note = stripHtml(m.deliveryTimeDays || m.description || '') || null;
+    /* A delivery-time sentence travels with the quote; one that states money
+       (Cairo's «الحد الأقصى … 350 جنيه», a cap the owner confirmed does not
+       apply) would contradict the fee beside it, so it does not. */
+    const said = stripHtml(m.deliveryTimeDays || m.description || '') || null;
+    const note = said && !/جنيه|ج\.م|EGP|LE\b/i.test(said) ? said : null;
     const entry = () => ({ ...r, title: String(m.title).trim(), note });
     const problem = () => card.problems.push({ title: m.title, code: m.calcType === 'table' ? 'tiered' : 'unsupported' });
     let slot = null;

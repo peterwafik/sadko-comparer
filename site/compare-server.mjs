@@ -2609,8 +2609,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       inEcwid: !!(pushed && pushed.ok),
       ecwidOrderId: (pushed && pushed.ok && pushed.ecwidOrderId) || null,
       subtotal: order.subtotal,
-      /* Never a grand total: delivery and installation are confirmed by
-         customer care, exactly as on the account path. */
+      /* The grand total only when the server quoted delivery; installation is
+         always confirmed by customer care, exactly as on the account path. */
       totals: order.totals,
     });
   }

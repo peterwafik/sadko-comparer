@@ -86,7 +86,24 @@
 
     const PAYMENTS = () => (LIVE ? fromLive() : BUILTIN());
 
-    Promise.all([Au.me(true), loadPayments()]).then(function (r) { render(r[0]); });
+    /* Delivery: the governorate list and the fee both come from the server,
+       which prices the order with the same function (engine/delivery-order.mjs).
+       This page never adds a delivery figure up itself. */
+    let GOVS = null, QUOTE = null;
+    function loadGovernorates() {
+      return fetch('/api/delivery/governorates').then(r => r.ok ? r.json() : null)
+        .then(d => { GOVS = d && d.governorates; }).catch(() => { GOVS = null; });
+    }
+    function requestQuote(items, governorate) {
+      if (!governorate) { QUOTE = null; return Promise.resolve(null); }
+      return fetch('/api/delivery/quote', { method: 'POST', headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin', body: JSON.stringify({ governorate, items: items.map(i => ({ id: i.id, qty: i.qty })) }) })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { QUOTE = (d && d.quote) || null; return QUOTE; })
+        .catch(() => { QUOTE = null; return null; });
+    }
+
+    Promise.all([Au.me(true), loadPayments(), loadGovernorates()]).then(function (r) { render(r[0]); });
 
     /* Set when a signed-out visitor chooses to carry on without an account.
        Starts TRUE: the account is the detour, not the default. */
@@ -119,22 +136,44 @@
           '<li><span class="k">' + esc(String(i.title).replace(/&nbsp;/g, ' ').slice(0, 60)) +
           (i.qty > 1 ? ' × ' + A.num(i.qty) : '') + '</span><span class="v">' + A.money((i.price || 0) * i.qty) + '</span></li>').join('') +
         '<li><span class="k"><b>' + t('إجمالى الأجهزة', 'Goods subtotal') + '</b></span><span class="v"><b>' + A.money(subtotal) + '</b></span></li>' +
-        /* Still "confirmed by customer care", and deliberately so: Ecwid
-           reports quotable:false because none of its twelve shipping methods
-           is bound to a region, so its calculator returns the Greater Cairo
-           rate of 250 for Aswan as readily as for Cairo. Quoting that would
-           undercharge every customer outside Cairo and Giza.
-
-           If the owner binds the zones and product weights exist, the gate
-           flips and this is the line that should start showing a real figure —
-           it must NOT be made to show one before then. */
-        '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v unknown">' + t('تؤكده خدمة العملاء', 'confirmed by customer care') + '</span></li>' +
-        '<li><span class="k">' + t('التركيب', 'Installation') + '</span><span class="v unknown">' + t('تؤكده خدمة العملاء', 'confirmed by customer care') + '</span></li>' +
+        deliveryRows(subtotal) +
         '</ul>' +
-        '<div class="note note--soft small mt16">' + t(
-          'تختلف رسوم التوصيل والتركيب بحسب الجهاز والعنوان، وتُؤكَّد معك قبل التنفيذ — ولذلك لا نعرضها هنا صفراً.',
-          'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment — which is why we do not show them as zero here.') + '</div>' +
+        '<div class="note note--soft small mt16">' + (QUOTE && QUOTE.quotable
+          ? t('رسوم التوصيل محسوبة من أسعار الشحن لمنطقتك وحجم كل جهاز. رسوم التركيب تُؤكَّد معك قبل التنفيذ.',
+              'Delivery is calculated from the shipping rates for your area and the size of each appliance. Installation is confirmed with you before fulfilment.')
+          : t('تختلف رسوم التوصيل والتركيب بحسب الجهاز والعنوان، وتُؤكَّد معك قبل التنفيذ — ولذلك لا نعرضها هنا صفراً.',
+              'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment — which is why we do not show them as zero here.')) + '</div>' +
         '</div>';
+    }
+
+    /* The delivery, installation and total rows. Every figure is the SERVER's
+       quote (engine/delivery-order.mjs) — this page never adds one up. With no
+       governorate yet it asks for one; with no automatic fee (Sinai, or a
+       product it cannot class) customer care confirms, as before. */
+    let CHOSEN_GOV = '';
+    const BAND = { small: ['منتجات صغيرة', 'Small items'], medium: ['منتجات متوسطة', 'Medium items'],
+                   large: ['منتجات كبيرة', 'Large items'], xl: ['منتجات كبيرة جدا', 'Extra-large items'],
+                   craft: ['حرف يدوية', 'Handicrafts'] };
+    function deliveryRows(subtotal) {
+      const install = '<li><span class="k">' + t('التركيب', 'Installation') + '</span><span class="v unknown">' + t('تؤكده خدمة العملاء', 'confirmed by customer care') + '</span></li>';
+      if (!QUOTE || !QUOTE.quotable) {
+        const why = !CHOSEN_GOV ? t('اختر المحافظة لحساب التوصيل', 'choose your governorate') : t('تؤكده خدمة العملاء', 'confirmed by customer care');
+        return '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v unknown">' + why + '</span></li>' + install;
+      }
+      /* A breakdown the customer can read — the per-order charge, then each
+         size band and what it adds — rather than Ecwid's full method titles,
+         which carry product lists in brackets. The full title goes to Ecwid. */
+      const byBand = {};
+      (QUOTE.lines || []).forEach(l => { if (l.fee > 0) byBand[l.cls] = (byBand[l.cls] || 0) + l.fee; });
+      const parts = (QUOTE.perOrder || []).filter(p => p.fee > 0).map(p =>
+          (/حرف/.test(p.title) ? t('حرف يدوية', 'Handicrafts') : t('رسوم الطلب', 'Per order')) + ' ' + A.money(p.fee))
+        .concat(Object.keys(byBand).map(c => (BAND[c] ? t(BAND[c][0], BAND[c][1]) : c) + ' ' + A.money(byBand[c])));
+      return '<li><span class="k">' + t('التوصيل إلى ', 'Delivery to ') + esc(CHOSEN_GOV) +
+          (parts.length ? '<br><small class="muted">' + esc(parts.join(' · ')) + '</small>' : '') +
+          '</span><span class="v">' + A.money(QUOTE.fee) + '</span></li>' +
+        (QUOTE.notes && QUOTE.notes[0] ? '<li><span class="k small muted">' + esc(QUOTE.notes[0]) + '</span><span class="v"></span></li>' : '') +
+        install +
+        '<li class="total"><span class="k"><b>' + t('الإجمالى', 'Total') + '</b></span><span class="v"><b>' + A.money(subtotal + QUOTE.fee) + '</b></span></li>';
     }
 
     function offlineBox(items) {
@@ -182,9 +221,13 @@
                 '<span class="field__h">' + t('عليه نسجّل الطلب ونرسل تأكيده.',
                   'The order is filed under this, and the confirmation goes to it.') + '</span></label>' : '') +
             '<label class="field"><span class="field__l">' + t('المحافظة', 'Governorate') + '</span>' +
-              '<select class="select" name="governorate">' +
-              ['القاهرة|Cairo', 'الجيزة|Giza', 'الإسكندرية|Alexandria', 'الساحل الشمالى|North Coast', 'أخرى|Other']
-                .map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '"' + (p.governorate === a ? ' selected' : '') + '>' + esc(t(a, e)) + '</option>'; }).join('') +
+              /* All governorates, from the server (engine/shipping-regions.mjs).
+                 A saved value no longer in the list — the old «أخرى» — leaves
+                 nothing selected, so the customer picks a real one. If the list
+                 could not load, the three metro areas keep checkout working. */
+              '<select class="select" name="governorate" required><option value="">' + t('اختر المحافظة', 'Choose governorate') + '</option>' +
+              (GOVS || [{ ar: 'القاهرة', en: 'Cairo' }, { ar: 'الجيزة', en: 'Giza' }, { ar: 'الإسكندرية', en: 'Alexandria' }])
+                .map(g => '<option value="' + esc(g.ar) + '"' + (p.governorate === g.ar ? ' selected' : '') + '>' + esc(t(g.ar, g.en)) + '</option>').join('') +
               '</select></label>' +
             '<label class="field"><span class="field__l">' + t('العنوان بالتفصيل', 'Full address') + '</span>' +
               '<textarea class="textarea" name="address" maxlength="300" required>' + esc((u && u.address) || '') + '</textarea></label>' +
@@ -213,7 +256,7 @@
             '<p class="muted small mt8">' + t('بتأكيد الطلب تسجّله لدينا، وستتصل بك خدمة العملاء على 19140 لتأكيد المواعيد ورسوم التوصيل والتركيب قبل أى تنفيذ.',
               'Placing the order records it with us; customer care will call you on 19140 to confirm timing and the delivery and installation charges before anything is fulfilled.') + '</p>' +
           '</form></div></div>' +
-        '<div>' + summary(items) + '</div></div>';
+        '<div id="coSummary">' + summary(items) + '</div></div>';
     }
     function lbl(name, label, value) {
       return '<label class="field" style="margin:0 0 14px"><span class="field__l">' + esc(label) + '</span>' +
@@ -240,7 +283,7 @@
           body: JSON.stringify(payload),
         });
         const d = await res.json().catch(() => ({}));
-        if (!res.ok || !d.ok) return { ok: false, message: d.message || '' };
+        if (!res.ok || !d.ok) return { ok: false, message: d.message || '', error: d.error, quote: d.quote };
         return { ok: true, order: { ref: d.ref, subtotal: d.subtotal, payment: payload.payment,
                                     totals: d.totals, inEcwid: d.inEcwid } };
       } catch (e) {
@@ -251,6 +294,18 @@
     function wire(user, items) {
       const f = root.querySelector('#coForm');
       if (!f) return;
+
+      /* Re-quote whenever the governorate changes, and redraw only the summary
+         so nothing the customer typed is lost. */
+      const box = () => root.querySelector('#coSummary');
+      const gov = f.querySelector('select[name=governorate]');
+      const refresh = () => {
+        CHOSEN_GOV = gov.value;
+        return requestQuote(items, gov.value).then(() => { if (box()) box().innerHTML = summary(items); });
+      };
+      gov.addEventListener('change', refresh);
+      if (gov.value) refresh();
+
       f.addEventListener('submit', async e => {
         e.preventDefault();
         const fd = new FormData(f);
@@ -264,6 +319,7 @@
               delivery: { name: fd.get('name'), phone: fd.get('phone'), governorate: fd.get('governorate'),
                           address: fd.get('address'), floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes' },
               note: fd.get('note'),
+              quotedFee: QUOTE && QUOTE.quotable ? QUOTE.fee : null,
             })
           : await placeGuestOrder({
               items: lines,
@@ -272,8 +328,17 @@
               governorate: fd.get('governorate'), address: fd.get('address'),
               floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes',
               note: fd.get('note'),
+              quotedFee: QUOTE && QUOTE.quotable ? QUOTE.fee : null,
             });
         btn.disabled = false; btn.textContent = t('أكّد الطلب', 'Place the order');
+        /* The server's fee differs from the one shown (a rate changed, or this
+           tab is older than the fee). Show the new one and let them confirm. */
+        if (!r.ok && r.error === 'delivery-fee-changed') {
+          QUOTE = r.quote || null;
+          if (box()) box().innerHTML = summary(items);
+          root.querySelector('#coErr').innerHTML = '<div class="note note--warn mt8 small">' + esc(r.message) + '</div>';
+          return;
+        }
         if (!r.ok) {
           root.querySelector('#coErr').innerHTML = '<div class="note note--warn mt8 small">' +
             esc(r.message || t('تعذّر تسجيل الطلب.', 'Could not record the order.')) + '</div>';
@@ -296,7 +361,11 @@
         '<ul class="specs mt16" style="text-align:start">' +
           '<li><span class="k">' + t('إجمالى الأجهزة', 'Goods subtotal') + '</span><span class="v">' + A.money(o.subtotal) + '</span></li>' +
           '<li><span class="k">' + t('طريقة الدفع', 'Payment') + '</span><span class="v">' + esc(payName(o.payment)) + '</span></li>' +
-          '<li><span class="k">' + t('التوصيل والتركيب', 'Delivery & installation') + '</span><span class="v unknown">' + t('يُؤكَّد هاتفياً', 'confirmed by phone') + '</span></li>' +
+          (o.totals && o.totals.deliveryFee != null
+            ? '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v">' + A.money(o.totals.deliveryFee) + '</span></li>' +
+              '<li><span class="k">' + t('التركيب', 'Installation') + '</span><span class="v unknown">' + t('يُؤكَّد هاتفياً', 'confirmed by phone') + '</span></li>' +
+              '<li><span class="k"><b>' + t('الإجمالى', 'Total') + '</b></span><span class="v"><b>' + A.money(o.totals.grandTotal) + '</b></span></li>'
+            : '<li><span class="k">' + t('التوصيل والتركيب', 'Delivery & installation') + '</span><span class="v unknown">' + t('يُؤكَّد هاتفياً', 'confirmed by phone') + '</span></li>') +
         '</ul>' +
         '<div class="chips mt24" style="justify-content:center">' +
           '<a class="btn btn--teal" href="' + A.P('account.html') + '">' + t('اعرض طلباتى', 'View my orders') + '</a>' +

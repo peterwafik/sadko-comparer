@@ -70,3 +70,12 @@ test('a tiered table is reported, never half-applied', () => {
 test('the store delivery-time sentence travels with the quote', () => {
   assert.ok(q('سوهاج', [{ id: 'x', qty: 1, cls: 'small' }]).notes.some(n => /14/.test(n)));
 });
+
+/* Ecwid's Cairo method carries «الحد الأقصى للشحن لعدد القطع هو 350 جنيه» — a
+   cap the owner confirmed does NOT apply (2026-09-28). Shown beside a quoted
+   fee it would contradict it, so only notes WITHOUT a money figure travel. */
+test('a note that states a price is never shown beside the quoted fee', () => {
+  const cairo = q('القاهرة', [{ id: 'x', qty: 5, cls: 'small' }]);
+  assert.equal(cairo.fee, 450);
+  assert.ok(!cairo.notes.some(n => /جنيه|EGP/i.test(n)), JSON.stringify(cairo.notes));
+});

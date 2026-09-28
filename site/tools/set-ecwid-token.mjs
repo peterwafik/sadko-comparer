@@ -37,6 +37,11 @@ const g = s => (tty ? `\x1b[32m${s}\x1b[0m` : s);
 const r = s => (tty ? `\x1b[31m${s}\x1b[0m` : s);
 const y = s => (tty ? `\x1b[33m${s}\x1b[0m` : s);
 const b = s => (tty ? `\x1b[1m${s}\x1b[0m` : s);
+const dim = s => (tty ? `\x1b[2m${s}\x1b[0m` : s);
+
+/* Set once a value is on disk, so a crash AFTER the write never tells the
+   operator "Nothing was saved" — it did exactly that on the VM, 2026-09-28. */
+let SAVED = '';
 
 /* Read lines WITHOUT echoing them. A token pasted into a visible prompt ends
    up in a screenshot, a shoulder-glance, or a support chat.
@@ -195,6 +200,7 @@ async function mainSecret() {
     return;
   }
   writeValue(TARGET, 'SADKO_ECWID_WEBHOOK_SECRET', secret);
+  SAVED = 'The client secret WAS saved';
   console.log(g(`\nClient secret saved to ${TARGET}`));
   console.log('\nThis only matters once webhooks are registered, which needs the');
   console.log('site to be on its public address. Nothing else has to change.');
@@ -278,6 +284,7 @@ async function main() {
   }
 
   const { replaced, locked } = writeToken(TARGET, token);
+  SAVED = 'The token WAS saved';
   console.log(g(`\nSaved to ${TARGET}`) + (replaced ? ' (previous value replaced)' : ' (added)'));
   if (existsSync(TARGET + '.bak')) console.log(`A copy of the old file is at ${TARGET}.bak`);
   if (locked) console.log('Permissions set so only this machine\'s owner can read it.');
@@ -313,6 +320,6 @@ async function main() {
 
 main().catch(e => {
   console.error(r('\nSomething went wrong: ') + (e && e.message));
-  console.error('Nothing was saved.');
+  console.error(SAVED ? `${SAVED} to ${TARGET} before this happened.` : 'Nothing was saved.');
   process.exitCode = 2;
 });

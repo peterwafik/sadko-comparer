@@ -77,6 +77,7 @@ import { repriceLines } from './engine/order-pricing.mjs';
 import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
 import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
+import { isPublicPath } from './engine/static-allow.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -3632,7 +3633,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     } catch (e) { /* fall through to the static handler, which will 404 */ }
   }
 
-  let p = decodeURIComponent(u.pathname); if (p === '/') p = '/index.html';
+  let p; try { p = decodeURIComponent(u.pathname); } catch { p = ''; }
+  if (p === '/') p = '/index.html';
+  // Allow-list: this used to serve every file under site/, customer database
+  // included (/data/accounts.db). See engine/static-allow.mjs.
+  if (!isPublicPath(p)) { res.statusCode = 404; res.end('not found'); return; }
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !existsSync(f) || !statSync(f).isFile()) { res.statusCode = 404; res.end('not found'); return; }
   res.setHeader('content-type', MIME[path.extname(f).toLowerCase()] || 'application/octet-stream');

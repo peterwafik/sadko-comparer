@@ -78,6 +78,8 @@ import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './en
 import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { isPublicPath } from './engine/static-allow.mjs';
+import { quoteFor, feeMismatch, totalsWith } from './engine/delivery-order.mjs';
+import { GOVERNORATES } from './engine/shipping-regions.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -2275,6 +2277,26 @@ async function repriceOrder(items) {
   return repriceLines(items, cat);
 }
 
+/* The delivery quote for a set of lines, from the served catalogue and the
+   mirrored Ecwid methods. Ecwid off or empty → quotable:false, never a throw. */
+async function deliveryFor(items, governorate) {
+  let catalogue = [], methods = [], cats = new Map();
+  try { catalogue = await ecwidSource().catalogBase(); } catch (e) {}
+  try {
+    const st = ecwidStore();
+    if (st) {
+      methods = st.allShippingMethods();
+      cats = new Map(st.allCategories().map(c => [String(c.id), c.name || c.title || '']));
+    }
+  } catch (e) {}
+  return quoteFor({ items, governorate, catalogue, methods, categoryName: id => cats.get(String(id)) || '' });
+}
+const feeChanged = (lang, quote) => ({ error: 'delivery-fee-changed', quote, message: lang === 'en'
+  ? (quote.quotable ? `The delivery fee is now EGP ${quote.fee.toLocaleString('en-US')}. Please review and confirm.`
+                    : 'The delivery fee will now be confirmed by customer care. Please review and confirm.')
+  : (quote.quotable ? `رسوم التوصيل أصبحت ${quote.fee.toLocaleString('en-US')} جنيه. راجع الطلب وأكّده.`
+                    : 'رسوم التوصيل ستؤكدها خدمة العملاء. راجع الطلب وأكّده.') });
+
 /* A public endpoint that creates orders is a spam channel into the owner's
    Ecwid store unless it is bounded. In memory deliberately: it resets on
    restart, which is the right trade for something that must never become
@@ -2527,6 +2549,12 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     order.items = priced.items;
     order.subtotal = priced.subtotal;
     order.totals.subtotal = priced.subtotal;
+
+    /* The delivery fee is the server's, never the browser's (spec §4.5). A fee
+       that changed since checkout showed it goes back to the customer. */
+    const quote = await deliveryFor(order.items, order.delivery.governorate);
+    if (feeMismatch(quote, body.quotedFee)) return json(409, feeChanged(lang, quote));
+    order.totals = totalsWith(priced.subtotal, quote);
 
     const st = ecwidStore(), esy = ecwidSync();
     if (!st || !esy)
@@ -3323,7 +3351,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             : 'أحد الأصناف لم يعد متاحاً. حدّث السلة.' });
         }
 
-        const r = db.createOrder(me.id, { ...b, items: priced.items });
+        /* The delivery fee, recomputed here exactly as the guest route does. */
+        const quote = await deliveryFor(priced.items, (b.delivery && b.delivery.governorate) || '');
+        if (feeMismatch(quote, b.quotedFee)) return json(409, feeChanged(lang, quote));
+
+        const r = db.createOrder(me.id, { ...b, items: priced.items, deliveryQuote: quote });
         if (r.error) return json(400, authErr(r.error, lang));
         // Close the funnel: record a purchase event per line item, server-side so
         // it is authoritative (the browser cannot fabricate a purchase).
@@ -3388,6 +3420,20 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      250 comes back for Aswan and Marsa Matrouh too. This serves what the
      store genuinely states about delivery, plus quotable:false and the
      reasons — see engine/ecwid-shipping.mjs for the full evidence. */
+  if (u.pathname === '/api/delivery/governorates' && req.method === 'GET')
+    return json(200, { governorates: GOVERNORATES.map(g => ({ ar: g.ar, en: g.en })) });
+
+  /* The fee checkout shows. The same function prices the order itself, so
+     what the customer sees is what the server will charge. */
+  if (u.pathname === '/api/delivery/quote' && req.method === 'POST') {
+    if (rateLimited(clientIp(req))) return json(429, { error: 'too-many' });
+    let b; try { b = await readJson(req, 24_000); } catch (e) { return json(400, { error: 'bad-request' }); }
+    await ecwidFresh();
+    const priced = await repriceOrder(b && b.items);
+    if (!priced.ok) return json(200, { subtotal: null, quote: { quotable: false, reason: priced.error } });
+    return json(200, { subtotal: priced.subtotal, quote: await deliveryFor(priced.items, String((b && b.governorate) || '')) });
+  }
+
   if (u.pathname === '/api/shipping-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
     /* delivery policy staff edited in Ecwid should reach checkout on the next load. */
     await ecwidFresh();

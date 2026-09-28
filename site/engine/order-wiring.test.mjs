@@ -250,8 +250,10 @@ test('the guest confirmation still refuses to invent a grand total', () => {
 test('ONE re-pricing helper serves both routes', () => {
   /* Two copies drift, and the one that drifts is the one nobody tests. */
   assert.match(src, /async function repriceOrder\(items\)/);
-  assert.equal((src.match(/await repriceOrder\(/g) || []).length, 2,
-    'both order routes should call it, and only they');
+  /* Three callers since 2026-09-28: both order routes, and the delivery
+     quote endpoint — which must price lines exactly as the order will. */
+  assert.equal((src.match(/await repriceOrder\(/g) || []).length, 3,
+    'both order routes and the delivery quote should call it, and only they');
   assert.match(src, /import \{ repriceLines \} from '\.\/engine\/order-pricing\.mjs';/);
 });
 
@@ -268,7 +270,7 @@ test('the SIGNED-IN route re-prices before the order is created', () => {
 
 test('the re-priced lines are what actually get stored', () => {
   /* Re-pricing and then storing the posted body would change nothing. */
-  assert.match(src, /db\.createOrder\(me\.id, \{ \.\.\.b, items: priced\.items \}\)/);
+  assert.match(src, /db\.createOrder\(me\.id, \{ \.\.\.b, items: priced\.items, deliveryQuote: quote \}\)/);
 });
 
 test('an unreadable catalogue REFUSES the order rather than trusting the browser', () => {

@@ -353,7 +353,7 @@ export function openAccounts(file) {
     /* ---- orders ---- */
     // Offline payment only. No card data is accepted, stored or transmitted
     // anywhere in this codebase; see PAYMENT_METHODS in compare-server.mjs.
-    createOrder(userId, { items, payment, delivery, note, totals }) {
+    createOrder(userId, { items, payment, delivery, note, totals, deliveryQuote }) {
       const u = store.getUser(userId);
       if (!u) return { error: 'no-user' };
       if (!Array.isArray(items) || !items.length) return { error: 'empty-cart' };
@@ -381,12 +381,16 @@ export function openAccounts(file) {
           hasLift: !!(delivery && delivery.hasLift),
         },
         note: String(note || '').slice(0, 500),
-        // Delivery/installation charges are NOT computed here: they depend on the
-        // product and the address and are confirmed by customer care. Storing a
+        // The delivery fee is stored only when the SERVER quoted it from Ecwid's
+        // own rates (engine/delivery-order.mjs); otherwise, and for installation
+        // always, it stays null for customer care to confirm. Storing a
         // fabricated 0 would be a lie on a document the customer keeps.
-        totals: { subtotal, deliveryFee: null, installFee: null,
-                  grandTotal: null, currency: 'EGP',
-                  note: 'رسوم التوصيل والتركيب بتتأكد من خدمة العملاء قبل التنفيذ.' },
+        totals: deliveryQuote && deliveryQuote.quotable
+          ? { subtotal, deliveryFee: deliveryQuote.fee, installFee: null, grandTotal: subtotal + deliveryQuote.fee,
+              currency: 'EGP', methodName: deliveryQuote.methodName, deliveryLines: deliveryQuote.lines,
+              note: 'رسوم التركيب بتتأكد من خدمة العملاء قبل التنفيذ.' }
+          : { subtotal, deliveryFee: null, installFee: null, grandTotal: null, currency: 'EGP',
+              note: 'رسوم التوصيل والتركيب بتتأكد من خدمة العملاء قبل التنفيذ.' },
       };
       store.addOrder(order);
       return { ok: true, order };

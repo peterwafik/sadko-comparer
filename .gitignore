@@ -64,3 +64,6 @@ site/data/bookings.json
 # Claude Code worktrees (isolated workspaces; never committed)
 .claude/worktrees/
 site/preview.log
+
+# backups of the Ecwid credential file
+site/.ecwid.env*

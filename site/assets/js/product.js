@@ -218,7 +218,7 @@
         '</div>' +
         '<p class="pdp__price" style="font:900 1.8rem Cairo,sans-serif;color:var(--accent);margin:16px 0 4px">' + A.money(p.price) +
           (hasWas ? ' <s class="pdp__was" style="font-size:.62em;font-weight:600;color:var(--muted)">' + A.money(was) + '</s>' +
-                    ' <em class="pdp__off" style="font-size:.55em;font-weight:800;color:var(--ok,#2f6b46);font-style:normal">-' + offPct + '%</em>' : '') +
+                    ' <em class="pdp__off">-' + offPct + '%</em>' : '') +
         '</p>' +
         '<p class="muted small pdp__caveat" style="margin:0 0 16px">' + t('سعر صادكو وقت آخر تحديث للكتالوج — أكّد السعر قبل الشراء.', 'SADKO price at the last catalogue update — confirm before buying.') + '</p>' +
         stockLine(p) +

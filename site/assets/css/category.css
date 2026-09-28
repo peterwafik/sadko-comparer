@@ -95,8 +95,14 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
    Arabic teaser it explicitly marked hidden. Re-assert it at higher specificity. */
 .card__teaser[hidden] { display: none; }
 
-.card__price { margin-top: auto; padding-top: var(--sk-gap-xs);
-  font-weight: 900; font-size: 1.12rem; color: var(--accent); white-space: nowrap; }
+/* NOT nowrap: amount + currency + was-price + saving ran 21px past a 188px rail
+   card and the card's overflow:hidden clipped it. The markup joins the amount to
+   its currency with a no-break space, so the line can only break before
+   .card__deal; overflow-wrap is the last resort for a card too narrow even for that. */
+.card__price { margin-top: auto; padding-top: var(--sk-gap-xs); max-width: 100%;
+  font-weight: 900; font-size: 1.12rem; line-height: 1.5; color: var(--accent);
+  white-space: normal; overflow-wrap: anywhere; }
+.card__deal { display: inline-block; white-space: nowrap; }
 .card__price small { font-weight: 700; font-size: .72rem; color: var(--ink-soft, #5b6b6e); }
 
 /* ---------- card actions ----------

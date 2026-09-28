@@ -183,3 +183,63 @@ test('the SAVED list still accepts an out-of-stock product', () => {
   assert.ok(!/inStock === false/.test(savedAdd[0]),
     'the wishlist must not refuse out-of-stock products');
 });
+
+/* ---------------------------------------------- the price fits its card --- */
+
+// The price line used to be one unbreakable run — amount, currency, was-price and
+// saving — so in a 188px rail card a discounted price ran 21px past the edge and
+// was clipped by the card's overflow:hidden. The line may now wrap, but ONLY in
+// the places a reader would accept: never between an amount and its currency,
+// and the was-price travels with its saving as one unit.
+test('a price may wrap, but never between the amount and its currency', () => {
+  const html = ui.card(P(1, { price: 12499, compareToPrice: 13774, discountPercent: 9 }), {});
+  assert.match(html, /class="card__price">[^<]*١٢[^<]* <small>/,
+    'the amount and its currency must be joined by a non-breaking space');
+  assert.match(html, / <small>[^<]*<\/small>/);
+});
+
+test('the was-price and its saving wrap together, as one unit', () => {
+  const html = ui.card(P(1, { price: 12499, compareToPrice: 13774, discountPercent: 9 }), {});
+  assert.match(html, /<span class="card__deal"><s class="card__was">[^<]*<\/s> <em class="card__off">/,
+    'the old price and the saving must share one group so a wrap cannot separate them');
+});
+
+test('the price line is allowed to wrap inside its card', () => {
+  const css = readFileSync(new URL('../assets/css/category.css', import.meta.url), 'utf8');
+  const rule = css.match(/\.card__price\s*\{[^}]*\}/)[0];
+  assert.ok(!/white-space:\s*nowrap/.test(rule), '.card__price must not force one line again');
+  assert.match(css, /\.card__deal\s*\{[^}]*white-space:\s*nowrap/, 'the deal group must stay on one line');
+});
+
+
+// Every declaration that applies to a class, across all the rules naming it,
+// so a shared rule (.card__off, .pdp__off { ... }) counts as well as a lone one.
+const rulesFor = (css, cls) => [...css.matchAll(/([^{}]+){([^}]*)}/g)]
+  .filter(m => m[1].split(',').some(sel => sel.trim() === cls)).map(m => m[2]).join(';');
+
+/* ------------------------------------------- the discount reads as a sale --- */
+
+// In an RTL line "-9%" rendered as "9%-": the bidi algorithm carried the minus
+// to the far end. The badge is isolated and laid out LTR so it reads the same
+// in both languages. And a saving is a SALE signal, so it is red — not the
+// green it was, which read as "in stock", nor a neutral grey.
+test('the card discount badge reads "-9%" in RTL and is red', () => {
+  const css = readFileSync(new URL('../assets/css/storefront.css', import.meta.url), 'utf8');
+  const rule = rulesFor(css, '.card__off');
+  assert.match(rule, /direction:\s*ltr/, 'the badge must be laid out LTR');
+  assert.match(rule, /unicode-bidi:\s*isolate/, 'the badge must be isolated from the RTL line');
+  assert.match(rule, /color:\s*var\(--sale/, 'the badge must use the sale red');
+  assert.ok(!/#2f6b46|#e8f2ea|#7cc496|#15291d/i.test(css), 'no trace of the old green may remain');
+});
+
+test('the product page discount uses the same sale styling, not an inline green', () => {
+  const js = readFileSync(new URL('../assets/js/product.js', import.meta.url), 'utf8');
+  const line = js.split('\n').find(l => l.includes('pdp__off'));
+  assert.ok(!/style=/.test(line), 'pdp__off must be styled by the stylesheet, not inline');
+  const css = readFileSync(new URL('../assets/css/storefront.css', import.meta.url), 'utf8');
+  const rule = rulesFor(css, '.pdp__off');
+  assert.ok(rule, 'storefront.css must style .pdp__off');
+  assert.match(rule, /direction:\s*ltr/);
+  assert.match(rule, /unicode-bidi:\s*isolate/);
+  assert.match(rule, /color:\s*var\(--sale/);
+});

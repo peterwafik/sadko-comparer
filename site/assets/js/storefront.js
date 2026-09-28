@@ -135,8 +135,11 @@
         // controls fought over ~306px: "Details & size" was squeezed to 65px (three
         // wrapped lines) and "Add to cart" to 49px (four). .card__row is now the
         // action block ALONE, which is also the element nav.js appends into.
-        '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small>' +
-          (hasWas ? ' <s class="card__was">' + money(was) + '</s> <em class="card__off">-' + offPct + '%</em>' : '') +
+        // The line may wrap to fit a narrow card, so the only break opportunity is
+        // the ordinary space before .card__deal:   keeps an amount with its
+        // currency, and the was-price with its saving.
+        '<span class="card__price">' + money(p.price) + ' <small>' + esc(opts.currency || (en ? 'EGP' : 'جنيه')) + '</small>' +
+          (hasWas ? ' <span class="card__deal"><s class="card__was">' + money(was) + '</s> <em class="card__off">-' + offPct + '%</em></span>' : '') +
         '</span>' +
         '<div class="card__row">' +
           (out

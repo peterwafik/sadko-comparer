@@ -491,18 +491,24 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   margin-inline-start: 2px;
 }
 
-/* The saving. Semantic green, deliberately not the brand accent: this is a
-   fact about the price, not a brand flourish. */
-.card__off {
+/* The saving. Sale red: green read as "in stock" rather than "reduced".
+   direction + isolate: inside an RTL line the bidi algorithm carried the
+   minus to the far end, so "-9%" rendered as "9%-". */
+:root { --sale: #c62828; --sale-bg: #fdecea; }
+.card__off,
+.pdp__off {
+  direction: ltr;
+  unicode-bidi: isolate;
   font-style: normal;
   font-weight: 800;
-  font-size: .78em;
-  color: #2f6b46;
-  background: #e8f2ea;
+  color: var(--sale);
+  background: var(--sale-bg);
   border-radius: 3px;
   padding: .05em .3em;
   white-space: nowrap;
 }
+.card__off { font-size: .78em; }
+.pdp__off { font-size: .55em; }
 
 /* The whole card is dimmed, not hidden: an unavailable product is still worth
    discovering, and hiding it would understate the range SADKO carries. The
@@ -525,6 +531,6 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 }
 
 @media (prefers-color-scheme: dark) {
-  .card__off { color: #7cc496; background: #15291d; }
+  :root { --sale: #ff8a80; --sale-bg: #3a1614; }
   .card__soldout { color: #ec8e9e; background: #331c21; border-color: #4a2a30; }
 }

@@ -13,6 +13,8 @@
     "beko": "beko.png",
     "carrier": "carrier.png",
     "panasonic": "panasonic.png",
-    "samsung": "samsung.png"
+    "samsung": "samsung.png",
+    "lg": "lg.png",
+    "gree": "gree.png"
   }
 }

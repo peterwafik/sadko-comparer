@@ -374,6 +374,29 @@ test('every logo the manifest names is actually committed', () => {
   }
 });
 
+// The row shows the twelve biggest brands, and a brand with no logo renders as a
+// bare text disc among eleven logos. LG did exactly that: the logos had been
+// chosen from the seed catalogue, where LG is not in the top twelve, while in the
+// live Ecwid catalogue it is 6th. The live catalogue is not in git, so its row is
+// pinned by name as well as by what the seed catalogue computes.
+test('every brand that reaches the brand row has a logo', () => {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), '../assets/img/brands');
+  const logos = JSON.parse(readFileSync(join(dir, 'logos.json'), 'utf8')).logos;
+  const prev = globalThis.window;
+  globalThis.window = {};
+  try {
+    require('../assets/js/specs.js');
+    const S = globalThis.window.skSpecs;
+    const seed = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../data/products.json'), 'utf8')).products;
+    const row = core.brandsOf(seed, p => S.of(p)).filter(b => b.key !== '__none__').slice(0, 12).map(b => b.key);
+    // The live catalogue's row on 2026-09-28, with Gree and Panasonic trading the 12th place.
+    const live = ['tornado', 'fresh', 'toshiba', 'kiriazi', 'sharp', 'lg', 'beko', 'zanussi', 'samsung', 'midea', 'haier', 'gree', 'panasonic'];
+    for (const k of new Set([...row, ...live])) {
+      assert.ok(logos[k], 'the brand row shows "' + k + '" but logos.json has no logo for it');
+    }
+  } finally { globalThis.window = prev; }
+});
+
 // priceBands' contract: entries must be caller-built {key, label?, href} objects,
 // not raw shop-core PRICE_BANDS entries ({key,min,max} — no href). Tasks 8/9 map
 // PRICE_BANDS through a bandHref() helper before calling this. These two tests

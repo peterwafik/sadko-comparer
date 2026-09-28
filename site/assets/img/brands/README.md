@@ -20,7 +20,7 @@ Brand dropdown — the keys are the option values.
 
 ## What is committed here, and where it came from
 
-Fetched 2026-09-06. Eleven come from Wikimedia Commons — SVG sources rendered to
+Fetched 2026-09-06 (LG and Gree added 2026-09-28). Thirteen come from Wikimedia Commons — SVG sources rendered to
 PNG so the transparency survives, then scaled to 192px on the long edge (2× the
 84px tile) with ffmpeg — and Kiriazi comes from Kiriazi's own site, which publishes
 its logo as an SVG.
@@ -45,6 +45,14 @@ which is what the row wants.
 | carrier | carrier.png | commons `File:Logo of the Carrier Corporation.svg` | Public domain |
 | panasonic | panasonic.png | commons `File:Panasonic Group logo.svg` | Public domain |
 | samsung | samsung.png | commons `File:Samsung wordmark.svg` | Public domain |
+| lg | lg.png | commons `File:LG logo (2014).svg` (added 2026-09-28) | Public domain |
+| gree | gree.png | commons `File:Gree electric appliances logo.svg` (added 2026-09-28) | Public domain |
+
+LG and Gree were missing because the first twelve were chosen from the seed
+catalogue, where neither ranks in the top twelve. In the live Ecwid catalogue LG
+is 6th (72 products) and Gree sits on the 12th-place cut-off, so choose from the
+catalogue the site actually serves. And beware `File:GREE logo.svg`: that blue
+hexagon is GREE Inc., a Japanese games company, not Gree Electric.
 
 Two things to know before this ships:
 

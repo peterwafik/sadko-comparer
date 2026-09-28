@@ -27,6 +27,13 @@
 .track a:hover{border-color:#2e7e88;}
 .track b{display:block;font:800 .95rem 'Cairo',sans-serif;color:#14343a;margin-bottom:6px;}
 .track span{font:600 .8rem 'Cairo',sans-serif;color:#5b6b6e;line-height:1.7;}
+.lookup{margin-top:18px;background:#fff;border-radius:16px;padding:18px;border:1px solid #d7e3e5;}
+.lookup b{display:block;font:800 .95rem 'Cairo',sans-serif;color:#14343a;margin-bottom:10px;}
+.lookup__row{display:flex;flex-wrap:wrap;gap:8px;}
+.lookup input{flex:1 1 160px;min-width:0;font:600 .9rem 'Cairo',sans-serif;padding:10px 12px;border:1px solid #c9d7da;border-radius:10px;}
+.lookup button{font:800 .9rem 'Cairo',sans-serif;background:#2e7e88;color:#fff;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;}
+#trackOut{margin-top:12px;font:600 .88rem 'Cairo',sans-serif;color:#14343a;line-height:1.8;}
+#trackOut a{color:#2e7e88;font-weight:800;}
 </style>
 </head>
 <body>
@@ -46,6 +53,17 @@
     <a href="https://movex.com.eg" target="_blank" rel="noopener"><b data-i18n="h-track">🚚 تتبع شحنتك</b><span data-i18n="p-track">تُسلَّم الشحنات المؤكدة إلى شركة موڤكس — ويمكنك تتبعها برقم شحنتك على movex.com.eg</span></a>
     <a href="mailto:csupport@sadko-group.com"><b data-i18n="h-care">✉️ خدمة العملاء</b><span data-i18n="p-care">لأى استفسار عن طلب أو ضمان أو صيانة: csupport@sadko-group.com</span></a>
   </div>
+
+  <!-- Guest lookup: status and tracking only, never personal details (engine/order-track.mjs). -->
+  <form id="trackForm" class="lookup">
+    <b id="tfTitle">🔎 تابع طلبك برقم الطلب</b>
+    <div class="lookup__row">
+      <input name="ref" required placeholder="SDK-XXXXXX" dir="ltr" autocomplete="off" maxlength="10">
+      <input name="phone" required placeholder="01XXXXXXXXX" dir="ltr" inputmode="tel" maxlength="20">
+      <button type="submit" id="tfBtn">تابع</button>
+    </div>
+    <div id="trackOut"></div>
+  </form>
 </main>
 
 <footer class="foot">
@@ -107,6 +125,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const k = el.getAttribute('data-i18n'); if (T[k] != null) el.textContent = T[k];
     });
   }
+  /* Guest lookup — asks the server, which asks Ecwid (engine/order-track.mjs). */
+  const TF_STATUS = { received: ['تم الاستلام', 'Received'], confirmed: ['مؤكَّد', 'Confirmed'],
+    preparing: ['جارى التجهيز', 'Being prepared'], shipping: ['خرج للشحن', 'Shipped'],
+    delivered: ['تم التسليم', 'Delivered'], cancelled: ['ملغى', 'Cancelled'] };
+  const tf = document.getElementById('trackForm'), out = document.getElementById('trackOut');
+  if (EN) { document.getElementById('tfTitle').textContent = '🔎 Track an order by its number'; document.getElementById('tfBtn').textContent = 'Track'; }
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  tf.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(tf);
+    out.textContent = t('جارى البحث…', 'Looking…');
+    try {
+      const r = await fetch('/api/orders/track', { method: 'POST', headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin', body: JSON.stringify({ ref: fd.get('ref'), phone: fd.get('phone') }) });
+      if (r.status === 429) { out.textContent = t('محاولات كثيرة — حاول لاحقاً', 'Too many attempts — please try later'); return; }
+      if (!r.ok) { out.textContent = t('لم نجد طلباً بهذا الرقم وهذا الهاتف', 'No order found for that number and phone'); return; }
+      const d = await r.json();
+      const st = TF_STATUS[d.status] || [d.status, d.status];
+      out.innerHTML = '<span class="ltr">' + esc(d.ref) + '</span> — ' + esc(t(st[0], st[1])) +
+        (d.tracking ? '<br>' + t('رقم الشحنة: ', 'Shipment number: ') + '<b class="ltr">' + esc(d.tracking.number) + '</b> — ' +
+          '<a target="_blank" rel="noopener" href="' + esc(d.tracking.url || 'https://movex.com.eg') + '">' + t('تتبع مع موڤكس', 'Track on Movex') + '</a>'
+          : '<br>' + t('لم يُسلَّم للشحن بعد.', 'Not handed to the courier yet.'));
+    } catch (err) { out.textContent = t('تعذّر البحث الآن', 'Could not look it up right now'); }
+  });
+
   const box = document.getElementById('orders');
   orders.forEach(o => {
     const el = document.createElement('article');

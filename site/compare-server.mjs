@@ -80,6 +80,7 @@ import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { isPublicPath } from './engine/static-allow.mjs';
 import { quoteFor, feeMismatch, totalsWith } from './engine/delivery-order.mjs';
 import { GOVERNORATES } from './engine/shipping-regions.mjs';
+import { phoneMatches, publicStatus } from './engine/order-track.mjs';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -2500,6 +2501,29 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
      The payload is held in the Ecwid mirror ONLY until Ecwid accepts it, then
      deleted. Nothing is written to accounts.db: no account is created, and no
      guest PII joins the long-lived store. */
+  /* Guest order lookup (orders.html): order number + phone, both required.
+     Guest details are not kept here once Ecwid has the order, so this asks
+     Ecwid, and answers with status and tracking only. Every failure gets the
+     same "not found", and the per-IP budget is the guest-order one — 6 an hour
+     — so an order number cannot be guessed against a phone. */
+  if (u.pathname === '/api/orders/track' && req.method === 'POST') {
+    const ip = clientIp(req);
+    if (!guestRateOk('track:' + ip)) return json(429, { error: 'too-many' });
+    let b; try { b = await readJson(req, 2_000); } catch (e) { return json(400, { error: 'bad-request' }); }
+    const notFound = () => json(404, { error: 'not-found' });
+    const ref = String((b && b.ref) || '').trim().toUpperCase();
+    if (!/^SDK-[A-F0-9]{6}$/.test(ref) || !(b && b.phone)) return notFound();
+    const st = ecwidStore(), api = ecwidApi();
+    const row = st && st.pushRow(ref);
+    if (!row || !row.ecwid_order_id || !api || !api.configured) return notFound();
+    let remote = null;
+    try { remote = await api.getOrder(row.ecwid_order_id); } catch (e) {}
+    if (!remote) return notFound();
+    const d = remote.shippingPerson || remote.billingPerson || {};
+    if (!phoneMatches(d.phone, b.phone)) return notFound();
+    return json(200, publicStatus(remote));
+  }
+
   if (u.pathname === '/api/orders/guest' && req.method === 'POST') {
     const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
     const bad = (code, ar, en) => json(400, { error: code, message: lang === 'en' ? en : ar });

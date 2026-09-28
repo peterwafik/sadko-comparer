@@ -534,7 +534,13 @@
           '<td>' + A.money(o.total != null ? o.total : o.subtotal) +
             (o.total != null ? '' : ' <small class="muted">' + t('(أجهزة فقط)', '(goods only)') + '</small>') + '</td>' +
           '<td>' + esc(payName(o.payment)) + '</td>' +
-          '<td><span class="chip ' + statusChip(o.status) + '">' + esc(statusName(o.status)) + '</span></td></tr>').join('') +
+          '<td><span class="chip ' + statusChip(o.status) + '">' + esc(statusName(o.status)) + '</span>' +
+            /* The tracking number staff entered on the order in Ecwid. Every
+               parcel goes by Movex, so the link is Movex's unless staff gave
+               a direct one (engine/ecwid-customers.mjs trackingOf). */
+            (o.tracking ? '<br><small class="ltr">' + esc(o.tracking.number) + '</small> <a class="small" target="_blank" rel="noopener" href="' +
+              esc(o.tracking.url || 'https://movex.com.eg') + '">' + t('تتبع مع موڤكس', 'Track on Movex') + '</a>' : '') +
+          '</td></tr>').join('') +
         '</tbody></table></div>' +
         (anyEcwid ? '<p class="muted small mt8">' + t(
           'الطلبات المعلَّمة «طلب من خدمة العملاء» سجّلها فريق صادكو بعد اتصالك أو زيارتك للمعرض.',

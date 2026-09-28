@@ -219,6 +219,22 @@ export function customerNeedsUpdate(remote, desired, pushed = null) {
    a phone order, a showroom sale — which the customer could not see at all
    before. The UI labels them, because "where did this come from" is exactly
    what a customer asks when a list surprises them. */
+/* Staff enter the tracking number on the order in Ecwid. There is one delivery
+   company (Movex), so no carrier is recorded. Confirmed live on order 7519:
+   Ecwid answers with trackingNumber and, when no carrier is set, an
+   AUTO-generated https://track.aftership.com/<number> link — generic, and not
+   Movex's — which is dropped so the site links to Movex instead. A URL staff
+   typed themselves is kept. */
+export function trackingOf(remote) {
+  if (!remote) return null;
+  const sh = Array.isArray(remote.shipments) ? remote.shipments.find(s => s && s.trackingNumber) : null;
+  const number = String(remote.trackingNumber || (sh && sh.trackingNumber) || '').trim();
+  if (!number) return null;
+  const url = String(remote.trackingUrl || (sh && sh.trackingUrl) || '').trim();
+  const usable = /^https:\/\//.test(url) && !/^https:\/\/track\.aftership\.com\//i.test(url);
+  return { number: number.slice(0, 80), url: usable ? url.slice(0, 300) : null };
+}
+
 export function fromEcwidOrder(remote) {
   if (!remote) return null;
   const ref = String(pick(remote, 'externalOrderId', 'externalFulfillmentOrderId') || '').trim();
@@ -263,6 +279,7 @@ export function fromEcwidOrder(remote) {
     /* Staff notes are for staff. privateAdminNotes is deliberately NOT read:
        it is where staff write things about the customer, not to them. */
     note: String(pick(remote, 'orderComments') || '').slice(0, 500),
+    tracking: trackingOf(remote),
   };
 }
 
@@ -297,6 +314,8 @@ export function mergeOrders(local = [], remote = []) {
       /* Already ours. Take only the status, and only when Ecwid actually has
          one to give. */
       if (mapped.status && mapped.status !== hit.status) hit.status = mapped.status;
+      /* And the tracking number, which only ever exists in Ecwid. */
+      if (mapped.tracking) hit.tracking = mapped.tracking;
       hit.inEcwid = true;
       continue;
     }

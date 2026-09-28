@@ -651,3 +651,25 @@ test('an unknown or empty status is never pushed', () => {
     assert.equal(toEcwidFulfillment(v), null);
   }
 });
+
+/* ---- a delivery fee the SERVER quoted (spec 2026-09-28) ---- */
+import { INSTALL_NOTE_AR } from './ecwid-map.mjs';
+
+const QUOTED = () => ORDER({ totals: { subtotal: 35497, deliveryFee: 1650, installFee: null, grandTotal: 37147,
+  currency: 'EGP', methodName: 'الصعيد - منتجات كبيرة جدا + الصعيد - منتجات صغيرة',
+  deliveryLines: [{ id: '865565594', cls: 'xl', fee: 1320 }, { id: '865564749', cls: 'small', fee: 330 }] } });
+
+test('a quoted order carries the shipping line and the grand total', () => {
+  const o = toEcwidOrder(QUOTED(), USER, METHODS);
+  assert.deepEqual(o.shippingOption, { shippingMethodName: 'الصعيد - منتجات كبيرة جدا + الصعيد - منتجات صغيرة', shippingRate: 1650 });
+  assert.equal(o.subtotal, 35497);
+  assert.equal(o.total, 37147);
+});
+
+test('a quoted order names installation only as still to confirm, and itemises delivery', () => {
+  const c = toEcwidOrder(QUOTED(), USER, METHODS).orderComments;
+  assert.ok(c.includes(INSTALL_NOTE_AR));
+  assert.ok(!c.includes(FEES_NOTE_AR), 'delivery is no longer "to be confirmed"');
+  assert.match(c, /1320/);
+  assert.match(c, /منتجات كبيرة جدا/);
+});

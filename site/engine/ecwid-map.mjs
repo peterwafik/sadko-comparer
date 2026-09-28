@@ -260,16 +260,25 @@ export function toSadkoCategory(e) {
 /* ============================================================================
    Orders: SADKO -> Ecwid, and status back again.
 
-   The load-bearing rule: the site deliberately does not know the grand total,
-   because delivery and installation depend on the appliance and the address and
-   are confirmed by customer care. So the push sends the items subtotal, leaves
-   shipping UNSET, and carries the same Arabic sentence the customer's receipt
-   carries. Never add a shippingRate or a computed total here — a number
-   invented in this function becomes a promise on a real order.
+   The load-bearing rule: this function never invents a number. When the SERVER
+   quoted delivery from Ecwid's own rates (engine/delivery-order.mjs), the order
+   carries that fee as its shipping line and the grand total; otherwise it sends
+   the items subtotal, leaves shipping UNSET, and says customer care confirms.
+   Never add a shippingRate the server did not compute — a number invented in
+   this function becomes a promise on a real order.
    ========================================================================== */
 
 export const FEES_NOTE_AR =
   'رسوم التوصيل والتركيب تُؤكَّد من خدمة العملاء قبل التنفيذ.';
+
+/* Once the SERVER has quoted delivery (engine/delivery-order.mjs), only
+   installation is left for customer care to confirm. */
+export const INSTALL_NOTE_AR = 'رسوم التركيب تُؤكَّد من خدمة العملاء قبل التنفيذ.';
+
+/* The band names staff know from Ecwid's own method titles. Kept here so this
+   module stays import-free; engine/size-class.mjs CLASS_LABELS says the same. */
+const BAND_AR = { small: 'منتجات صغيرة', medium: 'منتجات متوسطة', large: 'منتجات كبيرة',
+                  xl: 'منتجات كبيرة جدا', craft: 'حرف يدوية ومنتجات عضوية' };
 
 /* Every method SADKO offers is an Ecwid MANUAL method: the order records the
    choice and staff follow up. No money is taken online by any of them, so
@@ -298,10 +307,20 @@ export function toEcwidOrder(order, user = {}, methods = []) {
   const subtotal = Number(order.subtotal) ||
     items.reduce((n, i) => n + Number(i.price) * Number(i.qty), 0);
 
+  /* Since 2026-09-28 the SERVER can quote delivery from Ecwid's own rates.
+     Only a fee it computed is pushed; an unquoted order keeps the old rule —
+     shipping absent, never zero. */
+  const t = order.totals || {};
+  const fee = Number.isFinite(t.deliveryFee) && t.deliveryFee >= 0 && t.methodName ? t.deliveryFee : null;
+  const titleOf = id => ((items.find(i => String(i.id) === String(id)) || {}).title || id);
+  const feeLines = fee == null ? [] : (t.deliveryLines || []).filter(l => l.fee > 0).map(l =>
+    `توصيل ${String(titleOf(l.id)).slice(0, 60)} (${BAND_AR[l.cls] || l.cls}): ${l.fee} جنيه`);
+
   const lift = d.hasLift ? 'يوجد مصعد' : 'بدون مصعد';
   const comments = [
     `مرجع الطلب: ${order.ref}`,               // also the idempotency key
-    FEES_NOTE_AR,
+    fee == null ? FEES_NOTE_AR : INSTALL_NOTE_AR,
+    ...(fee == null ? [] : [`رسوم التوصيل: ${fee} جنيه — ${t.methodName}`, ...feeLines]),
     d.governorate ? `المحافظة: ${d.governorate}` : null,
     d.floor ? `الطابق: ${d.floor} (${lift})` : lift,
     /* A product-restricted instalment plan. The site cannot verify eligibility
@@ -332,7 +351,8 @@ export function toEcwidOrder(order, user = {}, methods = []) {
        would read as free delivery, which is exactly the claim the customer's
        receipt refuses to make. */
     subtotal,
-    total: subtotal,
+    total: fee == null ? subtotal : subtotal + fee,
+    ...(fee == null ? {} : { shippingOption: { shippingMethodName: t.methodName, shippingRate: fee } }),
 
     paymentMethod: method ? method.title : legacy,
     paymentStatus: PAYMENT_STATUS,

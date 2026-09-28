@@ -293,5 +293,9 @@
     return { min: 3, max: 5 };
   }
 
-  window.skSpecs = { derive, of, norm, sizeFor, acHpFor, BRANDS, FAMILY };
+  /* The server derives delivery size classes from the same parser, so the
+     product page and the delivery fee can never disagree about a size. */
+  const api = { derive, of, norm, sizeFor, acHpFor, BRANDS, FAMILY };
+  if (typeof window !== 'undefined') window.skSpecs = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

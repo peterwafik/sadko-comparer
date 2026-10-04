@@ -48,7 +48,7 @@
       { nAr: 'معرض الإسكندرية', nEn: 'Alexandria showroom', rAr: 'الإسكندرية', rEn: 'Alexandria',
         aAr: '293 شارع بور سعيد – سيدى جابر', aEn: '293 Port Said Street – Sidi Gaber',
         tels: [['035235335', '03 5235335'], ['01223945316', '0122 394 5316']] },
-      { nAr: 'معرض مارينا', nEn: 'Marina showroom', rAr: 'الساحل الشمالى — موسمى صيفاً', rEn: 'North Coast — seasonal', season: true,
+      { nAr: 'معرض مارينا', nEn: 'Marina showroom', rAr: 'الساحل الشمالى، موسمى صيفاً', rEn: 'North Coast, seasonal', season: true,
         aAr: 'محل رقم 1 – منطقة 3 – الساحل الشمالى', aEn: 'Shop no. 1 – Zone 3 – North Coast',
         tels: [['0464060581', '046 4060581'], ['01222143900', '0122 214 3900']] },
     ];
@@ -56,13 +56,13 @@
     /* ---------------- "what do you need?" router ---------------- */
     const ROUTES = [
       { hAr: 'نصيحة فى اختيار منتج', hEn: 'Advice on choosing a product',
-        pAr: 'أجب عن بضعة أسئلة عن منزلك واستخدامك، وستعود إليك ٣ ترشيحات مكتوب مع كل منها سبب ترشيحه — أسرع من مكالمة.',
-        pEn: 'Answer a few questions about your home and how you use it and you get three suggestions, each with the reason it was suggested — faster than a phone call.',
+        pAr: 'أجب عن بضعة أسئلة عن منزلك واستخدامك، وستعود إليك ٣ ترشيحات مكتوب مع كل منها سبب ترشيحه، أسرع من مكالمة.',
+        pEn: 'Answer a few questions about your home and how you use it and you get three suggestions, each with the reason it was suggested, faster than a phone call.',
         href: 'finder.html', cAr: 'ساعدنى أختار', cEn: 'Help me choose' },
       { hAr: 'سؤال عن سعر',
         hEn: 'A question about price',
-        pAr: 'قبل أن تسأل، قارن سعر المنتج لدى المتاجر المدعومة — فالأسعار مأخوذة من صفحات المنتجات وقد تتغير، فأكّدها قبل الشراء.',
-        pEn: 'Before you ask, compare the price across the supported stores — prices are taken from product pages and can change, so confirm before buying.',
+        pAr: 'قبل أن تسأل، قارن سعر المنتج لدى المتاجر المدعومة، فالأسعار مأخوذة من صفحات المنتجات وقد تتغير، فأكّدها قبل الشراء.',
+        pEn: 'Before you ask, compare the price across the supported stores. Prices are taken from product pages and can change, so confirm before buying.',
         href: 'compare.html', cAr: 'قارن الأسعار', cEn: 'Compare prices' },
       { hAr: 'ضمان أو صيانة أو شكوى', hEn: 'Warranty, maintenance or a complaint',
         pAr: 'تتضمن صفحة خدمة العملاء إجابات سريعة، وتجهّز لك نص الطلب كاملاً بالطراز وتاريخ الشراء وحالة الضمان لترسله أو تقرأه فى المكالمة.',
@@ -102,14 +102,14 @@
           '<a class="lane" href="tel:' + TEL + '">' +
             '<span class="k">' + esc(t('الخط الساخن', 'Hotline')) + '</span>' +
             '<b class="ltr">' + TEL + '</b>' +
-            '<span class="d">' + esc(t('مكالمة واحدة لكل الفروع وخدمة العملاء. جهّز الطراز وتاريخ الشراء قبل الاتصال — فذلك يوفّر مكالمة كاملة.',
-              'One number for all branches and customer care. Have the model and purchase date ready before you call — it saves an entire phone call.')) + '</span>' +
+            '<span class="d">' + esc(t('مكالمة واحدة لكل الفروع وخدمة العملاء. جهّز الطراز وتاريخ الشراء قبل الاتصال، فذلك يوفّر مكالمة كاملة.',
+              'One number for all branches and customer care. Have the model and purchase date ready before you call: it saves an entire phone call.')) + '</span>' +
           '</a>' +
           '<a class="lane" href="mailto:' + MAIL + '">' +
             '<span class="k">' + esc(t('بريد خدمة العملاء', 'Customer care e-mail')) + '</span>' +
             '<b class="ltr">' + MAIL + '</b>' +
-            '<span class="d">' + esc(t('اذكر فيه الطراز والرقم التسلسلى وأرفق صورة الفاتورة إن توفرت — فذلك يختصر الرد خطوة كاملة.',
-              'Include the model and serial number and attach a photo of the invoice if you have one — it cuts a whole step out of the reply.')) + '</span>' +
+            '<span class="d">' + esc(t('اذكر فيه الطراز والرقم التسلسلى وأرفق صورة الفاتورة إن توفرت، فذلك يختصر الرد خطوة كاملة.',
+              'Include the model and serial number and attach a photo of the invoice if you have one: it cuts a whole step out of the reply.')) + '</span>' +
           '</a>' +
         '</div></section>';
     }
@@ -143,8 +143,8 @@
               '<a href="tel:' + esc(x[0]) + '" dir="ltr">' + esc(x[1]) + '</a>').join('') + '</div>' +
           '</li>').join('') + '</ul>' +
         '<p class="note note--warn mt16">' + esc(t(
-          'مواعيد العمل غير منشورة على الموقع، ولا يصح أن نخمّنها لك — فاتصل بالمعرض نفسه أو بالخط الساخن ' + TEL + ' للتأكد من المواعيد ومن توافر الجهاز قبل التوجه إليه. ويعمل معرض مارينا فى موسم الصيف فقط.',
-          'Opening hours are not published on this site and we are not going to guess them for you — call the branch itself or the hotline ' + TEL + ' to confirm the hours and that the appliance is in stock before making the trip. The Marina showroom operates in the summer season only.')) + '</p>' +
+          'مواعيد العمل غير منشورة على الموقع، ولا يصح أن نخمّنها لك، فاتصل بالمعرض نفسه أو بالخط الساخن ' + TEL + ' للتأكد من المواعيد ومن توافر الجهاز قبل التوجه إليه. ويعمل معرض مارينا فى موسم الصيف فقط.',
+          'Opening hours are not published on this site and we are not going to guess them for you. Call the branch itself or the hotline ' + TEL + ' to confirm the hours and that the appliance is in stock before making the trip. The Marina showroom operates in the summer season only.')) + '</p>' +
         '<p class="mt16"><a class="btn btn--ghost btn--sm" href="' + P('showrooms.html') + '">' +
           esc(t('صفحة المعارض', 'Showrooms page')) + '</a></p>' +
         '</section>';
@@ -154,8 +154,8 @@
       return '<section class="ct-sec panel ct-out" aria-labelledby="ct-msg">' +
         '<h2 class="ct-h" id="ct-msg">' + esc(t('أرسل لنا رسالة', 'Send us a message')) + '</h2>' +
         '<p class="ct-sub">' + esc(t(
-          'املأ الحقول وسنجهّز لك الرسالة كاملة بموضوع وبيانات تواصل. ويفتح الزر برنامج البريد لديك والرسالة جاهزة — غير أنها لا تُرسَل إلا عندما تضغط «إرسال» بنفسك.',
-          'Fill in the fields and we prepare the whole message for you, with a subject and your contact details. The button opens your own e-mail app with the message ready — but it is not sent until you press send yourself.')) + '</p>' +
+          'املأ الحقول وسنجهّز لك الرسالة كاملة بموضوع وبيانات تواصل. ويفتح الزر برنامج البريد لديك والرسالة جاهزة، غير أنها لا تُرسَل إلا عندما تضغط «إرسال» بنفسك.',
+          'Fill in the fields and we prepare the whole message for you, with a subject and your contact details. The button opens your own e-mail app with the message ready, but it is not sent until you press send yourself.')) + '</p>' +
 
         '<p class="note note--warn">' + esc(t(
           'لا إرسال فى هذه الصفحة. فلا يوجد خادم يستقبل الرسالة، ولا يُنشَأ هنا رقم شكوى، ولن يرى ما كتبته أحد إلا حين ترسله من بريدك أو تقرأه فى مكالمة على ' + TEL + '.',
@@ -177,19 +177,19 @@
                 '<option value="' + esc(o[0]) + '">' + esc(t(o[1], o[2])) + '</option>').join('') + '</select></label>' +
             '<label class="field"><span class="field__l">' + esc(t('أقرب معرض إليك', 'Your nearest showroom')) + '</span>' +
               '<select class="select" name="branch" id="ct-branch">' +
-                '<option value="">' + esc(t('— غير محدد —', '— not specified —')) + '</option>' +
+                '<option value="">' + esc(t('(غير محدد)', '(not specified)')) + '</option>' +
                 BRANCHES.map(b => '<option value="' + esc(t(b.nAr, b.nEn)) + '">' + esc(t(b.nAr, b.nEn)) + '</option>').join('') +
               '</select>' +
-              '<span class="field__hint">' + esc(t('اختيارى — يساعد من يرد عليك على تحويلك إلى الفرع الصحيح.',
-                'Optional — it helps whoever replies send you to the right branch.')) + '</span></label>' +
+              '<span class="field__hint">' + esc(t('اختيارى، يساعد من يرد عليك على تحويلك إلى الفرع الصحيح.',
+                'Optional: it helps whoever replies send you to the right branch.')) + '</span></label>' +
           '</div>' +
 
           '<label class="field"><span class="field__l">' + esc(t('رسالتك', 'Your message')) + '</span>' +
             '<textarea class="textarea" name="message" id="ct-message" rows="6" placeholder="' +
               esc(t('مثلاً: أود معرفة ما إذا كانت ثلاجة كريازى 16 قدماً متوفرة فى معرض المهندسين، وكم سعرها بالتقسيط.',
                 'e.g. I would like to know whether the 16 cu ft Kiriazi fridge is available in the Mohandessin showroom, and its instalment price.')) + '"></textarea>' +
-            '<span class="field__hint">' + esc(t('ما تكتبه هنا يبقى فى متصفحك — فالصفحة لا تخزّنه ولا ترسله دون علمك.',
-              'What you type stays in your browser — this page neither stores it nor sends it behind your back.')) + '</span></label>' +
+            '<span class="field__hint">' + esc(t('ما تكتبه هنا يبقى فى متصفحك، فالصفحة لا تخزّنه ولا ترسله دون علمك.',
+              'What you type stays in your browser: this page neither stores it nor sends it behind your back.')) + '</span></label>' +
 
           '<label class="field mt16"><span class="field__l">' + esc(t('معاينة الرسالة', 'Message preview')) + '</span>' +
             '<textarea class="textarea" id="ct-preview" readonly rows="10"></textarea>' +
@@ -219,7 +219,7 @@
 
     function buildSubject(v) {
       const s = t('رسالة من موقع صادكو: ', 'Message from the SADKO website: ') + topicLabel(v.topic || 'general');
-      return v.name ? s + ' — ' + v.name : s;
+      return v.name ? s + ' (' + v.name + ')' : s;
     }
 
     function buildBody(v) {
@@ -250,8 +250,8 @@
       if (a) a.href = 'mailto:' + MAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
       if (pre) pre.value = body;
       if (hint) hint.textContent = v.message
-        ? t('هذا بالضبط ما سيُفتح فى برنامج البريد لديك — ولا يزال بإمكانك تعديله قبل الإرسال.',
-            'This is exactly what will open in your mail app — and you can still edit it before sending.')
+        ? t('هذا بالضبط ما سيُفتح فى برنامج البريد لديك، ولا يزال بإمكانك تعديله قبل الإرسال.',
+            'This is exactly what will open in your mail app, and you can still edit it before sending.')
         : t('اكتب رسالتك أعلاه لتظهر هنا. والزر يعمل بدونها، غير أن الرسالة ستصل فارغة.',
             'Type your message above and it will appear here. The button works without it, but the message would arrive empty.');
       return { subject: subject, body: body };
@@ -278,8 +278,8 @@
       const status = root.querySelector('#ct-status');
       if (!box) return;
       const say = ok => { if (status) status.textContent = ok
-        ? t('تم النسخ. الصقه فى بريدك أو فى واتساب — وتذكّر أنه لم يُرسَل بعد.',
-            'Copied. Paste it into your e-mail or messaging app — and remember it is still not sent.')
+        ? t('تم النسخ. الصقه فى بريدك أو فى واتساب، وتذكّر أنه لم يُرسَل بعد.',
+            'Copied. Paste it into your e-mail or messaging app, and remember it is still not sent.')
         : t('لم يسمح المتصفح بالنسخ التلقائى. حدّد النص من صندوق المعاينة وانسخه بنفسك.',
             'The browser refused automatic copying. Select the text in the preview box and copy it yourself.'); };
       let handled = false;

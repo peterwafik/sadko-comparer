@@ -83,7 +83,7 @@ function homeToAddress(home, user, isActive) {
     name: String(home.name || user.name || "").trim() || undefined,
     phone: String(user.phone || "").trim() || undefined,
     street: [street, floor ? `الطابق ${floor}` : null, floor ? lift : null]
-      .filter(Boolean).join(" — ") || undefined,
+      .filter(Boolean).join("، ") || undefined,
     city: gov || undefined,
     countryCode: "EG",
     /* Ecwid keeps its own address ids and orderBy and IGNORES the order of the

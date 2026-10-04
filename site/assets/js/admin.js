@@ -21,7 +21,7 @@
       brandSub: 'غرفة التحكم',
       nav_dashboard: 'اللوحة', nav_products: 'المنتجات', nav_orders: 'الطلبات',
       nav_customers: 'العملاء', nav_content: 'المحتوى', nav_settings: 'الإعدادات', nav_audit: 'السجل',
-      sub_dashboard: 'نظرة سريعة على المتجر', sub_products: 'تعديل كل منتج — الصور والتفاصيل والأسعار',
+      sub_dashboard: 'نظرة سريعة على المتجر', sub_products: 'تعديل كل منتج: الصور والتفاصيل والأسعار',
       sub_orders: 'متابعة الطلبات وتحديث حالتها', sub_customers: 'كل من سجّل حساب',
       sub_content: 'أدلة الشراء وأسئلة مساعد الاختيار واللافتات',
       ecwidTitle: 'إكويد', ecwidSyncNow: 'زامن الآن', ecwidOpen: 'افتح لوحة إكويد',
@@ -74,7 +74,7 @@
       brandSub: 'Control room',
       nav_dashboard: 'Dashboard', nav_products: 'Products', nav_orders: 'Orders',
       nav_customers: 'Customers', nav_content: 'Content', nav_settings: 'Settings', nav_audit: 'Audit log',
-      sub_dashboard: 'A quick read on the store', sub_products: 'Edit every product — images, details, prices',
+      sub_dashboard: 'A quick read on the store', sub_products: 'Edit every product: images, details, prices',
       sub_orders: 'Track orders and update their status', sub_customers: 'Everyone who registered',
       sub_content: 'Buying guides, finder questions and banners',
       ecwidTitle: 'Ecwid', ecwidSyncNow: 'Sync now', ecwidOpen: 'Open the Ecwid admin',
@@ -137,9 +137,9 @@
   const CAT_FLAT = [];
   for (const [id, name, kids] of CAT_TREE) {
     CAT_NAME[id] = name; CAT_FLAT.push({ id, name });
-    for (const [kid, kname] of (kids || [])) { CAT_NAME[kid] = name + ' › ' + kname; CAT_FLAT.push({ id: kid, name: '— ' + kname }); }
+    for (const [kid, kname] of (kids || [])) { CAT_NAME[kid] = name + ' › ' + kname; CAT_FLAT.push({ id: kid, name: '› ' + kname }); }
   }
-  const catName = id => CAT_NAME[id] || (id ? '#' + id : '—');
+  const catName = id => CAT_NAME[id] || (id ? '#' + id : '-');
 
   /* ---------- tiny helpers ---------- */
   const $ = id => document.getElementById(id);
@@ -348,13 +348,13 @@
     const e = d.ecwid;
     const state = e.source === 'ecwid' ? t('ecwidConnected')
       : (e.enabled ? t('ecwidWaiting') : t('ecwidOff'));
-    const num = n => (n == null ? '—' : String(n));
+    const num = n => (n == null ? '-' : String(n));
     const row = (l, v, cls) => '<tr><th>' + esc(l) + '</th><td class="' + (cls || '') + '">' + esc(v) + '</td></tr>';
     const rail = (name, id) => id
       ? esc((name || id) + ' (' + id + ')')
       : '<span class="err">' + esc(t('ecwidUnresolved')) + '</span>';
     return '<div class="panel">'
-      + '<div class="panel__h"><h2>' + esc(t('ecwidTitle')) + ' — ' + esc(state) + '</h2>'
+      + '<div class="panel__h"><h2>' + esc(t('ecwidTitle')) + ': ' + esc(state) + '</h2>'
       + '<div class="toolbar__sp"></div>'
       + '<a class="btn btn--ghost" href="' + ecwidAdminUrl(d.storeId) + '" target="_blank" rel="noopener">' + esc(t('ecwidOpen')) + '</a>'
       + '<button class="btn btn--gold" id="adm-ecwid-sync">' + esc(t('ecwidSyncNow')) + '</button>'
@@ -449,9 +449,9 @@
         ${ecwidPanel}
         <div id="adm-delivery"></div>
         <div class="vitals">
-          ${vital(c.live ?? '—', t('v_liveCat'), t('v_base') + ': ' + (c.base ?? '—'))}
-          ${vital(a.orders ?? '—', t('v_orders'), (a.ordersToday ? a.ordersToday.n : 0) + ' ' + t('v_ordersToday'))}
-          ${vital(a.users ?? '—', t('v_users'))}
+          ${vital(c.live ?? '-', t('v_liveCat'), t('v_base') + ': ' + (c.base ?? '-'))}
+          ${vital(a.orders ?? '-', t('v_orders'), (a.ordersToday ? a.ordersToday.n : 0) + ' ' + t('v_ordersToday'))}
+          ${vital(a.users ?? '-', t('v_users'))}
           ${vital(c.edited ?? 0, t('v_edited'), '', true)}
           ${vital(c.custom ?? 0, t('v_custom'), '', true)}
           ${vital(c.hidden ?? 0, t('v_hidden'), '', true)}
@@ -519,10 +519,10 @@
     ].join(' ');
     const img = p.image ? `<img class="thumb" src="${esc(p.image)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="thumb"></span>`;
     return `<tr>
-      <td><div class="pname">${img}<span style="min-width:0"><b title="${esc(p.title)}">${esc(p.title || '—')}</b><span class="id mono">${esc(p.id)}</span></span></div></td>
+      <td><div class="pname">${img}<span style="min-width:0"><b title="${esc(p.title)}">${esc(p.title || '-')}</b><span class="id mono">${esc(p.id)}</span></span></div></td>
       <td class="muted" style="font-size:.82rem">${esc(catName(p.categoryId))}</td>
       <td class="price">${money(p.price)}</td>
-      <td class="tags">${tags || '<span class="muted">—</span>'}</td>
+      <td class="tags">${tags || '<span class="muted">-</span>'}</td>
       <td><div class="rowact">
         <button class="btn btn--ghost btn--sm" data-act="edit" data-id="${esc(p.id)}">${t('edit')}</button>
         <button class="btn btn--ghost btn--sm" data-act="${p._hidden ? 'show' : 'hide'}" data-id="${esc(p.id)}">${p._hidden ? t('show') : t('hide')}</button>
@@ -576,7 +576,7 @@
         : `<input id="ed_${f}" type="${opts.type || 'text'}" value="${val}" ${opts.mono ? 'class="mono"' : ''} dir="${opts.dir || 'auto'}"${dis}>`;
       return `<div class="f"><label for="ed_${f}">${label}${rev}</label>${input}${opts.hint ? `<div class="hint">${opts.hint}</div>` : ''}</div>`;
     };
-    const catOptions = `<option value="">—</option>` + CAT_FLAT.map(c => `<option value="${c.id}" ${String(product.categoryId) === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('') +
+    const catOptions = `<option value="">-</option>` + CAT_FLAT.map(c => `<option value="${c.id}" ${String(product.categoryId) === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('') +
       (product.categoryId && !CAT_NAME[product.categoryId] ? `<option value="${esc(product.categoryId)}" selected>#${esc(product.categoryId)}</option>` : '');
 
     drawer.innerHTML = `
@@ -737,7 +737,7 @@
     const total = o.subtotal != null ? o.subtotal : (o.totals && o.totals.subtotal) || 0;
     return `<tr>
       <td class="mono" style="font-weight:800">${esc(o.ref)}</td>
-      <td><b style="font-weight:700">${esc(cust.name || o.delivery && o.delivery.name || '—')}</b><br><span class="muted mono" style="font-size:.76rem">${esc(cust.phone || (o.delivery && o.delivery.phone) || '')}</span></td>
+      <td><b style="font-weight:700">${esc(cust.name || o.delivery && o.delivery.name || '-')}</b><br><span class="muted mono" style="font-size:.76rem">${esc(cust.phone || (o.delivery && o.delivery.phone) || '')}</span></td>
       <td><div class="ord-items" title="${esc(items)}">${esc(items).slice(0, 120)}</div></td>
       <td class="price">${money(total)}</td>
       <td><select class="statussel" data-ref="${esc(o.ref)}">${S.orderStatuses.map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${t('st_' + s)}</option>`).join('')}</select></td>
@@ -755,9 +755,9 @@
       view.innerHTML = `<div class="tablewrap"><table class="tbl">
         <thead><tr><th>${t('th_name')}</th><th>${t('th_email')}</th><th>${t('th_phone')}</th><th>${t('th_homes')}</th><th>${t('th_orders')}</th><th>${t('th_via')}</th><th>${t('th_joined')}</th><th>${t('th_ecwid')}</th></tr></thead>
         <tbody>${data.customers.map(c => `<tr>
-          <td><b style="font-weight:700">${esc(c.name || '—')}</b></td>
+          <td><b style="font-weight:700">${esc(c.name || '-')}</b></td>
           <td class="mono" style="font-size:.8rem">${esc(c.email)}</td>
-          <td class="mono" style="font-size:.8rem;direction:ltr">${esc(c.phone || '—')}</td>
+          <td class="mono" style="font-size:.8rem;direction:ltr">${esc(c.phone || '-')}</td>
           <td>${c.homes || 0}</td>
           <td>${c.orders || 0}</td>
           <td class="muted" style="font-size:.8rem">${(c.providers && c.providers.length) ? esc(c.providers.join(', ')) : t('viaPass')}</td>
@@ -780,7 +780,7 @@
      on a public_ token an unreachable customer and a non-existent one both
      look like nothing, and that ambiguity costs an afternoon. */
   function ecwidCustomerCell(r) {
-    if (!r) return '<span class="err">—</span>';
+    if (!r) return '<span class="err">-</span>';
     if (r.reason === 'no-access')
       return '<span class="muted" style="font-size:.74rem">403</span>';
     if (!r.linked) return '<span class="muted" style="font-size:.76rem">' + esc(t('ecwidNotLinked')) + '</span>';

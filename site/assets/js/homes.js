@@ -47,7 +47,7 @@
     return [
       { g: t('المكان', 'The place'), fields: [
         { k: 'name', type: 'text', max: 40, l: t('اسم المكان', 'Name this place'),
-          h: t('مثل «شقة مدينة نصر» أو «شاليه الساحل» — للتمييز بينها.', 'Such as "the flat in Nasr City" or "coast chalet" — so you can tell them apart.') },
+          h: t('مثل «شقة مدينة نصر» أو «شاليه الساحل»، للتمييز بينها.', 'Such as "the flat in Nasr City" or "coast chalet", so you can tell them apart.') },
         { k: 'icon', type: 'icon', l: t('أيقونة', 'Icon') },
         { k: 'scope', type: 'choice', l: t('أهو منزل كامل أم غرفة؟', 'A whole home or one room?'),
           opts: [['home', t('منزل كامل', 'Whole home')], ['room', t('غرفة واحدة', 'A single room')]] },
@@ -89,7 +89,7 @@
         { k: 'floor', type: 'text', max: 12, l: t('الدور', 'Floor') },
         { k: 'hasLift', type: 'choice', opts: yn, l: t('فيه أسانسير؟', 'Is there a lift?') },
         { k: 'doorwayW', type: 'number', min: 40, max: 200, unit: t('سم', 'cm'), l: t('أضيق باب', 'Narrowest doorway'),
-          h: t('أهم مقاس يُنسى — فإن كان الجهاز أعرض من الباب فلن يدخل أصلاً.', 'The most forgotten measurement — if it is wider than the door, it never gets in.') },
+          h: t('أهم مقاس يُنسى، فإن كان الجهاز أعرض من الباب فلن يدخل أصلاً.', 'The most forgotten measurement: if it is wider than the door, it never gets in.') },
         { k: 'stairsTight', type: 'choice', opts: yn, l: t('السلم ضيق؟', 'Are the stairs tight?') },
       ] },
 
@@ -196,7 +196,7 @@
     }
     if (f.type === 'choice') {
       return '<label class="field" style="margin:0 0 12px">' + lab +
-        '<select class="select" name="' + f.k + '"><option value="">' + t('— اختر —', '— select —') + '</option>' +
+        '<select class="select" name="' + f.k + '"><option value="">' + t('(اختر)', '(select)') + '</option>' +
         f.opts.map(o => '<option value="' + esc(o[0]) + '"' + (String(v) === String(o[0]) || (v === true && o[0] === 'yes') || (v === false && o[0] === 'no') ? ' selected' : '') +
           '>' + esc(o[1]) + '</option>').join('') + '</select>' + hint + '</label>';
     }

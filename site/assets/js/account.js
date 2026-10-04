@@ -56,8 +56,8 @@
     function offline() {
       return '<div class="panel"><h2 class="panel__h">' + t('الحسابات غير متاحة حالياً', 'Accounts are unavailable right now') + '</h2>' +
         '<div class="note note--warn">' + esc(Au.offlineMsg()) + '</div>' +
-        '<p class="muted small mt16">' + t('وبقية الموقع تعمل: المقارنة، وساعدنى أختار، والخطط، والمحفوظات. ويمكنك أيضاً أن تعرّفنا بمنزلك دون حساب — وسيُحفظ على جهازك.',
-          'The rest of the site still works: comparison, the finder, plans and saved products. You can even describe your home without an account — it is kept on your device.') + '</div>' +
+        '<p class="muted small mt16">' + t('وبقية الموقع تعمل: المقارنة، وساعدنى أختار، والخطط، والمحفوظات. ويمكنك أيضاً أن تعرّفنا بمنزلك دون حساب، وسيُحفظ على جهازك.',
+          'The rest of the site still works: comparison, the finder, plans and saved products. You can even describe your home without an account. It is kept on your device.') + '</div>' +
         '<div class="chips mt16"><a class="btn btn--teal" href="' + A.P('finder.html') + '">' + t('ساعدنى أختار', 'Help me choose') + '</a>' +
         '<a class="btn btn--ghost" href="tel:19140">' + t('اطلب هاتفياً 19140', 'Order by phone 19140') + '</a></div></div>' +
         homesPanel(null);
@@ -90,8 +90,8 @@
             '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك لتُتم طلبك وتتابعه، ولتجد ترشيحاتك على مقاس منزلك.',
               'Sign in to complete and track your orders, and get suggestions sized to your home.') + '</p>' +
             socialRow() +
-            '<p class="sk-auth__mini">' + t('الدخول بحساب جوجل فقط — لا نحتفظ بكلمة سر لك على أى حال. لو لم يكن لديك حساب جوجل، اتصل بـ',
-              'Sign-in is with Google only — we hold no password for you at all. If you do not have a Google account, call ') +
+            '<p class="sk-auth__mini">' + t('الدخول بحساب جوجل فقط. لا نحتفظ بكلمة سر لك على أى حال. لو لم يكن لديك حساب جوجل، اتصل بـ',
+              'Sign-in is with Google only. We hold no password for you at all. If you do not have a Google account, call ') +
               '<a href="tel:19140" dir="ltr">19140</a>.</p>' +
             '<p class="sk-auth__mini">' + t('بالدخول أنت موافق على ', 'By signing in you agree to our ') +
               '<a href="' + A.P('terms.html') + '">' + t('شروط الاستخدام', 'terms') + '</a>' + t(' و', ' and ') +
@@ -172,8 +172,8 @@
     function guestHomesScreen() {
       return '<div class="between mt0"><div><h2 class="panel__h" style="font-size:1.25rem">' +
           t('أماكنى', 'My places') + '</h2>' +
-          '<p class="muted small" style="margin:4px 0 0">' + t('عرّفنا بمنزلك لنصفّى المنتجات على مقاسه — دون إنشاء حساب.',
-            'Tell us about your home so we filter products to fit — no account needed.') + '</p></div>' +
+          '<p class="muted small" style="margin:4px 0 0">' + t('عرّفنا بمنزلك لنصفّى المنتجات على مقاسه، دون إنشاء حساب.',
+            'Tell us about your home so we filter products to fit, no account needed.') + '</p></div>' +
           '<a class="btn btn--teal btn--sm" href="' + A.P('account.html') + '">' + t('سجّل دخول', 'Sign in') + '</a></div>' +
         homesPanel(null);
     }
@@ -263,7 +263,7 @@
                   esc((u.providers || []).join(', ') || t('مزوّد خارجى', 'a provider')) +
                   (passwordsOn()
                     ? t('، فلا كلمة مرور هنا. وإن أردت كلمة مرور، فاتصل بخدمة العملاء.', ', so there is no password here. If you would like one, contact customer care.')
-                    : t('، فلا كلمة مرور هنا — ولا نحتفظ بواحدة لأى عميل.', ', so there is no password here — and we hold none for any customer.')) + '</div>') +
+                    : t('، فلا كلمة مرور هنا، ولا نحتفظ بواحدة لأى عميل.', ', so there is no password here, and we hold none for any customer.')) + '</div>') +
           '</div>' +
         '</div>' +
 
@@ -271,8 +271,8 @@
           '<p class="muted small">' + t('جارى التحميل…', 'Loading…') + '</p></div>' +
 
         '<div class="panel mt16"><h3 class="panel__h">' + t('بياناتك وحقك فيها', 'Your data, and your rights over it') + '</h3>' +
-          '<p class="panel__sub">' + t('يمكنك أخذ نسخة من كل ما هو مسجَّل لدينا، أو حذف حسابك نهائياً — دون الحاجة إلى مخاطبة أحد.',
-            'You can take a copy of everything we hold, or delete your account permanently — without having to ask anyone.') + '</p>' +
+          '<p class="panel__sub">' + t('يمكنك أخذ نسخة من كل ما هو مسجَّل لدينا، أو حذف حسابك نهائياً، دون الحاجة إلى مخاطبة أحد.',
+            'You can take a copy of everything we hold, or delete your account permanently, without having to ask anyone.') + '</p>' +
           '<div class="chips">' +
             '<a class="btn btn--ghost btn--sm" href="' + Au.exportUrl() + '" download="sadko-my-data.json">' +
               t('نزّل نسخة من بياناتى', 'Download my data') + '</a>' +
@@ -289,8 +289,8 @@
       return '<div class="panel mt16" id="homesBox"><div class="between">' +
         '<div><h3 class="panel__h">' + t('أماكنى', 'My places') + ' <span class="badge">' + A.num(homes.length) + '</span></h3>' +
         '<p class="panel__sub" style="margin:6px 0 0">' + t(
-          'قد يكون لديك أكثر من مكان — الشقة، أو شاليه الساحل، أو حتى غرفة بمفردها. اختر المكان المُفعَّل، وستُصفَّى كل صفحات المنتجات على مقاسه.',
-          'You can keep more than one place — the flat, a chalet on the coast, or even a single room. Pick the active one and every product page filters to fit it.') + '</p></div>' +
+          'قد يكون لديك أكثر من مكان: الشقة، أو شاليه الساحل، أو حتى غرفة بمفردها. اختر المكان المُفعَّل، وستُصفَّى كل صفحات المنتجات على مقاسه.',
+          'You can keep more than one place: the flat, a chalet on the coast, or even a single room. Pick the active one and every product page filters to fit it.') + '</p></div>' +
         (homes.length < 8 ? '<button class="btn btn--teal btn--sm" id="addHomeBtn">' + t('+ مكان جديد', '+ Add a place') + '</button>' : '') +
         '</div>' +
         (guest ? '<div class="note note--soft small mt16">' + t(
@@ -320,7 +320,7 @@
     }
 
     function presetPicker() {
-      return '<div class="note note--info small">' + t('ابدأ بواحد من هذه، ويمكنك تعديله لاحقاً:', 'Start from one of these — you can edit it afterwards:') + '</div>' +
+      return '<div class="note note--info small">' + t('ابدأ بواحد من هذه، ويمكنك تعديله لاحقاً:', 'Start from one of these (you can edit it afterwards):') + '</div>' +
         '<div class="chips mt8">' + H.PRESETS().map(p =>
           '<button type="button" class="chip" data-preset="' + esc(p.key) + '">' + esc(p.icon + ' ' + p.name) + '</button>').join('') + '</div>';
     }
@@ -398,8 +398,8 @@
       const gd = $('#googleDemo');
       gd && gd.addEventListener('click', () => {
         msg($('#provErr'), 'soft', t(
-          'سيعمل الدخول بجوجل على الخادم بمجرد ضبط GOOGLE_CLIENT_ID — والتفعيل مجانى. وإلى ذلك الحين استخدم البريد الإلكترونى وكلمة المرور أدناه.',
-          'Google sign-in activates once GOOGLE_CLIENT_ID is set on the server — it is free to enable. Until then, use email and password below.'));
+          'سيعمل الدخول بجوجل على الخادم بمجرد ضبط GOOGLE_CLIENT_ID، والتفعيل مجانى. وإلى ذلك الحين استخدم البريد الإلكترونى وكلمة المرور أدناه.',
+          'Google sign-in activates once GOOGLE_CLIENT_ID is set on the server. It is free to enable. Until then, use email and password below.'));
       });
 
       const lo = $('#logoutBtn');
@@ -418,7 +418,7 @@
         e.preventDefault();
         const fd = new FormData(pf);
         const r = await Au.changePassword(fd.get('current'), fd.get('next'));
-        if (r.ok) { msg($('#pwMsg'), 'info', t('اتغيّرت — سجّل دخولك تانى.', 'Changed — please sign in again.')); setTimeout(() => render(null), 1200); }
+        if (r.ok) { msg($('#pwMsg'), 'info', t('اتغيّرت. سجّل دخولك تانى.', 'Changed. Please sign in again.')); setTimeout(() => render(null), 1200); }
         else msg($('#pwMsg'), 'warn', r.message || t('تعذّر التغيير.', 'Could not change it.'));
       });
 

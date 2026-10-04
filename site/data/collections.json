@@ -1,5 +1,5 @@
 {
-  "note": "Curated product lists taken from SADKO's OWN live site, so each rail states something true. Ids not present in data/products.json are dropped at build time. Regenerate by re-running the scrape when the live site changes — these are a snapshot, not a live feed.",
+  "note": "Curated product lists taken from SADKO's OWN live site, so each rail states something true. Ids not present in data/products.json are dropped at build time. Regenerate by re-running the scrape when the live site changes. These are a snapshot, not a live feed.",
   "captured": "2026-09-05",
   "sources": {
     "bestSellers": "https://www.sadko-group.com/المنتجات-الاكثر-مبيعاً-c195273251",

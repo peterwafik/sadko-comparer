@@ -33,14 +33,14 @@ function mountGuide(container, api, sections) {
   const EN = !!(window.skLang && window.skLang.get() === 'en');
   const G = EN ? {
     dockAria: 'Quick navigation between the rooms of the house',
-    dockTitle: l => `Jump straight to the ${l} — every appliance marker lights up`,
+    dockTitle: l => `Jump straight to the ${l}, and every appliance marker lights up`,
     dockBtnAria: l => `Go to the ${l} and see all its shoppable appliances`,
     helpMark: '?', helpTitle: 'How do I use this page?', helpAria: 'Show the page walkthrough',
     tourAria: 'Page walkthrough', close: 'Close', skip: 'Skip the tour',
     prev: 'Back', next: 'Next', done: 'Great, let’s explore',
   } : {
     dockAria: 'التنقل السريع بين غرف المنزل',
-    dockTitle: l => `اضغط للانتقال مباشرة إلى ${l} — وستضيء كل علامات الأجهزة`,
+    dockTitle: l => `اضغط للانتقال مباشرة إلى ${l}، وستضيء كل علامات الأجهزة`,
     dockBtnAria: l => `انتقل إلى ${l} وشاهد كل أجهزتها المتاحة للشراء`,
     helpMark: '؟', helpTitle: 'كيف أستخدم الصفحة؟', helpAria: 'اعرض شرح استخدام الصفحة',
     tourAria: 'شرح استخدام الصفحة', close: 'إغلاق', skip: 'تخطّى الشرح',
@@ -129,7 +129,7 @@ function mountGuide(container, api, sections) {
     },
     {
       sel: () => dock,
-      title: EN ? 'Room buttons — the fastest route' : 'أزرار الغرف — أسرع طريق',
+      title: EN ? 'Room buttons: the fastest route' : 'أزرار الغرف: أسرع طريق',
       body: EN
         // No longer mentions the side dot rail: index.html passes route:false,
         // so those dots do not exist. A walkthrough that points at absent
@@ -141,8 +141,8 @@ function mountGuide(container, api, sections) {
       sel: () => container.querySelector('.hs-layer .hs-group .hs-spot'),
       title: EN ? 'Pulsing markers = shop categories' : 'العلامات النابضة = فئات التسوّق',
       body: EN
-        ? 'Every pulsing marker sits on an appliance in the scene. Click one and it opens a page with every product in that category — TVs, air conditioners, refrigerators… and more.'
-        : 'كل علامة نابضة تقف فوق جهاز فى المشهد. اضغط على أى علامة لتفتح صفحة تضم كل منتجات هذه الفئة — تليفزيونات، تكييفات، ثلاجات… وغيرها.',
+        ? 'Every pulsing marker sits on an appliance in the scene. Click one and it opens a page with every product in that category: TVs, air conditioners, refrigerators… and more.'
+        : 'كل علامة نابضة تقف فوق جهاز فى المشهد. اضغط على أى علامة لتفتح صفحة تضم كل منتجات هذه الفئة: تليفزيونات، تكييفات، ثلاجات… وغيرها.',
     },
     /* There was a fourth step here describing a per-room «شوف الأجهزة اللى هنا»
        showcase button. That button does not exist: `.hs-scbtn` is never created
@@ -172,11 +172,11 @@ function mountGuide(container, api, sections) {
         : (strapCollapsed() ? 'كل الأقسام داخل هذا الزر' : 'اطلب فى أى وقت'),
       body: () => EN
         ? (strapCollapsed()
-          ? 'This button opens the menu: the full shop, orders, showrooms and the cart, with the 19140 hotline at the foot of it — tap that to call us directly. Need this walkthrough again? Hit the “?” button.'
-          : 'The 19140 hotline is always up top — tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart. Need this walkthrough again? Hit the “?” button.')
+          ? 'This button opens the menu: the full shop, orders, showrooms and the cart, with the 19140 hotline at the foot of it. Tap that to call us directly. Need this walkthrough again? Hit the “?” button.'
+          : 'The 19140 hotline is always up top. Tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart. Need this walkthrough again? Hit the “?” button.')
         : (strapCollapsed()
-          ? 'يفتح لك هذا الزر القائمة: المتجر الكامل والطلبات والمعارض والسلة، والخط الساخن 19140 فى أسفلها — اضغط عليه للاتصال بنا مباشرة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'
-          : 'الخط الساخن 19140 موجود فى الأعلى دائمًا — اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'),
+          ? 'يفتح لك هذا الزر القائمة: المتجر الكامل والطلبات والمعارض والسلة، والخط الساخن 19140 فى أسفلها. اضغط عليه للاتصال بنا مباشرة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'
+          : 'الخط الساخن 19140 موجود فى الأعلى دائمًا. اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'),
     },
   ];
 

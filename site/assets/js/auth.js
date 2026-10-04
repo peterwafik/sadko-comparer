@@ -74,8 +74,8 @@
 
   function offlineMsg() {
     return EN()
-      ? 'Accounts are not available on this deployment — the site is being served without its server. You can still browse, compare, save products and build plans; ordering needs sign-in.'
-      : 'الحسابات غير متاحة فى هذه النسخة — فالموقع يعمل دون الخادم الخاص به. ويمكنك التصفح والمقارنة وحفظ المنتجات وإنشاء الخطط، غير أن تقديم الطلب يتطلب تسجيل الدخول.';
+      ? 'Accounts are not available on this deployment, as the site is being served without its server. You can still browse, compare, save products and build plans; ordering needs sign-in.'
+      : 'الحسابات غير متاحة فى هذه النسخة، فالموقع يعمل دون الخادم الخاص به. ويمكنك التصفح والمقارنة وحفظ المنتجات وإنشاء الخطط، غير أن تقديم الطلب يتطلب تسجيل الدخول.';
   }
 
   const skAuth = {

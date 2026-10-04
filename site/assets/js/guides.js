@@ -97,8 +97,8 @@
       const slug = param('g');
       const art = slug ? DATA.articles.find(a => a.slug === slug) : null;
       if (slug && !art) { root.innerHTML = notFound(slug); return; }
-      if (art) { root.innerHTML = article(art); document.title = L(art.title) + ' — ' + t('صادكو جروب', 'SADKO Group'); }
-      else { root.innerHTML = index(); document.title = t('أدلة الشراء — صادكو جروب', 'Buying guides — SADKO Group'); }
+      if (art) { root.innerHTML = article(art); document.title = L(art.title) + ' | ' + t('صادكو جروب', 'SADKO Group'); }
+      else { root.innerHTML = index(); document.title = t('أدلة الشراء | صادكو جروب', 'Buying guides | SADKO Group'); }
       root.focus({ preventScroll: true });
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
@@ -167,8 +167,8 @@
           '<div class="between">' +
             '<div><h2 class="panel__h">' + esc(t('كل الأدلة', 'All guides')) + '</h2>' +
             '<p class="panel__sub" style="margin-bottom:0">' + esc(t(
-              'شرح عملى بلغة ميسّرة: مقاسات، وكفاءة طاقة، وضمان، وتركيب، وصيانة. ولا ترشيح لطُرُز هنا — بل الأساس الذى يمكّنك من الاختيار بنفسك.',
-              'Practical explanations in plain language: sizing, energy efficiency, warranty, installation and maintenance. No model recommendations here — just the basics that let you decide for yourself.'
+              'شرح عملى بلغة ميسّرة: مقاسات، وكفاءة طاقة، وضمان، وتركيب، وصيانة. ولا ترشيح لطُرُز هنا، بل الأساس الذى يمكّنك من الاختيار بنفسك.',
+              'Practical explanations in plain language: sizing, energy efficiency, warranty, installation and maintenance. No model recommendations here, just the basics that let you decide for yourself.'
             )) + '</p></div>' +
             '<span class="badge" data-count>' + esc(countLabel(visible().length)) + '</span>' +
           '</div>' +

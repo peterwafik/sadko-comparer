@@ -242,7 +242,7 @@ test('repointCategoryPage changes ONLY the pinned id', () => {
   /* the name attributes, title and description are already right */
   assert.match(out, /data-cat-name="تليفزيونات"/);
   assert.match(out, /data-cat-name-en="Televisions"/);
-  assert.match(out, /<title>تليفزيونات — صادكو جروب<\/title>/);
+  assert.match(out, /<title>تليفزيونات \| صادكو جروب<\/title>/);
 });
 
 test('repointCategoryPage leaves the rest of the document byte-identical', () => {
@@ -261,7 +261,7 @@ test('retargetCategoryPage builds a working page for a live category with no fil
   assert.match(out, /data-cat="206629520"/);
   assert.match(out, /data-cat-name="خلاطات و محضرات طعام"/);
   assert.match(out, /data-cat-name-en="Blenders"/);
-  assert.match(out, /<title>خلاطات و محضرات طعام — صادكو جروب<\/title>/);
+  assert.match(out, /<title>خلاطات و محضرات طعام \| صادكو جروب<\/title>/);
   assert.match(out, /name="description" content="تصفّح خلاطات و محضرات طعام/);
 });
 

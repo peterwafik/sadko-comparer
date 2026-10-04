@@ -190,8 +190,8 @@ function mountHotspots(container, api, sections) {
     coach.setAttribute('role', 'status');
     const small = window.matchMedia('(max-width: 600px)').matches;
     const msg = HS_EN
-      ? 'The pulsing markers over the appliances are shop categories — <b>tap any marker</b> to open a page with all its products.'
-      : 'العلامات النابضة فوق الأجهزة فئات تسوّق — <b>اضغط على أى علامة</b> تفتح صفحة كل منتجاتها.';
+      ? 'The pulsing markers over the appliances are shop categories. <b>Tap any marker</b> to open a page with all its products.'
+      : 'العلامات النابضة فوق الأجهزة فئات تسوّق. <b>اضغط على أى علامة</b> تفتح صفحة كل منتجاتها.';
     coach.innerHTML =
       `<i class="hs-coach__dot"></i><p>${msg}</p>` +
       `<button type="button" class="hs-coach__x" aria-label="${HS_EN ? 'Close' : 'إغلاق'}">&times;</button>`;

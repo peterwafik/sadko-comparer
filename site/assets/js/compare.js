@@ -13,53 +13,53 @@
 
   const T = {
     ar: {
-      title: 'قارن الأسعار — صادكو جروب',
+      title: 'قارن الأسعار | صادكو جروب',
       crumbHome: 'الرئيسية', crumbArrow: '←', crumbHere: 'قارن الأسعار',
       heroTitle: 'قارن الأسعار فى مصر',
-      heroMeta: 'اكتب اسم الجهاز — ونحن نبحث فى المتاجر المصرية كلها لنأتيك بأرخص سعر',
-      qPh: 'مثال: ثلاجة كريازى 16 قدم نوفروست — أو Kiriazi KH 336',
+      heroMeta: 'اكتب اسم الجهاز، ونحن نبحث فى المتاجر المصرية كلها لنأتيك بأرخص سعر',
+      qPh: 'مثال: ثلاجة كريازى 16 قدم نوفروست، أو Kiriazi KH 336',
       go: '🔍 قارن الآن', priceFrom: 'السعر من', priceTo: 'لحد', egp: 'جنيه', optional: 'اختيارى',
       fMega: 'مواقع كبرى', fLocal: 'متاجر محلية', fOfficial: 'متجر البراند الرسمى',
-      fHint: 'الفلاتر اختيارية — وبدونها نعرض كل النتائج',
-      loading: 'نبحث فى المتاجر المصرية واحداً تلو الآخر (أمازون، بى تك، نون، جوميا، رنين…) — وقد يستغرق ذلك ٢٠–٤٠ ثانية لنأتيك بأدق سعر.',
+      fHint: 'الفلاتر اختيارية، وبدونها نعرض كل النتائج',
+      loading: 'نبحث فى المتاجر المصرية واحداً تلو الآخر (أمازون، بى تك، نون، جوميا، رنين…)، وقد يستغرق ذلك ٢٠–٤٠ ثانية لنأتيك بأدق سعر.',
       linksLabel: 'وابحث بنفسك أيضاً فى:',
-      empty: 'لا توجد نتائج بسعر واضح لهذا البحث — جرّب اسماً أدق (العلامة التجارية + الطراز) أو وسّع نطاق السعر.',
+      empty: 'لا توجد نتائج بسعر واضح لهذا البحث. جرّب اسماً أدق (العلامة التجارية + الطراز) أو وسّع نطاق السعر.',
       addTitle: 'أتعرف متجراً مصرياً لا نفحصه؟',
-      addBody: 'اكتب النطاق وسنكتشف منصته تلقائياً ونضيفه إلى سجل المحرك — وسيُفحص فى كل مقارنة من الآن فصاعداً. (كما يكتشف المحرك متاجر جديدة من تلقاء نفسه مع كل بحث)',
+      addBody: 'اكتب النطاق وسنكتشف منصته تلقائياً ونضيفه إلى سجل المحرك، وسيُفحص فى كل مقارنة من الآن فصاعداً. (كما يكتشف المحرك متاجر جديدة من تلقاء نفسه مع كل بحث)',
       addPh: 'مثال: newstore.com.eg', addBtn: 'سجّل المتجر',
-      hotline: 'الخط الساخن', copy: '© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)',
+      hotline: 'الخط الساخن', copy: '© صادكو جروب 2026، نسخة معاد تصميمها (Rebrand Preview)',
       types: { mega: 'موقع كبير', local: 'متجر محلى', official: 'المتجر الرسمى' },
-      errTimeout: 'استغرق البحث وقتاً أطول من المتوقع — جرّب مرة أخرى (فالنتيجة تُخزَّن وتأتى أسرع فى المرة القادمة).',
-      errDown: 'المحرك لا يعمل — تأكد من تشغيل الخادم: افتح الموقع من http://localhost:8082 (لا من file://) بعد تشغيل node compare-server.mjs',
-      engine: n => '⚙️ <b>محرك صادكو الذاتى</b> — سألنا ' + n.scanned + ' متجر مصرى مباشرة، ردّ ' + n.responded,
+      errTimeout: 'استغرق البحث وقتاً أطول من المتوقع. جرّب مرة أخرى (فالنتيجة تُخزَّن وتأتى أسرع فى المرة القادمة).',
+      errDown: 'المحرك لا يعمل. تأكد من تشغيل الخادم: افتح الموقع من http://localhost:8082 (لا من file://) بعد تشغيل node compare-server.mjs',
+      engine: n => '⚙️ <b>محرك صادكو الذاتى</b>: سألنا ' + n.scanned + ' متجر مصرى مباشرة، ردّ ' + n.responded,
       discovered: ' · 🆕 اكتشفنا وسجّلنا متاجر جديدة: ',
       unreachable: ' · <span style="opacity:.75">مواقع رفضت الرد (حماية بوتات): ',
       joiner: '، ',
       summary: (q, best, worst, n) =>
         `أرخص سعر لـ«${q}»: <b>${fmt(best.price)} جنيه</b> من ${best.store}` +
         (n > 1 && worst.price > best.price
-          ? ` — <span class="save">بتوفّر ${fmt(worst.price - best.price)} جنيه</span> عن أغلى عرض (${fmt(worst.price)} ج)` : '') +
+          ? `، <span class="save">بتوفّر ${fmt(worst.price - best.price)} جنيه</span> عن أغلى عرض (${fmt(worst.price)} ج)` : '') +
         ` · قارنّا ${n} ${n > 2 ? 'متاجر' : 'متجر'}`,
-      crown: '👑 أرخص سعر', sadkoBadge: '🛡️ صادكو — ضمان وتركيب وصيانة',
+      crown: '👑 أرخص سعر', sadkoBadge: '🛡️ صادكو: ضمان وتركيب وصيانة',
       currency: 'جنيه', view: 'اعرض العرض ↗', buySadko: 'اعرضه على صادكو', orderVia: '🛡️ اطلبها عبر صادكو',
       ccHead: 'ميزة صادكو',
-      ccSadkoBest: 'صادكو هو <b>أرخص سعر</b> فعلاً — ومعه ما لا تمنحه المقارنات الأخرى: <b>تأكيد أصالة المنتج</b> قبل وصوله إليك، و<b>توصيل وتركيب</b>، و<b>صيانة معتمدة بعد البيع</b> وقت أن تحتاجها.',
-      ccOther: (s, p) => `لقينا سعر أرخص من ${s} (${fmt(p)} ج). بس على عكس أى موقع مقارنة، صادكو ميوقّفش عند السعر: تقدر <b>تطلب نفس المنتج من صادكو</b> فنتأكد من <b>أصالته</b>، <b>نوصّله ونركّبه</b>، و<b>نصيّنه بعد البيع</b> — راحة بال بفرق بسيط.`,
+      ccSadkoBest: 'صادكو هو <b>أرخص سعر</b> فعلاً، ومعه ما لا تمنحه المقارنات الأخرى: <b>تأكيد أصالة المنتج</b> قبل وصوله إليك، و<b>توصيل وتركيب</b>، و<b>صيانة معتمدة بعد البيع</b> وقت أن تحتاجها.',
+      ccOther: (s, p) => `لقينا سعر أرخص من ${s} (${fmt(p)} ج). بس على عكس أى موقع مقارنة، صادكو ميوقّفش عند السعر: تقدر <b>تطلب نفس المنتج من صادكو</b> فنتأكد من <b>أصالته</b>، <b>نوصّله ونركّبه</b>، و<b>نصيّنه بعد البيع</b>، راحة بال بفرق بسيط.`,
       ccSteps: ['✅ فحص وتأكيد المنتج', '🚚 توصيل وتركيب', '🔧 صيانة بعد البيع'],
-      ccCta: 'اطلب أى منتج عبر صادكو — 19140',
+      ccCta: 'اطلب أى منتج عبر صادكو: 19140',
       addChecking: 'بنفحص المتجر…',
-      addOk: note => '✓ اتسجّل (' + note + ') — هيدخل فى كل مقارنة جاية',
+      addOk: note => '✓ اتسجّل (' + note + ')، هيدخل فى كل مقارنة جاية',
       addExists: 'موجود بالفعل', addPlatform: 'منصة: ',
       addFail: 'مقدرناش نسجّله', addDown: '⚠️ الخادم لا يعمل',
       flag_used: '⚠️ مستعمل/استيراد', flag_bundle: '🎁 باكدج', flag_mismatch: '≠ منتج مختلف', flag_variant: '≠ طراز آخر',
-      top5: n => 'أرخص ٥ — #' + n,
+      top5: n => 'أرخص ٥: #' + n,
       checked: m => m < 1 ? 'اتفحص حالًا' : 'اتفحص من ' + m + ' دقيقة',
       srcIndex: m => ' · ⚡ نتيجة فورية من الفهرس (عمرها ' + m + ' دقيقة)',
       aiOn: ' · 🧠 طبقة نيموترون الذكية شغالة',
-      refreshingNote: ' · 🔄 ما زلنا نفحص متاجر إضافية فى الخلفية — والنتائج تتحدث تلقائياً…',
+      refreshingNote: ' · 🔄 ما زلنا نفحص متاجر إضافية فى الخلفية، والنتائج تتحدث تلقائياً…',
       wasPrice: 'كان ',
       interpLabel: 'بندوّر على:',
-      interpAsk: 'يتعذر علينا تحديد نوع الجهاز بدقة — اختر من هنا:',
+      interpAsk: 'يتعذر علينا تحديد نوع الجهاز بدقة. اختر من هنا:',
       interpPick: 'اختر النوع',
       interpRemove: 'شيل الفلتر ده',
       categories: {
@@ -85,53 +85,53 @@
       },
     },
     en: {
-      title: 'Compare Prices — SADKO Group',
+      title: 'Compare Prices | SADKO Group',
       crumbHome: 'Home', crumbArrow: '→', crumbHere: 'Compare Prices',
       heroTitle: 'Compare prices across Egypt',
-      heroMeta: 'Type a product name — we sweep every Egyptian store and bring you the cheapest price',
-      qPh: 'e.g.: SHARP TV 75 Inch 4K Smart — or ثلاجة كريازى 16 قدم',
+      heroMeta: 'Type a product name: we sweep every Egyptian store and bring you the cheapest price',
+      qPh: 'e.g.: SHARP TV 75 Inch 4K Smart, or ثلاجة كريازى 16 قدم',
       go: '🔍 Compare now', priceFrom: 'Price from', priceTo: 'to', egp: 'EGP', optional: 'optional',
       fMega: 'Major sites', fLocal: 'Local stores', fOfficial: 'Official brand store',
-      fHint: 'Filters are optional — without them we show everything',
-      loading: 'Sweeping Egyptian stores one by one (Amazon, B.TECH, noon, Jumia, Raneen…) — this can take 20–40 seconds to get you the most accurate price.',
+      fHint: 'Filters are optional. Without them we show everything',
+      loading: 'Sweeping Egyptian stores one by one (Amazon, B.TECH, noon, Jumia, Raneen…). This can take 20–40 seconds to get you the most accurate price.',
       linksLabel: 'Search yourself as well on:',
-      empty: 'No results with a clear price for this search — try a more specific name (brand + model) or widen the price range.',
+      empty: 'No results with a clear price for this search. Try a more specific name (brand + model) or widen the price range.',
       addTitle: 'Know an Egyptian store we don’t check?',
-      addBody: 'Type the domain — we auto-detect its platform and add it to the engine registry, so it gets checked in every comparison from now on. (The engine also discovers new stores on its own with every search.)',
+      addBody: 'Type the domain: we auto-detect its platform and add it to the engine registry, so it gets checked in every comparison from now on. (The engine also discovers new stores on its own with every search.)',
       addPh: 'e.g.: newstore.com.eg', addBtn: 'Register store',
-      hotline: 'Hotline', copy: '© SADKO Group 2026 — Rebrand Preview',
+      hotline: 'Hotline', copy: '© SADKO Group 2026, Rebrand Preview',
       types: { mega: 'Major site', local: 'Local store', official: 'Official store' },
-      errTimeout: 'The search took longer than expected — try again (results get cached, so the next run is faster).',
-      errDown: 'The engine is not running — make sure the server is up: open the site from http://localhost:8082 (not file://) after running node compare-server.mjs',
-      engine: n => '⚙️ <b>SADKO self-owned engine</b> — queried ' + n.scanned + ' Egyptian stores directly, ' + n.responded + ' responded',
+      errTimeout: 'The search took longer than expected. Try again (results get cached, so the next run is faster).',
+      errDown: 'The engine is not running. Make sure the server is up: open the site from http://localhost:8082 (not file://) after running node compare-server.mjs',
+      engine: n => '⚙️ <b>SADKO self-owned engine</b>: queried ' + n.scanned + ' Egyptian stores directly, ' + n.responded + ' responded',
       discovered: ' · 🆕 discovered & registered new stores: ',
       unreachable: ' · <span style="opacity:.75">sites that refused to answer (bot protection): ',
       joiner: ', ',
       summary: (q, best, worst, n) =>
         `Cheapest price for “${q}”: <b>${fmt(best.price)} EGP</b> from ${best.store}` +
         (n > 1 && worst.price > best.price
-          ? ` — <span class="save">you save ${fmt(worst.price - best.price)} EGP</span> vs the priciest offer (${fmt(worst.price)} EGP)` : '') +
+          ? `, <span class="save">you save ${fmt(worst.price - best.price)} EGP</span> vs the priciest offer (${fmt(worst.price)} EGP)` : '') +
         ` · compared ${n} store${n > 1 ? 's' : ''}`,
-      crown: '👑 Cheapest price', sadkoBadge: '🛡️ SADKO — warranty, installation & service',
+      crown: '👑 Cheapest price', sadkoBadge: '🛡️ SADKO: warranty, installation & service',
       currency: 'EGP', view: 'View offer ↗', buySadko: 'Find it on SADKO', orderVia: '🛡️ Order via SADKO',
       ccHead: 'The SADKO edge',
-      ccSadkoBest: 'SADKO really is the <b>cheapest price</b> — plus what other comparers never give you: <b>product-authenticity validation</b> before it reaches you, <b>delivery & installation</b>, and <b>certified after-sale maintenance</b> whenever you need it.',
-      ccOther: (s, p) => `We found a cheaper price at ${s} (${fmt(p)} EGP). But unlike any comparison site, SADKO doesn’t stop at the price: you can <b>order the same product through SADKO</b> — we validate its <b>authenticity</b>, <b>deliver & install</b> it, and <b>service it after the sale</b> — peace of mind for a small difference.`,
+      ccSadkoBest: 'SADKO really is the <b>cheapest price</b>, plus what other comparers never give you: <b>product-authenticity validation</b> before it reaches you, <b>delivery & installation</b>, and <b>certified after-sale maintenance</b> whenever you need it.',
+      ccOther: (s, p) => `We found a cheaper price at ${s} (${fmt(p)} EGP). But unlike any comparison site, SADKO doesn’t stop at the price: you can <b>order the same product through SADKO</b>: we validate its <b>authenticity</b>, <b>deliver & install</b> it, and <b>service it after the sale</b>, peace of mind for a small difference.`,
       ccSteps: ['✅ Product check & validation', '🚚 Delivery & installation', '🔧 After-sale service'],
-      ccCta: 'Order any product via SADKO — 19140',
+      ccCta: 'Order any product via SADKO: 19140',
       addChecking: 'Checking the store…',
-      addOk: note => '✓ Registered (' + note + ') — it will join every comparison from now on',
+      addOk: note => '✓ Registered (' + note + '), it will join every comparison from now on',
       addExists: 'already registered', addPlatform: 'platform: ',
       addFail: 'Could not register it', addDown: '⚠️ The server is not running',
       flag_used: '⚠️ Used/import', flag_bundle: '🎁 Bundle', flag_mismatch: '≠ Different product', flag_variant: '≠ Other model',
-      top5: n => 'Top 5 — #' + n,
+      top5: n => 'Top 5: #' + n,
       checked: m => m < 1 ? 'checked just now' : 'checked ' + m + ' min ago',
       srcIndex: m => ' · ⚡ instant result from the index (' + m + ' min old)',
       aiOn: ' · 🧠 Nemotron AI layer active',
-      refreshingNote: ' · 🔄 still sweeping more stores in the background — results update automatically…',
+      refreshingNote: ' · 🔄 still sweeping more stores in the background, results update automatically…',
       wasPrice: 'was ',
       interpLabel: 'Searching for:',
-      interpAsk: "We couldn't tell the appliance type — pick one:",
+      interpAsk: "We couldn't tell the appliance type. Pick one:",
       interpPick: 'Pick a type',
       interpRemove: 'Remove this filter',
       categories: {
@@ -383,7 +383,7 @@
         `</article>`;
       }).join('');
       document.querySelectorAll('#results .offer h3').forEach((h, i) => {
-        h.textContent = rows[i].store + ' — ' + rows[i].title;
+        h.textContent = rows[i].store + ': ' + rows[i].title;
       });
     } else if (!data.refreshing) {
       $('empty').hidden = false;
@@ -420,7 +420,7 @@
     box.innerHTML =
       `<div class="cc-head"><span class="cc-shield">🛡️</span><b>${T.ccHead}</b></div>` +
       `<p class="cc-body">` +
-        (cheapestIsSadko ? T.ccSadkoBest : T.ccOther(best ? best.store : '—', best ? best.price : 0)) +
+        (cheapestIsSadko ? T.ccSadkoBest : T.ccOther(best ? best.store : '-', best ? best.price : 0)) +
       `</p>` +
       `<div class="cc-steps">` + T.ccSteps.map(s => `<span>${s}</span>`).join('') + `</div>` +
       `<a class="cc-cta" href="tel:19140">${T.ccCta}</a>`;

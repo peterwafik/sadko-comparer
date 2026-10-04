@@ -201,7 +201,7 @@
   function notesOf(hay) {
     const out = [];
     if (/installation|التركيب/i.test(hay) && /القاهرة|cairo/i.test(hay))
-      out.push({ key: 'install-area', ar: 'التركيب متاح فى القاهرة والجيزة والإسكندرية فقط — راجع التفاصيل قبل الشراء.', en: 'Installation is available in Cairo, Giza and Alexandria only — check before buying.' });
+      out.push({ key: 'install-area', ar: 'التركيب متاح فى القاهرة والجيزة والإسكندرية فقط، راجع التفاصيل قبل الشراء.', en: 'Installation is available in Cairo, Giza and Alexandria only, so check before buying.' });
     if (/no delivery charges|free\s*\)?\s*delivery|بدون\s*رسوم\s*توصيل/i.test(hay))
       out.push({ key: 'free-delivery', ar: 'التوصيل مجانى للقاهرة والجيزة والإسكندرية حسب وصف المنتج.', en: 'Free delivery to Cairo, Giza and Alexandria per the product description.' });
     if (/north coast/i.test(hay) && /fees/i.test(hay))

@@ -48,20 +48,20 @@
       dEn: 'The core appliances a new flat needs from day one.',
       cats: ['38003882', '38005652', '38003799', '38022381', '38032005', '40507239', '57646037', '112439376'] },
     { key: 'kitchen', ar: 'أساسيات المطبخ', en: 'Kitchen essentials',
-      dAr: 'كل ما يخص المطبخ وحده — من الثلاجة إلى الغلاية.',
-      dEn: 'Everything inside the kitchen — fridge through kettle.',
+      dAr: 'كل ما يخص المطبخ وحده، من الثلاجة إلى الغلاية.',
+      dEn: 'Everything inside the kitchen, fridge through kettle.',
       cats: ['38003882', '38003799', '57646037', '68782006', '185355010', '185364502', '38022354'] },
     { key: 'smallflat', ar: 'شقة صغيرة', en: 'Small flat',
       dAr: 'قائمة مختصرة لمساحة صغيرة أو شقة لشخص أو شخصين.',
       dEn: 'A short list for a small space or a one-to-two person home.',
       cats: ['38003882', '38005652', '38003799', '38022381', '48149056', '50318054'] },
     { key: 'bigfamily', ar: 'أسرة كبيرة', en: 'Large family',
-      dAr: 'سعات أكبر وأجهزة إضافية — فريزر وغسالة أطباق أيضاً.',
-      dEn: 'Bigger capacities and extra machines — freezer and dishwasher too.',
+      dAr: 'سعات أكبر وأجهزة إضافية: فريزر وغسالة أطباق أيضاً.',
+      dEn: 'Bigger capacities and extra machines: freezer and dishwasher too.',
       cats: ['38003882', '38005648', '38005652', '38022354', '38003799', '38032005', '38022381', '40507239', '57646037'] },
     { key: 'energy', ar: 'أجهزة موفّرة للكهرباء', en: 'Energy-saving picks',
-      dAr: 'الفئات الأكثر تأثيراً فى فاتورة الكهرباء — قارن استهلاكها بعناية.',
-      dEn: 'The categories that move your electricity bill the most — compare consumption carefully.',
+      dAr: 'الفئات الأكثر تأثيراً فى فاتورة الكهرباء. قارن استهلاكها بعناية.',
+      dEn: 'The categories that move your electricity bill the most. Compare consumption carefully.',
       cats: ['38032005', '38003882', '38005652', '38022381', '40507239', '50318054'] },
     { key: 'wedding', ar: 'تجهيز فرح', en: 'Wedding list',
       dAr: 'قائمة التجهيزات الكاملة: الأجهزة الكبيرة والصغيرة معاً.',
@@ -144,8 +144,8 @@
         const tpl = TEMPLATES.find(x => x.key === el.getAttribute('data-tpl'));
         if (!tpl) return;
         S.plans.create(t(tpl.ar, tpl.en), 0, tpl.cats.map(c => ({ categoryId: c, label: A.catName(c) })));
-        state.msg = t('أنشأنا الخطة. غيّر البنود كما تشاء — فهذه نقطة بداية فحسب.',
-                      'Plan created. Change the items however you like — this is only a starting point.');
+        state.msg = t('أنشأنا الخطة. غيّر البنود كما تشاء، فهذه نقطة بداية فحسب.',
+                      'Plan created. Change the items however you like. This is only a starting point.');
         return render();
       }
       if (a === 'blank') {
@@ -320,7 +320,7 @@
       const set = (sel, html) => { const n = root.querySelector(sel); if (n) n.innerHTML = html; };
       set('#bd-total', money(tt.selected));
       const rem = root.querySelector('#bd-remaining');
-      if (rem) { rem.innerHTML = tt.remaining == null ? '—' : money(tt.remaining); rem.style.color = over ? 'var(--bad)' : ''; }
+      if (rem) { rem.innerHTML = tt.remaining == null ? '-' : money(tt.remaining); rem.style.color = over ? 'var(--bad)' : ''; }
       const bar = root.querySelector('#bd-bar');
       if (bar) { bar.className = 'bar mt16' + (over ? ' over' : ''); if (bar.firstElementChild) bar.firstElementChild.style.width = (over ? 100 : pct) + '%'; }
       set('#bd-pct', tt.budget ? num(pct) + '% ' + t('من الميزانية', 'of the budget') : '');
@@ -379,7 +379,7 @@
         h += pickerPanel(plan);
         h += sharePanel(plan);
         h += templatesPanel(t('ابدأ خطة أخرى', 'Start another plan'),
-          t('كل خطة مستقلة — خطة للشقة وأخرى لتجهيز زفاف مثلاً.', 'Plans are independent — one for the flat, one for a wedding list, and so on.'));
+          t('كل خطة مستقلة: خطة للشقة وأخرى لتجهيز زفاف مثلاً.', 'Plans are independent: one for the flat, one for a wedding list, and so on.'));
       }
       h += '<p class="note note--soft mt16">' + esc(S.scopeNote()) + '</p>';
       root.innerHTML = h;
@@ -389,8 +389,8 @@
     function emptyView() {
       return '<section class="panel">' +
         '<h2 class="panel__h">' + t('ابدأ خطة تجهيزك', 'Start your plan') + '</h2>' +
-        '<p class="panel__sub">' + t('اختر قالباً جاهزاً يضم الفئات المتوقعة — ويمكنك الحذف والإضافة كما تشاء — أو ابدأ بقائمة فارغة.',
-          'Pick a template with the categories you would expect — add or remove freely — or start from an empty list.') + '</p>' +
+        '<p class="panel__sub">' + t('اختر قالباً جاهزاً يضم الفئات المتوقعة (ويمكنك الحذف والإضافة كما تشاء)، أو ابدأ بقائمة فارغة.',
+          'Pick a template with the categories you would expect (add or remove freely), or start from an empty list.') + '</p>' +
         templateGrid() +
         '<div class="mt16"><button class="btn btn--quiet" data-act="blank">' + t('ابدأ بقائمة فارغة', 'Start an empty list') + '</button></div>' +
         '</section>';
@@ -413,8 +413,8 @@
           '<button class="btn btn--teal btn--sm btn--block" data-act="tpl" data-tpl="' + esc(x.key) + '">' +
             t('استخدم هذا القالب', 'Use this template') + '</button>' +
         '</div>').join('') + '</div>' +
-        '<p class="small muted mt8">' + t('تضع القوالب فئات فقط — ولا نختار لك منتجاً بعينه.',
-          'Templates seed categories only — we never pick a specific product for you.') + '</p>';
+        '<p class="small muted mt8">' + t('تضع القوالب فئات فقط، ولا نختار لك منتجاً بعينه.',
+          'Templates seed categories only. We never pick a specific product for you.') + '</p>';
     }
 
     /* ---------------- ?add= box ---------------- */
@@ -436,7 +436,7 @@
             ? '<button class="btn btn--primary btn--sm" data-act="add-new-row">' +
               t('أنشئ صف «', 'Create a “') + esc(A.catName(cid)) + t('» وأضفه إليه', '” row and add it') + '</button>' : '') +
           '</div>' +
-          (!rows.length ? '<p class="small muted mt8" style="margin-bottom:0">' + t('الخطة فارغة — أنشئ صفاً أولاً.', 'This plan has no rows yet — create one first.') + '</p>' : '');
+          (!rows.length ? '<p class="small muted mt8" style="margin-bottom:0">' + t('الخطة فارغة. أنشئ صفاً أولاً.', 'This plan has no rows yet. Create one first.') + '</p>' : '');
       }
       return '<section class="panel" style="margin-bottom:16px">' +
         '<div class="between"><h2 class="panel__h">' + t('هل تضيف هذا المنتج إلى الخطة؟', 'Add this product to your plan?') + '</h2>' +
@@ -487,7 +487,7 @@
             '<span class="field__hint">' + t('اتركها فارغة إن لم تحددها بعد.', 'Leave it empty if you have not set one yet.') + '</span></label></div>' +
           '<div><span class="muted small">' + t('الباقى', 'Remaining') + '</span>' +
             '<span class="pl-num" id="bd-remaining"' + (over ? ' style="color:var(--bad)"' : '') + '>' +
-            (tt.remaining == null ? '—' : money(tt.remaining)) + '</span></div>' +
+            (tt.remaining == null ? '-' : money(tt.remaining)) + '</span></div>' +
         '</div>' +
         '<div class="bar mt16' + (over ? ' over' : '') + '" id="bd-bar"><span style="width:' + (over ? 100 : pct) + '%"></span></div>' +
         '<p class="small muted mt8" id="bd-pct">' + (tt.budget ? num(pct) + '% ' + t('من الميزانية', 'of the budget') : '') + '</p>' +
@@ -505,7 +505,7 @@
     function tablePanel(plan) {
       const rows = plan.rows || [];
       const body = rows.length ? rows.map(r => rowHtml(plan, r)).join('')
-        : '<tr><td colspan="5" class="muted small">' + t('لا بنود بعد — أضف صفاً من أدناه.', 'No items yet — add a row below.') + '</td></tr>';
+        : '<tr><td colspan="5" class="muted small">' + t('لا بنود بعد. أضف صفاً من أدناه.', 'No items yet. Add a row below.') + '</td></tr>';
       return '<section class="panel mt16">' +
         '<h2 class="panel__h">' + t('قائمة التجهيز', 'The checklist') + '</h2>' +
         '<p class="panel__sub">' + t('صف لكل فئة. ويمكنك وضع أكثر من خيار فى الصف والمقارنة بينها قبل أن تحدد واحداً.',
@@ -545,9 +545,9 @@
         cell += '<label class="field" style="margin:8px 0 0"><span class="sr">' + t('اختر من الخيارات', 'Choose from the candidates') + '</span>' +
           '<select class="select" data-act="choose" data-row="' + esc(r.key) + '" aria-label="' +
             t('اختر منتجاً لـ ', 'Choose a product for ') + esc(label) + '">' +
-          '<option value=""' + (chosen ? '' : ' selected') + '>' + t('— دون اختيار —', '— no choice yet —') + '</option>' +
+          '<option value=""' + (chosen ? '' : ' selected') + '>' + t('(دون اختيار)', '(no choice yet)') + '</option>' +
           opts.map(o => '<option value="' + esc(o.id) + '"' + (chosen && String(o.id) === String(chosen.id) ? ' selected' : '') + '>' +
-            esc(clean(o.title).slice(0, 60)) + ' — ' + money(o.price) + '</option>').join('') +
+            esc(clean(o.title).slice(0, 60)) + ': ' + money(o.price) + '</option>').join('') +
           '</select></label>';
       }
 
@@ -573,14 +573,14 @@
           (r.note && state.note !== r.key ? '<br><span class="small muted">✎ ' + esc(r.note) + '</span>' : '') + '</td>' +
         '<td>' + cell + '</td>' +
         '<td>' + statusSel + '<br><span class="chip ' + statusChip(r.status) + ' small" style="margin-top:6px;display:inline-block">' + esc(statusLabel(r.status)) + '</span></td>' +
-        '<td class="nowrap">' + (chosen ? money(chosen.price) : '—') + '</td>' +
+        '<td class="nowrap">' + (chosen ? money(chosen.price) : '-') + '</td>' +
         '<td>' + acts + '</td></tr>';
 
       if (state.note === r.key) {
         html += '<tr><td colspan="5">' +
           '<label class="field" style="margin:0"><span class="field__l">' + t('ملاحظة على ', 'Note on ') + esc(label) + '</span>' +
           '<textarea class="textarea" id="nt-' + esc(r.key) + '" maxlength="300" placeholder="' +
-            t('مثلاً: يجب أن يمر من باب المطبخ — أقصى عرض ٦٠ سم', 'e.g. must fit through the kitchen door — 60 cm max width') + '">' +
+            t('مثلاً: يجب أن يمر من باب المطبخ، أقصى عرض ٦٠ سم', 'e.g. must fit through the kitchen door, 60 cm max width') + '">' +
             esc(r.note || '') + '</textarea></label>' +
           '<div class="pl-acts mt8">' +
             '<button class="btn btn--teal btn--sm" data-act="note-save" data-row="' + esc(r.key) + '">' + t('احفظ', 'Save') + '</button>' +
@@ -612,8 +612,8 @@
       const cats = LIVE.length ? LIVE : Object.keys(A.CATS).map(id => ({ id, name: A.catName(id), count: 0 }));
       return '<section class="panel mt16" id="pk">' +
         '<div class="between"><div><h2 class="panel__h">' + t('أضف خياراً إلى صف: ', 'Add a candidate to: ') + esc(rowLabel(row)) + '</h2>' +
-        '<p class="panel__sub">' + t('ابحث فى كتالوج صادكو وأضف الأجهزة التى تقارن بينها — ويمكنك إضافة أكثر من واحد والتحديد لاحقاً.',
-          'Search the SADKO catalogue and add the appliances you are comparing — add several and decide later.') + '</p></div>' +
+        '<p class="panel__sub">' + t('ابحث فى كتالوج صادكو وأضف الأجهزة التى تقارن بينها، ويمكنك إضافة أكثر من واحد والتحديد لاحقاً.',
+          'Search the SADKO catalogue and add the appliances you are comparing. Add several and decide later.') + '</p></div>' +
         '<button class="btn btn--quiet btn--sm" data-act="pick-close">' + t('إغلاق', 'Close') + '</button></div>' +
         '<form class="row" data-act="pk-form">' +
           '<label class="field" style="flex:2 1 240px;margin:0"><span class="field__l">' + t('ابحث بالاسم أو الماركة', 'Search by name or brand') + '</span>' +
@@ -644,7 +644,7 @@
           'No results for that search. Try a shorter word or a different category.') + '</div>';
       }
       const show = list.slice(0, 12);
-      return '<p class="small muted" style="margin:0 0 12px">' + num(list.length) + t(' منتج مطابق — نعرض أول ', ' matching products — showing the first ') +
+      return '<p class="small muted" style="margin:0 0 12px">' + num(list.length) + t(' منتج مطابق، نعرض أول ', ' matching products, showing the first ') +
           num(show.length) + '.</p>' +
         '<div class="grid3">' + show.map(p =>
           '<article class="pcard">' +
@@ -682,16 +682,16 @@
       return '<section class="panel mt16">' +
         '<div class="between"><h2 class="panel__h">' + t('رابط الخطة', 'Your share link') + '</h2>' +
         '<button class="btn btn--quiet btn--sm" data-act="share-close">' + t('إغلاق', 'Close') + '</button></div>' +
-        '<p class="panel__sub">' + t('يحمل هذا الرابط الخطة كلها بداخله — ومن يفتحه يرى نسخة للعرض فقط، دون حساب ودون خادم.',
-          'The whole plan is encoded inside this link — whoever opens it sees a read-only copy, with no account and no server involved.') + '</p>' +
+        '<p class="panel__sub">' + t('يحمل هذا الرابط الخطة كلها بداخله، ومن يفتحه يرى نسخة للعرض فقط، دون حساب ودون خادم.',
+          'The whole plan is encoded inside this link. Whoever opens it sees a read-only copy, with no account and no server involved.') + '</p>' +
         '<label class="field"><span class="sr">' + t('رابط المشاركة', 'Share link') + '</span>' +
           '<textarea class="textarea ltr" id="pl-share-url" readonly rows="3" style="min-height:80px;font-size:.78rem">' + esc(state.share) + '</textarea></label>' +
         '<div class="pl-acts"><button class="btn btn--teal btn--sm" data-act="copy-share">' + t('انسخ الرابط', 'Copy link') + '</button>' +
           '<a class="btn btn--quiet btn--sm" href="' + esc(state.share) + '">' + t('افتحه كنسخة للعرض', 'Open the read-only view') + '</a>' +
           '<span class="small muted" id="pl-share-msg">' + t('إن لم يعمل النسخ التلقائى، فحدّد النص أعلاه وانسخه يدوياً.',
             'If automatic copying does not work, select the text above and copy it manually.') + '</span></div>' +
-        '<div class="note note--warn mt16">' + t('يستطيع من يفتح الرابط أن يضع 👍 وأن يكتب تعليقاً، غير أن ذلك يُحفظ على جهازه هو ولن تراه أنت هنا. فالمشاركة الحية التى تتحدث لحظياً تحتاج حسابات وخادماً، وهذا غير متوفر فى الموقع — فبعد التصويت اطلب ممن صوّت أن يرسل لك رأيه بنفسه.',
-          'Anyone opening the link can leave a 👍 and a comment, but those stay on their own device and will not appear here for you. Live shared voting needs accounts and a server, which this site does not have — so ask them to send you their thoughts directly.') + '</div>' +
+        '<div class="note note--warn mt16">' + t('يستطيع من يفتح الرابط أن يضع 👍 وأن يكتب تعليقاً، غير أن ذلك يُحفظ على جهازه هو ولن تراه أنت هنا. فالمشاركة الحية التى تتحدث لحظياً تحتاج حسابات وخادماً، وهذا غير متوفر فى الموقع، فبعد التصويت اطلب ممن صوّت أن يرسل لك رأيه بنفسه.',
+          'Anyone opening the link can leave a 👍 and a comment, but those stay on their own device and will not appear here for you. Live shared voting needs accounts and a server, which this site does not have, so ask them to send you their thoughts directly.') + '</div>' +
         '</section>';
     }
 
@@ -732,26 +732,26 @@
                            : '<span class="muted small">' + t('لا خيارات بعد', 'no candidates yet') + '</span>')) +
             optList + '</td>' +
           '<td><span class="chip ' + statusChip(r.status) + '">' + esc(statusLabel(r.status)) + '</span></td>' +
-          '<td class="nowrap">' + (chosen ? money(chosen.price) : '—') + '</td></tr>';
+          '<td class="nowrap">' + (chosen ? money(chosen.price) : '-') + '</td></tr>';
       }).join('');
 
       const comments = (fb.comments || []).slice().reverse();
 
       return '<section class="panel">' +
           '<div class="between"><h2 class="panel__h">' + esc(plan.name || t('خطة تجهيز', 'Shopping plan')) +
-            ' <span class="badge badge--amber">' + t('خطة مشتركة — للعرض', 'Shared plan — view only') + '</span></h2>' +
+            ' <span class="badge badge--amber">' + t('خطة مشتركة (للعرض)', 'Shared plan (view only)') + '</span></h2>' +
             '<a class="btn btn--quiet btn--sm" href="plan.html">' + t('خططى أنا', 'My own plans') + '</a></div>' +
-          '<p class="panel__sub">' + t('هذه نسخة من خطة شخص آخر، واردة داخل الرابط نفسه. ولا يمكنك التعديل فيها هنا — فإن أردت تغيير شىء فانسخها إلى خططك.',
-            'This is a copy of someone else\'s plan, carried inside the link itself. You cannot edit it here — copy it to your own plans if you want to change anything.') + '</p>' +
+          '<p class="panel__sub">' + t('هذه نسخة من خطة شخص آخر، واردة داخل الرابط نفسه. ولا يمكنك التعديل فيها هنا، فإن أردت تغيير شىء فانسخها إلى خططك.',
+            'This is a copy of someone else\'s plan, carried inside the link itself. You cannot edit it here. Copy it to your own plans if you want to change anything.') + '</p>' +
           '<div class="pl-acts"><button class="btn btn--primary" data-act="clone-shared">' + t('انسخها إلى خططى', 'Copy it to my plans') + '</button></div>' +
         '</section>' +
 
         '<section class="panel mt16"><h2 class="panel__h">' + t('الميزانية', 'Budget') + '</h2>' +
           '<div class="grid3">' +
             '<div><span class="muted small">' + t('إجمالى المختار', 'Chosen total') + '</span><span class="pl-num">' + money(tt.selected) + '</span></div>' +
-            '<div><span class="muted small">' + t('الميزانية المتوقعة', 'Expected budget') + '</span><span class="pl-num">' + (tt.budget ? money(tt.budget) : '—') + '</span></div>' +
+            '<div><span class="muted small">' + t('الميزانية المتوقعة', 'Expected budget') + '</span><span class="pl-num">' + (tt.budget ? money(tt.budget) : '-') + '</span></div>' +
             '<div><span class="muted small">' + t('الباقى', 'Remaining') + '</span><span class="pl-num"' + (over ? ' style="color:var(--bad)"' : '') + '>' +
-              (tt.remaining == null ? '—' : money(tt.remaining)) + '</span></div>' +
+              (tt.remaining == null ? '-' : money(tt.remaining)) + '</span></div>' +
           '</div>' +
           '<div class="bar mt16' + (over ? ' over' : '') + '"><span style="width:' + (over ? 100 : pct) + '%"></span></div>' +
           (over ? '<div class="note note--warn mt8">' + t('هذه الخطة تتجاوز الميزانية المكتوبة فيها.', 'This plan is over the budget written into it.') + '</div>' : '') +
@@ -765,8 +765,8 @@
           '</tbody></table></div></section>' +
 
         '<section class="panel mt16"><h2 class="panel__h">' + t('رأيك فى الخطة', 'What you think') + '</h2>' +
-          '<div class="note note--warn">' + t('من المهم أن تعلم: تُحفظ هذه التصويتات والتعليقات على هذا الجهاز وحده، ولن يراها صاحب الخطة. فلكى يصله التصويت فعلاً كان لا بد من حسابات وخادم، وهذا غير متوفر فى الموقع — فإن كان رأيك مهماً، فأرسله إليه بنفسك.',
-            'Important: these votes and comments are stored on this device only — the plan\'s owner will not see them. Real shared voting would need accounts and a server, which this site does not have, so please send your thoughts to them directly.') + '</div>' +
+          '<div class="note note--warn">' + t('من المهم أن تعلم: تُحفظ هذه التصويتات والتعليقات على هذا الجهاز وحده، ولن يراها صاحب الخطة. فلكى يصله التصويت فعلاً كان لا بد من حسابات وخادم، وهذا غير متوفر فى الموقع، فإن كان رأيك مهماً، فأرسله إليه بنفسك.',
+            'Important: these votes and comments are stored on this device only. The plan\'s owner will not see them. Real shared voting would need accounts and a server, which this site does not have, so please send your thoughts to them directly.') + '</div>' +
           '<form class="mt16" data-act="cmt-form">' +
             '<label class="field"><span class="field__l">' + t('اسمك (اختيارى)', 'Your name (optional)') + '</span>' +
               '<input class="input" name="who" maxlength="40" placeholder="' + t('مثلاً: ماما', 'e.g. Mum') + '"></label>' +

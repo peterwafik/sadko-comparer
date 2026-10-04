@@ -320,14 +320,14 @@ export function toEcwidOrder(order, user = {}, methods = []) {
   const comments = [
     `مرجع الطلب: ${order.ref}`,               // also the idempotency key
     fee == null ? FEES_NOTE_AR : INSTALL_NOTE_AR,
-    ...(fee == null ? [] : [`رسوم التوصيل: ${fee} جنيه — ${t.methodName}`, ...feeLines]),
+    ...(fee == null ? [] : [`رسوم التوصيل: ${fee} جنيه (${t.methodName})`, ...feeLines]),
     d.governorate ? `المحافظة: ${d.governorate}` : null,
     d.floor ? `الطابق: ${d.floor} (${lift})` : lift,
     /* A product-restricted instalment plan. The site cannot verify eligibility
        — the catalogue has no brand field — so it hands staff the fact rather
        than a silent assumption, on the confirmation call they already make. */
     (method && method.restricted)
-      ? `تنبيه: طريقة الدفع مقصورة على منتجات ${method.brand || ''} — يُراجع قبل التأكيد.`
+      ? `تنبيه: طريقة الدفع مقصورة على منتجات ${method.brand || ''}. يُراجع قبل التأكيد.`
       : null,
     order.note ? `ملاحظة العميل: ${order.note}` : null,
   ].filter(Boolean).join('\n');
@@ -361,7 +361,7 @@ export function toEcwidOrder(order, user = {}, methods = []) {
     shippingPerson: {
       name: d.name || user.name || '',
       phone: d.phone || user.phone || '',
-      street: [d.address, d.floor ? `الطابق ${d.floor}` : null].filter(Boolean).join(' — '),
+      street: [d.address, d.floor ? `الطابق ${d.floor}` : null].filter(Boolean).join('، '),
       city: d.governorate || '',
       countryCode: 'EG',
     },

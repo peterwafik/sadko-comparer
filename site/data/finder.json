@@ -1,5 +1,5 @@
 {
-  "_note": "Question sets for the guided product finder. One record per category family; the finder is generic and reads this file, so adding an appliance means adding a set here — never a new page. Each answer either sets a HARD filter (excludes products that cannot work) or contributes WEIGHTED points. Weights per set must total 100.",
+  "_note": "Question sets for the guided product finder. One record per category family; the finder is generic and reads this file, so adding an appliance means adding a set here, never a new page. Each answer either sets a HARD filter (excludes products that cannot work) or contributes WEIGHTED points. Weights per set must total 100.",
   "_schema": {
     "ask": "id, label{ar,en}, hint{ar,en}, type: choice|number|multi, options[{value,label,hint}], spec: which derived spec it tests, role: filter|score, weight",
     "reasonKeys": "each rule emits a reason key so the result can explain itself in plain words instead of a percentage"
@@ -32,8 +32,8 @@
             "en": "How many people in the household?"
           },
           "hint": {
-            "ar": "نستخدمها لاقتراح نطاق السعة المناسب — ولست ملزماً بالتقيد به.",
-            "en": "Used to suggest a capacity range — not a hard rule."
+            "ar": "نستخدمها لاقتراح نطاق السعة المناسب، ولست ملزماً بالتقيد به.",
+            "en": "Used to suggest a capacity range, not a hard rule."
           },
           "options": [
             {
@@ -91,7 +91,7 @@
           },
           "hint": {
             "ar": "سنستبعد ما يتجاوز هذا الحد. وإن كان الفارق بسيطاً فسننبهك.",
-            "en": "Anything above this is excluded — we'll tell you if something just misses it."
+            "en": "Anything above this is excluded. We'll tell you if something just misses it."
           }
         },
         {
@@ -716,7 +716,7 @@
               "value": "yes",
               "label": {
                 "ar": "نعم، بارد وساخن",
-                "en": "Yes — cooling & heating"
+                "en": "Yes, cooling & heating"
               },
               "prefer": [
                 "heating"
@@ -726,7 +726,7 @@
               "value": "no",
               "label": {
                 "ar": "لا، بارد بس",
-                "en": "No — cooling only"
+                "en": "No, cooling only"
               }
             }
           ]

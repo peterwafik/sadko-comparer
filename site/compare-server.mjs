@@ -1966,7 +1966,7 @@ const AUTH_MSG = {
   'password-weak':  ['كلمة السر لازم تحتوى على حروف وأرقام.', 'Password must contain both letters and numbers.'],
   'bad-name':       ['اكتب اسمك.', 'Please enter your name.'],
   'bad-phone':      ['رقم الهاتف غير صحيح.', 'That mobile number does not look right.'],
-  'email-taken':    ['هذا البريد الإلكترونى مسجَّل من قبل — سجّل دخولك.', 'That email is already registered — sign in instead.'],
+  'email-taken':    ['هذا البريد الإلكترونى مسجَّل من قبل. سجّل دخولك.', 'That email is already registered. Sign in instead.'],
   'bad-credentials':['البريد الإلكترونى أو كلمة المرور غير صحيحة.', 'Wrong email or password.'],
   'too-many':       ['محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.', 'Too many attempts. Please wait a few minutes and try again.'],
   'empty-cart':     ['السلة فاضية.', 'Your cart is empty.'],
@@ -1974,7 +1974,7 @@ const AUTH_MSG = {
   'no-user':        ['لازم تسجّل دخولك الأول.', 'Please sign in first.'],
   'no-home':        ['هذا المكان غير موجود.', 'That place was not found.'],
   'too-many-homes': ['وصلت للحد الأقصى من الأماكن.', 'You have reached the maximum number of places.'],
-  'no-password':    ['هذا الحساب يسجّل الدخول عبر جوجل — ولا توجد كلمة مرور لتغييرها.', 'This account signs in with a provider — there is no password to change.'],
+  'no-password':    ['هذا الحساب يسجّل الدخول عبر جوجل، ولا توجد كلمة مرور لتغييرها.', 'This account signs in with a provider. There is no password to change.'],
   'bad-identity':   ['بيانات الدخول ناقصة.', 'Incomplete sign-in details.'],
   'bad-json':       ['طلب غير صالح.', 'Malformed request.'],
   'too-large':      ['حجم الطلب كبير جداً.', 'Request too large.'],
@@ -2192,8 +2192,8 @@ if (PASSWORDLESS)
 const passwordsOff = lang => ({
   error: 'passwords-disabled',
   message: lang === 'en'
-    ? 'This site now signs in with Google only — there is no password to enter. Use the Google button, or call 19140.'
-    : 'الدخول الآن بحساب جوجل فقط — لا توجد كلمة سر. استخدم زر جوجل، أو اتصل بـ19140.',
+    ? 'This site now signs in with Google only. There is no password to enter. Use the Google button, or call 19140.'
+    : 'الدخول الآن بحساب جوجل فقط. لا توجد كلمة سر. استخدم زر جوجل، أو اتصل بـ19140.',
 });
 
 /* Put a customer in the queue and try immediately.
@@ -2424,7 +2424,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   if (rateLimited(clientIp(req))) {
     res.statusCode = 429;
     res.setHeader('retry-after', '60');
-    return json(429, { error: 'rate-limited', message: 'طلبات كثيرة جداً — انتظر دقيقة. / Too many requests — please wait a minute.' });
+    return json(429, { error: 'rate-limited', message: 'طلبات كثيرة جداً. انتظر دقيقة. / Too many requests. Please wait a minute.' });
   }
 
   // State-changing requests must originate from this site.
@@ -2440,7 +2440,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         +u.searchParams.get('max') || 0, u.searchParams.get('discover') !== '0', lang,
         parseOverride(u.searchParams)));
     } catch (e) {
-      return json(500, { error: lang === 'en' ? 'The engine hit a problem — try again' : 'المحرك وقع فى مشكلة — جرّب تانى',
+      return json(500, { error: lang === 'en' ? 'The engine hit a problem. Try again' : 'المحرك وقع فى مشكلة. جرّب تانى',
         detail: String(e.message || e) });
     }
   }
@@ -2552,8 +2552,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     if (!v.ok) {
       const M = {
         'bad-name': ['اكتب اسمك كاملاً.', 'Please enter your full name.'],
-        'bad-email': ['اكتب بريداً إلكترونياً صحيحاً — نسجّل الطلب عليه.', 'Enter a valid email — the order is filed under it.'],
-        'bad-phone': ['اكتب رقم موبايل مصرى صحيح — التوصيل بيتم بالتليفون.', 'Enter a valid Egyptian mobile number — delivery is arranged by phone.'],
+        'bad-email': ['اكتب بريداً إلكترونياً صحيحاً. نسجّل الطلب عليه.', 'Enter a valid email. The order is filed under it.'],
+        'bad-phone': ['اكتب رقم موبايل مصرى صحيح. التوصيل بيتم بالتليفون.', 'Enter a valid Egyptian mobile number. Delivery is arranged by phone.'],
         'bad-governorate': ['اختر المحافظة.', 'Choose your governorate.'],
         'bad-address': ['اكتب العنوان بالتفصيل.', 'Please write the address in full.'],
         'bad-payment': ['اختر طريقة الدفع.', 'Choose a payment method.'],
@@ -2755,7 +2755,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         }
         const card = rateCard((st && st.allShippingMethods()) || []);
         return json(200, { counts, unclassified, products,
-                           problems: card ? card.problems : [{ title: '—', code: 'no-rates' }] });
+                           problems: card ? card.problems : [{ title: '-', code: 'no-rates' }] });
       }
 
       if (rest === 'overview' && req.method === 'GET') {
@@ -3627,10 +3627,10 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
                   'BANNER, not a product: image = artwork, name = headline, description = ' +
                   'subtitle. The SLOT is the ad folder the entry sits in ' +
                   '(SADKO_ECWID_ADS_HERO / _WIDE / _SQUARE), falling back to a banner- SKU. ' +
-                  'Slots with no Ecwid ads keep their promos.json entries — see slotsFromLocal. ' +
+                  'Slots with no Ecwid ads keep their promos.json entries (see slotsFromLocal). ' +
                   'The CLICK-THROUGH is the ordinary category the ' +
                   'banner entry is also assigned to (its page on THIS site), or the shop when ' +
-                  'it has none — never the Ecwid product URL, which would send the shopper to ' +
+                  'it has none, never the Ecwid product URL, which would send the shopper to ' +
                   'another storefront. These entries are ' +
                   'excluded from the catalogue, search and rails. No English fields: Ecwid ' +
                   'holds no usable translations, and copying Arabic into an English field ' +

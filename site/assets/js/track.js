@@ -120,7 +120,7 @@
         '</div>' +
       '</div>' +
       '<div class="skab__step" data-step="why" hidden>' +
-        '<h2>' + t('لا بأس — ما الذى أوقفك؟', 'No worries — what stopped you?') + '</h2>' +
+        '<h2>' + t('لا بأس، ما الذى أوقفك؟', 'No worries, what stopped you?') + '</h2>' +
         '<p>' + t('ردّك يساعدنا على تحسين الخدمة (اختيارى).', 'Your answer helps us do better (optional).') + '</p>' +
         '<div class="skab__reasons">' + REASONS.map(function (r) {
           return '<button class="skab__chip" data-reason="' + r.k + '">' + esc(EN() ? r.en : r.ar) + '</button>';

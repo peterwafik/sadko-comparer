@@ -126,9 +126,9 @@ export function retargetCategoryPage(html, { id, name, nameEn }) {
 
   if (ar) {
     out = out
-      .replace(/<title>[^<]*<\/title>/, `<title>${esc(ar)} — صادكو جروب</title>`)
+      .replace(/<title>[^<]*<\/title>/, `<title>${esc(ar)} | صادكو جروب</title>`)
       .replace(/(<meta name="description" content=")[^"]*(")/,
-        `$1${esc('تصفّح ' + ar + ' من صادكو جروب — بالسعر والصورة والمواصفات.')}$2`);
+        `$1${esc('تصفّح ' + ar + ' من صادكو جروب، بالسعر والصورة والمواصفات.')}$2`);
   }
   return out;
 }

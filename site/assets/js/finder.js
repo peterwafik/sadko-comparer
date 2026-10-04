@@ -126,14 +126,14 @@
           'السعة ' + cap + ' ' + unit + ' مناسبة للاستخدام الذى وصفته (المقترح ' + target.min + '–' + target.max + ' ' + unit + ').',
           'Capacity ' + cap + ' ' + spec.headline.uEn + ' suits what you described (suggested ' + target.min + '–' + target.max + ').') });
         else if (cap < target.min) R.push({ k: 'hm', text: t(
-          'السعة ' + cap + ' ' + unit + ' أقل من المقترح (' + target.min + '–' + target.max + ' ' + unit + ') — ممكن تكفى لو استخدامك خفيف.',
-          'Capacity ' + cap + ' is below the suggested ' + target.min + '–' + target.max + ' — fine for light use.') });
+          'السعة ' + cap + ' ' + unit + ' أقل من المقترح (' + target.min + '–' + target.max + ' ' + unit + ')، ممكن تكفى لو استخدامك خفيف.',
+          'Capacity ' + cap + ' is below the suggested ' + target.min + '–' + target.max + ', fine for light use.') });
         else R.push({ k: 'hm', text: t(
-          'أكبر من احتياجك (' + cap + ' ' + unit + ' مقابل مقترح ' + target.min + '–' + target.max + ') — سيستهلك مساحة وكهرباء أكثر.',
-          'Larger than you need (' + cap + ' vs suggested ' + target.min + '–' + target.max + ') — more space and power.') });
+          'أكبر من احتياجك (' + cap + ' ' + unit + ' مقابل مقترح ' + target.min + '–' + target.max + ')، سيستهلك مساحة وكهرباء أكثر.',
+          'Larger than you need (' + cap + ' vs suggested ' + target.min + '–' + target.max + '): more space and power.') });
       } else if (target && cap == null) {
         sCap = 0.45;
-        R.push({ k: 'hm', text: t('السعة غير مذكورة فى بيانات المنتج — تأكد منها قبل الشراء.', 'Capacity is not stated in the product data — please confirm before buying.') });
+        R.push({ k: 'hm', text: t('السعة غير مذكورة فى بيانات المنتج، تأكد منها قبل الشراء.', 'Capacity is not stated in the product data. Please confirm before buying.') });
       }
 
       let sBudget = 0.6;
@@ -147,7 +147,7 @@
       let sEnergy = e.cls === 'A' ? 1 : e.saving ? 0.85 : (e.cls ? 0.35 : 0.5);
       if (energyPri !== 'low') {
         if (e.cls) R.push({ k: e.cls === 'A' ? 'ok' : 'hm', text: t('درجة كفاءة الطاقة: ' + e.cls + '.', 'Energy class: ' + e.cls + '.') });
-        else if (e.inverter) R.push({ k: 'ok', text: t('انفرتر — بيوفر فى الكهربا مع التشغيل الطويل.', 'Inverter — saves power over long run times.') });
+        else if (e.inverter) R.push({ k: 'ok', text: t('انفرتر، بيوفر فى الكهربا مع التشغيل الطويل.', 'Inverter: saves power over long run times.') });
         else if (e.saving) R.push({ k: 'ok', text: t('الوصف بيذكر توفير فى استهلاك الكهربا.', 'The description mentions reduced power consumption.') });
         else R.push({ k: 'hm', text: t('لا توجد بيانات واضحة لكفاءة الطاقة لهذا المنتج.', 'No clear energy-efficiency data for this product.') });
       }
@@ -158,8 +158,8 @@
         sFeat = hit.length / wantFeat.length;
         hit.forEach(k => R.push({ k: 'ok', text: t('فيه ' + (FEATURE_LABEL[k] || {}).ar + '.', 'Has ' + (FEATURE_LABEL[k] || {}).en + '.') }));
         wantFeat.filter(k => !hit.includes(k)).forEach(k => R.push({ k: 'no',
-          text: t('لسنا على يقين من وجود ' + (FEATURE_LABEL[k] || {}).ar + ' — فهو غير مذكور فى بيانات المنتج.',
-                  'We could not confirm ' + (FEATURE_LABEL[k] || {}).en + ' — it is not in the product data.') }));
+          text: t('لسنا على يقين من وجود ' + (FEATURE_LABEL[k] || {}).ar + '، فهو غير مذكور فى بيانات المنتج.',
+                  'We could not confirm ' + (FEATURE_LABEL[k] || {}).en + '. It is not in the product data.') }));
       }
 
       let sBrand = 0.7;
@@ -176,7 +176,7 @@
 
       /* ---- space verdict ---- */
       if (maxW || maxH || maxD) {
-        if (!d.w && !d.h && !d.d) R.push({ k: 'hm', text: t('أبعاد المنتج غير متوفرة لدينا — قِس المكان وتأكد قبل الشراء.', 'We do not have this product\'s dimensions — measure and confirm before buying.') });
+        if (!d.w && !d.h && !d.d) R.push({ k: 'hm', text: t('أبعاد المنتج غير متوفرة لدينا، قِس المكان وتأكد قبل الشراء.', 'We do not have this product\'s dimensions. Measure and confirm before buying.') });
         else {
           const bits = [];
           if (maxW && d.w) bits.push(t('العرض ' + d.w + ' سم', 'width ' + d.w + ' cm'));
@@ -239,7 +239,7 @@
     function boot(all, cats) {
       if (!CAT) return renderPicker(cats);
       state.list = all.filter(p => String(p.categoryId) === String(CAT));
-      if (!state.list.length) return renderPicker(cats, t('لا توجد منتجات فى هذه الفئة حالياً — اختر فئة أخرى.', 'No products in that category yet — pick another.'));
+      if (!state.list.length) return renderPicker(cats, t('لا توجد منتجات فى هذه الفئة حالياً، اختر فئة أخرى.', 'No products in that category yet. Pick another.'));
       state.family = window.skSpecs.FAMILY[String(CAT)] || '_default';
       BRANDS = [...new Set(state.list.map(p => { const s = window.skSpecs.of(p); return s.brand && s.brand.en; }).filter(Boolean))].sort();
       // reuse anything the visitor told us before
@@ -253,7 +253,7 @@
       root.innerHTML =
         '<div class="panel"><h2 class="panel__h">' + t('اختر الجهاز الذى تبحث عنه', 'Pick the appliance you are shopping for') + '</h2>' +
         '<p class="panel__sub">' + t('سنسألك من ٣ إلى ٦ أسئلة بسيطة عن منزلك واستخدامك، ونرشّح ٣ خيارات مع سبب واضح لكل منها.',
-          'We will ask 3–6 simple questions about your home and how you use it, then suggest three options — each with a clear reason.') + '</p>' +
+          'We will ask 3–6 simple questions about your home and how you use it, then suggest three options, each with a clear reason.') + '</p>' +
         (msg ? '<div class="note note--warn mt16">' + esc(msg) + '</div>' : '') +
         '<div class="chips mt16">' + cats.map(c =>
           '<a class="chip" href="?cat=' + c.id + '">' + esc(c.name) + ' <span class="muted">(' + A.num(c.count) + ')</span></a>').join('') +
@@ -270,7 +270,7 @@
       return '<div class="row">' +
         ['maxW,' + t('أقصى عرض', 'Max width'), 'maxH,' + t('أقصى ارتفاع', 'Max height'), 'maxD,' + t('أقصى عمق', 'Max depth')]
           .map(s => { const [k, l] = s.split(','); return '<label class="field" style="margin:0"><span class="field__l">' + esc(l) + ' <span class="muted small">' + t('سم', 'cm') + '</span></span>' +
-            '<input class="input" type="number" inputmode="numeric" min="10" max="400" name="' + k + '" value="' + (answers[k] || '') + '" placeholder="—"></label>'; }).join('') +
+            '<input class="input" type="number" inputmode="numeric" min="10" max="400" name="' + k + '" value="' + (answers[k] || '') + '" placeholder="-"></label>'; }).join('') +
         '</div>';
     }
     function q_budget() {
@@ -296,8 +296,8 @@
       root.innerHTML =
         '<div class="between mt0"><div><h2 class="panel__h" style="font-size:1.25rem">' +
           t('ساعدنى أختار: ', 'Help me choose: ') + esc(A.catName(CAT)) + '</h2>' +
-          '<p class="muted small" style="margin:4px 0 0">' + t('أجب عما تعرفه واترك الباقى — فكل سؤال اختيارى عدا الميزانية.',
-            'Answer what you know and skip the rest — every question is optional except budget.') + '</p></div>' +
+          '<p class="muted small" style="margin:4px 0 0">' + t('أجب عما تعرفه واترك الباقى، فكل سؤال اختيارى عدا الميزانية.',
+            'Answer what you know and skip the rest: every question is optional except budget.') + '</p></div>' +
           '<a class="btn btn--quiet btn--sm" href="finder.html">' + t('غيّر الفئة', 'Change category') + '</a></div>' +
         '<form id="fq" class="mt16">' +
           qs.map(q => '<div class="panel" style="margin-bottom:14px"><div class="panel__h">' + esc(t(q.label.ar, q.label.en)) + '</div>' +
@@ -368,8 +368,8 @@
         t('يعتمد الترتيب على إجاباتك، لا على إعلانات مدفوعة.', 'Ranking is based on your answers, not paid placement.') + '</p>';
       if (out.nearMiss.length) {
         html += '<div class="note note--warn mt16">' + t('فيه ', 'There ') + A.num(out.nearMiss.length) +
-          t(' منتج أعلى من ميزانيتك بفارق بسيط (أقل من ٨٪) — فإن كانت الميزانية مرنة قليلاً فهى جديرة بالاطلاع.',
-            ' product(s) sit just over your budget (under 8%) — worth a look if you have a little flexibility.') + '</div>';
+          t(' منتج أعلى من ميزانيتك بفارق بسيط (أقل من ٨٪)، فإن كانت الميزانية مرنة قليلاً فهى جديرة بالاطلاع.',
+            ' product(s) sit just over your budget (under 8%), worth a look if you have a little flexibility.') + '</div>';
       }
       return html;
     }

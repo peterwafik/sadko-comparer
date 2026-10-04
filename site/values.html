@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>قيمنا — صادكو جروب</title>
-<meta name="description" content="اثنتا عشرة قيمة نعمل بها فى صادكو، وأربع قواعد تحكم علاقتنا بالعميل وبالشريك وبالمنتج — مكتوبة بالمعنى الذى يصل إلى العميل.">
+<title>قيمنا | صادكو جروب</title>
+<meta name="description" content="اثنتا عشرة قيمة نعمل بها فى صادكو، وأربع قواعد تحكم علاقتنا بالعميل وبالشريك وبالمنتج، مكتوبة بالمعنى الذى يصل إلى العميل.">
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,7 +45,7 @@
     <p class="phero__crumb"><a href="index.html" data-i18n="crumb-home">الرئيسية</a> ←
       <a href="about.html" data-i18n="crumb-about">عن صادكو</a> ← <span data-i18n="crumb-here">قيمنا</span></p>
     <h1 class="phero__title" data-i18n="title">قيمنا</h1>
-    <p class="phero__sub" data-i18n="sub">اثنتا عشرة قيمة وأربع قواعد عمل. ليست شعارات تُعلَّق على الجدار — بل هى ما يحكم كيف نرد على سؤالك،
+    <p class="phero__sub" data-i18n="sub">اثنتا عشرة قيمة وأربع قواعد عمل. ليست شعارات تُعلَّق على الجدار، بل هى ما يحكم كيف نرد على سؤالك،
       وكيف نخبرك بأن هذا الجهاز لا يناسب منزلك، وكيف نظل حاضرين بعد أن يدخل الجهاز.</p>
   </div>
 </section>
@@ -56,20 +56,20 @@
 
 <footer data-footer></footer>
 
-<script src="assets/js/nav.js?v=g27" defer></script>
-<script src="assets/js/appshell.js?v=a9" defer></script>
-<script src="assets/js/values.js?v=a2" defer></script>
+<script src="assets/js/nav.js?v=g28" defer></script>
+<script src="assets/js/appshell.js?v=a10" defer></script>
+<script src="assets/js/values.js?v=a3" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   const T = {
     'crumb-home': 'Home', 'crumb-about': 'About SADKO', 'crumb-here': 'Our Values',
     'title': 'Our Values',
-    'sub': 'Twelve values and four working rules. Not slogans for the wall — these are what govern how we answer your question, how we tell you an appliance is wrong for your home, and how we stay present after it is delivered.',
+    'sub': 'Twelve values and four working rules. Not slogans for the wall: these are what govern how we answer your question, how we tell you an appliance is wrong for your home, and how we stay present after it is delivered.',
     'loading': 'Loading…',
   };
   if (window.skLang && window.skLang.get() === 'en') {
     document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
-    document.title = 'Our Values — SADKO Group';
+    document.title = 'Our Values | SADKO Group';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
     });

@@ -30,8 +30,8 @@
     {
       id: 'ac-filter', cats: ['38032005'], months: 3,
       ar: 'نظّف فلتر التكييف', en: 'Clean the air-conditioner filter',
-      whyAr: 'الفلتر المتسخ يقلل التبريد ويرفع فاتورة الكهرباء — وتنظيفه بالماء والصابون يستغرق دقائق.',
-      whyEn: 'A clogged filter cuts cooling and pushes up your electricity bill — washing it takes minutes.',
+      whyAr: 'الفلتر المتسخ يقلل التبريد ويرفع فاتورة الكهرباء، وتنظيفه بالماء والصابون يستغرق دقائق.',
+      whyEn: 'A clogged filter cuts cooling and pushes up your electricity bill, and washing it takes minutes.',
     },
     {
       id: 'washer-filter', cats: ['38005652', '38003963'], months: 6,
@@ -54,8 +54,8 @@
     {
       id: 'warranty', cats: '*', kind: 'warranty', months: 0,
       ar: 'الضمان قرب يخلص', en: 'Warranty is about to expire',
-      whyAr: 'إن كانت هناك مشكلة بسيطة، فهذا أوانها — قبل أن ينتهى الضمان.',
-      whyEn: 'If anything is slightly off, now is the time to report it — before the cover ends.',
+      whyAr: 'إن كانت هناك مشكلة بسيطة، فهذا أوانها، قبل أن ينتهى الضمان.',
+      whyEn: 'If anything is slightly off, now is the time to report it, before the cover ends.',
     },
   ];
   const RULE = id => RULES.filter(r => r.id === id)[0];
@@ -128,7 +128,7 @@
 
     function warrantyChip(a) {
       if (!a.purchaseDate)
-        return { cls: 'chip--mute', text: t('تاريخ الشراء ناقص — يتعذر حساب الضمان', 'Purchase date missing — we cannot calculate the warranty') };
+        return { cls: 'chip--mute', text: t('تاريخ الشراء ناقص، يتعذر حساب الضمان', 'Purchase date missing: we cannot calculate the warranty') };
       if (!Number(a.warrantyMonths))
         return { cls: 'chip--mute', text: t('مدة الضمان غير مسجَّلة', 'Warranty length not recorded') };
       const dl = O.daysLeft(a);
@@ -136,8 +136,8 @@
         return { cls: 'chip--mute', text: t('يتعذر حساب الضمان', 'We cannot calculate the warranty') };
       if (dl <= 0) return { cls: 'chip--bad', text: t('الضمان انتهى', 'Warranty expired') };
       if (dl < WARN_DAYS)
-        return { cls: 'chip--warn', text: t('الضمان بيخلص قريب — باقى ' + num(dl) + ' يوم', 'Warranty ending soon — ' + num(dl) + ' days left') };
-      return { cls: 'chip--ok', text: t('الضمان سارى — باقى ' + num(dl) + ' يوم', 'In warranty — ' + num(dl) + ' days left') };
+        return { cls: 'chip--warn', text: t('الضمان بيخلص قريب، باقى ' + num(dl) + ' يوم', 'Warranty ending soon, ' + num(dl) + ' days left') };
+      return { cls: 'chip--ok', text: t('الضمان سارى، باقى ' + num(dl) + ' يوم', 'In warranty, ' + num(dl) + ' days left') };
     }
 
     /* ================= rendering ================= */
@@ -174,8 +174,8 @@
       return '<section class="panel mt16" aria-labelledby="att-h">' +
         '<h2 class="panel__h" id="att-h">' + t('محتاج انتباهك', 'Needs your attention') +
           '<span class="badge badge--amber">' + num(list.length) + '</span></h2>' +
-        '<p class="panel__sub">' + t('هذه التذكيرات محسوبة من تاريخ الشراء الذى كتبته ومن جداول صيانة ثابتة لكل نوع جهاز — لا من تخمين. ويمكنك تعديل المدة أو إيقاف أى تذكير.',
-          'These reminders are calculated from the purchase date you entered and a fixed maintenance table per appliance type — not a guess. You can change the interval or switch any reminder off.') + '</p>' +
+        '<p class="panel__sub">' + t('هذه التذكيرات محسوبة من تاريخ الشراء الذى كتبته ومن جداول صيانة ثابتة لكل نوع جهاز، لا من تخمين. ويمكنك تعديل المدة أو إيقاف أى تذكير.',
+          'These reminders are calculated from the purchase date you entered and a fixed maintenance table per appliance type, not a guess. You can change the interval or switch any reminder off.') + '</p>' +
         '<div class="stack">' + list.map(x => attentionRow(x.a, x.st)).join('') + '</div></section>';
     }
 
@@ -194,7 +194,7 @@
       }
       const idAttr = 'data-id="' + esc(a.id) + '" data-rule="' + esc(r.id) + '"';
       return '<div class="note note--warn"><div class="between">' +
-        '<div><strong>' + esc(t(r.ar, r.en)) + '</strong> — ' + esc(a.title || t('جهاز بدون اسم', 'Untitled appliance')) + '<br>' +
+        '<div><strong>' + esc(t(r.ar, r.en)) + '</strong>: ' + esc(a.title || t('جهاز بدون اسم', 'Untitled appliance')) + '<br>' +
           '<span class="small muted">' + esc(when) +
           (r.kind !== 'warranty' ? esc(t(' • كل ' + num(st.every) + ' شهر', ' • every ' + num(st.every) + ' months')) : '') + '</span>' +
           '<p class="small muted" style="margin:6px 0 0">' + esc(t(r.whyAr, r.whyEn)) + '</p></div>' +
@@ -216,8 +216,8 @@
         let list = CATALOG.filter(p => !ui.catId || String(p.categoryId) === ui.catId);
         if (q) list = list.filter(p => String(p.title).toLowerCase().indexOf(q) >= 0);
         const shown = list.slice(0, 24);
-        body = '<p class="small muted">' + esc(t('لقينا ' + num(list.length) + ' منتج — بنعرض أول ' + num(shown.length) + '.',
-              num(list.length) + ' products found — showing the first ' + num(shown.length) + '.')) + '</p>' +
+        body = '<p class="small muted">' + esc(t('لقينا ' + num(list.length) + ' منتج، بنعرض أول ' + num(shown.length) + '.',
+              num(list.length) + ' products found, showing the first ' + num(shown.length) + '.')) + '</p>' +
           (shown.length ? '<div class="grid3 mt16">' + shown.map(pickCard).join('') + '</div>'
             : '<div class="empty"><p>' + t('لا توجد نتائج لهذا البحث. جرّب كلمة أخرى أو سجّل الجهاز يدوياً.',
                 'No results for that search. Try another word, or add the appliance manually.') + '</p></div>');
@@ -225,8 +225,8 @@
       return '<section class="panel mt16" aria-labelledby="pick-h">' +
         '<div class="between"><h2 class="panel__h" id="pick-h">' + t('اختار من كتالوج صادكو', 'Pick from the SADKO catalogue') + '</h2>' +
         '<button type="button" class="btn btn--quiet btn--sm" data-act="close-picker">' + t('إغلاق', 'Close') + '</button></div>' +
-        '<p class="panel__sub">' + t('لو اشتريت الجهاز من صادكو، اختاره من هنا وهنملى لك الاسم والصورة والماركة والفئة — وانت تكمّل تاريخ الشراء والرقم التسلسلى.',
-          'If you bought it from SADKO, pick it here and we will fill in the name, image, brand and category — you add the purchase date and serial number.') + '</p>' +
+        '<p class="panel__sub">' + t('لو اشتريت الجهاز من صادكو، اختاره من هنا وهنملى لك الاسم والصورة والماركة والفئة، وانت تكمّل تاريخ الشراء والرقم التسلسلى.',
+          'If you bought it from SADKO, pick it here and we will fill in the name, image, brand and category. You add the purchase date and serial number.') + '</p>' +
         '<div class="row">' +
           '<label class="field" style="flex:1 1 220px"><span class="field__l">' + t('الفئة', 'Category') + '</span>' +
             '<select class="select" data-act="pick-cat"><option value="">' + t('كل الفئات', 'All categories') + '</option>' +
@@ -260,8 +260,8 @@
         '<div class="between"><h2 class="panel__h" id="frm-h">' +
           (f.mode === 'edit' ? t('تعديل بيانات الجهاز', 'Edit appliance details') : t('سجّل جهاز جديد', 'Record a new appliance')) + '</h2>' +
           '<button type="button" class="btn btn--quiet btn--sm" data-act="close-form">' + t('إلغاء', 'Cancel') + '</button></div>' +
-        (v.productId ? '<p class="note note--info">' + t('هذه البيانات مأخوذة من كتالوج صادكو — عدّل ما يختلف منها.',
-          'These details came from the SADKO catalogue — change anything that does not match.') + '</p>' : '') +
+        (v.productId ? '<p class="note note--info">' + t('هذه البيانات مأخوذة من كتالوج صادكو، عدّل ما يختلف منها.',
+          'These details came from the SADKO catalogue. Change anything that does not match.') + '</p>' : '') +
         '<form id="ap-form" class="mt16" novalidate>' +
           '<input type="hidden" name="productId" value="' + esc(v.productId || '') + '">' +
           '<input type="hidden" name="image" value="' + esc(v.image || '') + '">' +
@@ -274,10 +274,10 @@
               '<input class="input ltr" name="model" value="' + esc(v.model || '') + '"></label>' +
             '<label class="field"><span class="field__l">' + t('الرقم التسلسلى', 'Serial number') + '</span>' +
               '<input class="input ltr" name="serial" value="' + esc(v.serial || '') + '">' +
-              '<span class="field__hint">' + t('موجود على استيكر ورا الجهاز أو جنبه — بيسهّل أى طلب صيانة.', 'On the sticker at the back or side of the appliance — it makes any service request faster.') + '</span></label>' +
+              '<span class="field__hint">' + t('موجود على استيكر ورا الجهاز أو جنبه، بيسهّل أى طلب صيانة.', 'On the sticker at the back or side of the appliance: it makes any service request faster.') + '</span></label>' +
           '</div>' +
           '<label class="field"><span class="field__l">' + t('الفئة', 'Category') + '</span>' +
-            '<select class="select" name="categoryId"><option value="">' + t('— اختار —', '— choose —') + '</option>' + catOpts + '</select>' +
+            '<select class="select" name="categoryId"><option value="">' + t('(اختار)', '(choose)') + '</option>' + catOpts + '</select>' +
             '<span class="field__hint">' + t('الفئة هى التى تحدد تذكيرات الصيانة المناسبة للجهاز.', 'The category decides which maintenance reminders apply.') + '</span></label>' +
           '<div class="field"><span class="field__l">' + t('اشتريته منين؟', 'Where did you buy it?') + '</span>' +
             '<div class="opts">' +
@@ -296,7 +296,7 @@
               '<span class="field__hint">' + t('مكتوبة فى كارت الضمان أو الفاتورة.', 'Written on the warranty card or the invoice.') + '</span></label>' +
           '</div>' +
           '<label class="field"><span class="field__l">' + t('ملاحظات', 'Notes') + '</span>' +
-            '<textarea class="textarea" name="notes" placeholder="' + t('مثلاً: مركَّب فى غرفة النوم — أوصى الفنى بتنظيفه كل صيف', 'e.g. installed in the bedroom — technician said to clean it every summer') + '">' + esc(v.notes || '') + '</textarea></label>' +
+            '<textarea class="textarea" name="notes" placeholder="' + t('مثلاً: مركَّب فى غرفة النوم، أوصى الفنى بتنظيفه كل صيف', 'e.g. installed in the bedroom, technician said to clean it every summer') + '">' + esc(v.notes || '') + '</textarea></label>' +
           '<div class="row"><button type="submit" class="btn btn--primary">' +
             (f.mode === 'edit' ? t('احفظ التعديلات', 'Save changes') : t('سجّل الجهاز', 'Record the appliance')) + '</button>' +
             '<button type="button" class="btn btn--quiet" data-act="close-form">' + t('إلغاء', 'Cancel') + '</button></div>' +
@@ -334,7 +334,7 @@
             '</div></div>' +
         '</div>' +
         '<ul class="specs mt16">' +
-          specRow(t('العلامة التجارية والطراز', 'Brand & model'), [a.brand, a.model].filter(Boolean).join(' — ')) +
+          specRow(t('العلامة التجارية والطراز', 'Brand & model'), [a.brand, a.model].filter(Boolean).join(', ')) +
           specRow(t('الرقم التسلسلى', 'Serial number'), a.serial, true) +
           specRow(t('البائع', 'Seller'), sellerLabel(a)) +
           specRow(t('تاريخ الشراء', 'Purchase date'), a.purchaseDate ? A.date(a.purchaseDate) : '') +
@@ -342,8 +342,8 @@
           (a.notes ? specRow(t('ملاحظاتك', 'Your notes'), a.notes) : '') +
         '</ul>' +
         (isExternal(a) ? '<p class="note note--warn mt16">' +
-          t('هذا الجهاز اشتُرى من ' + sellerLabel(a) + '، لا من صادكو. والضمان والتركيب والاسترجاع مسؤولية البائع الذى اشتريت منه — فصادكو لا تقدم ضماناً على مشتريات من متاجر أخرى. ويظل بإمكانك أن تسألنا نصيحة أو أن تشترى منا قطعاً أو أجهزة جديدة.',
-            'This was bought from ' + sellerLabel(a) + ', not from SADKO. Its warranty, installation and returns are that seller\'s responsibility — SADKO does not provide warranty cover for purchases made elsewhere. You are still welcome to ask us for advice.') +
+          t('هذا الجهاز اشتُرى من ' + sellerLabel(a) + '، لا من صادكو. والضمان والتركيب والاسترجاع مسؤولية البائع الذى اشتريت منه، فصادكو لا تقدم ضماناً على مشتريات من متاجر أخرى. ويظل بإمكانك أن تسألنا نصيحة أو أن تشترى منا قطعاً أو أجهزة جديدة.',
+            'This was bought from ' + sellerLabel(a) + ', not from SADKO. Its warranty, installation and returns are that seller\'s responsibility. SADKO does not provide warranty cover for purchases made elsewhere. You are still welcome to ask us for advice.') +
           '</p>' : '') +
         '<div class="row mt16">' +
           '<a class="btn btn--teal btn--sm" href="care.html?ref=' + encodeURIComponent(a.id) + '">' + t('طلب صيانة أو مساعدة', 'Service or help request') + '</a>' +
@@ -374,8 +374,8 @@
       const docs = a.docs || [];
       return '<h4 class="panel__h" style="font-size:.95rem">' + t('المستندات', 'Documents') + '</h4>' +
         '<p class="note note--info small">' +
-          t('نسجّل اسم الملف مرجعاً لك — أما الملف نفسه فلا يُرفع إلى أى مكان ولا يُخزَّن فى المتصفح. فاحتفظ بالفاتورة وبطاقة الضمان لديك على جهازك أو ورقياً.',
-            'We record the file name as a reference for you — the file itself is not uploaded anywhere and is not stored in the browser. Keep the actual invoice and warranty card on your own device or on paper.') + '</p>' +
+          t('نسجّل اسم الملف مرجعاً لك، أما الملف نفسه فلا يُرفع إلى أى مكان ولا يُخزَّن فى المتصفح. فاحتفظ بالفاتورة وبطاقة الضمان لديك على جهازك أو ورقياً.',
+            'We record the file name as a reference for you. The file itself is not uploaded anywhere and is not stored in the browser. Keep the actual invoice and warranty card on your own device or on paper.') + '</p>' +
         (docs.length
           ? '<ul class="specs mt8">' + docs.map((d, i) =>
               '<li><span class="k ltr">' + esc(d.name) + '</span><span class="v small">' + esc(A.date(d.at)) +
@@ -485,7 +485,7 @@
         const rid = b.getAttribute('data-rule');
         setRuleCfg(a, rid, { last: todayISO() });
         const r = RULE(rid), st = reminderState(O.get(a.id), r);
-        ui.msg = t('سجّلناها النهاردة — الموعد الجاى ' + A.date(st.due) + '.', 'Recorded as done today — next one due ' + A.date(st.due) + '.');
+        ui.msg = t('سجّلناها النهاردة، الموعد الجاى ' + A.date(st.due) + '.', 'Recorded as done today, next one due ' + A.date(st.due) + '.');
         render(); return;
       }
     });
@@ -507,8 +507,8 @@
         const docs = (a.docs || []).concat([{ name: file.name, at: new Date().toISOString() }]);
         O.update(a.id, { docs: docs });
         el.value = '';
-        ui.msg = t('سجّلنا اسم الملف «' + file.name + '» كمرجع — الملف نفسه ما اترفعش.',
-                   'Recorded the file name "' + file.name + '" as a reference — the file itself was not uploaded.');
+        ui.msg = t('سجّلنا اسم الملف «' + file.name + '» كمرجع، الملف نفسه ما اترفعش.',
+                   'Recorded the file name "' + file.name + '" as a reference. The file itself was not uploaded.');
         render();
       }
     });

@@ -66,7 +66,7 @@
           (hitTarget ? '<div class="note note--info small">' + t('بلغ السعر الذى حددته (', 'It reached your target price (') + A.money(s.targetPrice) + ').</div>' : '') +
           '<label class="field small" style="margin:0"><span class="field__l">' + t('نبّهنى إذا انخفض عن', 'Remind me if it drops below') + '</span>' +
             '<input class="input" type="number" inputmode="numeric" min="0" step="100" data-target="' + esc(s.id) + '" value="' + (s.targetPrice || '') + '" placeholder="' + t('السعر الذى يناسبك', 'your price') + '">' +
-            '<span class="field__hint">' + t('تذكير لك على هذا الجهاز — ولا نرسل بريداً إلكترونياً ولا إشعاراً.', 'A reminder for you on this device — we do not send email or push notifications.') + '</span></label>' +
+            '<span class="field__hint">' + t('تذكير لك على هذا الجهاز، ولا نرسل بريداً إلكترونياً ولا إشعاراً.', 'A reminder for you on this device. We do not send email or push notifications.') + '</span></label>' +
           '<div class="pcard__row">' +
             '<a class="btn btn--teal btn--sm" href="' + A.P('product.html') + '?id=' + encodeURIComponent(s.id) + '">' + t('التفاصيل', 'Details') + '</a>' +
             '<a class="btn btn--ghost btn--sm" href="' + A.P('compare.html') + '?q=' + encodeURIComponent(String(s.title).replace(/&nbsp;/g, ' ').slice(0, 60)) + '">' + t('قارن', 'Compare') + '</a>' +

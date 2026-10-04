@@ -68,7 +68,7 @@
         {
           "type": "p",
           "ar": "أكثر سؤال يُطرح فى المعرض: «هل تكفينا هذه الثلاجة؟». والإجابة ليست فى شكل الثلاجة ولا عدد أبوابها، بل فى السعة باللتر مقارنةً بعدد الأفراد وطريقة طعامكم. والأرقام أدناه قواعد تقريبية تساعدك على تحديد نطاق، لا قانون.",
-          "en": "The most common question in a showroom is: \"will this fridge be enough for us?\". The answer is not in the shape of the fridge or the number of doors — it is in the capacity in litres compared with how many people live in the home and how you eat. The numbers below are rules of thumb that help you pick a range, not a law."
+          "en": "The most common question in a showroom is: \"will this fridge be enough for us?\". The answer is not in the shape of the fridge or the number of doors. It is in the capacity in litres compared with how many people live in the home and how you eat. The numbers below are rules of thumb that help you pick a range, not a law."
         },
         {
           "type": "h",
@@ -163,7 +163,7 @@
         {
           "type": "p",
           "ar": "هناك رقمان مختلفان: السعة الإجمالية (gross) وهى حجم المقصورة من الداخل دون حساب الرفوف والأدراج، والسعة الصافية (net) وهى ما تضع فيه الطعام فعلاً. وقد يكون الفرق بينهما ملحوظاً. فحين تقارن طرازين، تأكد من أنك تقارن النوع نفسه من الرقم، وإن لم يكن مكتوباً فاسأل البائع بدلاً من الافتراض.",
-          "en": "Two different numbers exist: gross capacity — the volume of the empty cabinet — and net capacity, the space you can actually fill with food once shelves and drawers are in. The gap between them can be noticeable. When comparing two models, make sure you are comparing the same kind of number, and if it is not written, ask the seller instead of assuming."
+          "en": "Two different numbers exist: gross capacity (the volume of the empty cabinet) and net capacity, the space you can actually fill with food once shelves and drawers are in. The gap between them can be noticeable. When comparing two models, make sure you are comparing the same kind of number, and if it is not written, ask the seller instead of assuming."
         },
         {
           "type": "h",
@@ -177,14 +177,14 @@
             "هل تجمّد اللحوم والخضروات فى موسمها؟ ركّز على حجم الفريزر نفسه، لا السعة الكلية.",
             "بتطبخ يومياً وتحتفظ بالباقى؟ هتحتاج رفوف أعمق وأدراج أكتر أكتر من لترات زيادة.",
             "هل تستقبل ضيوفاً كثيرين أو لديكم ولائم؟ خذ النطاق الأعلى.",
-            "فى الصيف تستهلك الزجاجات والعصائر رفوف الباب سريعاً — فانظر إلى تقسيم الباب لا إلى السعة وحدها."
+            "فى الصيف تستهلك الزجاجات والعصائر رفوف الباب سريعاً، فانظر إلى تقسيم الباب لا إلى السعة وحدها."
           ],
           "en": [
             "Shopping once every two weeks or monthly? Take the upper end of the range.",
             "Freezing meat and vegetables in season? Focus on the freezer volume itself, not total capacity.",
             "Cooking daily and keeping leftovers? You need deeper shelves and more drawers more than extra litres.",
             "Frequent guests or family gatherings? Take the upper end of the range.",
-            "Summer: bottles and juice eat door shelves fast — look at how the door is divided, not just the capacity."
+            "Summer: bottles and juice eat door shelves fast. Look at how the door is divided, not just the capacity."
           ]
         },
         {
@@ -194,8 +194,8 @@
         },
         {
           "type": "p",
-          "ar": "الفريزر العلوى هو الأبسط ويناسب معظم المنازل. أما الفريزر السفلى فيجعل الرفوف التى تفتحها يومياً فى مستوى نظرك، وسعره أعلى غالباً عند السعة نفسها. والنوع الجانبى (side-by-side) يحتاج عرضاً أكبر ومساحة فتح أوسع أمامه — فقِس أولاً قبل أن يعجبك الشكل.",
-          "en": "A top freezer is the simplest layout and suits most homes. A bottom freezer puts the shelves you open daily at eye level and usually costs more for the same capacity. A side-by-side needs more width and more clearance in front of it — measure first, before you fall in love with the look."
+          "ar": "الفريزر العلوى هو الأبسط ويناسب معظم المنازل. أما الفريزر السفلى فيجعل الرفوف التى تفتحها يومياً فى مستوى نظرك، وسعره أعلى غالباً عند السعة نفسها. والنوع الجانبى (side-by-side) يحتاج عرضاً أكبر ومساحة فتح أوسع أمامه، فقِس أولاً قبل أن يعجبك الشكل.",
+          "en": "A top freezer is the simplest layout and suits most homes. A bottom freezer puts the shelves you open daily at eye level and usually costs more for the same capacity. A side-by-side needs more width and more clearance in front of it. Measure first, before you fall in love with the look."
         },
         {
           "type": "tip",
@@ -239,18 +239,18 @@
       "body": [
         {
           "type": "p",
-          "ar": "يقارن ملصق كفاءة الطاقة على الجهاز استهلاكه باستهلاك أجهزة أخرى من النوع والحجم نفسيهما. والدرجة الأعلى تعنى استهلاكاً أقل للعمل نفسه — لا أداءً أفضل ولا تبريداً أسرع بالضرورة.",
-          "en": "The energy label on an appliance compares its consumption with other appliances of the same type and size. A higher rating means less electricity for the same job — not necessarily better performance or faster cooling."
+          "ar": "يقارن ملصق كفاءة الطاقة على الجهاز استهلاكه باستهلاك أجهزة أخرى من النوع والحجم نفسيهما. والدرجة الأعلى تعنى استهلاكاً أقل للعمل نفسه، لا أداءً أفضل ولا تبريداً أسرع بالضرورة.",
+          "en": "The energy label on an appliance compares its consumption with other appliances of the same type and size. A higher rating means less electricity for the same job, not necessarily better performance or faster cooling."
         },
         {
           "type": "h",
-          "ar": "الدرجة وحدها لا تكفى — ابحث عن الرقم",
-          "en": "The letter alone is not enough — look for the number"
+          "ar": "الدرجة وحدها لا تكفى: ابحث عن الرقم",
+          "en": "The letter alone is not enough: look for the number"
         },
         {
           "type": "p",
           "ar": "أهم ما على الملصق ليس الحرف، بل رقم الاستهلاك السنوى التقديرى بالكيلوواط/ساعة (kWh فى السنة). فهو الرقم الذى تقارن به بين طرازين وتحوّله إلى جنيهات. وإن لم يكن مكتوباً على الملصق فستجده فى دليل الجهاز أو على صفحة المنتج، وإن لم يوجد البتة فاسأل البائع.",
-          "en": "The most useful thing on the label is not the letter but the estimated annual consumption in kilowatt-hours (kWh per year). That is the number you compare between two models and convert into pounds. If it is not on the label, look in the manual or the product page — and if it is nowhere, ask the seller."
+          "en": "The most useful thing on the label is not the letter but the estimated annual consumption in kilowatt-hours (kWh per year). That is the number you compare between two models and convert into pounds. If it is not on the label, look in the manual or the product page, and if it is nowhere, ask the seller."
         },
         {
           "type": "p",
@@ -259,8 +259,8 @@
         },
         {
           "type": "h",
-          "ar": "الفرق بالجنيه — جدول تحويل",
-          "en": "The difference in pounds — a conversion table"
+          "ar": "الفرق بالجنيه: جدول تحويل",
+          "en": "The difference in pounds: a conversion table"
         },
         {
           "type": "p",
@@ -364,7 +364,7 @@
         },
         {
           "type": "p",
-          "ar": "ثم اقسم فرق سعر الشراء على التوفير السنوى، فتظهر لك السنوات التى يستردّ فيها الجهاز الأكفأ فرق ثمنه. فإن كان هذا الرقم أقل من العمر المتوقع للجهاز، كان الاختيار الأكفأ منطقياً مالياً — وإن كان أطول، فأنت تدفع مقابل راحة لا مقابل توفير.",
+          "ar": "ثم اقسم فرق سعر الشراء على التوفير السنوى، فتظهر لك السنوات التى يستردّ فيها الجهاز الأكفأ فرق ثمنه. فإن كان هذا الرقم أقل من العمر المتوقع للجهاز، كان الاختيار الأكفأ منطقياً مالياً، وإن كان أطول، فأنت تدفع مقابل راحة لا مقابل توفير.",
           "en": "Then divide the difference in purchase price by the annual saving: that is how many years the more efficient appliance takes to pay back its price premium. If that is shorter than the appliance's expected life, the efficient choice makes financial sense; if it is longer, you are paying for comfort, not for savings."
         },
         {
@@ -374,8 +374,8 @@
         },
         {
           "type": "p",
-          "ar": "يشغّل الجهاز العادى الضاغط بأقصى قدرة ثم يفصله ويعيد تشغيله. أما الإنفرتر فيغيّر سرعة الضاغط ويبقيه عاملاً بقدرة أقل بدلاً من الفصل وإعادة التشغيل — والفصل والتشغيل المتكرر هو أكثر لحظة تُسحب فيها الكهرباء.",
-          "en": "A conventional appliance runs its compressor at full power, switches it off, then starts it again. An inverter varies compressor speed and keeps running at reduced power instead of stopping and restarting — and those restarts are the moments of highest current draw."
+          "ar": "يشغّل الجهاز العادى الضاغط بأقصى قدرة ثم يفصله ويعيد تشغيله. أما الإنفرتر فيغيّر سرعة الضاغط ويبقيه عاملاً بقدرة أقل بدلاً من الفصل وإعادة التشغيل، والفصل والتشغيل المتكرر هو أكثر لحظة تُسحب فيها الكهرباء.",
+          "en": "A conventional appliance runs its compressor at full power, switches it off, then starts it again. An inverter varies compressor speed and keeps running at reduced power instead of stopping and restarting, and those restarts are the moments of highest current draw."
         },
         {
           "type": "ul",
@@ -383,13 +383,13 @@
             "يُحدث أكبر فرق فى الأجهزة التى تعمل ساعات طويلة: التكييف فى صيف القاهرة والجيزة، والثلاجة العاملة ٢٤ ساعة.",
             "ويقل أثره فى الأجهزة التى تعمل ساعات قليلة فى الأسبوع.",
             "ميزة إضافية غير الفاتورة: صوت أقل وتذبذب أقل فى درجة الحرارة.",
-            "يعتمد التوفير الفعلى على ساعات التشغيل ودرجة الحرارة التى تضبطها والعزل فى منزلك — ولا توجد نسبة ثابتة تصلح لكل منزل."
+            "يعتمد التوفير الفعلى على ساعات التشغيل ودرجة الحرارة التى تضبطها والعزل فى منزلك، ولا توجد نسبة ثابتة تصلح لكل منزل."
           ],
           "en": [
             "It matters most on appliances that run for long hours: an AC through a Cairo or Giza summer, and a fridge running 24 hours a day.",
             "It matters least on appliances used for a few hours a week.",
             "A side benefit beyond the bill: less noise and a steadier temperature.",
-            "The real saving depends on running hours, the temperature you set and how well your home is insulated — there is no single percentage that fits every home."
+            "The real saving depends on running hours, the temperature you set and how well your home is insulated. There is no single percentage that fits every home."
           ]
         },
         {
@@ -400,16 +400,16 @@
         {
           "type": "ul",
           "ar": [
-            "درجة التكييف: كل درجة أقل تزيد الاستهلاك. اضبطها على درجة مريحة واتركها بدلاً من خفضها إلى أدنى حد طلباً لتبريد أسرع — فالتبريد لا يتسارع بخفض الدرجة.",
+            "درجة التكييف: كل درجة أقل تزيد الاستهلاك. اضبطها على درجة مريحة واتركها بدلاً من خفضها إلى أدنى حد طلباً لتبريد أسرع، فالتبريد لا يتسارع بخفض الدرجة.",
             "فلاتر التكييف المتربة تجعل الجهاز يعمل مدة أطول ليبلغ البرودة نفسها.",
             "الثلاجة كثيرة الفتح أو الموضوعة بجوار الموقد أو فى شمس مباشرة تعمل أكثر.",
-            "غسلة بحمل كامل على برنامج مناسب أوفر من غسلتين نصف محمّلتين — فسخان المياه هو أكبر مستهلك فى الغسالة."
+            "غسلة بحمل كامل على برنامج مناسب أوفر من غسلتين نصف محمّلتين، فسخان المياه هو أكبر مستهلك فى الغسالة."
           ],
           "en": [
-            "AC setpoint: every degree lower increases consumption. Set a comfortable temperature and leave it, instead of dropping it to the minimum to cool faster — cooling does not speed up with a lower setpoint.",
+            "AC setpoint: every degree lower increases consumption. Set a comfortable temperature and leave it, instead of dropping it to the minimum to cool faster. Cooling does not speed up with a lower setpoint.",
             "Dusty AC filters make the unit run longer to reach the same temperature.",
             "A fridge opened constantly, placed next to the cooker or in direct sun works harder.",
-            "One full wash on a suitable programme beats two half loads — the water heater is the biggest consumer inside a washing machine."
+            "One full wash on a suitable programme beats two half loads: the water heater is the biggest consumer inside a washing machine."
           ]
         },
         {
@@ -439,7 +439,7 @@
       },
       "dek": {
         "ar": "العرض والارتفاع والعمق، ومساحة فتح الباب، وفتحات التهوية، والأهم: طريق الجهاز من باب العمارة إلى موضعه.",
-        "en": "Width, height and depth, door swing, ventilation gaps — and the thing most people forget: the route from the building entrance to the appliance's final spot."
+        "en": "Width, height and depth, door swing, ventilation gaps, and the thing most people forget: the route from the building entrance to the appliance's final spot."
       },
       "body": [
         {
@@ -535,19 +535,19 @@
         {
           "type": "p",
           "ar": "تطرح الثلاجة والفريزر حرارة من الخلف ومن الأسفل، فإن كان المكان مغلقاً عليهما عملا أكثر وسخنا. والقاعدة التقريبية الشائعة: اترك نحو ٥ سم على الجانبين، ونحو ١٠ سم من الخلف ومن الأعلى. أما الرقم الرسمى فمكتوب فى دليل الطراز نفسه، فاعمل به إن اختلف.",
-          "en": "Fridges and freezers dump heat from the back and underneath; boxed in, they run longer and get hot. The common rule of thumb is roughly 5 cm at the sides and about 10 cm at the back and top. The official figure is in that specific model's manual — follow it if it differs."
+          "en": "Fridges and freezers dump heat from the back and underneath; boxed in, they run longer and get hot. The common rule of thumb is roughly 5 cm at the sides and about 10 cm at the back and top. The official figure is in that specific model's manual. Follow it if it differs."
         },
         {
           "type": "ul",
           "ar": [
             "ابعد عن مصادر الحرارة: البوتاجاز، الفرن، والشمس المباشرة على الشباك.",
-            "التكييف: تحتاج الوحدة الخارجية هواءً حولها ومسافة عن الجدار — لا أن تُحصر فى منور مغلق.",
+            "التكييف: تحتاج الوحدة الخارجية هواءً حولها ومسافة عن الجدار، لا أن تُحصر فى منور مغلق.",
             "الغسالة محتاجة أرضية مستوية وثابتة، وإلا هتترجّ فى العصر.",
             "زوّد لحد ٢ سم فوق قياسك كهامش أمان لكل جهاز."
           ],
           "en": [
             "Keep away from heat sources: cooker, oven, and direct sun from a window.",
-            "AC: the outdoor unit needs air around it and clearance from the wall — not sealed inside a closed light well.",
+            "AC: the outdoor unit needs air around it and clearance from the wall, not sealed inside a closed light well.",
             "A washing machine needs a level, solid floor, otherwise it will walk during the spin.",
             "Add up to 2 cm on top of your measurement as a safety margin for every appliance."
           ]
@@ -559,30 +559,30 @@
         },
         {
           "type": "p",
-          "ar": "يمر الجهاز من باب العمارة، ثم السلّم أو المصعد، ثم باب الشقة، ثم باب الغرفة أو المطبخ. وأضيق نقطة فى الطريق هى الحاكمة — لا الموضع النهائى.",
-          "en": "The appliance passes the building entrance, then the stairs or lift, then the flat door, then the room or kitchen door. The narrowest point along the route is what decides — not the final spot."
+          "ar": "يمر الجهاز من باب العمارة، ثم السلّم أو المصعد، ثم باب الشقة، ثم باب الغرفة أو المطبخ. وأضيق نقطة فى الطريق هى الحاكمة، لا الموضع النهائى.",
+          "en": "The appliance passes the building entrance, then the stairs or lift, then the flat door, then the room or kitchen door. The narrowest point along the route is what decides, not the final spot."
         },
         {
           "type": "ul",
           "ar": [
             "قيس عرض كل باب وهو مفتوح بالكامل (الضلفة نفسها بتاكل من ٣ لـ ٥ سم من الفتحة).",
             "لو الأسانسير هو الطريق: قيس عرض وعمق وارتفاع الكابينة وعرض بابها.",
-            "إن كان السلّم: انتبه إلى منعطف البسطة — فهو أصعب من عرض السلّم نفسه.",
+            "إن كان السلّم: انتبه إلى منعطف البسطة، فهو أصعب من عرض السلّم نفسه.",
             "قيس ارتفاع سقف السلم والمدخل لو الجهاز طويل وهيتشال واقف.",
-            "وإن وُجد شرفة أو نافذة واسعة، فقد يكون ذلك البديل أحياناً — لكنه يحتاج ترتيباً مسبقاً مع البائع."
+            "وإن وُجد شرفة أو نافذة واسعة، فقد يكون ذلك البديل أحياناً، لكنه يحتاج ترتيباً مسبقاً مع البائع."
           ],
           "en": [
             "Measure every doorway with the door fully open (the leaf itself eats 3–5 cm of the opening).",
             "If the lift is the route: measure the car's width, depth and height, plus its door width.",
-            "If it is the stairs: watch the landing turn — it is harder than the width of the stairs themselves.",
+            "If it is the stairs: watch the landing turn: it is harder than the width of the stairs themselves.",
             "Measure the ceiling height on the stairs and at the entrance if the appliance is tall and will be carried upright.",
-            "A wide balcony or window is sometimes the alternative — but it must be arranged with the seller in advance."
+            "A wide balcony or window is sometimes the alternative, but it must be arranged with the seller in advance."
           ]
         },
         {
           "type": "tip",
-          "ar": "دوّن المقاسات فى ملاحظة على هاتفك — العرض، والارتفاع، والعمق، وأضيق باب — وخذها معك إلى المعرض أو ضعها أمامك وأنت تقارن عبر الإنترنت. وصوّر المكان من بعيد ومن قريب.",
-          "en": "Write the numbers in a note on your phone — width, height, depth, narrowest doorway — and take it to the showroom or keep it open while comparing online. Photograph the space from far and near too."
+          "ar": "دوّن المقاسات فى ملاحظة على هاتفك (العرض، والارتفاع، والعمق، وأضيق باب) وخذها معك إلى المعرض أو ضعها أمامك وأنت تقارن عبر الإنترنت. وصوّر المكان من بعيد ومن قريب.",
+          "en": "Write the numbers in a note on your phone (width, height, depth, narrowest doorway) and take it to the showroom or keep it open while comparing online. Photograph the space from far and near too."
         },
         {
           "type": "warn",
@@ -697,7 +697,7 @@
         {
           "type": "ul",
           "ar": [
-            "الإصلاح لدى فنى غير معتمد، أو استخدام قطع غيار غير أصلية — وهو أشهر سبب.",
+            "الإصلاح لدى فنى غير معتمد، أو استخدام قطع غيار غير أصلية، وهو أشهر سبب.",
             "التركيب بواسطة حد غير معتمد، خصوصاً فى التكييف والسخانات والبوتاجاز.",
             "الضرر المادى: كسر، أو مياه، أو حريق، أو حشرات وقوارض داخل الجهاز.",
             "الاستخدام التجارى لجهاز منزلى (مطعم، محل، مغسلة).",
@@ -705,7 +705,7 @@
             "توصيل الجهاز على جهد غير مناسب، أو إهمال شرط منصوص عليه فى الكتيّب زى استخدام منظّم جهد."
           ],
           "en": [
-            "Repairs by a non-approved technician, or non-original spare parts — the most common cause by far.",
+            "Repairs by a non-approved technician, or non-original spare parts, the most common cause by far.",
             "Installation by someone unapproved, especially for AC units, water heaters and cookers.",
             "Physical damage: impact, water, fire, or insects and rodents inside the appliance.",
             "Commercial use of a domestic appliance (restaurant, shop, laundry).",
@@ -721,16 +721,16 @@
         {
           "type": "ul",
           "ar": [
-            "الفاتورة الأصلية هى إثبات تاريخ الشراء — وبدونها يصير الضمان محل جدل.",
+            "الفاتورة الأصلية هى إثبات تاريخ الشراء، وبدونها يصير الضمان محل جدل.",
             "صوّر الفاتورة وكارت الضمان بالموبايل، وابعتهم لنفسك على الإيميل أو خزّنهم على السحابة.",
-            "صوّر لوحة البيانات على ظهر الجهاز (الطراز + الرقم التسلسلى) — ستحتاج إليها فى كل مكالمة صيانة.",
+            "صوّر لوحة البيانات على ظهر الجهاز (الطراز + الرقم التسلسلى)، ستحتاج إليها فى كل مكالمة صيانة.",
             "لو الضمان محتاج تفعيل أو تسجيل خلال مدة معينة، اعمله فى نفس الأسبوع.",
             "واحتفظ بإيصال التركيب أيضاً: فهو يثبت أن التركيب تم بالطريقة المعتمدة."
           ],
           "en": [
-            "The original invoice proves the purchase date — without it the warranty becomes an argument.",
+            "The original invoice proves the purchase date. Without it the warranty becomes an argument.",
             "Photograph the invoice and warranty card, then email them to yourself or store them in the cloud.",
-            "Photograph the data plate on the back of the appliance (model + serial) — you will need it on every service call.",
+            "Photograph the data plate on the back of the appliance (model + serial). You will need it on every service call.",
             "If cover requires activation or registration within a set period, do it the same week.",
             "Keep the installation receipt too: it proves the work was done the approved way."
           ]
@@ -754,15 +754,15 @@
             "Is cover parts only, or parts and labour?",
             "Who actually comes to repair: the manufacturer, the agent, or the store?",
             "Where is the nearest service centre, and what is the expected wait for a visit?",
-            "Is service done at home or does the appliance get taken away — and who pays the transport?",
+            "Is service done at home or does the appliance get taken away, and who pays the transport?",
             "Are there call-out or inspection fees even during the warranty period?",
             "How long are spare parts available in Egypt after the model is discontinued?"
           ]
         },
         {
           "type": "warn",
-          "ar": "يقدم الضمان والتركيب والاسترجاع البائعُ المذكور فى العرض. فإن اشتريت من متجر آخر غير صادكو، فالضمان والخدمة يخصانه هو — فاسأله عن هذه التفاصيل قبل أن تدفع، ولا تفترض أن كل المتاجر تتعامل بالشروط نفسها.",
-          "en": "Warranty, installation and returns are provided by the seller named on the offer. If you buy from a store other than SADKO, that seller provides the cover and the service — so ask them these questions before paying, and do not assume every store offers the same terms."
+          "ar": "يقدم الضمان والتركيب والاسترجاع البائعُ المذكور فى العرض. فإن اشتريت من متجر آخر غير صادكو، فالضمان والخدمة يخصانه هو، فاسأله عن هذه التفاصيل قبل أن تدفع، ولا تفترض أن كل المتاجر تتعامل بالشروط نفسها.",
+          "en": "Warranty, installation and returns are provided by the seller named on the offer. If you buy from a store other than SADKO, that seller provides the cover and the service, so ask them these questions before paying, and do not assume every store offers the same terms."
         }
       ]
     },
@@ -785,8 +785,8 @@
         "en": "Preparing your home for delivery and installation"
       },
       "dek": {
-        "ar": "مقبس كهرباء وتأريض وصنبور مياه وصرف ووصلة غاز — وهى أمور إن لم تكن جاهزة انصرف الفنى وعاد فى يوم آخر.",
-        "en": "Socket, earth, water tap, drain and gas connection — the things that, if not ready, send the technician away to come back another day."
+        "ar": "مقبس كهرباء وتأريض وصنبور مياه وصرف ووصلة غاز، وهى أمور إن لم تكن جاهزة انصرف الفنى وعاد فى يوم آخر.",
+        "en": "Socket, earth, water tap, drain and gas connection: the things that, if not ready, send the technician away to come back another day."
       },
       "body": [
         {
@@ -803,17 +803,17 @@
           "type": "ul",
           "ar": [
             "التيار فى مصر ٢٢٠ فولت / ٥٠ هرتز. اتأكد إن الجهاز متوافق لو مستورد شخصياً من بره.",
-            "مقبس مستقل قريب من موضع الجهاز — فالأجهزة التى تسحب تياراً عالياً (تكييف، سخان، فرن، غسالة) لا ينبغى تشغيلها على وصلة أو مشترك.",
+            "مقبس مستقل قريب من موضع الجهاز، فالأجهزة التى تسحب تياراً عالياً (تكييف، سخان، فرن، غسالة) لا ينبغى تشغيلها على وصلة أو مشترك.",
             "وجود وصلة أرضى مهم للأمان، خصوصاً فى السخانات والغسالات.",
-            "لو الجهد عندك بيتقلّب، منظّم جهد (استابلايزر) حاجة شائعة فى مصر — وأحياناً بيكون شرط مذكور فى الكتيّب.",
-            "يحتاج التكييف والسخان الكهربائى غالباً خطاً وقاطعاً مخصصاً من اللوحة — وهو عمل كهربائى يُنجز قبل التركيب لا وقته."
+            "لو الجهد عندك بيتقلّب، منظّم جهد (استابلايزر) حاجة شائعة فى مصر، وأحياناً بيكون شرط مذكور فى الكتيّب.",
+            "يحتاج التكييف والسخان الكهربائى غالباً خطاً وقاطعاً مخصصاً من اللوحة، وهو عمل كهربائى يُنجز قبل التركيب لا وقته."
           ],
           "en": [
             "Mains in Egypt is 220 V / 50 Hz. Confirm compatibility if the appliance was brought in personally from abroad.",
-            "A dedicated socket near the appliance — high-draw appliances (AC, water heater, oven, washing machine) should not run on an extension lead or a multi-way adaptor.",
+            "A dedicated socket near the appliance: high-draw appliances (AC, water heater, oven, washing machine) should not run on an extension lead or a multi-way adaptor.",
             "A proper earth connection matters for safety, particularly for water heaters and washing machines.",
-            "If your voltage fluctuates, a voltage stabiliser is common practice in Egypt — and is sometimes a stated condition in the manual.",
-            "An AC or electric water heater usually needs its own circuit and breaker from the distribution board — electrical work to be done before installation day, not during it."
+            "If your voltage fluctuates, a voltage stabiliser is common practice in Egypt, and is sometimes a stated condition in the manual.",
+            "An AC or electric water heater usually needs its own circuit and breaker from the distribution board: electrical work to be done before installation day, not during it."
           ]
         },
         {
@@ -824,17 +824,17 @@
         {
           "type": "ul",
           "ar": [
-            "محبس مياه قريب بخرطوم دخول — تأكد من صلاحيته وعدم تسريبه قبل موعد التركيب.",
+            "محبس مياه قريب بخرطوم دخول. تأكد من صلاحيته وعدم تسريبه قبل موعد التركيب.",
             "نقطة صرف تناسب ارتفاع خرطوم الطرد؛ الارتفاع المسموح بيكون مكتوب فى الكتيّب. الخرطوم المرمى فى بلاعة على الأرض بيرجّع ريحة.",
             "أرضية مستوية وصلبة، والغسالة تتظبط بالميزان من رجليها.",
-            "يجب فك مسامير النقل فى ظهر الغسالة قبل أول غسلة — فتشغيلها والمسامير مركّبة قد يتلف الجهاز، وهذا التلف غير مغطى بالضمان غالباً.",
+            "يجب فك مسامير النقل فى ظهر الغسالة قبل أول غسلة، فتشغيلها والمسامير مركّبة قد يتلف الجهاز، وهذا التلف غير مغطى بالضمان غالباً.",
             "إن كان المكان ضيقاً: انتبه إلى أن باب الغسالة يُفتح فى اتجاه واحد، ولا يمكن عكسه غالباً."
           ],
           "en": [
-            "A nearby water tap with an inlet hose — check it works and does not leak before the installation appointment.",
+            "A nearby water tap with an inlet hose. Check it works and does not leak before the installation appointment.",
             "A drain point that suits the outlet hose height; the permitted range is in the manual. A hose thrown into a floor drain lets smells back in.",
             "A level, solid floor, with the machine levelled on its feet.",
-            "The transit bolts on the back must be removed before the first wash — running with them fitted can damage the machine, and that damage is usually not covered by warranty.",
+            "The transit bolts on the back must be removed before the first wash. Running with them fitted can damage the machine, and that damage is usually not covered by warranty.",
             "In a tight spot: the door opens one way only, and on most models it cannot be reversed."
           ]
         },
@@ -848,14 +848,14 @@
           "ar": [
             "توصيلة الغاز لازم يعملها فنى مؤهل، بخرطوم ومنظّم سليمين وفى مدة صلاحيتهم.",
             "غاز طبيعى أم أسطوانة؟ ليسا بالضغط نفسه، ويحتاج الموقد «فوهات» مناسبة للنوع. فأبلغ البائع بنوع الغاز لديك قبل التسليم.",
-            "تهوية: المطبخ لازم يكون فيه شباك أو شفاط — الطبخ بالغاز بيستهلك أكسجين.",
+            "تهوية: المطبخ لازم يكون فيه شباك أو شفاط. الطبخ بالغاز بيستهلك أكسجين.",
             "الفرن الكهربائى المدمج بيحتاج فتحة نجارة بمقاس محدد وبريزة قريبة منها.",
             "بعد أى تركيب غاز، اطلب اختبار تسريب بالصابون قدامك."
           ],
           "en": [
             "The gas connection must be made by a qualified technician, with a sound, in-date hose and regulator.",
             "Natural gas or a cylinder? They are not the same pressure, and the cooker needs the correct injectors for the type. Tell the seller which gas you have before delivery.",
-            "Ventilation: the kitchen needs a window or an extractor — gas cooking consumes oxygen.",
+            "Ventilation: the kitchen needs a window or an extractor. Gas cooking consumes oxygen.",
             "A built-in electric oven needs a joinery cut-out at a specific size and a socket close by.",
             "After any gas connection, ask for a soap-bubble leak test to be done in front of you."
           ]
@@ -869,17 +869,17 @@
           "type": "ul",
           "ar": [
             "التكييف: مكان محدد للوحدة الخارجية عليه هوا، وقاعدة أو حوامل تتحمّل وزنها، ومسار لمواسير النحاس وخرطوم الصرف.",
-            "يُحتسب طول ماسورة النحاس الزائد عن المتفق عليه إضافياً غالباً — فاتفق على السعر قبل التركيب.",
+            "يُحتسب طول ماسورة النحاس الزائد عن المتفق عليه إضافياً غالباً، فاتفق على السعر قبل التركيب.",
             "يجب أن يكون لخرطوم صرف التكييف ميل ومكان يصرف فيه، لا على واجهة عمارة الجيران.",
-            "السخان: مكان تعليق قوى، ومحبس، وصمام أمان — والسخان الغاز محتاج تهوية وتوصيلة معتمدة.",
-            "ثقب الجدار بالمثقاب عمل يخلّف غباراً — فغطِّ الأثاث واعرف من سيزيل المخلفات."
+            "السخان: مكان تعليق قوى، ومحبس، وصمام أمان، والسخان الغاز محتاج تهوية وتوصيلة معتمدة.",
+            "ثقب الجدار بالمثقاب عمل يخلّف غباراً، فغطِّ الأثاث واعرف من سيزيل المخلفات."
           ],
           "en": [
             "AC: a defined spot for the outdoor unit with airflow around it, a base or brackets that carry its weight, and a route for the copper pipes and the drain hose.",
-            "Copper pipe beyond the agreed length is usually charged extra — agree the price before the work starts.",
-            "The AC drain hose needs a fall and somewhere to discharge — not onto the neighbours' facade.",
-            "Water heater: a strong mounting point, an isolating valve and a safety valve — a gas heater also needs ventilation and an approved connection.",
-            "Drilling walls makes dust — cover the furniture and agree who removes the debris."
+            "Copper pipe beyond the agreed length is usually charged extra. Agree the price before the work starts.",
+            "The AC drain hose needs a fall and somewhere to discharge, not onto the neighbours' facade.",
+            "Water heater: a strong mounting point, an isolating valve and a safety valve. A gas heater also needs ventilation and an approved connection.",
+            "Drilling walls makes dust. Cover the furniture and agree who removes the debris."
           ]
         },
         {
@@ -889,8 +889,8 @@
         },
         {
           "type": "warn",
-          "ar": "لا تُشغّل أى جهاز تبريد (ثلاجة، فريزر، تكييف) فور نقله قائماً أو مائلاً. والمتعارف عليه أن تتركه قائماً من ساعتين إلى ٤ ساعات — وفى بعض الحالات أكثر — والمدة الصحيحة فى دليل الطراز نفسه.",
-          "en": "Do not switch on any cooling appliance (fridge, freezer, AC) immediately after it has been moved upright or tilted. The usual advice is to let it stand for two to four hours — sometimes longer — and the correct figure is in that model's manual."
+          "ar": "لا تُشغّل أى جهاز تبريد (ثلاجة، فريزر، تكييف) فور نقله قائماً أو مائلاً. والمتعارف عليه أن تتركه قائماً من ساعتين إلى ٤ ساعات (وفى بعض الحالات أكثر)، والمدة الصحيحة فى دليل الطراز نفسه.",
+          "en": "Do not switch on any cooling appliance (fridge, freezer, AC) immediately after it has been moved upright or tilted. The usual advice is to let it stand for two to four hours (sometimes longer), and the correct figure is in that model's manual."
         }
       ]
     },
@@ -912,7 +912,7 @@
         "en": "Maintaining your appliances so they last longer"
       },
       "dek": {
-        "ar": "فلاتر وملفات وترسيبات: عمل بسيط تؤديه بنفسك، وعمل يلزمه فنى — ومواعيد تقريبية لكل منهما.",
+        "ar": "فلاتر وملفات وترسيبات: عمل بسيط تؤديه بنفسك، وعمل يلزمه فنى، ومواعيد تقريبية لكل منهما.",
         "en": "Filters, coils and scale: what you can do yourself, what needs a technician, and roughly how often for each."
       },
       "body": [
@@ -1043,15 +1043,15 @@
           "type": "ul",
           "ar": [
             "الفلاتر بتتسحب من قدام الوحدة الداخلية، تتغسل بمياه فاترة وصابون خفيف، وتتنشّف تماماً قبل ما ترجّعها.",
-            "يقلل الفلتر المسدود الهواء الخارج، فيظل الجهاز عاملاً مدة أطول ليبلغ البرودة نفسها — ويظهر ذلك فى الفاتورة وفى ضعف التبريد.",
+            "يقلل الفلتر المسدود الهواء الخارج، فيظل الجهاز عاملاً مدة أطول ليبلغ البرودة نفسها، ويظهر ذلك فى الفاتورة وفى ضعف التبريد.",
             "الوحدة الخارجية: أزل الأوراق والغبار من حولها واترك مسافة للهواء. ولا تغطِّها بغطاء مغلق.",
-            "تنقيط المياه من الوحدة الداخلية يعنى غالباً خرطوم صرف مسدوداً أو بميل خاطئ — وهذه تستدعى زيارة فنى."
+            "تنقيط المياه من الوحدة الداخلية يعنى غالباً خرطوم صرف مسدوداً أو بميل خاطئ، وهذه تستدعى زيارة فنى."
           ],
           "en": [
             "Filters slide out of the front of the indoor unit, wash in lukewarm water with mild soap, and must be fully dry before refitting.",
-            "A blocked filter cuts airflow, so the unit runs longer to reach the same temperature — visible both on the bill and as weak cooling.",
+            "A blocked filter cuts airflow, so the unit runs longer to reach the same temperature, visible both on the bill and as weak cooling.",
             "Outdoor unit: clear leaves and dust around it and leave air space. Never wrap it in a sealed cover.",
-            "Water dripping from the indoor unit usually means a blocked or badly sloped drain hose — that is a technician visit."
+            "Water dripping from the indoor unit usually means a blocked or badly sloped drain hose. That is a technician visit."
           ]
         },
         {
@@ -1063,14 +1063,14 @@
           "type": "ul",
           "ar": [
             "الملف الأسود ورا الثلاجة أو تحتها بيتترّب؛ نضّفه بفرشة ناعمة أو المكنسة والجهاز مفصول من الكهرباء.",
-            "اختبار الكاوتش: حطّ ورقة بين الباب والجسم واقفل. لو الورقة بتتسحب بسهولة، الكاوتش محتاج تنضيف أو تغيير — وده بيسرّب برودة طول اليوم.",
+            "اختبار الكاوتش: حطّ ورقة بين الباب والجسم واقفل. لو الورقة بتتسحب بسهولة، الكاوتش محتاج تنضيف أو تغيير، وده بيسرّب برودة طول اليوم.",
             "الفريزر غير النو-فروست بيحتاج تسييح لما التلج يزيد عن حوالى نص سنتيمتر؛ التلج المتراكم بيقلّل السعة ويزوّد الاستهلاك.",
             "لا تضع طعاماً ساخناً بداخلها، واترك مسافة بين الأصناف ليدور الهواء.",
             "إن كنت مسافراً شهراً: أفرغ الثلاجة، وافصلها، ونظّفها، واترك الباب موارباً حتى لا تتعفن."
           ],
           "en": [
             "The black coil behind or under the fridge collects dust; clean it with a soft brush or vacuum with the appliance unplugged.",
-            "The seal test: put a sheet of paper between the door and the body and close it. If the paper slides out easily, the gasket needs cleaning or replacing — it is leaking cold all day.",
+            "The seal test: put a sheet of paper between the door and the body and close it. If the paper slides out easily, the gasket needs cleaning or replacing. It is leaking cold all day.",
             "A non-frost-free freezer needs defrosting once ice passes roughly half a centimetre; built-up ice cuts capacity and raises consumption.",
             "Do not put hot food inside, and leave space between items so air can circulate.",
             "Travelling for a month: empty it, unplug it, clean it and leave the door slightly open so it does not grow mould."
@@ -1085,14 +1085,14 @@
           "type": "ul",
           "ar": [
             "مصفاة الطرد (غالباً ورا شبّاك صغير تحت قدام) بتتفتح وتتنضّف من الشعر والفكة والأزرار.",
-            "اترك باب الغسالة ودرج المسحوق موارَبين بعد الغسيل — فهذا أيسر حل لرائحة الغسالة.",
+            "اترك باب الغسالة ودرج المسحوق موارَبين بعد الغسيل، فهذا أيسر حل لرائحة الغسالة.",
             "دورة فاضية بمياه سخنة كل كام شهر بتشيل تراكم المسحوق ومنعّم الأقمشة.",
             "استخدام مسحوق أكثر من اللازم يخلّف رغوة وترسيباً أكثر، لا نظافة أكثر.",
             "الغلاية وماكينة القهوة: الترسيب الجيرى الأبيض يُزال بمحلول حمض الستريك أو خل مخفف، ثم اشطفها جيداً مرتين."
           ],
           "en": [
             "The pump filter (usually behind a small flap low at the front) opens up and clears hair, coins and buttons.",
-            "Leave the door and the detergent drawer slightly open after a wash — the simplest fix for a smelly machine.",
+            "Leave the door and the detergent drawer slightly open after a wash, the simplest fix for a smelly machine.",
             "An empty hot cycle every few months clears detergent and softener build-up.",
             "Using more detergent than needed leaves foam and residue, not more cleanliness.",
             "Kettles and coffee machines: white scale comes off with citric acid or diluted vinegar, followed by two thorough rinses."
@@ -1100,8 +1100,8 @@
         },
         {
           "type": "warn",
-          "ar": "افصل الكهرباء قبل أى تنظيف، ولا تستخدم الماء على أجزاء كهربائية. وأى عمل داخل الجهاز نفسه — غاز التبريد، أو الضاغط، أو وصلات الغاز — هو عمل فنى معتمد، وإن قمت به بنفسك فقد يُلغى الضمان.",
-          "en": "Disconnect the power before any cleaning, and keep water away from electrical parts. Anything inside the appliance itself — refrigerant, compressor, gas connections — is work for an approved technician, and doing it yourself can void the warranty."
+          "ar": "افصل الكهرباء قبل أى تنظيف، ولا تستخدم الماء على أجزاء كهربائية. وأى عمل داخل الجهاز نفسه (غاز التبريد، أو الضاغط، أو وصلات الغاز) هو عمل فنى معتمد، وإن قمت به بنفسك فقد يُلغى الضمان.",
+          "en": "Disconnect the power before any cleaning, and keep water away from electrical parts. Anything inside the appliance itself (refrigerant, compressor, gas connections) is work for an approved technician, and doing it yourself can void the warranty."
         }
       ]
     },
@@ -1240,14 +1240,14 @@
         {
           "type": "ul",
           "ar": [
-            "توافر مركز خدمة وقطع غيار قريب منك — وهذا يُحدث فرقاً مع الاستخدام الكثيف أكثر من أى ميزة فى الكتالوج.",
+            "توافر مركز خدمة وقطع غيار قريب منك، وهذا يُحدث فرقاً مع الاستخدام الكثيف أكثر من أى ميزة فى الكتالوج.",
             "الأجزاء التى تُلمس يومياً: مفصلات الباب، والأدراج، والحشوات المطاطية، ومقابض الموقد.",
             "الغسالة: حلّة استانلس، وضمان أطول على الموتور.",
             "البوتاجاز: شبكات حديد (كاست) بتستحمل أكتر من الشبك السلك الرفيع.",
             "البساطة أفضل أحياناً: فكثرة الشاشات والوظائف تعنى مزيداً من الأجزاء القابلة للعطل."
           ],
           "en": [
-            "A service centre and spare parts available near you — with heavy use this matters more than any catalogue feature.",
+            "A service centre and spare parts available near you: with heavy use this matters more than any catalogue feature.",
             "The parts touched every day: door hinges, drawers, gaskets, cooker knobs.",
             "Washing machine: a stainless drum and a longer warranty on the motor.",
             "Cooker: cast-iron pan supports last better than thin wire ones.",
@@ -1269,13 +1269,13 @@
           "ar": [
             "غسالة أكبر بحمل كامل أوفر فى المياه والكهرباء من غسلتين نص فاضيين.",
             "الثلاجة الموضوعة وضعاً صحيحاً وجيدة التهوية تستهلك أقل دون أن تدفع مليماً.",
-            "برامج «إيكو» فى الغسالات تستغرق وقتاً أطول لكنها تستخدم ماءً ساخناً أقل — وهذا يوفّر فعلاً.",
+            "برامج «إيكو» فى الغسالات تستغرق وقتاً أطول لكنها تستخدم ماءً ساخناً أقل، وهذا يوفّر فعلاً.",
             "احسب تكلفة التشغيل على ٥ سنوات لا على شهر واحد وأنت تقارن."
           ],
           "en": [
             "A larger machine run full uses less water and electricity than two half-empty loads.",
             "A well-placed, well-ventilated fridge consumes less without costing you a pound.",
-            "\"Eco\" programmes take longer but use less hot water — and that genuinely saves.",
+            "\"Eco\" programmes take longer but use less hot water, and that genuinely saves.",
             "Compare running cost over five years, not over one month."
           ]
         },
@@ -1286,8 +1286,8 @@
         },
         {
           "type": "warn",
-          "ar": "قبل أن تكبّر أى جهاز، ارجع إلى دليل القياس. فالسعة الأكبر تأتى بأبعاد أكبر ووزن أكبر، والموقد ذو الـ٥ شعلات أعرض من ذى الـ٤، والغسالة ذات الـ١٢ كجم أعمق — وما يصلح فى المعرض لا يمر دائماً من باب المطبخ.",
-          "en": "Before sizing anything up, go back to the measuring guide. More capacity means bigger dimensions and more weight: a 5-burner cooker is wider than a 4-burner, a 12 kg washer is deeper — and what fits in the showroom does not always fit through the kitchen door."
+          "ar": "قبل أن تكبّر أى جهاز، ارجع إلى دليل القياس. فالسعة الأكبر تأتى بأبعاد أكبر ووزن أكبر، والموقد ذو الـ٥ شعلات أعرض من ذى الـ٤، والغسالة ذات الـ١٢ كجم أعمق، وما يصلح فى المعرض لا يمر دائماً من باب المطبخ.",
+          "en": "Before sizing anything up, go back to the measuring guide. More capacity means bigger dimensions and more weight: a 5-burner cooker is wider than a 4-burner, a 12 kg washer is deeper, and what fits in the showroom does not always fit through the kitchen door."
         }
       ]
     },
@@ -1310,14 +1310,14 @@
         "en": "The 7 most common appliance-buying mistakes"
       },
       "dek": {
-        "ar": "الأخطاء التى تتكرر فى كل معرض وكل موقع — وكيف تتجنبها فى دقيقة واحدة قبل أن تدفع.",
-        "en": "The mistakes repeated in every showroom and on every website — and the one-minute check that avoids each of them."
+        "ar": "الأخطاء التى تتكرر فى كل معرض وكل موقع، وكيف تتجنبها فى دقيقة واحدة قبل أن تدفع.",
+        "en": "The mistakes repeated in every showroom and on every website, and the one-minute check that avoids each of them."
       },
       "body": [
         {
           "type": "p",
           "ar": "لا شىء فى هذه القائمة معقّد. فكلها أمور معروفة، لكنها تُنسى وقت الحماس أو وقت العرض الذى ينتهى اليوم. فاقرأها مرة قبل أن تشترى.",
-          "en": "Nothing on this list is complicated. These are all obvious things — they just get forgotten in the excitement, or when the offer \"ends today\". Read it once before you buy."
+          "en": "Nothing on this list is complicated. These are all obvious things. They just get forgotten in the excitement, or when the offer \"ends today\". Read it once before you buy."
         },
         {
           "type": "h",
@@ -1327,7 +1327,7 @@
         {
           "type": "p",
           "ar": "أرخص جهاز ليس دائماً أرخص جهاز. فالفارق يُدفع لاحقاً فى الكهرباء، وفى الصيانة، وفى استبداله مبكراً. قارن سعر الشراء + تكلفة التشغيل المتوقعة + سهولة الصيانة، لا رقم الفاتورة وحده.",
-          "en": "The cheapest appliance is not always the cheapest appliance. The difference gets paid later in electricity, in repairs, and in replacing it sooner. Compare purchase price plus expected running cost plus ease of service — not just the number on the receipt."
+          "en": "The cheapest appliance is not always the cheapest appliance. The difference gets paid later in electricity, in repairs, and in replacing it sooner. Compare purchase price plus expected running cost plus ease of service, not just the number on the receipt."
         },
         {
           "type": "h",
@@ -1336,13 +1336,13 @@
         },
         {
           "type": "p",
-          "ar": "الجهاز يصلح للمكان، لكنه لا يمر من الباب أو من منعطف السلّم. فقِس دائماً العرض والارتفاع والعمق ومساحة فتح الباب، وأضيق نقطة فى طريق الدخول — قبل أن تدفع لا بعده.",
-          "en": "The appliance fits the space but not through the doorway or round the stairwell turn. Always measure width, height, depth and door swing — plus the narrowest point on the route in — before you pay, not after."
+          "ar": "الجهاز يصلح للمكان، لكنه لا يمر من الباب أو من منعطف السلّم. فقِس دائماً العرض والارتفاع والعمق ومساحة فتح الباب، وأضيق نقطة فى طريق الدخول، قبل أن تدفع لا بعده.",
+          "en": "The appliance fits the space but not through the doorway or round the stairwell turn. Always measure width, height, depth and door swing, plus the narrowest point on the route in, before you pay, not after."
         },
         {
           "type": "h",
           "ar": "٣) سعة غلط: أكبر أو أصغر من اللزوم",
-          "en": "3) The wrong capacity — too big or too small"
+          "en": "3) The wrong capacity: too big or too small"
         },
         {
           "type": "p",
@@ -1356,8 +1356,8 @@
         },
         {
           "type": "p",
-          "ar": "التوصيل إلى دور مرتفع بلا مصعد، ومواسير النحاس الزائدة فى التكييف، وخرطوم الغاز، والحوامل، والعمالة — هذه بنود تُضاف إلى السعر. فاسأل عنها مكتوبةً قبل الشراء، واسأل تحديداً: هل التركيب مشمول أم لا؟",
-          "en": "Delivery to an upper floor without a lift, extra copper pipe for an AC, the gas hose, brackets and labour — these are added to the price. Ask for them in writing before buying, and ask specifically: is installation included or not?"
+          "ar": "التوصيل إلى دور مرتفع بلا مصعد، ومواسير النحاس الزائدة فى التكييف، وخرطوم الغاز، والحوامل، والعمالة: هذه بنود تُضاف إلى السعر. فاسأل عنها مكتوبةً قبل الشراء، واسأل تحديداً: هل التركيب مشمول أم لا؟",
+          "en": "Delivery to an upper floor without a lift, extra copper pipe for an AC, the gas hose, brackets and labour: these are added to the price. Ask for them in writing before buying, and ask specifically: is installation included or not?"
         },
         {
           "type": "h",
@@ -1376,8 +1376,8 @@
         },
         {
           "type": "p",
-          "ar": "الثلاجة الملتصقة بالجدار، والوحدة الخارجية للتكييف المحصورة فى منور مغلق، والفريزر بجوار الموقد — كلها تجعل الجهاز يعمل أكثر ويسخن ويعيش أقل. فاترك مسافات التهوية الواردة فى الدليل، وابتعد عن مصادر الحرارة.",
-          "en": "A fridge shoved against the wall, an AC outdoor unit trapped in a sealed light well, a freezer next to the cooker — all of them make the appliance work harder, run hotter and live shorter. Leave the clearances the manual asks for, and keep away from heat sources."
+          "ar": "الثلاجة الملتصقة بالجدار، والوحدة الخارجية للتكييف المحصورة فى منور مغلق، والفريزر بجوار الموقد: كلها تجعل الجهاز يعمل أكثر ويسخن ويعيش أقل. فاترك مسافات التهوية الواردة فى الدليل، وابتعد عن مصادر الحرارة.",
+          "en": "A fridge shoved against the wall, an AC outdoor unit trapped in a sealed light well, a freezer next to the cooker: all of them make the appliance work harder, run hotter and live shorter. Leave the clearances the manual asks for, and keep away from heat sources."
         },
         {
           "type": "h",
@@ -1417,8 +1417,8 @@
         },
         {
           "type": "tip",
-          "ar": "إن كان هناك بند واحد فقط لست متأكداً منه فى هذه القائمة، فذلك ليس سبباً لإلغاء الشراء — بل سبب لطرح سؤال إضافى قبل أن تدفع.",
-          "en": "If there is just one item on this list you are unsure about, that is not a reason to cancel the purchase — it is a reason to ask one more question before you pay."
+          "ar": "إن كان هناك بند واحد فقط لست متأكداً منه فى هذه القائمة، فذلك ليس سبباً لإلغاء الشراء، بل سبب لطرح سؤال إضافى قبل أن تدفع.",
+          "en": "If there is just one item on this list you are unsure about, that is not a reason to cancel the purchase. It is a reason to ask one more question before you pay."
         }
       ]
     }

@@ -72,8 +72,8 @@
     const door = Number(p.doorwayW) || 0;
     if (door && s.dims && s.dims.w && s.dims.w > door) {
       hide = true;
-      reasons.push({ k: 'no', text: t('أعرض من أضيق باب عندك (' + s.dims.w + ' سم مقابل ' + door + ' سم) — لن يمر.',
-                                      'Wider than your narrowest doorway (' + s.dims.w + ' cm vs ' + door + ' cm) — it will not get in.') });
+      reasons.push({ k: 'no', text: t('أعرض من أضيق باب عندك (' + s.dims.w + ' سم مقابل ' + door + ' سم)، لن يمر.',
+                                      'Wider than your narrowest doorway (' + s.dims.w + ' cm vs ' + door + ' cm), so it will not get in.') });
     }
 
     // slot width for the appliances people actually measure a gap for
@@ -91,7 +91,7 @@
       }
     } else if (slot) {
       // unknown width must never hide the product
-      reasons.push({ k: 'hm', text: t('عرض الجهاز غير متوفر — تأكد منه قبل الشراء.', 'Width not stated — confirm before buying.') });
+      reasons.push({ k: 'hm', text: t('عرض الجهاز غير متوفر، تأكد منه قبل الشراء.', 'Width not stated: confirm before buying.') });
     }
 
     // brands — a preference, never a filter on its own
@@ -166,8 +166,8 @@
       const many = (window.skAuth ? window.skAuth.homes() : []).length > 1;
       host.innerHTML =
         '<div><b>' + t('تصفية حسب مكانك', 'Filter by your place') + '</b>' +
-        '<p id="skpCount">' + (on ? t('مُفعَّلة — نخفى ما لا يناسبك.', 'On — hiding what will not suit you.')
-                                  : t('مُعطَّلة — نعرض كل المنتجات.', 'Off — showing everything.')) + '</p></div>' +
+        '<p id="skpCount">' + (on ? t('مُفعَّلة: نخفى ما لا يناسبك.', 'On: hiding what will not suit you.')
+                                  : t('مُعطَّلة: نعرض كل المنتجات.', 'Off: showing everything.')) + '</p></div>' +
         '<div class="skp-actions">' +
           // When someone keeps several places, changing which one is active is
           // the fastest way to re-filter — so the switcher lives right here.
@@ -204,7 +204,7 @@
     if (!el) return;
     el.textContent = enabled()
       ? t('نعرض ' + shown + ' من ' + total + ' وفق تفضيلاتك.', 'Showing ' + shown + ' of ' + total + ' that suit you.')
-      : t('مُعطَّلة — نعرض كل المنتجات (' + total + ').', 'Off — showing all ' + total + ' products.');
+      : t('مُعطَّلة: نعرض كل المنتجات (' + total + ').', 'Off: showing all ' + total + ' products.');
   }
 
   /* ---- legacy category/shop grids: filter `article.card` in place ---- */

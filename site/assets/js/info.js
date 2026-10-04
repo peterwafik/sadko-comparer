@@ -138,8 +138,8 @@
   /* The banner every page carries. Same words everywhere on purpose: this is
      the single honest disclosure, not a per-page variation. */
   const BANNER = note('warn',
-    'هذه الصفحة إرشادات مكتوبة للنسخة التجريبية من موقع صادكو (Rebrand Preview)، وليست نصاً قانونياً معتمداً. الشروط الملزمة هى المكتوبة فى الفاتورة وبطاقة الضمان وسياسة البائع الذى اشتريت منه. وأى مدة أو رسم أو رقم لا تجده هنا — اسأل خدمة العملاء على ' + TEL + ' بدلاً من الافتراض.',
-    'This page is guidance written for the SADKO rebrand preview site — it is not approved legal text. The binding terms are the ones printed on your invoice, on the warranty card, and in the policy of the seller you bought from. If a period, a fee or a figure is not stated here, ask customer care on ' + TEL + ' rather than assume.');
+    'هذه الصفحة إرشادات مكتوبة للنسخة التجريبية من موقع صادكو (Rebrand Preview)، وليست نصاً قانونياً معتمداً. الشروط الملزمة هى المكتوبة فى الفاتورة وبطاقة الضمان وسياسة البائع الذى اشتريت منه. وأى مدة أو رسم أو رقم لا تجده هنا، اسأل خدمة العملاء على ' + TEL + ' بدلاً من الافتراض.',
+    'This page is guidance written for the SADKO rebrand preview site. It is not approved legal text. The binding terms are the ones printed on your invoice, on the warranty card, and in the policy of the seller you bought from. If a period, a fee or a figure is not stated here, ask customer care on ' + TEL + ' rather than assume.');
 
   const XLINKS = {
     warranty: ['الضمان والاسترجاع', 'Warranty & returns', 'warranty.html'],
@@ -170,17 +170,17 @@
                  ['خدمة عملاء المتجر الذى اشتريت منه', 'The customer care of the store you bought from']],
                 [['الاسترجاع والاستبدال', 'Returns and exchange'],
                  ['سياسة صادكو، وبالفاتورة الصادرة منها', 'SADKO’s policy, against the invoice it issued'],
-                 ['سياسة ذلك المتجر — وقد تكون مختلفة تماماً', 'That store’s policy — it can be completely different']],
+                 ['سياسة ذلك المتجر (وقد تكون مختلفة تماماً)', 'That store’s policy (it can be completely different)']],
                 [['التوصيل والتركيب', 'Delivery and installation'],
                  ['حسب وصف المنتج، وبتأكيد من خدمة عملاء صادكو', 'Per the product description, confirmed by SADKO customer care'],
                  ['شروط ذلك المتجر ومواعيده ورسومه', 'That store’s terms, timing and fees']],
                 [['الفاتورة', 'The invoice'],
                  ['فاتورة صادكو هى إثبات الشراء', 'A SADKO invoice is your proof of purchase'],
-                 ['فاتورة ذلك المتجر هى إثباتك الوحيد — احتفظ بها', 'That store’s invoice is your only proof — keep it']],
+                 ['فاتورة ذلك المتجر هى إثباتك الوحيد. احتفظ بها', 'That store’s invoice is your only proof. Keep it']],
               ]),
             note('warn',
-              'تعرض صادكو أسعار متاجر أخرى لترى السوق أمامك بوضوح، لكنها ليست وسيطاً فى ذلك البيع ولا طرفاً فى العقد. وإذا اشتريت من متجر آخر، فاسأله هو — قبل الدفع — عن الضمان والتركيب والاسترجاع، ولا تفترض أن شروطه مماثلة لشروط صادكو.',
-              'SADKO shows other stores’ prices so you can see the market clearly, but it is not a broker in that sale and not a party to that contract. If you buy from another store, ask that store — before you pay — about warranty, installation and returns, and do not assume its terms match SADKO’s.'),
+              'تعرض صادكو أسعار متاجر أخرى لترى السوق أمامك بوضوح، لكنها ليست وسيطاً فى ذلك البيع ولا طرفاً فى العقد. وإذا اشتريت من متجر آخر، فاسأله هو، قبل الدفع، عن الضمان والتركيب والاسترجاع، ولا تفترض أن شروطه مماثلة لشروط صادكو.',
+              'SADKO shows other stores’ prices so you can see the market clearly, but it is not a broker in that sale and not a party to that contract. If you buy from another store, ask that store, before you pay, about warranty, installation and returns, and do not assume its terms match SADKO’s.'),
             note('info',
               'تفرّق صفحة «أجهزتى» بين الحالتين: عند تسجيل جهاز تحدد ما إذا كنت قد اشتريته من صادكو أو من متجر آخر، ويظل ذلك مسجَّلاً مع تاريخ الشراء والمدة المتبقية من الضمان.',
               'The "My appliances" page keeps the distinction: when you record an appliance you say whether it came from SADKO or another store, and that stays recorded alongside the purchase date and the remaining warranty.'),
@@ -192,7 +192,7 @@
         },
         {
           id: 'covers',
-          h: ['ماذا يغطى ضمان المصنّع عادةً — وما الذى يقع خارجه', 'What a manufacturer warranty usually covers — and what it does not'],
+          h: ['ماذا يغطى ضمان المصنّع عادةً، وما الذى يقع خارجه', 'What a manufacturer warranty usually covers, and what it does not'],
           sub: ['هذا وصف عام لطريقة عمل ضمانات الأجهزة المنزلية فى مصر، وليس نص ضمان طراز بعينه. والنص الملزم هو الوارد فى بطاقة الضمان المرفقة بجهازك.',
             'This is a general description of how home-appliance warranties usually work in Egypt, not the text of any specific model’s warranty. The binding text is the warranty card that came with your appliance.'],
           blocks: [
@@ -200,7 +200,7 @@
             ul([
               ['عيوب التصنيع والمواد التى تظهر فى الاستخدام المنزلى الطبيعى.', 'Manufacturing and material defects that show up in normal domestic use.'],
               ['القطع التى تتعطل من تلقاء نفسها دون سبب خارجى.', 'Parts that fail on their own with no external cause.'],
-              ['أجرة الإصلاح — غير أنها ليست مشمولة دائماً. اسأل صراحةً: هل الضمان قطع غيار فقط، أم قطع غيار وأجرة؟', 'The labour of the repair — but not always. Ask explicitly: is this parts only, or parts and labour?'],
+              ['أجرة الإصلاح، غير أنها ليست مشمولة دائماً. اسأل صراحةً: هل الضمان قطع غيار فقط، أم قطع غيار وأجرة؟', 'The labour of the repair, but not always. Ask explicitly: is this parts only, or parts and labour?'],
               ['قطع رئيسية بمدة أطول أحياناً، مثل الضاغط فى الثلاجات والمحرّك فى الغسالات.', 'Sometimes a longer period on a major part, such as a refrigerator compressor or a washer motor.'],
             ]),
             h('ما يُستثنى عادةً', 'Usually excluded'),
@@ -213,8 +213,8 @@
               ['المظهر الخارجى والخدوش التى لم تُسجَّل وقت الاستلام.', 'Cosmetic marks and scratches not recorded at the time of delivery.'],
             ]),
             note('info',
-              'عبارة «ضمان ٥ سنوات» أو «١٠ سنوات» فى الإعلان تكون غالباً على قطعة واحدة — الضاغط أو المحرّك — لا على الجهاز كله. اقرأ البطاقة وتبيَّن ما تغطيه كل مدة على وجه الدقة.',
-              'A "5-year" or "10-year" warranty in an advert is usually on a single part — the compressor or the motor — not on the whole appliance. Read the card and see exactly what each period covers.'),
+              'عبارة «ضمان ٥ سنوات» أو «١٠ سنوات» فى الإعلان تكون غالباً على قطعة واحدة (الضاغط أو المحرّك)، لا على الجهاز كله. اقرأ البطاقة وتبيَّن ما تغطيه كل مدة على وجه الدقة.',
+              'A "5-year" or "10-year" warranty in an advert is usually on a single part (the compressor or the motor), not on the whole appliance. Read the card and see exactly what each period covers.'),
             todo('مدد الضمان الفعلية لكل علامة تجارية وطراز غير منشورة على هذا الموقع، لأن الكتالوج يُقرأ آلياً من أوصاف المنتجات وليس كل وصف يذكرها. والمدة الصحيحة هى الواردة فى بطاقة الضمان أو التى تؤكدها خدمة العملاء.',
               'Actual warranty periods per brand and model are not published on this site: the catalogue is read automatically from product descriptions and not every description states them. The correct period is the one on the warranty card, or the one customer care confirms.'),
             links([['دليل: كيف تقارن الضمانات على نحو صحيح', 'Guide: comparing warranties properly', 'guides.html?g=warranty-explained']]),
@@ -222,15 +222,15 @@
         },
         {
           id: 'papers',
-          h: ['الفاتورة وبطاقة الضمان — لماذا هاتان الوثيقتان تحديداً', 'The invoice and the warranty card — why these two pieces of paper'],
+          h: ['الفاتورة وبطاقة الضمان: لماذا هاتان الوثيقتان تحديداً', 'The invoice and the warranty card: why these two pieces of paper'],
           blocks: [
             p('يبدأ الضمان من تاريخ الشراء، والفاتورة هى الوثيقة الوحيدة التى تثبت هذا التاريخ. وبدونها يتحول الضمان إلى محل جدل. أما بطاقة الضمان فتحدد المدة والتغطية ومركز الخدمة المسؤول.',
               'A warranty runs from the date of purchase, and the invoice is the only thing that proves that date. Without it the warranty becomes an argument. The warranty card sets the period, the coverage and the service centre responsible.'),
             ul([
               ['صوّر الفاتورة وبطاقة الضمان بهاتفك من اليوم الأول، وأرسلهما إلى بريدك الإلكترونى.', 'Photograph the invoice and the warranty card on day one and e-mail them to yourself.'],
-              ['صوّر لوحة البيانات على ظهر الجهاز (الطراز + الرقم التسلسلى) — ستحتاج إليها فى كل مكالمة صيانة.', 'Photograph the rating plate on the back of the appliance (model + serial number) — you will need it in every service call.'],
+              ['صوّر لوحة البيانات على ظهر الجهاز (الطراز + الرقم التسلسلى). ستحتاج إليها فى كل مكالمة صيانة.', 'Photograph the rating plate on the back of the appliance (model + serial number). You will need it in every service call.'],
               ['إذا كان الضمان يتطلب تفعيلاً أو تسجيلاً خلال مدة محددة، فأنجزه فى الأسبوع نفسه.', 'If the warranty needs activation or registration within a period, do it the same week.'],
-              ['واحتفظ بإيصال التركيب أيضاً — فهو يثبت أن التركيب تم بالطريقة المعتمدة.', 'Keep the installation receipt too — it proves the installation was done the approved way.'],
+              ['واحتفظ بإيصال التركيب أيضاً، فهو يثبت أن التركيب تم بالطريقة المعتمدة.', 'Keep the installation receipt too: it proves the installation was done the approved way.'],
             ]),
             note('soft',
               'تحفظ صفحة «أجهزتى» على هذا الموقع الطراز والرقم التسلسلى وتاريخ الشراء ومدة الضمان، وتحسب لك الأيام المتبقية. وهذه البيانات مخزَّنة فى متصفحك أنت (لا على خادم)، ومن ثم يظل عليك الاحتفاظ بنسختك من الصور والفاتورة الأصلية.',
@@ -253,8 +253,8 @@
                'منتج منفصل تشتريه. اسأل: هل يبدأ بعد ضمان المصنّع أم يسرى معه؟ وما الذى يغطيه على وجه الدقة؟ ومن الذى ينفّذه؟',
                'A separate product you buy. Ask: does it start after the manufacturer’s warranty or run alongside it? What exactly does it cover? Who performs it?'],
               ['التزامات البائع القانونية', 'The seller’s legal obligations',
-               'حقوق المشترى قِبَل البائع فى القانون المصرى قائمة ومستقلة عن بطاقة الضمان — ولن نذكر لك أرقام مواد ولا مدداً دون مراجعة قانونية. وإذا احتجت تفاصيلها، فاسأل خدمة العملاء أو جهاز حماية المستهلك.',
-               'A buyer’s rights against the seller under Egyptian law exist and are separate from the warranty card — we will not quote article numbers or periods here without legal review. For the detail, ask customer care or the consumer-protection authority.'],
+               'حقوق المشترى قِبَل البائع فى القانون المصرى قائمة ومستقلة عن بطاقة الضمان. ولن نذكر لك أرقام مواد ولا مدداً دون مراجعة قانونية. وإذا احتجت تفاصيلها، فاسأل خدمة العملاء أو جهاز حماية المستهلك.',
+               'A buyer’s rights against the seller under Egyptian law exist and are separate from the warranty card. We will not quote article numbers or periods here without legal review. For the detail, ask customer care or the consumer-protection authority.'],
             ]),
             todo('يحتاج نص الالتزامات القانونية والصياغة الرسمية للضمان إلى مراجعة قانونية واعتماد من صادكو قبل نشرهما كنص ملزم.',
               'The statutory-obligations text and the formal warranty wording need legal review and SADKO sign-off before they can be published as binding text.'),
@@ -265,10 +265,10 @@
           h: ['ما الذى يُسقط الضمان', 'What typically voids a warranty'],
           blocks: [
             ul([
-              ['الإصلاح لدى فنى غير معتمد، أو استخدام قطع غيار غير أصلية — وهذا أكثر الأسباب شيوعاً على الإطلاق.', 'A repair by an unauthorised technician, or non-original spare parts — by far the most common reason.'],
+              ['الإصلاح لدى فنى غير معتمد، أو استخدام قطع غيار غير أصلية، وهذا أكثر الأسباب شيوعاً على الإطلاق.', 'A repair by an unauthorised technician, or non-original spare parts (by far the most common reason).'],
               ['التركيب على يد شخص غير معتمد، خاصة فى التكييف والسخانات ومواقد الغاز.', 'Installation by someone unauthorised, especially for air conditioners, water heaters and gas cookers.'],
               ['توصيل الجهاز بجهد غير مناسب، أو إهمال شرط مكتوب فى دليل الاستخدام مثل استعمال منظّم جهد.', 'Connecting the appliance to unsuitable voltage, or ignoring a condition stated in the manual such as using a voltage stabiliser.'],
-              ['ضرر وقع أثناء النقل بعد الاستلام — أو تشغيل جهاز تبريد فور نقله مائلاً.', 'Damage that happened in transport after you took delivery — or switching on a cooling appliance immediately after it was moved tilted.'],
+              ['ضرر وقع أثناء النقل بعد الاستلام، أو تشغيل جهاز تبريد فور نقله مائلاً.', 'Damage that happened in transport after you took delivery, or switching on a cooling appliance immediately after it was moved tilted.'],
               ['نزع ملصق الرقم التسلسلى أو طمسه، أو فتح الجهاز بنفسك.', 'Removing or defacing the serial-number label, or opening the appliance yourself.'],
               ['الاستخدام التجارى لجهاز منزلى.', 'Commercial use of a domestic appliance.'],
             ]),
@@ -283,15 +283,15 @@
           blocks: [
             ol([
               ['جهّز المستندات: الفاتورة، وبطاقة الضمان، والطراز والرقم التسلسلى، وتاريخ الشراء.', 'Get the paperwork ready: invoice, warranty card, model and serial number, and the purchase date.'],
-              ['صوّر العطل نفسه أو سجّله بمقطع مصوَّر — فهذا يوفّر أحياناً زيارة كشف كاملة.', 'Photograph or video the fault itself — sometimes it saves an entire diagnostic visit.'],
+              ['صوّر العطل نفسه أو سجّله بمقطع مصوَّر، فهذا يوفّر أحياناً زيارة كشف كاملة.', 'Photograph or video the fault itself. Sometimes it saves an entire diagnostic visit.'],
               ['حدّد البائع: أهو صادكو أم متجر آخر؟ فإن كان متجراً آخر، فاتصل به هو لا بنا.', 'Identify the seller: SADKO or another store? If it is another store, contact them, not us.'],
               ['إن كان البائع صادكو: اتصل على ' + TEL + '، أو أرسل بريداً إلكترونياً إلى ' + MAIL + ' مرفقاً به صور الفاتورة والعطل.', 'If it is SADKO: call ' + TEL + ', or e-mail ' + MAIL + ' attaching photos of the invoice and the fault.'],
               ['تجهّز لك صفحة «مركز خدمة العملاء» نص الطلب كاملاً بالبيانات المطلوبة لترسله بنفسك.', 'The customer care page prepares the full request text with the needed details, for you to send yourself.'],
               ['اطلب رقماً مرجعياً للطلب واحتفظ به، واحتفظ بنسخة من الرسالة التى أرسلتها.', 'Ask for a reference number and keep it, and keep a copy of the message you sent.'],
             ]),
             note('info',
-              'لا يفتح هذا الموقع تذكرة صيانة تلقائياً ولا يتابعها، ولا يوجد نظام تتبع عبر الإنترنت. وما يقوم به هو تجهيز الطلب مكتوباً بصورة صحيحة — أما الإرسال والمتابعة فيتمان عبر الهاتف أو البريد الإلكترونى.',
-              'This site does not open or track a service ticket automatically, and there is no online tracking system. What it does is prepare a properly written request — sending and following up happen by phone or e-mail.'),
+              'لا يفتح هذا الموقع تذكرة صيانة تلقائياً ولا يتابعها، ولا يوجد نظام تتبع عبر الإنترنت. وما يقوم به هو تجهيز الطلب مكتوباً بصورة صحيحة. أما الإرسال والمتابعة فيتمان عبر الهاتف أو البريد الإلكترونى.',
+              'This site does not open or track a service ticket automatically, and there is no online tracking system. What it does is prepare a properly written request. Sending and following up happen by phone or e-mail.'),
             links([
               ['مركز خدمة العملاء', 'Customer care', 'care.html'],
               ['أجهزتى والضمان', 'My appliances & warranty', 'appliances.html'],
@@ -324,14 +324,14 @@
         {
           id: 'areas',
           h: ['مناطق التوصيل', 'Where we deliver'],
-          sub: ['هذه المعلومات مقروءة من أوصاف المنتجات فى الكتالوج نفسه — أى أنها تصف الغالب، لا وعداً يسرى على كل منتج.',
-            'This is read from the product descriptions in the catalogue itself — it describes what is typical, not a promise on every product.'],
+          sub: ['هذه المعلومات مقروءة من أوصاف المنتجات فى الكتالوج نفسه، أى أنها تصف الغالب، لا وعداً يسرى على كل منتج.',
+            'This is read from the product descriptions in the catalogue itself: it describes what is typical, not a promise on every product.'],
           blocks: [
             ul([
-              ['القاهرة الكبرى والجيزة — التغطية الأساسية، ومعظم أوصاف المنتجات تذكر توصيلاً بدون رسوم إليهما.', 'Greater Cairo and Giza — the core coverage, and most product descriptions mention delivery at no charge there.'],
-              ['الإسكندرية — مذكورة مع القاهرة والجيزة فى أوصاف التوصيل والتركيب.', 'Alexandria — named alongside Cairo and Giza in the delivery and installation notes.'],
-              ['الساحل الشمالى — موسمى وعليه رسوم إضافية بحسب وصف المنتج، ومعرض مارينا نفسه يعمل فى الصيف فقط.', 'The North Coast — seasonal and with an extra fee per the product description; the Marina showroom itself opens only in summer.'],
-              ['باقى المحافظات — غير مذكورة فى بيانات المنتجات، فاسأل خدمة العملاء على ' + TEL + ' قبل الطلب.', 'Other governorates — not stated in the product data, so ask customer care on ' + TEL + ' before ordering.'],
+              ['القاهرة الكبرى والجيزة: التغطية الأساسية، ومعظم أوصاف المنتجات تذكر توصيلاً بدون رسوم إليهما.', 'Greater Cairo and Giza: the core coverage, and most product descriptions mention delivery at no charge there.'],
+              ['الإسكندرية: مذكورة مع القاهرة والجيزة فى أوصاف التوصيل والتركيب.', 'Alexandria: named alongside Cairo and Giza in the delivery and installation notes.'],
+              ['الساحل الشمالى: موسمى وعليه رسوم إضافية بحسب وصف المنتج، ومعرض مارينا نفسه يعمل فى الصيف فقط.', 'The North Coast: seasonal and with an extra fee per the product description; the Marina showroom itself opens only in summer.'],
+              ['باقى المحافظات: غير مذكورة فى بيانات المنتجات، فاسأل خدمة العملاء على ' + TEL + ' قبل الطلب.', 'Other governorates: not stated in the product data, so ask customer care on ' + TEL + ' before ordering.'],
             ]),
             note('warn',
               'يختلف التوصيل والتركيب من منتج إلى آخر ومن محافظة إلى أخرى. وصفحة المنتج نفسها هى أدق مصدر، وأى تأكيد نهائى يتم مع خدمة العملاء أو المعرض.',
@@ -344,24 +344,24 @@
         },
         {
           id: 'fees',
-          h: ['الرسوم — ما نعرفه وما يجب أن تتأكد منه', 'Fees — what we know, and what you must confirm'],
+          h: ['الرسوم: ما نعرفه وما يجب أن تتأكد منه', 'Fees: what we know, and what you must confirm'],
           blocks: [
             defs([
               ['التوصيل المجانى', 'Free delivery',
                'تذكر أوصاف كثيرة فى الكتالوج «توصيلاً بدون رسوم» إلى القاهرة والجيزة والإسكندرية. وهذه العبارة مأخوذة من وصف المنتج، فتأكد من ورودها فى صفحة المنتج الذى تشتريه تحديداً.',
                'Many descriptions in the catalogue say delivery is free to Cairo, Giza and Alexandria. That sentence comes from the product description, so check it is present on the page of the exact product you are buying.'],
               ['رسوم الساحل الشمالى', 'North Coast fee',
-               'التوصيل إلى الساحل موسمى وعليه رسوم إضافية بحسب وصف المنتج. أما قيمة الرسم نفسها فغير مذكورة فى البيانات — اسأل خدمة العملاء.',
-               'North Coast delivery is seasonal and carries an extra fee per the product description. The amount itself is not in the data — ask customer care.'],
+               'التوصيل إلى الساحل موسمى وعليه رسوم إضافية بحسب وصف المنتج. أما قيمة الرسم نفسها فغير مذكورة فى البيانات. اسأل خدمة العملاء.',
+               'North Coast delivery is seasonal and carries an extra fee per the product description. The amount itself is not in the data. Ask customer care.'],
               ['رسوم التركيب', 'Installation charges',
                'التركيب المتخصص (تكييف، سخان، موقد غاز) يُحتسب غالباً على حدة، ويكون أحياناً فى موعد غير موعد التوصيل. فاتفق على السعر قبل أن يبدأ الفنى.',
                'Specialist installation (air conditioner, water heater, gas cooker) is usually charged separately and often happens on a different day from delivery. Agree the price before the technician starts.'],
               ['حالات زيادة', 'Extras',
-               'دور مرتفع بلا مصعد، أو مصعد أصغر من الجهاز، أو رفع من النافذة، أو مواسير نحاس زائدة عن المتفق عليه فى التكييف — كل ذلك يُحتسب إضافياً عادةً، ويُتفق عليه قبل يوم التوصيل لا فيه.',
-               'A high floor with no lift, a lift smaller than the appliance, hoisting through a window, or copper piping beyond the agreed length on an air conditioner — these are normally charged extra, and are agreed before delivery day, not on it.'],
+               'دور مرتفع بلا مصعد، أو مصعد أصغر من الجهاز، أو رفع من النافذة، أو مواسير نحاس زائدة عن المتفق عليه فى التكييف: كل ذلك يُحتسب إضافياً عادةً، ويُتفق عليه قبل يوم التوصيل لا فيه.',
+               'A high floor with no lift, a lift smaller than the appliance, hoisting through a window, or copper piping beyond the agreed length on an air conditioner: these are normally charged extra, and are agreed before delivery day, not on it.'],
             ]),
-            todo('لا يوجد جدول رسوم رسمى معتمد من صادكو منشور فى هذه النسخة — لا لرسوم الساحل ولا للتركيب ولا للحمل. وتُؤكَّد الأرقام مع خدمة العملاء قبل التنفيذ.',
-              'There is no official SADKO fee table published in this preview — not for the North Coast, not for installation, not for carrying. Amounts are confirmed with customer care before the work is done.'),
+            todo('لا يوجد جدول رسوم رسمى معتمد من صادكو منشور فى هذه النسخة، لا لرسوم الساحل ولا للتركيب ولا للحمل. وتُؤكَّد الأرقام مع خدمة العملاء قبل التنفيذ.',
+              'There is no official SADKO fee table published in this preview, not for the North Coast, not for installation, not for carrying. Amounts are confirmed with customer care before the work is done.'),
             note('soft',
               'الطلبات التى تُحفظ من السلة على هذا الموقع تترك رسوم التوصيل والتركيب فارغة عن قصد، حتى لا نُثبت صفراً غير حقيقى فى مستند ستحتفظ به.',
               'Orders saved from the cart on this site deliberately leave delivery and installation fees blank, so that we do not print an untrue zero on a document you keep.'),
@@ -376,9 +376,9 @@
             ol([
               ['قِس موضع الجهاز: العرض عند أضيق نقطة، والارتفاع حتى أقرب شىء فوقه، والعمق شاملاً القابس والباب مفتوحاً.', 'Measure the appliance’s space: width at the narrowest point, height to the nearest thing above, and depth including the plug and with the door open.'],
               ['وقِس الطريق كله: باب العمارة، والسلّم أو المصعد، وباب الشقة، وباب الغرفة. فأضيق نقطة هى الحاكمة.', 'Measure the whole route: building entrance, stairs or lift, flat door, room door. The narrowest point decides.'],
-              ['إذا كان المصعد هو الطريق، فقِس عرض المقصورة وعمقها وارتفاعها وعرض بابها — وإذا كان السلّم، فانتبه إلى منعطف البسطة.', 'If the lift is the route, measure the car’s width, depth and height and its door — if it is the stairs, watch the turn at the landing.'],
+              ['إذا كان المصعد هو الطريق، فقِس عرض المقصورة وعمقها وارتفاعها وعرض بابها. وإذا كان السلّم، فانتبه إلى منعطف البسطة.', 'If the lift is the route, measure the car’s width, depth and height and its door. If it is the stairs, watch the turn at the landing.'],
               ['أخلِ الممر وموضع الجهاز، وارفع السجاد الذى قد يتمزق، وغطِّ الأثاث إن كان هناك ثقب بالمثقاب.', 'Clear the corridor and the appliance’s spot, lift rugs that could tear, and cover furniture if drilling is involved.'],
-              ['وتأكد من وجود شخص بالغ فى الموعد ومعه رقم فريق التوصيل — والمبلغ إن كان الدفع عند الاستلام.', 'Make sure an adult will be there at the appointment with the delivery team’s number — and the payment if it is cash on delivery.'],
+              ['وتأكد من وجود شخص بالغ فى الموعد ومعه رقم فريق التوصيل، والمبلغ إن كان الدفع عند الاستلام.', 'Make sure an adult will be there at the appointment with the delivery team’s number, and the payment if it is cash on delivery.'],
               ['وإذا كان للعمارة موعد محدد أو رسوم لإدخال البضائع، فأبلغ البائع من الآن لا يوم التسليم.', 'If your building has restricted hours or a fee for moving goods in, tell the seller now, not on the day.'],
             ]),
             note('warn',
@@ -392,14 +392,14 @@
         },
         {
           id: 'onday',
-          h: ['يوم التوصيل — افحص قبل التوقيع', 'On delivery day — inspect before you sign'],
+          h: ['يوم التوصيل: افحص قبل التوقيع', 'On delivery day: inspect before you sign'],
           blocks: [
             ul([
               ['افحص العبوة من الخارج أولاً: فأى انبعاج أو بلل فيها يعنى أن تفتحها وتتفقدها بحضورهم.', 'Check the outside of the box first: any dent or damp on the carton means you open and look while they are still there.'],
               ['افتحها وتأكد من الطراز واللون والمقاس، ومن الملحقات (خراطيم، أرفف، جهاز تحكم، مسامير).', 'Open it and confirm the model, colour and size, and the accessories (hoses, shelves, remote, bolts).'],
-              ['سجّل أى خدش أو كسر فى إيصال الاستلام نفسه قبل التوقيع — فالقول الشفهى لا يُثبت شيئاً.', 'Record any scratch or damage on the delivery note itself before signing — a verbal remark proves nothing.'],
+              ['سجّل أى خدش أو كسر فى إيصال الاستلام نفسه قبل التوقيع، فالقول الشفهى لا يُثبت شيئاً.', 'Record any scratch or damage on the delivery note itself before signing. A verbal remark proves nothing.'],
               ['استلم الفاتورة وبطاقة الضمان، وتأكد من كتابة تاريخ الشراء بشكل صحيح.', 'Take the invoice and the warranty card, and check the purchase date is written correctly.'],
-              ['لا تُشغّل أى جهاز تبريد مباشرةً إذا نُقل قائماً أو مائلاً — بل اتركه قائماً فى موضعه أولاً (المتعارف عليه من ساعتين إلى ٤ ساعات، والمدة الصحيحة فى دليل الطراز).', 'Do not switch on a cooling appliance straight away if it was moved upright or tilted — let it stand first (commonly two to four hours; the correct figure is in the model’s manual).'],
+              ['لا تُشغّل أى جهاز تبريد مباشرةً إذا نُقل قائماً أو مائلاً، بل اتركه قائماً فى موضعه أولاً (المتعارف عليه من ساعتين إلى ٤ ساعات، والمدة الصحيحة فى دليل الطراز).', 'Do not switch on a cooling appliance straight away if it was moved upright or tilted. Let it stand first (commonly two to four hours; the correct figure is in the model’s manual).'],
             ]),
           ],
         },
@@ -414,22 +414,22 @@
               [
                 [['ثلاجة / فريزر', 'Fridge / freezer'], ['لا', 'No'], ['فريق التوصيل', 'The delivery team'],
                  ['اتركه قائماً قبل التشغيل كما ينص دليل الاستخدام، واترك فتحات تهوية من الخلف ومن الجانبين.', 'Let it stand before switching on as the manual says, and leave ventilation gaps behind and at the sides.']],
-                [['غسالة', 'Washing machine'], ['نعم — مياه وصرف', 'Yes — water and drain'], ['فنى', 'A technician'],
+                [['غسالة', 'Washing machine'], ['نعم، مياه وصرف', 'Yes, water and drain'], ['فنى', 'A technician'],
                  ['فك مسامير النقل قبل أول غسلة، ومحبس مياه صالح، ونقطة صرف بارتفاع مناسب، وأرضية مستوية.', 'Remove the transit bolts before the first wash; a working water tap, a drain point at the right height, and a level floor.']],
-                [['موقد غاز', 'Gas cooker'], ['نعم — وصلة غاز', 'Yes — a gas connection'], ['فنى مؤهل معتمد، وغالباً برسوم', 'A qualified approved technician, usually for a fee'],
+                [['موقد غاز', 'Gas cooker'], ['نعم، وصلة غاز', 'Yes, a gas connection'], ['فنى مؤهل معتمد، وغالباً برسوم', 'A qualified approved technician, usually for a fee'],
                  ['غاز طبيعى أم أسطوانة (الفوهات تختلف)، وتهوية فى المطبخ، واختبار تسريب بالصابون أمامك.', 'Natural gas or cylinder (the jets differ), kitchen ventilation, and a soapy leak test done in front of you.']],
-                [['تكييف سبليت', 'Split air conditioner'], ['نعم — تركيب متخصص', 'Yes — specialist installation'], ['فنى معتمد، وغالباً برسوم', 'An approved technician, usually for a fee'],
+                [['تكييف سبليت', 'Split air conditioner'], ['نعم، تركيب متخصص', 'Yes, specialist installation'], ['فنى معتمد، وغالباً برسوم', 'An approved technician, usually for a fee'],
                  ['موضع جيد التهوية للوحدة الخارجية، ومسار للمواسير، وميل لخرطوم الصرف، والمواسير الزائدة تُحتسب.', 'A ventilated spot for the outdoor unit, a route for the pipes, a fall on the drain hose, and extra piping is charged.']],
                 [['سخان غاز / كهربائى', 'Gas / electric water heater'], ['نعم', 'Yes'], ['فنى معتمد', 'An approved technician'],
                  ['تثبيت قوى، ومحبس، وصمام أمان، وتهوية لسخان الغاز، وخط كهربائى مخصص للسخان الكهربائى.', 'A strong mounting, an isolating valve, a safety valve, ventilation for gas, and a dedicated circuit for electric.']],
-                [['غسالة أطباق', 'Dishwasher'], ['نعم — مياه وصرف', 'Yes — water and drain'], ['فنى', 'A technician'],
+                [['غسالة أطباق', 'Dishwasher'], ['نعم، مياه وصرف', 'Yes, water and drain'], ['فنى', 'A technician'],
                  ['فتحة بمقاس مضبوط إن كانت مدمجة، ونقطة مياه وصرف قريبة.', 'An exact opening if it is built in, and a nearby water and drain point.']],
-                [['تليفزيون', 'Television'], ['اختيارى — تثبيت على الحائط', 'Optional — wall mounting'], ['حسب الاتفاق مع البائع', 'By agreement with the seller'],
+                [['تليفزيون', 'Television'], ['اختيارى: تثبيت على الحائط', 'Optional: wall mounting'], ['حسب الاتفاق مع البائع', 'By agreement with the seller'],
                  ['نوع الحائط والحامل، ومسار الكابلات ومقبس الكهرباء.', 'The wall type and bracket, and the route for cables and a socket.']],
               ]),
             note('warn',
-              'قد يُسقط التركيبُ على يد شخص غير معتمد الضمانَ، خاصة فى التكييف والسخانات والمواقد. فاسأل عن التركيب وأنت تشترى، لا يوم التسليم — واحتفظ بإيصال التركيب.',
-              'Installation by someone unauthorised can void the warranty, especially for air conditioners, water heaters and cookers. Ask about installation while you are buying, not on delivery day — and keep the installation receipt.'),
+              'قد يُسقط التركيبُ على يد شخص غير معتمد الضمانَ، خاصة فى التكييف والسخانات والمواقد. فاسأل عن التركيب وأنت تشترى، لا يوم التسليم، واحتفظ بإيصال التركيب.',
+              'Installation by someone unauthorised can void the warranty, especially for air conditioners, water heaters and cookers. Ask about installation while you are buying, not on delivery day, and keep the installation receipt.'),
             links([['الضمان والاسترجاع', 'Warranty & returns', 'warranty.html']]),
           ],
         },
@@ -441,7 +441,7 @@
               'There is no online tracking system on this site and we are not going to show you a fake shipment status. The fastest route is the showroom you ordered from, or the hotline ' + TEL + ', with your order or invoice number to hand.'),
             ul([
               ['إذا تأكد الطلب وسُلّم إلى شركة شحن، فاسأل خدمة العملاء عن رقم الشحنة وطريقة تتبعها.', 'If the order has been confirmed and handed to a courier, ask customer care for the shipment number and how to track it.'],
-              ['الطلبات المحفوظة على هذا الموقع مخزَّنة فى متصفحك، وتُؤكَّد بمكالمة — ولا تصل إلى أحد من تلقاء نفسها.', 'Orders saved on this site are stored in your browser and are confirmed by a phone call — they do not reach anyone on their own.'],
+              ['الطلبات المحفوظة على هذا الموقع مخزَّنة فى متصفحك، وتُؤكَّد بمكالمة، ولا تصل إلى أحد من تلقاء نفسها.', 'Orders saved on this site are stored in your browser and are confirmed by a phone call. They do not reach anyone on their own.'],
               ['اطلب رقماً مرجعياً واحتفظ به، واحتفظ بأى رسالة أرسلتها.', 'Ask for a reference number and keep it, along with any message you sent.'],
             ]),
             todo('لا توجد مدة تنفيذ (SLA) معتمدة منشورة للتوصيل أو التركيب فى هذه النسخة. ويُحدَّد الموعد مع المعرض أو خدمة العملاء.',
@@ -467,10 +467,10 @@
           blocks: [
             ul([
               ['إذا أنشأت حساباً: يُخزَّن الاسم والبريد الإلكترونى ورقم الهاتف وعنوان التوصيل على خادم صادكو نفسه لتتمكن من تسجيل الدخول وتقديم طلب.', 'If you create an account: your name, e-mail, phone and delivery address are stored on SADKO’s own server so you can sign in and place an order.'],
-              ['أما خطط التجهيز والمنتجات المحفوظة وأجهزتك والسلة والتقييمات والأسئلة التى تكتبها فكلها فى متصفحك أنت، على جهازك، ولا تُرفع إلى أى مكان. وإذا عرّفتنا بمكانك دون إنشاء حساب، فإنه يُحفظ على جهازك أيضاً — وينتقل معك بمجرد إنشاء الحساب.', 'Shopping plans, saved products, your appliances, the cart, and the reviews and questions you write all live in your own browser on your device and are not uploaded anywhere. If you describe a place without creating an account, that also stays on your device — and moves across with you when you do create one.'],
-              ['تجلب مقارنة الأسعار صفحات منتجات عامة من متاجر مدعومة — فهو بحث عن منتج، لا عنك أنت.', 'Price comparison fetches public product pages from supported stores — a search about a product, not about you.'],
+              ['أما خطط التجهيز والمنتجات المحفوظة وأجهزتك والسلة والتقييمات والأسئلة التى تكتبها فكلها فى متصفحك أنت، على جهازك، ولا تُرفع إلى أى مكان. وإذا عرّفتنا بمكانك دون إنشاء حساب، فإنه يُحفظ على جهازك أيضاً، وينتقل معك بمجرد إنشاء الحساب.', 'Shopping plans, saved products, your appliances, the cart, and the reviews and questions you write all live in your own browser on your device and are not uploaded anywhere. If you describe a place without creating an account, that also stays on your device, and moves across with you when you do create one.'],
+              ['تجلب مقارنة الأسعار صفحات منتجات عامة من متاجر مدعومة، فهو بحث عن منتج، لا عنك أنت.', 'Price comparison fetches public product pages from supported stores: a search about a product, not about you.'],
               ['لا توجد أى بيانات بطاقات على هذا الموقع البتة: لا رقم بطاقة، ولا رمز CVV، ولا صفحة دفع.', 'No card details anywhere on this site at all: no card number, no CVV, no payment page.'],
-              ['إذا سجّلت الدخول بحساب جوجل: نتلقى منهم اسمك وبريدك الإلكترونى فقط — ولا نرى كلمة مرور جوجل ولا نصل إلى أى شىء آخر فى حسابك.', 'If you sign in with Google: we receive only your name and e-mail — we never see your Google password and cannot reach anything else in your account.'],
+              ['إذا سجّلت الدخول بحساب جوجل: نتلقى منهم اسمك وبريدك الإلكترونى فقط، ولا نرى كلمة مرور جوجل ولا نصل إلى أى شىء آخر فى حسابك.', 'If you sign in with Google: we receive only your name and e-mail. We never see your Google password and cannot reach anything else in your account.'],
               ['لا يوجد تتبع إعلانى ولا تحليلات من طرف ثالث على هذه الصفحات.', 'No advertising trackers and no third-party analytics on these pages.'],
               ['تُحمَّل الخطوط من Google Fonts، أى أن جوجل ترى طلب تحميل الخط (وعنوان IP الخاص به) كما فى أى موقع يستخدمها.', 'Fonts load from Google Fonts, so Google sees the font request (and its IP) as with any site that uses them.'],
             ]),
@@ -478,22 +478,22 @@
         },
         {
           id: 'account',
-          h: ['الحساب — ما الذى يُخزَّن على الخادم', 'The account — what is stored on the server'],
+          h: ['الحساب: ما الذى يُخزَّن على الخادم', 'The account: what is stored on the server'],
           blocks: [
             p('يعمل نظام الحسابات فى صادكو على خادم الموقع نفسه، لا على خدمة خارجية. وهذا مقصود: فكلمة مرور مخزَّنة فى المتصفح لا تحمى شيئاً.',
               'SADKO’s account system runs on the site’s own server, not on an outside service. That is deliberate: a password kept in the browser protects nothing.'),
             defs([
               ['البيانات الأساسية', 'Core details', 'الاسم، والبريد الإلكترونى، ورقم الهاتف، وعنوان التوصيل (إن أدخلته).', 'Name, e-mail, phone number, and delivery address if you entered one.'],
-              ['أماكنك (اختيارى)', 'Your places (optional)', 'يمكنك حفظ أكثر من مكان — شقة أو شاليه أو غرفة بمفردها — ولكل منها إجابات مثل عدد الأفراد، ونوع السكن، والدور والمصعد، وعرض أضيق باب، ومقاسات الأماكن الشاغرة، ونوع الغاز، والميزانية التقريبية. وكلها اختيارية، وتُستخدم فى تصفية المنتجات وترشيحات «ساعدنى أختار» فقط.', 'You can keep several places — a flat, a chalet, or a single room — each with answers such as household size, property type, floor and lift, narrowest doorway width, the gaps appliances must fit, gas supply, and a rough budget. All optional, and used only to filter products and to shape the guided finder.'],
+              ['أماكنك (اختيارى)', 'Your places (optional)', 'يمكنك حفظ أكثر من مكان (شقة أو شاليه أو غرفة بمفردها)، ولكل منها إجابات مثل عدد الأفراد، ونوع السكن، والدور والمصعد، وعرض أضيق باب، ومقاسات الأماكن الشاغرة، ونوع الغاز، والميزانية التقريبية. وكلها اختيارية، وتُستخدم فى تصفية المنتجات وترشيحات «ساعدنى أختار» فقط.', 'You can keep several places (a flat, a chalet, or a single room), each with answers such as household size, property type, floor and lift, narrowest doorway width, the gaps appliances must fit, gas supply, and a rough budget. All optional, and used only to filter products and to shape the guided finder.'],
               ['الدخول بمزوّد خارجى', 'Provider sign-in', 'إذا استخدمت «الدخول بجوجل»، فإننا نخزّن أن هذا الحساب مرتبط بجوجل، ورقم المستخدم لديهم، وبريدك الإلكترونى المتحقق منه. ولا نخزّن أى رمز وصول من جوجل، ولا نطلب صلاحيات غير الاسم والبريد الإلكترونى.', 'If you use “Continue with Google”, we store that the account is linked to Google, your user id there, and your verified e-mail. We store no Google token and request no permission beyond name and e-mail.'],
               ['كلمة المرور', 'Password', 'لا تُخزَّن مطلقاً كنص. بل تُخزَّن على هيئة scrypt hash بملح عشوائى لكل مستخدم، وتتم المقارنة بطريقة آمنة زمنياً.', 'Never stored as text. It is stored as a scrypt hash with a per-user random salt, and comparison is timing-safe.'],
-              ['الجلسة', 'The session', 'ملف تعريف ارتباط HttpOnly + SameSite (وSecure على HTTPS)، ويخزّن الخادم بصمته لا الرمز نفسه — أى أن نصوص الصفحة البرمجية لا تستطيع قراءته.', 'An HttpOnly + SameSite cookie (Secure over HTTPS); the server stores only its hash, not the token itself — so page scripts cannot read it.'],
+              ['الجلسة', 'The session', 'ملف تعريف ارتباط HttpOnly + SameSite (وSecure على HTTPS)، ويخزّن الخادم بصمته لا الرمز نفسه، أى أن نصوص الصفحة البرمجية لا تستطيع قراءته.', 'An HttpOnly + SameSite cookie (Secure over HTTPS); the server stores only its hash, not the token itself, so page scripts cannot read it.'],
               ['الطلبات', 'Orders', 'إذا قدّمت طلباً: المنتجات، وبيانات التوصيل، وطريقة دفع بدون بطاقات. وتظل رسوم التوصيل والتركيب فارغة إلى أن تؤكدها خدمة العملاء.', 'If you place an order: the items, the delivery details, and a non-card payment method. Delivery and installation fees stay blank until customer care confirms them.'],
             ]),
             note('info',
-              'فى هذه النسخة التجريبية تعمل معظم الصفحات دون تسجيل دخول أصلاً — أى أنك إن لم تُنشئ حساباً، فلا توجد بيانات شخصية لك على أى خادم لهذا الموقع.',
-              'In this preview most pages work without signing in at all — so if you do not create an account, this site holds no personal data of yours on any server.'),
-            todo('مدة الاحتفاظ بالبيانات، والمسؤول عن حماية البيانات فى صادكو، وإجراء طلب نسخة من بياناتك — كلها تحتاج اعتماداً رسمياً من الشركة قبل أن تُكتب هنا التزاماً.',
+              'فى هذه النسخة التجريبية تعمل معظم الصفحات دون تسجيل دخول أصلاً، أى أنك إن لم تُنشئ حساباً، فلا توجد بيانات شخصية لك على أى خادم لهذا الموقع.',
+              'In this preview most pages work without signing in at all, so if you do not create an account, this site holds no personal data of yours on any server.'),
+            todo('مدة الاحتفاظ بالبيانات، والمسؤول عن حماية البيانات فى صادكو، وإجراء طلب نسخة من بياناتك: كلها تحتاج اعتماداً رسمياً من الشركة قبل أن تُكتب هنا التزاماً.',
               'The data-retention period, SADKO’s data-protection contact, and the procedure for requesting a copy of your data all need formal company sign-off before being written here as a commitment.'),
           ],
         },
@@ -511,7 +511,7 @@
                 [['sadko-plans-v1', 'sadko-plans-v1'], ['خطط التجهيز: الأجهزة والميزانية والملاحظات.', 'Shopping plans: appliances, budget and notes.']],
                 [['sadko-owned-v1', 'sadko-owned-v1'], ['أجهزتك المسجَّلة: الطراز، والرقم التسلسلى، وتاريخ الشراء، ومدة الضمان.', 'Your recorded appliances: model, serial, purchase date and warranty length.']],
                 [['sadko-profile-v1', 'sadko-profile-v1'], ['إجابات ملف المنزل إن أجبت عنها دون حساب.', 'Home-profile answers if you filled them in without an account.']],
-                [['sadko-qa-v1 / sadko-reviews-v1', 'sadko-qa-v1 / sadko-reviews-v1'], ['الأسئلة والتقييمات التى تكتبها — تُحفظ محلياً ولا تُنشر لأحد.', 'The questions and reviews you write — kept locally and not published to anyone.']],
+                [['sadko-qa-v1 / sadko-reviews-v1', 'sadko-qa-v1 / sadko-reviews-v1'], ['الأسئلة والتقييمات التى تكتبها، تُحفظ محلياً ولا تُنشر لأحد.', 'The questions and reviews you write, kept locally and not published to anyone.']],
                 [['sadko-lang', 'sadko-lang'], ['لغة العرض: العربية أم الإنجليزية.', 'The display language: Arabic or English.']],
                 [['sadko-guide-v1 / sadko-hs-coach-v1', 'sadko-guide-v1 / sadko-hs-coach-v1'], ['علامة تفيد أنك شاهدت جولة التعريف فى الصفحة الرئيسية، حتى لا تتكرر.', 'A flag that you have seen the home-page walkthrough, so it does not repeat.']],
               ]),
@@ -524,8 +524,8 @@
           id: 'compare',
           h: ['مقارنة الأسعار', 'Price comparison'],
           blocks: [
-            p('عند إجراء مقارنة، يُرسَل اسم المنتج الذى تبحث عنه إلى خادم الموقع، فيجلب الخادم صفحات المنتجات العامة من قائمة متاجر مدعومة ويقرأ منها السعر والعنوان. وهذا بحث عن منتج — لا يُرسَل معه اسمك ولا هاتفك ولا سلتك.',
-              'When you run a comparison, the product name you are searching for is sent to the site’s server, and the server fetches public product pages from a list of supported stores and reads the price and title from them. That is a product search — your name, phone and cart are not sent with it.'),
+            p('عند إجراء مقارنة، يُرسَل اسم المنتج الذى تبحث عنه إلى خادم الموقع، فيجلب الخادم صفحات المنتجات العامة من قائمة متاجر مدعومة ويقرأ منها السعر والعنوان. وهذا بحث عن منتج، لا يُرسَل معه اسمك ولا هاتفك ولا سلتك.',
+              'When you run a comparison, the product name you are searching for is sent to the site’s server, and the server fetches public product pages from a list of supported stores and reads the price and title from them. That is a product search: your name, phone and cart are not sent with it.'),
             ul([
               ['ترى المتاجر المدعومة طلب زيارة لصفحاتها العامة، مثل أى زيارة عادية للصفحة.', 'Supported stores see a request for their public pages, like any ordinary page visit.'],
               ['وإذا ضغطت على عرض من متجر آخر وانتقلت إلى موقعه، فقد صرت على موقعه هو وسياسة الخصوصية الخاصة به هى التى تسرى.', 'If you click an offer from another store and leave, you are on their site and their privacy policy applies.'],
@@ -541,8 +541,8 @@
             note('info',
               'لا نجمع ولا نخزّن ولا نمرّر أى بيانات بطاقات على هذا الموقع. ولا توجد صفحة دفع ولا خانة رقم بطاقة ولا رمز CVV فى أى مكان. وتُؤكَّد الطلبات بمكالمة، ويتم الدفع مع البائع بالطرق التى يحددها لك (مثل الدفع عند الاستلام أو فى المعرض).',
               'We do not collect, store or pass on any card details on this site. There is no payment page, no card-number field and no CVV anywhere. Orders are confirmed by phone, and payment happens with the seller by the methods they tell you (such as cash on delivery or in the showroom).'),
-            p('وإذا طلبت منك أى صفحة على هذا الموقع بيانات بطاقة، فهى ليست صفحة تخصنا — لا تُدخلها واتصل بنا على ' + TEL + '.',
-              'If any page on this site ever asks you for card details, it is not ours — do not enter them, and call us on ' + TEL + '.'),
+            p('وإذا طلبت منك أى صفحة على هذا الموقع بيانات بطاقة، فهى ليست صفحة تخصنا. لا تُدخلها واتصل بنا على ' + TEL + '.',
+              'If any page on this site ever asks you for card details, it is not ours. Do not enter them, and call us on ' + TEL + '.'),
           ],
         },
         {
@@ -551,7 +551,7 @@
           blocks: [
             ul([
               ['لا توجد تحليلات من طرف ثالث ولا بكسل إعلانى ولا ملفات تعريف ارتباط للتتبع على هذه الصفحات.', 'No third-party analytics, advertising pixels or tracking cookies on these pages.'],
-              ['يُحمَّل خط (Cairo) من fonts.googleapis.com و fonts.gstatic.com. وترى جوجل طلب الخط وعنوان IP الذى طلبه — وإذا كان ذلك يهمك، فأدوات حجب الطلبات الخارجية توقفه ويظل الموقع يعمل بخط بديل.', 'The Cairo font loads from fonts.googleapis.com and fonts.gstatic.com. Google sees the font request and the IP that made it — if that matters to you, a blocker will stop it and the site still works with a fallback font.'],
+              ['يُحمَّل خط (Cairo) من fonts.googleapis.com و fonts.gstatic.com. وترى جوجل طلب الخط وعنوان IP الذى طلبه. وإذا كان ذلك يهمك، فأدوات حجب الطلبات الخارجية توقفه ويظل الموقع يعمل بخط بديل.', 'The Cairo font loads from fonts.googleapis.com and fonts.gstatic.com. Google sees the font request and the IP that made it. If that matters to you, a blocker will stop it and the site still works with a fallback font.'],
               ['قد تُحمَّل صور المنتجات من الخوادم نفسها التى قُرئ منها الكتالوج.', 'Product images may load from the same servers the catalogue was read from.'],
               ['روابط مثل موقع شركة الشحن أو مواقع المتاجر الأخرى تنقلك إلى مواقع لا صلة لنا بها، وتخضع لسياساتها هى.', 'Links such as a courier’s site or other stores take you to sites unrelated to us, under their own policies.'],
             ]),
@@ -562,12 +562,12 @@
           h: ['كيف تمحو بياناتك', 'How to delete your data'],
           blocks: [
             ol([
-              ['العناصر المحلية (السلة، والمحفوظات، والخطط، وأجهزتك، والتقييمات): امسح بيانات الموقع من إعدادات المتصفح — Clear site data لنطاق هذا الموقع. وهذا يمحوها فوراً وبالكامل.', 'Local items (cart, saved products, plans, appliances, reviews): clear site data for this site’s domain from your browser settings. That removes them immediately and completely.'],
+              ['العناصر المحلية (السلة، والمحفوظات، والخطط، وأجهزتك، والتقييمات): امسح بيانات الموقع من إعدادات المتصفح: Clear site data لنطاق هذا الموقع. وهذا يمحوها فوراً وبالكامل.', 'Local items (cart, saved products, plans, appliances, reviews): clear site data for this site’s domain from your browser settings. That removes them immediately and completely.'],
               ['ولكل صفحة تحتوى بيانات محفوظة زر مسح خاص بها أيضاً (احذف الخطة، أزل الجهاز، أفرغ السلة).', 'Each page that holds saved data also has its own delete control (delete the plan, remove the appliance, empty the cart).'],
               ['الحساب على الخادم (إن كنت قد أنشأت واحداً): اطلب حذفه من خدمة العملاء على ' + TEL + ' أو ' + MAIL + '، مع ذكر البريد الإلكترونى المسجَّل به.', 'The server account (if you created one): ask customer care to delete it on ' + TEL + ' or ' + MAIL + ', quoting the registered e-mail.'],
             ]),
-            todo('تحتاج مدة تنفيذ طلب الحذف وإجراءات التحقق من هوية صاحب الطلب إلى اعتماد من صادكو — وهما غير منشورين بعد.',
-              'The turnaround for a deletion request and the identity checks around it need SADKO sign-off — they are not published yet.'),
+            todo('تحتاج مدة تنفيذ طلب الحذف وإجراءات التحقق من هوية صاحب الطلب إلى اعتماد من صادكو، وهما غير منشورين بعد.',
+              'The turnaround for a deletion request and the identity checks around it need SADKO sign-off. They are not published yet.'),
             links([['مركز خدمة العملاء', 'Customer care', 'care.html'], ['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL]]),
           ],
         },
@@ -586,7 +586,7 @@
             ul([
               ['استخدم الموقع للأغراض الشخصية والمشروعة فقط.', 'Use the site for personal, lawful purposes only.'],
               ['لا تحاول سحب الكتالوج آلياً، أو إثقال الخادم بطلبات كثيرة، أو تعطيل الخدمة.', 'Do not scrape the catalogue automatically, overload the server with requests, or disrupt the service.'],
-              ['ما تكتبه من محتوى (تقييم أو سؤال) يجب أن يخلو من الإساءة، وهو محفوظ فى متصفحك أنت أصلاً.', 'Anything you write (a review or a question) must be free of abuse — and it is kept in your own browser anyway.'],
+              ['ما تكتبه من محتوى (تقييم أو سؤال) يجب أن يخلو من الإساءة، وهو محفوظ فى متصفحك أنت أصلاً.', 'Anything you write (a review or a question) must be free of abuse, and it is kept in your own browser anyway.'],
             ]),
           ],
         },
@@ -597,7 +597,7 @@
             p('الأسعار المعروضة مأخوذة من صفحات المنتجات وقت آخر تحديث للكتالوج، وقد تكون تغيّرت منذ ذلك الحين. وعرض السعر هنا ليس إيجاباً ملزماً بالبيع، والسعر النهائى هو الذى يُؤكَّد فى المعرض أو من خدمة العملاء وقت الطلب.',
               'Prices shown are taken from product pages at the time of the catalogue’s last update and may have changed since. A price here is not a binding offer; the final price is the one confirmed in the showroom or by customer care when you order.'),
             ul([
-              ['يتغيّر التوافر بسرعة — فاسأل قبل التوجه إلى المعرض.', 'Availability changes quickly — ask before travelling to a showroom.'],
+              ['يتغيّر التوافر بسرعة، فاسأل قبل التوجه إلى المعرض.', 'Availability changes quickly. Ask before travelling to a showroom.'],
               ['الصور استرشادية، وقد يختلف اللون أو الملحقات بحسب الطراز.', 'Images are indicative; colour or accessories may differ by model.'],
               ['رسوم التوصيل والتركيب غير داخلة فى السعر المعروض إلا إذا نص وصف المنتج على ذلك صراحةً.', 'Delivery and installation fees are not included in the shown price unless the product description says so explicitly.'],
             ]),
@@ -606,17 +606,17 @@
         },
         {
           id: 'specs',
-          h: ['المواصفات مقروءة آلياً — وهذا يعنى وجود ثغرات', 'Specifications are read automatically — which means there are gaps'],
+          h: ['المواصفات مقروءة آلياً، وهذا يعنى وجود ثغرات', 'Specifications are read automatically, which means there are gaps'],
           blocks: [
-            p('المواصفات التى تراها فى الجداول والمقارنات (السعة، والمقاسات، وكفاءة الطاقة، واللون، والخصائص) مستخرجة آلياً من عناوين المنتجات وأوصافها. وحين لا يذكر الوصف شيئاً، تظهر «غير متوفر» — ومعناها أننا لا نعلم، لا أن الجهاز يفتقر إلى تلك الخاصية.',
+            p('المواصفات التى تراها فى الجداول والمقارنات (السعة، والمقاسات، وكفاءة الطاقة، واللون، والخصائص) مستخرجة آلياً من عناوين المنتجات وأوصافها. وحين لا يذكر الوصف شيئاً، تظهر «غير متوفر»، ومعناها أننا لا نعلم، لا أن الجهاز يفتقر إلى تلك الخاصية.',
               // Quotes the label the English UI actually shows ("not stated", see
               // product.js), not the Arabic one: quoting «غير متوفر» here put Arabic
               // in the middle of an English paragraph AND named a label an English
               // reader would never see on screen.
-              'The specifications you see in tables and comparisons (capacity, dimensions, energy rating, colour, features) are extracted automatically from product titles and descriptions. When a description does not mention something it shows as "not stated" — which means we do not know, not that the appliance lacks it.'),
+              'The specifications you see in tables and comparisons (capacity, dimensions, energy rating, colour, features) are extracted automatically from product titles and descriptions. When a description does not mention something it shows as "not stated", which means we do not know, not that the appliance lacks it.'),
             note('warn',
-              'قبل الشراء بناءً على رقم بعينه — مقاس، أو سعة، أو كفاءة طاقة، أو مدة ضمان — أكّده من صفحة المنتج الأصلية أو من خدمة العملاء على ' + TEL + '. فالقراءة الآلية قد تُخطئ.',
-              'Before you buy on the strength of a particular figure — a dimension, a capacity, an energy rating, a warranty period — confirm it against the original product page or with customer care on ' + TEL + '. Automatic reading can get it wrong.'),
+              'قبل الشراء بناءً على رقم بعينه (مقاس، أو سعة، أو كفاءة طاقة، أو مدة ضمان)، أكّده من صفحة المنتج الأصلية أو من خدمة العملاء على ' + TEL + '. فالقراءة الآلية قد تُخطئ.',
+              'Before you buy on the strength of a particular figure (a dimension, a capacity, an energy rating, a warranty period), confirm it against the original product page or with customer care on ' + TEL + '. Automatic reading can get it wrong.'),
           ],
         },
         {
@@ -624,7 +624,7 @@
           h: ['مقارنة الأسعار', 'Price comparison'],
           blocks: [
             ul([
-              ['تغطى المقارنة قائمة محددة من المتاجر المدعومة، لا كل المتاجر فى مصر — أى أنه قد يوجد سعر أفضل فى مكان غير مشمول.', 'Comparison covers a specific list of supported stores, not every store in Egypt — there may be a better price somewhere not covered.'],
+              ['تغطى المقارنة قائمة محددة من المتاجر المدعومة، لا كل المتاجر فى مصر، أى أنه قد يوجد سعر أفضل فى مكان غير مشمول.', 'Comparison covers a specific list of supported stores, not every store in Egypt. There may be a better price somewhere not covered.'],
               ['تُجمَع النتائج لحظياً من صفحات عامة، وقد تكون ناقصة أو متأخرة إذا غيّر المتجر شكل صفحاته أو كان غير متاح.', 'Results are gathered live from public pages and can be incomplete or stale if a store changes its page layout or is unavailable.'],
               ['مطابقة المنتجات تقريبية: فقد يظهر طرازان متقاربان معاً، فراجع الطراز بدقة قبل مقارنة السعر.', 'Product matching is approximate: two similar models can appear side by side, so check the exact model before comparing price.'],
               ['أى شراء من متجر آخر يتم بينك وبينه هو. والضمان والتوصيل والاسترجاع والفاتورة كلها تخصه، وصادكو ليست طرفاً فى العملية.', 'Any purchase from another store is between you and them. Warranty, delivery, returns and the invoice are all theirs, and SADKO is not a party to it.'],
@@ -636,11 +636,11 @@
           id: 'advice',
           h: ['الترشيحات والأدلة إرشادية', 'Recommendations and guides are guidance'],
           blocks: [
-            p('ترشّح أداة «ساعدنى أختار» بناءً على إجاباتك وعلى بيانات الكتالوج، وتذكر لك سبب كل ترشيح. وهو رأى استرشادى يساعدك على تضييق الاختيارات — لا استشارة هندسية ولا كهربائية ولا تقديراً رسمياً لاحتياجك.',
-              'The guided finder recommends based on your answers and the catalogue data, and writes out the reason for each suggestion. That is guidance to narrow your options — not engineering or electrical advice, and not a formal assessment of your needs.'),
+            p('ترشّح أداة «ساعدنى أختار» بناءً على إجاباتك وعلى بيانات الكتالوج، وتذكر لك سبب كل ترشيح. وهو رأى استرشادى يساعدك على تضييق الاختيارات، لا استشارة هندسية ولا كهربائية ولا تقديراً رسمياً لاحتياجك.',
+              'The guided finder recommends based on your answers and the catalogue data, and writes out the reason for each suggestion. That is guidance to narrow your options, not engineering or electrical advice, and not a formal assessment of your needs.'),
             ul([
               ['أرقام المساحات والسعات فى الأدلة قواعد تقريبية شائعة، والرقم الملزم هو الوارد فى دليل الطراز.', 'The area and capacity figures in the guides are common rules of thumb; the binding number is in the model’s manual.'],
-              ['أعمال الغاز والكهرباء والتركيب يجب أن يقوم بها فنى مؤهل — والأدلة تدلك على ما تسأل عنه، لا على أن تؤديه بنفسك.', 'Gas, electrical and installation work must be done by a qualified technician — the guides tell you what to ask about, not how to do it yourself.'],
+              ['أعمال الغاز والكهرباء والتركيب يجب أن يقوم بها فنى مؤهل، والأدلة تدلك على ما تسأل عنه، لا على أن تؤديه بنفسك.', 'Gas, electrical and installation work must be done by a qualified technician. The guides tell you what to ask about, not how to do it yourself.'],
             ]),
             links([['ساعدنى أختار', 'Help me choose', 'finder.html'], ['أدلة الشراء', 'Buying guides', 'guides.html']]),
           ],
@@ -653,7 +653,7 @@
               'The cart and saved orders on this site are an organising tool: they gather what you want and put it in a form you can send or read out on a call. An order does not become a contract of sale until it is confirmed with SADKO (by a call on ' + TEL + ' or in a showroom).'),
             ul([
               ['تُؤكَّد رسوم التوصيل والتركيب قبل التنفيذ، ولا تُحتسب تلقائياً على الموقع.', 'Delivery and installation fees are confirmed before the work and are not calculated automatically on the site.'],
-              ['يتم الإلغاء أو التعديل قبل التنفيذ بمكالمة على ' + TEL + ' — فى أقرب وقت ممكن، خاصةً إذا كان قد حُدِّد للجهاز موعد تركيب.', 'Cancelling or amending before fulfilment is done by calling ' + TEL + ' — as early as you can, especially once an installation slot is booked.'],
+              ['يتم الإلغاء أو التعديل قبل التنفيذ بمكالمة على ' + TEL + '، فى أقرب وقت ممكن، خاصةً إذا كان قد حُدِّد للجهاز موعد تركيب.', 'Cancelling or amending before fulfilment is done by calling ' + TEL + ', as early as you can, especially once an installation slot is booked.'],
               ['أما الإلغاء بعد التسليم أو بعد التركيب فيحكمه شرط الاسترجاع لدى البائع.', 'Cancelling after delivery or after installation is governed by the seller’s return conditions.'],
             ]),
             todo('تحتاج شروط الإلغاء والاسترجاع الرسمية، وأى رسوم مرتبطة بها، إلى اعتماد من صادكو. وإلى أن تُنشر، اسأل خدمة العملاء قبل الشراء.',
@@ -679,8 +679,8 @@
           blocks: [
             p('قد تُعدَّل هذه الصفحة مع تطور الموقع، وتاريخ آخر تحديث مذكور أعلاه. وإذا وقع تعارض بين ما هو مكتوب هنا وبين فاتورتك أو بطاقة الضمان أو سياسة البائع، فالفاتورة وبطاقة الضمان وسياسة البائع هى التى تسرى.',
               'This page may change as the site develops; the last-updated date is shown above. If anything here conflicts with your invoice, your warranty card or the seller’s policy, the invoice, the card and the seller’s policy prevail.'),
-            todo('البيانات القانونية للشركة (السجل التجارى، والبطاقة الضريبية، والعنوان المسجَّل) والصياغة القانونية النهائية للشروط غير مكتوبة هنا عن قصد — لأنها يجب أن ترد من صادكو نفسها موثَّقة، لا أن تُؤلَّف.',
-              'The company’s legal identifiers (commercial register, tax card, registered address) and the final legal wording of these terms are deliberately not written here — they must come from SADKO itself, verified, not invented.'),
+            todo('البيانات القانونية للشركة (السجل التجارى، والبطاقة الضريبية، والعنوان المسجَّل) والصياغة القانونية النهائية للشروط غير مكتوبة هنا عن قصد، لأنها يجب أن ترد من صادكو نفسها موثَّقة، لا أن تُؤلَّف.',
+              'The company’s legal identifiers (commercial register, tax card, registered address) and the final legal wording of these terms are deliberately not written here. They must come from SADKO itself, verified, not invented.'),
             links([
               ['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL],
               ['أرسل بريداً إلكترونياً', 'Send an e-mail', 'mailto:' + MAIL],

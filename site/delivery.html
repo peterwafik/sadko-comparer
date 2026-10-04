@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>التوصيل والتركيب — صادكو جروب</title>
-<meta name="description" content="مناطق التوصيل والرسوم كما هى مكتوبة فى بيانات المنتجات، وكيف تجهّز المنزل قبل الموعد، وما الذى يحتاج فنياً معتمداً — ثلاجة وغسالة وموقد غاز وتكييف وسخان.">
+<title>التوصيل والتركيب | صادكو جروب</title>
+<meta name="description" content="مناطق التوصيل والرسوم كما هى مكتوبة فى بيانات المنتجات، وكيف تجهّز المنزل قبل الموعد، وما الذى يحتاج فنياً معتمداً: ثلاجة وغسالة وموقد غاز وتكييف وسخان.">
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,7 @@
     <h1 class="phero__title" data-i18n="title">التوصيل والتركيب</h1>
     <p class="phero__sub" data-i18n="sub">التوصيل والتركيب ليسا الأمر نفسه، والفرق بينهما يظهر يوم التسليم.
       وهنا تجد مناطق التغطية والرسوم كما هى مكتوبة فى بيانات المنتجات، وكيف تجهّز المنزل والطريق قبل الموعد،
-      ومن يركّب ماذا — وما الذى يلزم أن يقوم به فنى معتمد حتى لا يسقط الضمان.</p>
+      ومن يركّب ماذا، وما الذى يلزم أن يقوم به فنى معتمد حتى لا يسقط الضمان.</p>
   </div>
 </section>
 
@@ -29,20 +29,20 @@
 
 <footer data-footer></footer>
 
-<script src="assets/js/nav.js?v=g27" defer></script>
-<script src="assets/js/appshell.js?v=a9" defer></script>
-<script src="assets/js/info.js?v=a6" defer></script>
+<script src="assets/js/nav.js?v=g28" defer></script>
+<script src="assets/js/appshell.js?v=a10" defer></script>
+<script src="assets/js/info.js?v=a7" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   const T = {
     'crumb-home': 'Home', 'crumb-here': 'Delivery & installation',
     'title': 'Delivery & installation',
-    'sub': 'Delivery and installation are not the same thing, and the difference shows up on the day. Here you will find the coverage areas and fees exactly as stated in the product data, how to prepare your home and the route beforehand, and who installs what — including the work that must be done by an approved technician so the warranty survives.',
+    'sub': 'Delivery and installation are not the same thing, and the difference shows up on the day. Here you will find the coverage areas and fees exactly as stated in the product data, how to prepare your home and the route beforehand, and who installs what, including the work that must be done by an approved technician so the warranty survives.',
     'loading': 'Loading…',
   };
   if (window.skLang && window.skLang.get() === 'en') {
     document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
-    document.title = 'Delivery & installation — SADKO Group';
+    document.title = 'Delivery & installation | SADKO Group';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
     });

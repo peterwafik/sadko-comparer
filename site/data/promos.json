@@ -1,10 +1,10 @@
 {
-  "note": "REAL SADKO campaign artwork, downloaded from the company's own live homepage (https://sadko-group.com/) on 2026-09-05 and stored under assets/img/promos/. The banner text is baked into the images in Arabic; `title`/`sub` transcribe what each image says so screen readers and the English side have an equivalent. Do not add a 'was' price, discount %, rating or stock claim here — the catalogue carries no discount data, and these banners make none.",
+  "note": "REAL SADKO campaign artwork, downloaded from the company's own live homepage (https://sadko-group.com/) on 2026-09-05 and stored under assets/img/promos/. The banner text is baked into the images in Arabic; `title`/`sub` transcribe what each image says so screen readers and the English side have an equivalent. Do not add a 'was' price, discount %, rating or stock claim here: the catalogue carries no discount data, and these banners make none.",
   "captured": "2026-09-05",
   "source": "https://sadko-group.com/",
   "placement": "hero = the rotating banner at the top of shop.html; slot = the ad blocks interleaved between the shop's sections. Slots are dealt out in the order below: the first goes in the wide single-banner block, the rest fill the square ad row, so a wide banner should come first.",
-  "art": "The SHAPE of the artwork, and the only thing that decides whether a promo may fill the wide banner frame: 'wide' = 1600x608, 'square' = 900x900. The frame is 1600/608 and object-fit:cover, so a square tile put in it loses two thirds of its own printed Arabic message — which is how the 285x155 hotline strip lost its phone number. Measure the file; do not guess.",
-  "cats": "OPTIONAL category targeting, as an array of categoryId strings. A promo carrying `cats` is shown at the top of those categories' pages and nowhere else; a promo with NO `cats` is brand-wide (instalments, delivery, best sellers) and is honest on any page, so it fills the top of a category that has no campaign of its own. Where `cats` is absent the category is still inferred from the promo's own href — `shop.html?cat=NNN` names one directly, and `product.html?id=NNN` resolves through the catalogue to that product's category — so a promo for one product already advertises itself in the right aisle. TO GIVE A CATEGORY ITS OWN BANNER: add 1600x608 artwork under assets/img/promos/, list it here with \"art\":\"wide\" and \"cats\":[\"<categoryId>\"]. Category ids are the file names in site/category/.",
+  "art": "The SHAPE of the artwork, and the only thing that decides whether a promo may fill the wide banner frame: 'wide' = 1600x608, 'square' = 900x900. The frame is 1600/608 and object-fit:cover, so a square tile put in it loses two thirds of its own printed Arabic message, which is how the 285x155 hotline strip lost its phone number. Measure the file; do not guess.",
+  "cats": "OPTIONAL category targeting, as an array of categoryId strings. A promo carrying `cats` is shown at the top of those categories' pages and nowhere else; a promo with NO `cats` is brand-wide (instalments, delivery, best sellers) and is honest on any page, so it fills the top of a category that has no campaign of its own. Where `cats` is absent the category is still inferred from the promo's own href (`shop.html?cat=NNN` names one directly, and `product.html?id=NNN` resolves through the catalogue to that product's category), so a promo for one product already advertises itself in the right aisle. TO GIVE A CATEGORY ITS OWN BANNER: add 1600x608 artwork under assets/img/promos/, list it here with \"art\":\"wide\" and \"cats\":[\"<categoryId>\"]. Category ids are the file names in site/category/.",
   "notIncluded": "assets/img/promos/tile-hotline.jpg (the 19140 strip) was downloaded but is not listed: it is 285x155, so the square ad tile cropped the number to '9140'. The hotline already appears in the header and the footer. Kept in the folder in case a square version is produced.",
   "promos": [
     {
@@ -49,8 +49,8 @@
       "href": "contact.html",
       "image": "assets/img/promos/tile-kk.jpg",
       "art": "square",
-      "alt": "صادكو بالتقسيط — ٦ شهور بدون فوائد",
-      "altEn": "SADKO in instalments — 6 months interest-free"
+      "alt": "صادكو بالتقسيط: ٦ شهور بدون فوائد",
+      "altEn": "SADKO in instalments: 6 months interest-free"
     },
     {
       "id": "delivery-tile", "slot": "slot", "accent": "teal",
@@ -66,13 +66,13 @@
       "id": "kiriazi-solitaire", "slot": "slot", "accent": "ink",
       "title": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر",
       "titleEn": "Kiriazi Solitaire Elegant 370L refrigerator",
-      "sub": "جديد — بمقبض جانبي", "subEn": "New — side handle",
+      "sub": "جديد: بمقبض جانبي", "subEn": "New: side handle",
       "cta": "شوف المنتج", "ctaEn": "See the product",
       "href": "product.html?id=837495061",
       "image": "assets/img/promos/tile-preee.jpg",
       "art": "square",
-      "alt": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر — جديد",
-      "altEn": "Kiriazi Solitaire Elegant 370L refrigerator — new"
+      "alt": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر، جديد",
+      "altEn": "Kiriazi Solitaire Elegant 370L refrigerator, new"
     }
   ]
 }

@@ -57,12 +57,12 @@
         var hint = basketHint(m);
         var d = m.instructions || '';
         if (m.restricted) {
-          d = (d ? d + ' — ' : '') + t('متاح على منتجات ' + (m.brand || '') + ' فقط، وتؤكده خدمة العملاء.',
+          d = (d ? d.replace(/\.\s*$/, '') + '. ' : '') + t('متاح على منتجات ' + (m.brand || '') + ' فقط، وتؤكده خدمة العملاء.',
                                        'Available on ' + (m.brandEn || m.brand || '') + ' products only; customer care confirms.');
         }
         if (hint === 'unlikely') {
-          d += ' ' + t('لا يبدو أن سلتك تحتوى على منتجات ' + (m.brand || '') + ' — راجع خدمة العملاء قبل الاختيار.',
-                       'Your basket does not appear to contain ' + (m.brandEn || m.brand || '') + ' products — check with customer care first.');
+          d += ' ' + t('لا يبدو أن سلتك تحتوى على منتجات ' + (m.brand || '') + '، راجع خدمة العملاء قبل الاختيار.',
+                       'Your basket does not appear to contain ' + (m.brandEn || m.brand || '') + ' products, so check with customer care first.');
         }
         return { k: m.id, l: m.title, d: d, ok: true, warn: hint === 'unlikely' };
       }).concat([CARD_NOTE()]);
@@ -71,8 +71,8 @@
     /* The card row is not a method — it exists to say plainly that cards are
        not accepted, so nobody hunts for a field that is deliberately absent. */
     const CARD_NOTE = () => ({ k: 'card', l: t('بطاقة أونلاين', 'Online card payment'),
-      d: t('غير متاح بعد فى هذه النسخة — فالدفع بالبطاقة يتطلب بوابة دفع معتمدة (مثل باي موب أو فورى)، ولذلك لا نطلب بيانات بطاقة هنا البتة.',
-           'Not available on this version — card payment needs a certified gateway (such as Paymob or Fawry), which is why we do not ask for card details here at all.'), ok: false });
+      d: t('غير متاح بعد فى هذه النسخة، فالدفع بالبطاقة يتطلب بوابة دفع معتمدة (مثل باي موب أو فورى)، ولذلك لا نطلب بيانات بطاقة هنا البتة.',
+           'Not available on this version: card payment needs a certified gateway (such as Paymob or Fawry), which is why we do not ask for card details here at all.'), ok: false });
 
     const BUILTIN = () => [
       { k: 'cod', l: t('الدفع عند الاستلام', 'Cash on delivery'),
@@ -143,8 +143,8 @@
         '<div class="note note--soft small mt16">' + (QUOTE && QUOTE.quotable
           ? t('رسوم التوصيل محسوبة من أسعار الشحن لمنطقتك وحجم كل جهاز. رسوم التركيب تُؤكَّد معك قبل التنفيذ.',
               'Delivery is calculated from the shipping rates for your area and the size of each appliance. Installation is confirmed with you before fulfilment.')
-          : t('تختلف رسوم التوصيل والتركيب بحسب الجهاز والعنوان، وتُؤكَّد معك قبل التنفيذ — ولذلك لا نعرضها هنا صفراً.',
-              'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment — which is why we do not show them as zero here.')) + '</div>' +
+          : t('تختلف رسوم التوصيل والتركيب بحسب الجهاز والعنوان، وتُؤكَّد معك قبل التنفيذ، ولذلك لا نعرضها هنا صفراً.',
+              'Delivery and installation charges depend on the appliance and your address and are confirmed with you before fulfilment, which is why we do not show them as zero here.')) + '</div>' +
         '</div>';
     }
 
@@ -204,7 +204,7 @@
       const p = (u && u.profile) || {};
       return '<div class="grid2"><div>' +
         (guest ? '<div class="panel"><p class="panel__sub" style="margin:0">' +
-            t('بتكمّل كزائر — من غير حساب. لو عندك حساب، ',
+            t('بتكمّل كزائر، من غير حساب. لو عندك حساب، ',
               'You are checking out as a guest, with no account. If you have an account, ') +
             '<a href="' + A.P('account.html') + '">' + t('سجّل دخولك', 'sign in') + '</a>' +
             t(' وهتلاقى عنوانك محفوظاً وتقدر تتابع طلباتك.',

@@ -339,7 +339,7 @@
     return '<aside class="sk-fcta" id="skFcta">' +
       '<div><b>' + U.esc(t('لا تعرف ماذا تختار؟', 'Not sure which one to pick?')) + '</b>' +
       '<p>' + U.esc(t('أجب عن بضعة أسئلة عن منزلك واستخدامك، ونرشّح لك ٣ أجهزة من هذه الفئة مع سبب واضح لكل ترشيح.',
-        'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category — each with a clear reason.')) + '</p></div>' +
+        'Answer a few questions about your home and how you use it, and we will suggest three appliances from this category, each with a clear reason.')) + '</p></div>' +
       '<a class="sk-fcta__btn" href="' + P('finder.html') + '?cat=' + encodeURIComponent(cat) + '">' +
         U.esc(t('ساعدنى أختار', 'Help me choose')) + '</a>' +
       '<button type="button" class="sk-fcta__x" aria-label="' + close + '" title="' + close + '">&times;</button>' +
@@ -407,14 +407,14 @@
     facetsHtml = facetsHtml.replace('<form class="facets" id="facets">',
       '<form class="facets" id="facets">' +
       '<button type="button" class="facet__clear facets__done" id="facetDone">' +
-        U.esc(t('تم — اعرض النتائج', 'Done — show results')) + '</button>');
+        U.esc(t('تم، اعرض النتائج', 'Done, show results')) + '</button>');
 
     // A search that matched nothing ("try another search") is a different
     // situation, honestly, from a category that has no products listed yet —
     // conflating them (as before) mislabels the 20 legitimately-empty
     // category pages, which never had a search to retry.
     var emptyMsg = state.q
-      ? t('لا توجد نتائج لهذا البحث — جرّب كلمة أخرى.', 'No results — try another search.')
+      ? t('لا توجد نتائج لهذا البحث، جرّب كلمة أخرى.', 'No results. Try another search.')
       : t('لا يوجد منتجات فى هذا القسم حاليًا.', 'No products in this category yet.');
 
     root.innerHTML =
@@ -947,14 +947,14 @@
       document.documentElement.lang = 'en';
       document.documentElement.dir = 'ltr';
       // On a category page nav.js's translateCategoryPage() already rewrote
-      // <title> to "<Category> — SADKO Group" earlier in this same
+      // <title> to "<Category> | SADKO Group" earlier in this same
       // DOMContentLoaded phase (nav.js's listener runs first — it's added
       // first, since nav.js is the earlier <script> tag). Only shop.html
       // itself (no data-cat) needs the generic title here; overwriting it
       // unconditionally would blank out the category name on every one of
       // the 30 category pages in EN mode.
       var root0 = document.getElementById('shop-root');
-      if (!(root0 && root0.getAttribute('data-cat'))) document.title = 'Shop — SADKO Group';
+      if (!(root0 && root0.getAttribute('data-cat'))) document.title = 'Shop | SADKO Group';
       var l = document.querySelector('[data-i18n="loading"]');
       if (l) l.textContent = 'Loading…';
     }

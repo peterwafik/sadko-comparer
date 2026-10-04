@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>الطلبات — صادكو جروب</title>
+<title>الطلبات | صادكو جروب</title>
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,11 +46,11 @@
 
 <main class="wrap">
   <div id="orders"></div>
-  <p class="empty" id="empty" hidden>لا طلبات محفوظة بعد — املأ <a href="cart.html" data-i18n="yourcart">سلتك</a> من <a href="shop.html" data-i18n="theshop">المتجر</a> واضغط «احفظ الطلب».</p>
+  <p class="empty" id="empty" hidden>لا طلبات محفوظة بعد. املأ <a href="cart.html" data-i18n="yourcart">سلتك</a> من <a href="shop.html" data-i18n="theshop">المتجر</a> واضغط «احفظ الطلب».</p>
 
   <div class="track">
-    <a href="tel:19140"><b data-i18n="h-confirm">📞 أكّد طلبك</b><span data-i18n="p-confirm">تُؤكَّد الطلبات المحفوظة هنا بمكالمة واحدة على الخط الساخن 19140 — مع ذكر رقم الطلب.</span></a>
-    <a href="https://movex.com.eg" target="_blank" rel="noopener"><b data-i18n="h-track">🚚 تتبع شحنتك</b><span data-i18n="p-track">تُسلَّم الشحنات المؤكدة إلى شركة موڤكس — ويمكنك تتبعها برقم شحنتك على movex.com.eg</span></a>
+    <a href="tel:19140"><b data-i18n="h-confirm">📞 أكّد طلبك</b><span data-i18n="p-confirm">تُؤكَّد الطلبات المحفوظة هنا بمكالمة واحدة على الخط الساخن 19140، مع ذكر رقم الطلب.</span></a>
+    <a href="https://movex.com.eg" target="_blank" rel="noopener"><b data-i18n="h-track">🚚 تتبع شحنتك</b><span data-i18n="p-track">تُسلَّم الشحنات المؤكدة إلى شركة موڤكس، ويمكنك تتبعها برقم شحنتك على movex.com.eg</span></a>
     <a href="mailto:csupport@sadko-group.com"><b data-i18n="h-care">✉️ خدمة العملاء</b><span data-i18n="p-care">لأى استفسار عن طلب أو ضمان أو صيانة: csupport@sadko-group.com</span></a>
   </div>
 
@@ -70,11 +70,11 @@
   <div class="foot__inner">
     <img src="assets/img/sadko-logo.png" alt="صادكو جروب" class="foot__logo">
     <p>الخط الساخن <a href="tel:19140" dir="ltr">19140</a> · <a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></p>
-    <p class="foot__copy">© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)</p>
+    <p class="foot__copy">© صادكو جروب 2026، نسخة معاد تصميمها (Rebrand Preview)</p>
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g27" defer></script>
+<script src="assets/js/nav.js?v=g28" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {
@@ -85,9 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
     "yourcart": "your cart",
     "theshop": "the shop",
     "h-confirm": "📞 Confirm your order",
-    "p-confirm": "Orders saved here are confirmed with a single call to the hotline 19140 — quote the order number.",
+    "p-confirm": "Orders saved here are confirmed with a single call to the hotline 19140. Quote the order number.",
     "h-track": "🚚 Track your shipment",
-    "p-track": "Confirmed shipments are handed to Movex — you can track them with your shipment number at movex.com.eg",
+    "p-track": "Confirmed shipments are handed to Movex. You can track them with your shipment number at movex.com.eg",
     "h-care": "✉️ Customer care",
     "p-care": "For any question about an order, warranty or repair: csupport@sadko-group.com"
   };
@@ -106,10 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   // Orders saved before the status became a key still hold the Arabic sentence;
   // map it rather than print Arabic on the English page.
-  const STATUS = { 'saved-unconfirmed': ['محفوظ — لم يُؤكَّد بعد', 'Saved — not confirmed yet'] };
+  const STATUS = { 'saved-unconfirmed': ['محفوظ، لم يُؤكَّد بعد', 'Saved, not confirmed yet'] };
   const status = v => {
     if (STATUS[v]) return t(STATUS[v][0], STATUS[v][1]);
-    if (v === 'محفوظ — لم يُؤكَّد بعد') return t(v, 'Saved — not confirmed yet');
+    if (v === 'محفوظ \u2014 لم يُؤكَّد بعد') return t('محفوظ، لم يُؤكَّد بعد', 'Saved, not confirmed yet');
     return v;
   };
   let orders = [];
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     : t('احفظ سلتك كطلب وتابعه من هنا', 'Save your cart as an order and follow it from here');
   if (EN) {
     document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
-    document.title = 'Your orders — SADKO Group';
+    document.title = 'Your orders | SADKO Group';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const k = el.getAttribute('data-i18n'); if (T[k] != null) el.textContent = T[k];
     });
@@ -139,12 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const r = await fetch('/api/orders/track', { method: 'POST', headers: { 'content-type': 'application/json' },
         credentials: 'same-origin', body: JSON.stringify({ ref: fd.get('ref'), phone: fd.get('phone') }) });
-      if (r.status === 429) { out.textContent = t('محاولات كثيرة — حاول لاحقاً', 'Too many attempts — please try later'); return; }
+      if (r.status === 429) { out.textContent = t('محاولات كثيرة. حاول لاحقاً', 'Too many attempts. Please try later'); return; }
       if (!r.ok) { out.textContent = t('لم نجد طلباً بهذا الرقم وهذا الهاتف', 'No order found for that number and phone'); return; }
       const d = await r.json();
       const st = TF_STATUS[d.status] || [d.status, d.status];
-      out.innerHTML = '<span class="ltr">' + esc(d.ref) + '</span> — ' + esc(t(st[0], st[1])) +
-        (d.tracking ? '<br>' + t('رقم الشحنة: ', 'Shipment number: ') + '<b class="ltr">' + esc(d.tracking.number) + '</b> — ' +
+      out.innerHTML = '<span class="ltr">' + esc(d.ref) + '</span>: ' + esc(t(st[0], st[1])) +
+        (d.tracking ? '<br>' + t('رقم الشحنة: ', 'Shipment number: ') + '<b class="ltr">' + esc(d.tracking.number) + '</b>' + t('، ', ', ') +
           '<a target="_blank" rel="noopener" href="' + esc(d.tracking.url || 'https://movex.com.eg') + '">' + t('تتبع مع موڤكس', 'Track on Movex') + '</a>'
           : '<br>' + t('لم يُسلَّم للشحن بعد.', 'Not handed to the courier yet.'));
     } catch (err) { out.textContent = t('تعذّر البحث الآن', 'Could not look it up right now'); }

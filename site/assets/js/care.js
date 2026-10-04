@@ -44,37 +44,37 @@
     const TOPICS = [
       { id: 'choose', ar: 'اختيار منتج', en: 'Choosing a product',
         aAr: 'إن لم تكن تعرف ماذا تختار، فأجب عن بضعة أسئلة عن منزلك وعدد الأفراد والمساحة، وسنرشّح لك ٣ خيارات مكتوب مع كل منها سبب ترشيحه. ويمكنك مقارنة الأسعار قبل أن تقرر.',
-        aEn: 'If you are not sure what to buy, answer a few questions about your home, household size and space, and we will suggest three options — each with the reason it was suggested. You can also compare prices before deciding.',
+        aEn: 'If you are not sure what to buy, answer a few questions about your home, household size and space, and we will suggest three options, each with the reason it was suggested. You can also compare prices before deciding.',
         links: [['ساعدنى أختار', 'Help me choose', 'finder.html'], ['قارن الأسعار', 'Compare prices', 'compare.html'], ['أدلة الشراء', 'Buying guides', 'guides.html']] },
 
       { id: 'delivery', ar: 'التوصيل والتركيب', en: 'Delivery & installation',
-        aAr: 'شروط التوصيل والتركيب مكتوبة فى وصف كل منتج، وتختلف من منتج إلى آخر ومن محافظة إلى أخرى — والتركيب فى أنواع كثيرة (تكييف، سخان، غسالة أطباق) يتم بموعد منفصل بعد التوصيل. وأدق مصدر هو صفحة المنتج نفسها، وإن احتجت تأكيداً لطلب بعينه فاتصل بنا على ' + TEL + '.',
-        aEn: 'Delivery and installation terms are written on each product page and differ by product and governorate — for many types (air conditioners, water heaters, dishwashers) installation is a separate appointment after delivery. The product page is the most accurate source; for a specific order call ' + TEL + '.',
+        aAr: 'شروط التوصيل والتركيب مكتوبة فى وصف كل منتج، وتختلف من منتج إلى آخر ومن محافظة إلى أخرى، والتركيب فى أنواع كثيرة (تكييف، سخان، غسالة أطباق) يتم بموعد منفصل بعد التوصيل. وأدق مصدر هو صفحة المنتج نفسها، وإن احتجت تأكيداً لطلب بعينه فاتصل بنا على ' + TEL + '.',
+        aEn: 'Delivery and installation terms are written on each product page and differ by product and governorate. For many types (air conditioners, water heaters, dishwashers) installation is a separate appointment after delivery. The product page is the most accurate source; for a specific order call ' + TEL + '.',
         links: [['المعارض والفروع', 'Showrooms', 'showrooms.html'], ['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL]] },
 
       { id: 'warranty', ar: 'الضمان', en: 'Warranty',
-        aAr: 'يبدأ الضمان من تاريخ الشراء ومدته مكتوبة فى بطاقة الضمان أو الفاتورة. سجّل الجهاز فى صفحة «أجهزتى» لنحسب لك الأيام المتبقية ونذكّرك قبل انتهائه بشهر. ومهم أن تعلم: الضمان يقدمه البائع المذكور فى الفاتورة — فإن اشتريت من متجر آخر، فالضمان يخصه هو.',
-        aEn: 'Warranty runs from the purchase date and its length is written on the warranty card or invoice. Record the appliance under "My appliances" and we will show how many days are left and remind you a month before it ends. Important: the warranty is provided by the seller named on the invoice — if you bought elsewhere, that seller carries it.',
+        aAr: 'يبدأ الضمان من تاريخ الشراء ومدته مكتوبة فى بطاقة الضمان أو الفاتورة. سجّل الجهاز فى صفحة «أجهزتى» لنحسب لك الأيام المتبقية ونذكّرك قبل انتهائه بشهر. ومهم أن تعلم: الضمان يقدمه البائع المذكور فى الفاتورة، فإن اشتريت من متجر آخر، فالضمان يخصه هو.',
+        aEn: 'Warranty runs from the purchase date and its length is written on the warranty card or invoice. Record the appliance under "My appliances" and we will show how many days are left and remind you a month before it ends. Important: the warranty is provided by the seller named on the invoice. If you bought elsewhere, that seller carries it.',
         links: [['أجهزتى والضمان', 'My appliances & warranty', 'appliances.html']] },
 
       { id: 'usage', ar: 'استخدام الجهاز', en: 'Using the appliance',
-        aAr: 'معظم المشكلات التى تصلنا (تبريد ضعيف، غسالة لا تُصرّف، صوت مرتفع) سببها ضبط أو تنظيف بسيط لا عطل. راجع دليل الجهاز أولاً، ثم جرّب الخطوات السريعة الواردة فى أدلة الاستخدام — فإن بقيت المشكلة، فاملأ الطلب أدناه.',
-        aEn: 'Most of what reaches us (weak cooling, a washer that will not drain, loud noise) turns out to be a setting or a clean, not a fault. Check the manual first, then the quick steps in our guides — and if it persists, fill in the request below.',
+        aAr: 'معظم المشكلات التى تصلنا (تبريد ضعيف، غسالة لا تُصرّف، صوت مرتفع) سببها ضبط أو تنظيف بسيط لا عطل. راجع دليل الجهاز أولاً، ثم جرّب الخطوات السريعة الواردة فى أدلة الاستخدام، فإن بقيت المشكلة، فاملأ الطلب أدناه.',
+        aEn: 'Most of what reaches us (weak cooling, a washer that will not drain, loud noise) turns out to be a setting or a clean, not a fault. Check the manual first, then the quick steps in our guides, and if it persists, fill in the request below.',
         links: [['أدلة الاستخدام', 'Guides', 'guides.html']] },
 
       { id: 'maint', ar: 'الصيانة', en: 'Maintenance',
-        aAr: 'إن احتاج الجهاز إلى فنى، فجهّز الطراز والرقم التسلسلى وتاريخ الشراء قبل الاتصال — فذلك يوفّر مكالمة كاملة. وتحفظ صفحة «أجهزتى» هذه البيانات وتذكّرك بمواعيد الصيانة الدورية (فلتر التكييف كل ٣ أشهر مثلاً).',
-        aEn: 'If the appliance needs a technician, have the model, serial number and purchase date ready before you call — it saves an entire phone call. "My appliances" stores these and reminds you about routine maintenance (an AC filter every three months, for example).',
+        aAr: 'إن احتاج الجهاز إلى فنى، فجهّز الطراز والرقم التسلسلى وتاريخ الشراء قبل الاتصال، فذلك يوفّر مكالمة كاملة. وتحفظ صفحة «أجهزتى» هذه البيانات وتذكّرك بمواعيد الصيانة الدورية (فلتر التكييف كل ٣ أشهر مثلاً).',
+        aEn: 'If the appliance needs a technician, have the model, serial number and purchase date ready before you call. It saves an entire phone call. "My appliances" stores these and reminds you about routine maintenance (an AC filter every three months, for example).',
         links: [['أجهزتى', 'My appliances', 'appliances.html'], ['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL]] },
 
       { id: 'returns', ar: 'الاسترجاع والاستبدال', en: 'Returns & exchange',
-        aAr: 'يتم الاسترجاع والاستبدال مع البائع الذى اشتريت منه، ويكون أيسر كثيراً والعبوة والفاتورة لديك. ولا يستطيع هذا الموقع بدء عملية استرجاع تلقائياً — بل عليك الاتصال بخدمة العملاء أو التوجه إلى المعرض.',
-        aEn: 'Returns and exchanges are handled by the seller you bought from, and go far more smoothly with the box and the invoice. This site cannot start a return automatically — you need to contact customer care or visit the showroom.',
+        aAr: 'يتم الاسترجاع والاستبدال مع البائع الذى اشتريت منه، ويكون أيسر كثيراً والعبوة والفاتورة لديك. ولا يستطيع هذا الموقع بدء عملية استرجاع تلقائياً، بل عليك الاتصال بخدمة العملاء أو التوجه إلى المعرض.',
+        aEn: 'Returns and exchanges are handled by the seller you bought from, and go far more smoothly with the box and the invoice. This site cannot start a return automatically: you need to contact customer care or visit the showroom.',
         links: [['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL], ['أرسل بريداً إلكترونياً', 'Send an e-mail', 'mailto:' + MAIL]] },
 
       { id: 'follow', ar: 'متابعة شكوى', en: 'Following up a complaint',
-        aAr: 'لا يوجد نظام متابعة عبر الإنترنت على هذا الموقع، ولا يصح أن نوهمك بوجوده. وحين ترسل طلبك بالبريد الإلكترونى أو تتصل، اسأل عن رقم الطلب واحتفظ به، واحتفظ بنسخة من الرسالة التى أرسلتها — فهى أقوى ما لديك إن تأخرت المتابعة.',
-        aEn: 'There is no online tracking system on this site, and we are not going to pretend otherwise. When you e-mail or call, ask for a reference number and keep it, and keep a copy of the message you sent — that is the strongest record you can hold.',
+        aAr: 'لا يوجد نظام متابعة عبر الإنترنت على هذا الموقع، ولا يصح أن نوهمك بوجوده. وحين ترسل طلبك بالبريد الإلكترونى أو تتصل، اسأل عن رقم الطلب واحتفظ به، واحتفظ بنسخة من الرسالة التى أرسلتها، فهى أقوى ما لديك إن تأخرت المتابعة.',
+        aEn: 'There is no online tracking system on this site, and we are not going to pretend otherwise. When you e-mail or call, ask for a reference number and keep it, and keep a copy of the message you sent. That is the strongest record you can hold.',
         links: [] },
 
       { id: 'contact', ar: 'تواصل مع صادكو', en: 'Contact SADKO',
@@ -125,7 +125,7 @@
         t('إجابات سريعة', 'Quick answers') + '</h2>' +
         '<p class="muted small" style="margin:2px 0 14px">' +
         t('إن كان سؤالك من هذه الأسئلة، فالإجابة هنا مباشرةً دون انتظار أحد.',
-          'If your question is one of these, the answer is right here — no waiting.') + '</p>' +
+          'If your question is one of these, the answer is right here, no waiting.') + '</p>' +
         '<div class="grid2">' + TOPICS.map(tp =>
           '<div class="panel"><h3 class="panel__h">' + esc(t(tp.ar, tp.en)) + '</h3>' +
           '<p class="panel__sub" style="margin-bottom:12px">' + esc(t(tp.aAr, tp.aEn)) + '</p>' +
@@ -150,7 +150,7 @@
           step(2, t('أى جهاز أو طلب؟', 'Which appliance or request?'),
             (owned.length
               ? '<label class="field"><span class="field__l small">' + t('من أجهزتى المسجَّلة', 'From my recorded appliances') + '</span>' +
-                '<select class="select" name="deviceId"><option value="">' + t('— ليس من القائمة —', '— not from the list —') + '</option>' +
+                '<select class="select" name="deviceId"><option value="">' + t('(ليس من القائمة)', '(not from the list)') + '</option>' +
                 owned.map(a => '<option value="' + esc(a.id) + '"' + (state.deviceId === a.id ? ' selected' : '') + '>' +
                   esc(a.title || t('جهاز بدون اسم', 'Untitled appliance')) + '</option>').join('') + '</select></label>'
               : '<p class="small muted">' + t('إن سجّلت أجهزتك فى صفحة «أجهزتى» ظهرت هنا وامتلأت تلقائياً. ',
@@ -163,8 +163,8 @@
               opts('source', [['sadko', 'من صادكو', 'From SADKO'], ['other', 'من متجر آخر', 'From another shop'], ['none', 'لم أشترِه بعد', 'I have not bought it yet']], state.source) +
             '</div>' +
             (state.source === 'other' ? '<p class="note note--warn small">' +
-              t('إن كان الجهاز قد اشتُرى من متجر آخر: فالضمان والاسترجاع والتركيب مسؤولية ذلك البائع لا صادكو — فاتصل به أولاً. ويظل بإمكانك أن تسألنا نصيحة فنية أو عن قطع غيار متوفرة لدينا.',
-                'If it was bought from another shop: warranty, returns and installation are that seller\'s responsibility, not SADKO\'s — contact them first. You are still welcome to ask us for technical advice or about parts we stock.') + '</p>' : '')) +
+              t('إن كان الجهاز قد اشتُرى من متجر آخر: فالضمان والاسترجاع والتركيب مسؤولية ذلك البائع لا صادكو، فاتصل به أولاً. ويظل بإمكانك أن تسألنا نصيحة فنية أو عن قطع غيار متوفرة لدينا.',
+                'If it was bought from another shop: warranty, returns and installation are that seller\'s responsibility, not SADKO\'s. Contact them first. You are still welcome to ask us for technical advice or about parts we stock.') + '</p>' : '')) +
 
           step(3, t('ما نوع المشكلة أو الطلب؟', 'What kind of problem or request?'),
             state.stage ? opts('issue', issues, state.issue)
@@ -179,11 +179,11 @@
           step(5, t('كيف تفضّل أن نتواصل معك؟', 'How would you rather be contacted?'),
             opts('contact', CONTACTS, state.contact) +
             (state.contact === 'chat' ? '<p class="note note--info small">' +
-              t('لا توجد محادثة مباشرة على هذا الموقع. و«رسالة مكتوبة» تعنى بريداً إلكترونياً على ' + MAIL + ' — وهو مناسب حين تحتاج إرسال صور أو الفاتورة.',
-                'There is no live chat on this site. "A written message" means an e-mail to ' + MAIL + ' — good when you need to attach photos or the invoice.') + '</p>' : '') +
+              t('لا توجد محادثة مباشرة على هذا الموقع. و«رسالة مكتوبة» تعنى بريداً إلكترونياً على ' + MAIL + '، وهو مناسب حين تحتاج إرسال صور أو الفاتورة.',
+                'There is no live chat on this site. "A written message" means an e-mail to ' + MAIL + ', good when you need to attach photos or the invoice.') + '</p>' : '') +
             (state.contact === 'visit' ? '<p class="note note--info small">' +
-              t('تُحدَّد زيارة الفنى بموعد من خدمة العملاء بعد إرسال الطلب — وهذه الصفحة لا تحجز موعداً.',
-                'A technician visit is scheduled by customer care after you send the request — this page does not book appointments.') + '</p>' : '') +
+              t('تُحدَّد زيارة الفنى بموعد من خدمة العملاء بعد إرسال الطلب، وهذه الصفحة لا تحجز موعداً.',
+                'A technician visit is scheduled by customer care after you send the request. This page does not book appointments.') + '</p>' : '') +
             '<div class="row mt8">' +
               '<label class="field"><span class="field__l small">' + t('اسمك', 'Your name') + '</span>' +
                 '<input class="input" name="name" value="' + esc(state.name) + '" autocomplete="name"></label>' +
@@ -197,8 +197,8 @@
               t('مثلاً: التكييف يعمل لكن التبريد ضعيف منذ أسبوع، وقد نظّفت الفلتر دون فرق.',
                 'e.g. the AC runs but cooling has been weak for a week; I cleaned the filter and it made no difference.') +
               '">' + esc(state.detail) + '</textarea>' +
-              '<span class="field__hint">' + t('تبقى هذه البيانات فى المتصفح إلى أن ترسلها بنفسك — فلا شىء يُخزَّن ولا يُرسَل دون أن تفعل ذلك أنت.',
-                'What you type stays in your browser until you send it yourself — nothing is stored or transmitted without you doing it.') + '</span></label>') +
+              '<span class="field__hint">' + t('تبقى هذه البيانات فى المتصفح إلى أن ترسلها بنفسك، فلا شىء يُخزَّن ولا يُرسَل دون أن تفعل ذلك أنت.',
+                'What you type stays in your browser until you send it yourself: nothing is stored or transmitted without you doing it.') + '</span></label>') +
 
           '<div class="row mt16"><button type="submit" class="btn btn--primary">' + t('جهّز نص الطلب', 'Prepare my request') + '</button>' +
             '<a class="btn btn--ghost" href="tel:' + TEL + '" dir="ltr">' + t('أو اتصل على ' + TEL, 'Or call ' + TEL) + '</a></div>' +
@@ -222,8 +222,8 @@
       const w = !a.purchaseDate ? { c: 'chip--mute', s: t('تاريخ الشراء ناقص', 'Purchase date missing') }
         : dl == null ? { c: 'chip--mute', s: t('مدة الضمان غير مسجَّلة', 'Warranty length not recorded') }
         : dl <= 0 ? { c: 'chip--bad', s: t('الضمان انتهى', 'Warranty expired') }
-        : dl < 60 ? { c: 'chip--warn', s: t('الضمان يوشك على الانتهاء — بقى ' + num(dl) + ' يوم', 'Ending soon — ' + num(dl) + ' days left') }
-        : { c: 'chip--ok', s: t('الضمان سارٍ — بقى ' + num(dl) + ' يوم', 'In warranty — ' + num(dl) + ' days left') };
+        : dl < 60 ? { c: 'chip--warn', s: t('الضمان يوشك على الانتهاء، بقى ' + num(dl) + ' يوم', 'Ending soon: ' + num(dl) + ' days left') }
+        : { c: 'chip--ok', s: t('الضمان سارٍ، بقى ' + num(dl) + ' يوم', 'In warranty: ' + num(dl) + ' days left') };
       return '<div class="note note--info mt16"><strong>' + t('هذا الطلب بشأن: ', 'This request is about: ') + '</strong>' +
         esc(a.title || t('جهاز بدون اسم', 'Untitled appliance')) +
         '<ul class="specs mt8">' +
@@ -245,7 +245,7 @@
       const a = state.deviceId ? O.get(state.deviceId) : null;
       const L = [];
       const line = (k, v) => { if (v) L.push(k + ': ' + v); };
-      L.push(t('طلب خدمة عملاء — كُتب من موقع صادكو', 'Customer care request — written on the SADKO website'));
+      L.push(t('طلب خدمة عملاء (كُتب من موقع صادكو)', 'Customer care request (written on the SADKO website)'));
       L.push('');
       line(t('الحالة', 'Stage'), state.stage === 'before' ? t('قبل الشراء', 'Before buying') : state.stage === 'after' ? t('بعد الشراء', 'After buying') : '');
       line(t('الجهاز / الطلب', 'Appliance / request'), (a && a.title ? a.title : '') || state.deviceText);
@@ -258,7 +258,7 @@
         if (end) line(t('حالة الضمان', 'Warranty status'), dl > 0
           ? t('سارٍ، بقى ' + num(dl) + ' يوم (ينتهى ' + A.date(end) + ')', 'In warranty, ' + num(dl) + ' days left (ends ' + A.date(end) + ')')
           : t('انتهى فى ' + A.date(end), 'Expired on ' + A.date(end)));
-        else line(t('حالة الضمان', 'Warranty status'), t('غير محسوبة — تاريخ الشراء أو مدة الضمان ناقص', 'Not calculated — purchase date or warranty length missing'));
+        else line(t('حالة الضمان', 'Warranty status'), t('غير محسوبة: تاريخ الشراء أو مدة الضمان ناقص', 'Not calculated: purchase date or warranty length missing'));
         if (a.categoryId) line(t('الفئة', 'Category'), A.catName(a.categoryId));
       }
       line(t('مكان الشراء', 'Bought from'), state.source === 'sadko' ? t('صادكو', 'SADKO')
@@ -283,7 +283,7 @@
       const a = state.deviceId ? O.get(state.deviceId) : null;
       const what = (a && a.title ? a.title : state.deviceText) || t('طلب عام', 'General request');
       const kind = label(state.stage === 'before' ? ISSUES_BEFORE : ISSUES_AFTER, state.issue) || t('استفسار', 'Enquiry');
-      return t('طلب خدمة عملاء: ', 'Customer care request: ') + kind + ' — ' + what;
+      return t('طلب خدمة عملاء: ', 'Customer care request: ') + kind + t('، ', ', ') + what;
     }
 
     function outSection() {
@@ -291,17 +291,17 @@
       const mailto = 'mailto:' + MAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text);
       const external = state.source === 'other';
       return '<section class="panel mt24" id="care-out" aria-labelledby="out-h" tabindex="-1">' +
-        '<h2 class="panel__h" id="out-h" style="font-size:1.25rem">' + t('طلبك جاهز — لكنه لم يُرسَل بعد', 'Your request is ready — but not sent yet') + '</h2>' +
+        '<h2 class="panel__h" id="out-h" style="font-size:1.25rem">' + t('طلبك جاهز، لكنه لم يُرسَل بعد', 'Your request is ready, but not sent yet') + '</h2>' +
         '<p class="note note--warn">' +
           t('لا ترسل هذه الصفحة شيئاً إلى صادكو، ولا يُنشَأ هنا رقم شكوى. ولن يصل الطلب إلا حين ترسله بنفسك: إما بالضغط على «أرسله بالبريد»، أو بالاتصال على ' + TEL + ' وقراءة هذا النص.',
             'This page does not send anything to SADKO, and no ticket number is created here. Your request only reaches us when you send it: press "Send by e-mail", or call ' + TEL + ' and read this text out.') + '</p>' +
         (external ? '<p class="note note--warn mt16">' +
-          t('اخترت أنك اشتريت من متجر آخر. والضمان والاسترجاع والتركيب يقدمها ذلك البائع، فأرسل الطلب إليه أولاً — وقد تساعدك صادكو بنصيحة فنية أو بقطع غيار متوفرة لدينا، لكنها لا تغطى ضمان مشتريات من خارجها.',
-            'You said you bought this from another shop. Warranty, returns and installation are provided by that seller, so send the request to them first — SADKO can still help with technical advice or parts we stock, but does not cover warranties on purchases made elsewhere.') + '</p>' : '') +
+          t('اخترت أنك اشتريت من متجر آخر. والضمان والاسترجاع والتركيب يقدمها ذلك البائع، فأرسل الطلب إليه أولاً، وقد تساعدك صادكو بنصيحة فنية أو بقطع غيار متوفرة لدينا، لكنها لا تغطى ضمان مشتريات من خارجها.',
+            'You said you bought this from another shop. Warranty, returns and installation are provided by that seller, so send the request to them first. SADKO can still help with technical advice or parts we stock, but does not cover warranties on purchases made elsewhere.') + '</p>' : '') +
         '<label class="field mt16"><span class="field__l">' + t('نص الطلب', 'Request text') + '</span>' +
           '<textarea class="textarea" id="care-text" readonly rows="14" style="min-height:260px">' + esc(text) + '</textarea>' +
-          '<span class="field__hint">' + t('هذا الصندوق للنسخ اليدوى أيضاً — اضغط داخله وحدّد وانسخ إن لم يعمل زر النسخ.',
-            'This box is also there for manual copying — click inside, select all and copy if the copy button does not work.') + '</span></label>' +
+          '<span class="field__hint">' + t('هذا الصندوق للنسخ اليدوى أيضاً: اضغط داخله وحدّد وانسخ إن لم يعمل زر النسخ.',
+            'This box is also there for manual copying: click inside, select all and copy if the copy button does not work.') + '</span></label>' +
         '<div class="row">' +
           '<a class="btn btn--primary" href="' + esc(mailto) + '">' + t('أرسله بالبريد', 'Send by e-mail') + '</a>' +
           '<a class="btn btn--teal" href="tel:' + TEL + '" dir="ltr">' + t('اتصل على ' + TEL, 'Call ' + TEL) + '</a>' +
@@ -372,8 +372,8 @@
         if (!box) return;
         const done = ok => {
           state.copied = ok
-            ? t('تم النسخ. الصقه فى بريدك أو فى واتساب — وتذكّر أنه لم يُرسَل بعد.',
-                'Copied. Paste it into your e-mail or messaging app — and remember it is still not sent.')
+            ? t('تم النسخ. الصقه فى بريدك أو فى واتساب، وتذكّر أنه لم يُرسَل بعد.',
+                'Copied. Paste it into your e-mail or messaging app, and remember it is still not sent.')
             : t('لم يسمح المتصفح بالنسخ التلقائى. حدّد النص من الصندوق أعلاه وانسخه بنفسك.',
                 'The browser refused automatic copying. Select the text in the box above and copy it yourself.');
           render();

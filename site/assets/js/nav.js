@@ -374,7 +374,7 @@
     document.documentElement.lang = 'en';
     document.documentElement.dir = 'ltr';
     const west = s => String(s).replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660)).replace(/٬/g, ',');
-    document.title = document.title.replace(/^([^—]+)—/, (m, n) => (CAT_EN[n.trim()] || n.trim()) + ' — ')
+    document.title = document.title.replace(/^([^|]+)\|/, (m, n) => (CAT_EN[n.trim()] || n.trim()) + ' | ')
       .replace('صادكو جروب', 'SADKO Group');
     const h1 = document.querySelector('.hero__title');
     if (h1 && CAT_EN[h1.textContent.trim()]) h1.textContent = CAT_EN[h1.textContent.trim()];
@@ -405,7 +405,7 @@
     const foot = document.querySelector('.foot__inner');
     if (foot) foot.innerHTML = foot.innerHTML
       .replace('الخط الساخن', 'Hotline')
-      .replace('© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)', '© SADKO Group 2026 — Rebrand Preview')
+      .replace(/© صادكو جروب 2026[^ن]*نسخة معاد تصميمها \(Rebrand Preview\)/, '© SADKO Group 2026, Rebrand Preview')
       .replace('توصيل مجانى داخل القاهرة والجيزة والإسكندرية · الدفع عند الاستلام أو بالبطاقة',
         'Free delivery in Cairo, Giza & Alexandria · Cash on delivery or card');
   }

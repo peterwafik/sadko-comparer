@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>سلة التسوق — صادكو جروب</title>
+<title>سلة التسوق | صادكو جروب</title>
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,25 +58,25 @@
       <div class="row total"><span data-i18n="total">الإجمالى</span><b id="sTotal">0 جنيه</b></div>
       <p id="cartDelivery" style="font:600 .8rem 'Cairo',sans-serif;color:#5b6b6e;margin:6px 0 0"></p>
       <a class="act act--checkout" href="checkout.html" data-i18n="checkout">كمّل الطلب</a>
-      <a class="act act--call" href="tel:19140" data-i18n="byphone">أو اطلب هاتفياً — 19140</a>
+      <a class="act act--call" href="tel:19140" data-i18n="byphone">أو اطلب هاتفياً: 19140</a>
       <a class="act act--mail" id="mailBtn" href="#" data-i18n="byemail">أرسل الطلب بالبريد</a>
       <button class="act act--save" id="saveBtn" type="button" data-i18n="save">احفظ الطلب فى «الطلبات»</button>
       <button class="act act--clear" id="clearBtn" type="button" data-i18n="clear">أفرغ السلة</button>
-      <p class="note" data-i18n="paynote">الدفع عند الاستلام أو بتحويل بنكى أو فى المعرض — أما الدفع بالبطاقة عبر الإنترنت فغير متاح بعد. وتُؤكَّد رسوم التوصيل والتركيب معك هاتفياً. وللتقسيط اسأل خدمة العملاء على 19140.</p>
+      <p class="note" data-i18n="paynote">الدفع عند الاستلام أو بتحويل بنكى أو فى المعرض، أما الدفع بالبطاقة عبر الإنترنت فغير متاح بعد. وتُؤكَّد رسوم التوصيل والتركيب معك هاتفياً. وللتقسيط اسأل خدمة العملاء على 19140.</p>
     </aside>
   </div>
-  <p class="empty" id="empty" hidden>سلتك فارغة — <a href="shop.html" data-i18n="toshop">تفضّل إلى المتجر</a> أو تجوّل فى <a href="index.html" data-i18n="tohouse">منزل صادكو</a> واضغط على أى جهاز يعجبك.</p>
+  <p class="empty" id="empty" hidden>سلتك فارغة. <a href="shop.html" data-i18n="toshop">تفضّل إلى المتجر</a> أو تجوّل فى <a href="index.html" data-i18n="tohouse">منزل صادكو</a> واضغط على أى جهاز يعجبك.</p>
 </main>
 
 <footer class="foot">
   <div class="foot__inner">
     <img src="assets/img/sadko-logo.png" alt="صادكو جروب" class="foot__logo">
     <p>الخط الساخن <a href="tel:19140" dir="ltr">19140</a> · <a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></p>
-    <p class="foot__copy">© صادكو جروب 2026 — نسخة معاد تصميمها (Rebrand Preview)</p>
+    <p class="foot__copy">© صادكو جروب 2026، نسخة معاد تصميمها (Rebrand Preview)</p>
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g27" defer></script>
+<script src="assets/js/nav.js?v=g28" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {
@@ -88,13 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
     "count": "Items",
     "total": "Total",
     "checkout": "Complete the order",
-    "byphone": "Or order by phone — 19140",
+    "byphone": "Or order by phone: 19140",
     "byemail": "Send the order by email",
     "save": "Save the order to “Orders”",
     "clear": "Empty the cart",
     "toshop": "Head to the shop",
     "tohouse": "the SADKO house",
-    "paynote": "Cash on delivery, bank transfer or payment in the showroom — online card payment is not available yet. Delivery and installation fees are confirmed with you by phone. For instalments, ask customer care on 19140."
+    "paynote": "Cash on delivery, bank transfer or payment in the showroom. Online card payment is not available yet. Delivery and installation fees are confirmed with you by phone. For instalments, ask customer care on 19140."
   };
   const EN = !!(window.skLang && window.skLang.get() === 'en');
   const t = (ar, en) => (EN ? en : ar);
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('layout').style.display = items.length ? '' : 'none';
     document.getElementById('empty').hidden = items.length > 0;
     document.getElementById('heroMeta').textContent = items.length
-      ? (skCart.count() + t(' قطعة — إجمالى ', ' items — total ') + fmt(skCart.total()) + t(' جنيه', ' EGP'))
+      ? (skCart.count() + t(' قطعة، إجمالى ', ' items, total ') + fmt(skCart.total()) + t(' جنيه', ' EGP'))
       : t('فاضية لا شىء بعد', 'Still empty');
     box.innerHTML = '';
     items.forEach(i => {
@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sTotal').textContent = fmt(skCart.total()) + t(' جنيه', ' EGP');
     estimateDelivery();
 
-    const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ' — ' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP'));
+    const lines = items.map(i => '- ' + clean(i.title) + ' × ' + i.qty + ': ' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP'));
     const body = encodeURIComponent(t('السلام عليكم،\nأود طلب هذه الأجهزة:\n', 'Hello,\nI would like to order these appliances:\n')).replace(/%0A/g,'%0D%0A') +
       encodeURIComponent(lines.join('\n')).replace(/%0A/g,'%0D%0A') +
       '%0D%0A' + encodeURIComponent(t('الإجمالى: ', 'Total: ')) + fmt(skCart.total()) +
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (EN) {
     document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
-    document.title = 'Shopping cart — SADKO Group';
+    document.title = 'Shopping cart | SADKO Group';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const k = el.getAttribute('data-i18n'); if (T[k] != null) el.textContent = T[k];
     });

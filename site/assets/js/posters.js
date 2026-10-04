@@ -106,10 +106,10 @@ function mountPosters(container, api, si, config) {
       card.classList.add('ps-card--about'); card.href = '#';
       badge.textContent = PS_EN ? 'Since 1961' : 'من 1961';
       img.style.backgroundImage = '';
-      title.textContent = PS_EN ? 'SADKO Group — a family story' : 'صادكو جروب — حكاية عيلة';
+      title.textContent = PS_EN ? 'SADKO Group: a family story' : 'صادكو جروب: حكاية عيلة';
       price.textContent = PS_EN
-        ? 'An extension of the Ghabbour family legacy — service trusted by 40,000+ customers a year'
-        : 'امتداد لإرث عيلة غبور — خدمة بيشهد لها +40,000 عميل سنويًا';
+        ? 'An extension of the Ghabbour family legacy, service trusted by 40,000+ customers a year'
+        : 'امتداد لإرث عيلة غبور، خدمة بيشهد لها +40,000 عميل سنويًا';
       cta.style.visibility = 'hidden';
     } else {
       card.classList.remove('ps-card--about'); card.href = it.href || '#';

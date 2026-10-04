@@ -24,7 +24,7 @@
   function num(n) { return EN() ? Number(n).toLocaleString('en-EG') : Number(n).toLocaleString('ar-EG'); }
   function date(d) {
     const x = (d instanceof Date) ? d : new Date(d);
-    if (isNaN(x)) return '—';
+    if (isNaN(x)) return '-';
     return x.toLocaleDateString(EN() ? 'en-GB' : 'ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 

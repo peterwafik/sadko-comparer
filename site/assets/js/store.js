@@ -287,8 +287,8 @@
   const EN = () => !!(window.skLang && window.skLang.get() === 'en');
   function scopeNote() {
     return EN()
-      ? 'Saved on this device only — no account needed. Clearing your browser data will remove it.'
-      : 'محفوظ على هذا الجهاز فقط — من غير حساب. لو مسحت بيانات المتصفح هيتمسح.';
+      ? 'Saved on this device only, no account needed. Clearing your browser data will remove it.'
+      : 'محفوظ على هذا الجهاز فقط، من غير حساب. لو مسحت بيانات المتصفح هيتمسح.';
   }
 
   window.skStore = { saved, plans, owned, profile, qa, reviews, dismiss, encodePlan, decodePlan, scopeNote, STATUS, uid, keys: K };

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>أدلة الشراء — صادكو جروب</title>
-<meta name="description" content="أدلة عملية قبل شراء أى جهاز: مقاس الثلاجة، وكفاءة الطاقة والفاتورة، وقياس المكان، ومقارنة الضمانات، وتجهيز المنزل للتركيب، والصيانة — بلغة ميسّرة ودون ترشيح طُرُز.">
+<title>أدلة الشراء | صادكو جروب</title>
+<meta name="description" content="أدلة عملية قبل شراء أى جهاز: مقاس الثلاجة، وكفاءة الطاقة والفاتورة، وقياس المكان، ومقارنة الضمانات، وتجهيز المنزل للتركيب، والصيانة، بلغة ميسّرة ودون ترشيح طُرُز.">
 <link rel="icon" href="assets/img/sadko-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
     <h1 class="phero__title" data-i18n="title">أدلة الشراء</h1>
     <p class="phero__sub" data-i18n="sub">قبل أن تدفع، هناك أمور إن عرفتها اخترت صواباً دون أن تعتمد على أحد: المقاس الذى يناسب منزلك،
       وما تعنيه درجة كفاءة الطاقة فى فاتورتك، وكيف تقيس المكان، وما الذى يغطيه الضمان فعلاً.
-      وكل دليل هنا مكتوب بلغة ميسّرة، و<strong>دون ترشيح طُرُز</strong> — فالترشيح مهمة صفحة «ساعدنى أختار».</p>
+      وكل دليل هنا مكتوب بلغة ميسّرة، و<strong>دون ترشيح طُرُز</strong>، فالترشيح مهمة صفحة «ساعدنى أختار».</p>
   </div>
 </section>
 
@@ -49,20 +49,20 @@
 
 <footer data-footer></footer>
 
-<script src="assets/js/nav.js?v=g27" defer></script>
-<script src="assets/js/appshell.js?v=a9" defer></script>
-<script src="assets/js/guides.js?v=a5" defer></script>
+<script src="assets/js/nav.js?v=g28" defer></script>
+<script src="assets/js/appshell.js?v=a10" defer></script>
+<script src="assets/js/guides.js?v=a6" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   const T = {
     'crumb-home': 'Home', 'crumb-here': 'Buying guides',
     'title': 'Buying guides',
-    'sub': 'Before you pay, a few things let you choose well without depending on anyone: the size that fits your home, what an energy rating means on your bill, how to measure your space, and what a warranty actually covers. Every guide here is written in plain language, and there are <strong>no model recommendations</strong> — that is what the "Help me choose" page is for.',
+    'sub': 'Before you pay, a few things let you choose well without depending on anyone: the size that fits your home, what an energy rating means on your bill, how to measure your space, and what a warranty actually covers. Every guide here is written in plain language, and there are <strong>no model recommendations</strong>: that is what the "Help me choose" page is for.',
     'loading': 'Loading…',
   };
   if (window.skLang && window.skLang.get() === 'en') {
     document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
-    document.title = 'Buying guides — SADKO Group';
+    document.title = 'Buying guides | SADKO Group';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const k = el.getAttribute('data-i18n'); if (T[k]) el.innerHTML = T[k];
     });

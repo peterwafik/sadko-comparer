@@ -40,6 +40,12 @@ function toPaymentMethod(o, i) {
   };
 }
 
+/* Ecwid gives every new manual method this title and enables it. Left as is,
+   it reaches checkout as a choice with no meaning, so it is treated the same
+   as a method with no title at all. */
+const PLACEHOLDER_PAYMENT_TITLE = 'custom payment method name';
+const isNamedPayment = m => !!m.title && m.title.toLowerCase() !== PLACEHOLDER_PAYMENT_TITLE;
+
 function toShippingMethod(o, i) {
   return {
     id: String(o.id ?? i),
@@ -132,12 +138,12 @@ export function createEcwidSync({ api, store, adFolders = {},
 
   /* Payment and shipping methods, mirrored from the store profile. Only
      ENABLED methods are stored: offering one the owner switched off would take
-     an order on terms SADKO cannot honour. */
+     an order on terms SADKO cannot honour. Nor are unnamed ones. */
   async function syncSettings() {
     if (!api.configured) { notConfigured('syncSettings'); return { payment: 0, shipping: 0 }; }
     try {
       const p = await api.getProfile();
-      const pay = (p.paymentOptions || []).map(toPaymentMethod).filter(m => m.enabled);
+      const pay = (p.paymentOptions || []).map(toPaymentMethod).filter(m => m.enabled && isNamedPayment(m));
       const ship = (p.shippingOptions || []).map(toShippingMethod).filter(m => m.enabled);
       store.upsertPaymentMethods(pay);
       store.upsertShippingMethods(ship);

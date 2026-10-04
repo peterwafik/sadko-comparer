@@ -163,6 +163,26 @@ test('a payment method disabled in Ecwid is not mirrored as available', async ()
   } finally { cleanup(); }
 });
 
+test('a payment method still carrying Ecwid\'s placeholder name is not offered', async () => {
+  /* Ecwid names every new manual method "Custom Payment Method Name" and
+     enables it. Three of those sat enabled in the test store and showed at
+     checkout as identical, meaningless choices. A method nobody named is not
+     one a customer can knowingly pick, nor one staff could honour. */
+  const { store, sync, cleanup } = fresh(stubApi({
+    getProfile: async () => ({
+      paymentOptions: [{ id: 'cod', checkoutTitle: 'COD', enabled: true },
+                       { id: 'p1', checkoutTitle: 'Custom Payment Method Name', enabled: true },
+                       { id: 'p2', checkoutTitle: '  custom payment method name ', enabled: true },
+                       { id: 'p3', checkoutTitle: '', paymentProcessorTitle: '', enabled: true }],
+      shippingOptions: [],
+    }) }));
+  try {
+    const r = await sync.syncSettings();
+    assert.deepEqual(store.allPaymentMethods().map(m => m.id), ['cod']);
+    assert.equal(r.payment, 1);
+  } finally { cleanup(); }
+});
+
 test('syncSettings failing does not throw and records the error', async () => {
   const { store, sync, cleanup } = fresh(stubApi({
     getProfile: async () => { throw new Error('ecwid-403'); } }));

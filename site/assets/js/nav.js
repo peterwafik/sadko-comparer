@@ -443,10 +443,10 @@
       '<div><h4>' + tt('اتصل بنا', 'Talk to us') + '</h4><ul>' +
         '<li><a href="tel:19140" dir="ltr">19140</a></li>' +
         '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li></ul>' +
-        '<p class="foot__tag">' + tt('مجموعة صادكو — من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group — since 1986, sole distributor of Kiriazi.') + '</p></div>' +
+        '<p class="foot__tag">' + tt('مجموعة صادكو، من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group, since 1986, sole distributor of Kiriazi.') + '</p></div>' +
       '</div><p class="foot__legal">' +
-        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وقد تتغير — يُرجى التأكد قبل الشراء. وتغطى مقارنة الأسعار متاجر مدعومة محددة. أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض.',
-           'Prices and specifications are taken from product pages at the last update and may change — please confirm before buying. Price comparison covers a specific list of supported stores. Warranty, installation and returns are provided by the seller named on each offer.') +
+        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وقد تتغير، يُرجى التأكد قبل الشراء. وتغطى مقارنة الأسعار متاجر مدعومة محددة. أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض.',
+           'Prices and specifications are taken from product pages at the last update and may change, so please confirm before buying. Price comparison covers a specific list of supported stores. Warranty, installation and returns are provided by the seller named on each offer.') +
         '<br>© ' + tt('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }
 

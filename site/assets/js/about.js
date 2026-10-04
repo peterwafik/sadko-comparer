@@ -32,14 +32,14 @@
       { yr: '1986',
         hAr: 'تأسيس صادكو',
         hEn: 'SADKO is founded',
-        pAr: 'أسّس المهندس صادق حنّا غبور — أحد مؤسسى مجموعة إخوان غبور — شركة صادكو سنة 1986، وكان هدفه منذ اليوم الأول أن تكون الموزّع الرئيسى للصناعة المصرية المحلية.',
-        pEn: 'Eng. Sadek Hanna Ghabbour — a co-founder of Ghabbour Brothers Group — founded SADKO in 1986, with the aim from day one that it would be the main distributor for local Egyptian industry.' },
+        pAr: 'أسّس المهندس صادق حنّا غبور، أحد مؤسسى مجموعة إخوان غبور، شركة صادكو سنة 1986، وكان هدفه منذ اليوم الأول أن تكون الموزّع الرئيسى للصناعة المصرية المحلية.',
+        pEn: 'Eng. Sadek Hanna Ghabbour, a co-founder of Ghabbour Brothers Group, founded SADKO in 1986, with the aim from day one that it would be the main distributor for local Egyptian industry.' },
 
       { yr: t('الوكالة', 'The agency'),
         hAr: 'الموزّع الحصرى لكريازى',
         hEn: 'Sole distributor of Kiriazi',
-        pAr: 'وعلى أساس هذا الهدف، صارت صادكو الموزّع الحصرى لكريازى — إحدى الشركات الرائدة فى صناعة أجهزة عالية الجودة وطويلة العمر فى السوق المصرى.',
-        pEn: 'On that basis, SADKO became the sole distributor of Kiriazi — one of the pioneering makers of high-quality, long-lasting appliances in the Egyptian market.' },
+        pAr: 'وعلى أساس هذا الهدف، صارت صادكو الموزّع الحصرى لكريازى، إحدى الشركات الرائدة فى صناعة أجهزة عالية الجودة وطويلة العمر فى السوق المصرى.',
+        pEn: 'On that basis, SADKO became the sole distributor of Kiriazi, one of the pioneering makers of high-quality, long-lasting appliances in the Egyptian market.' },
 
       { yr: t('اليوم', 'Today'),
         hAr: 'معارض ومتجر أونلاين',
@@ -64,8 +64,8 @@
           'صادكو جروب بيت مصرى لتجارة الأجهزة المنزلية والكهربائية: مجموعة معارض للبيع المباشر ومتجر إلكترونى، وخدمة بعد البيع نعدّها جزءاً من البيع نفسه لا إضافة عليه.',
           'SADKO Group is an Egyptian home and electrical appliance business: a group of direct-sales showrooms and an online store, with after-sales service we treat as part of the sale rather than an extra on top of it.')) + '</p>' +
         '<p class="ab-p">' + esc(t(
-          'تأسست الشركة سنة 1986 على يد المهندس صادق حنّا غبور، وهدفها أن تكون الموزّع الرئيسى للصناعة المصرية المحلية — وهو ما جعلها الموزّع الحصرى لكريازى، إحدى الشركات الرائدة فى صناعة أجهزة عالية الجودة وطويلة العمر فى السوق المصرى.',
-          'The company was founded in 1986 by Eng. Sadek Hanna Ghabbour, with the aim of being the main distributor for local Egyptian industry — which is how it became the sole distributor of Kiriazi, one of the pioneering makers of high-quality, long-lasting appliances in the Egyptian market.')) + '</p>' +
+          'تأسست الشركة سنة 1986 على يد المهندس صادق حنّا غبور، وهدفها أن تكون الموزّع الرئيسى للصناعة المصرية المحلية، وهو ما جعلها الموزّع الحصرى لكريازى، إحدى الشركات الرائدة فى صناعة أجهزة عالية الجودة وطويلة العمر فى السوق المصرى.',
+          'The company was founded in 1986 by Eng. Sadek Hanna Ghabbour, with the aim of being the main distributor for local Egyptian industry, which is how it became the sole distributor of Kiriazi, one of the pioneering makers of high-quality, long-lasting appliances in the Egyptian market.')) + '</p>' +
         '<blockquote class="pull mt16"><p style="margin:0">' + esc(t(
           'أن الصناعة المحلية تستحق موزّعاً يقف إلى جانبها.',
           'Local industry deserves a distributor who stands beside it.')) + '</p>' +
@@ -91,8 +91,8 @@
       return '<section class="ab-sec" aria-labelledby="ab-reach">' +
         '<h2 class="ab-h" id="ab-reach">' + esc(t('وصولنا', 'Our reach')) + '</h2>' +
         '<p class="ab-sub">' + esc(t(
-          'إلى جانب المتجر الإلكترونى، لدينا مجموعة معارض للبيع المباشر — يزورها كل سنة أكثر من 40,000 عميل.',
-          'Alongside the online store we have a group of showrooms for direct sales — and more than 40,000 customers pass through them every year.')) + '</p>' +
+          'إلى جانب المتجر الإلكترونى، لدينا مجموعة معارض للبيع المباشر، يزورها كل سنة أكثر من 40,000 عميل.',
+          'Alongside the online store we have a group of showrooms for direct sales, and more than 40,000 customers pass through them every year.')) + '</p>' +
         '<ul class="stats">' + STATS.map(s =>
           '<li class="stat"><b class="ltr">' + esc(s.v) + '</b><span>' + esc(t(s.lAr, s.lEn)) + '</span></li>').join('') +
         '</ul>' +
@@ -110,9 +110,6 @@
     function valuesLink() {
       return '<section class="ab-sec panel" aria-labelledby="ab-vlink">' +
         '<h2 class="ab-h" id="ab-vlink">' + esc(t('ما نؤمن به', 'What we stand for')) + '</h2>' +
-        '<p class="ab-p">' + esc(t(
-          'اثنتا عشرة قيمة وأربع قواعد عمل، مكتوبة بالمعنى الذى يصل إلى العميل — فى صفحة مستقلة.',
-          'Twelve values and four working rules, written in terms of what they mean for a customer — on a page of their own.')) + '</p>' +
         '<p style="margin:14px 0 0"><a class="btn btn--teal btn--sm" href="' + P('values.html') + '">' +
           esc(t('اقرأ قيمنا', 'Read our values')) + '</a></p>' +
         '</section>';

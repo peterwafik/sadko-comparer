@@ -149,10 +149,10 @@
         '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li>' +
       '</ul>' +
       '<p style="margin:14px 0 0;font-size:.82rem;opacity:.8;line-height:1.8">' +
-        t('مجموعة صادكو — من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group — since 1986, sole distributor of Kiriazi.') + '</p></div>' +
+        t('مجموعة صادكو، من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group, since 1986, sole distributor of Kiriazi.') + '</p></div>' +
       '</div><p class="foot__legal">' +
-      t('الأسعار والمواصفات المعروضة مأخوذة من صفحات المنتجات وقت آخر تحديث، وقد تتغير — يُرجى التأكد قبل الشراء. وتغطى مقارنة الأسعار متاجر مدعومة محددة، لا كل المتاجر فى مصر. أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض: فإذا اشتريت من متجر آخر غير صادكو، فالضمان والخدمة يخصانه هو لا صادكو.',
-        'Prices and specifications shown are taken from product pages at the time of the last update and may change — please confirm before buying. Price comparison covers a specific list of supported stores, not every store in Egypt. Warranty, installation and returns are provided by the seller named on each offer: if you buy from a store other than SADKO, that seller — not SADKO — provides the warranty and service.') +
+      t('الأسعار والمواصفات المعروضة مأخوذة من صفحات المنتجات وقت آخر تحديث، وقد تتغير، يُرجى التأكد قبل الشراء. وتغطى مقارنة الأسعار متاجر مدعومة محددة، لا كل المتاجر فى مصر. أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض: فإذا اشتريت من متجر آخر غير صادكو، فالضمان والخدمة يخصانه هو لا صادكو.',
+        'Prices and specifications shown are taken from product pages at the time of the last update and may change, so please confirm before buying. Price comparison covers a specific list of supported stores, not every store in Egypt. Warranty, installation and returns are provided by the seller named on each offer: if you buy from a store other than SADKO, that seller, not SADKO, provides the warranty and service.') +
       '<br>© ' + t('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }
 

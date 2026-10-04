@@ -1881,7 +1881,8 @@ const SECURITY_HEADERS = {
     "form-action 'self'",
     // inline handlers/styles are used throughout the static pages
     "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    // gsi/style: the Google sign-in button's own stylesheet
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https:",
     // the scroll-world home page fetches each scene clip same-origin, wraps it in
@@ -3239,6 +3240,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           : 'لهذا البريد الإلكترونى حساب فى صادكو بالفعل، ولم يؤكد مزوّد الخدمة ملكيتك له. سجّل دخولك بكلمة المرور.' });
         if (r.error) return json(400, authErr(r.error, lang));
         setSessionCookie(res, req, r.session.raw, r.session.expires);
+        // A first Google sign-in is a sign-up: give Ecwid the customer now, as register does.
+        if (r.created) linkCustomerSoon(r.user);
         return json(200, { ok: true, user: r.user, created: r.created });
       }
 

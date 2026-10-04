@@ -40,6 +40,14 @@ test('registering links the customer in Ecwid', () => {
   assert.match(route, /linkCustomer/);
 });
 
+test('an account first created through Google is linked in Ecwid too', () => {
+  /* Without this a Google sign-up reached Ecwid only at the next restart's
+     backfill or its first order. Only a NEW account: a returning Google user
+     is already linked. */
+  const route = /'\/api\/auth\/oauth' && req\.method === 'POST'[\s\S]{0,1600}?return json\(200/.exec(src)[0];
+  assert.match(route, /if \(r\.created\) linkCustomerSoon\(r\.user\)/);
+});
+
 test('the link never blocks or fails a signup', () => {
   /* An Ecwid round trip must not slow registration, and Ecwid being
      unreachable must not stop someone creating an account.

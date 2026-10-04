@@ -210,3 +210,15 @@ test('the fatal message names the actual fix, not the symptom', () => {
   const m = authMode({ SADKO_AUTH_PASSWORDLESS: 'yes' }, 0);
   assert.match(m.message, /GOOGLE_CLIENT_ID/);
 });
+
+test('the security policy lets the Google button load its own stylesheet', async () => {
+  /* Google Identity Services injects https://accounts.google.com/gsi/style
+     into the page; without it in style-src the browser blocks it and the
+     button renders unstyled. */
+  const { readFileSync } = await import('node:fs');
+  const path = await import('node:path');
+  const server = readFileSync(path.join(import.meta.dirname, '..', 'compare-server.mjs'), 'utf8');
+  const style = /"style-src [^"]*"/.exec(server);
+  assert.ok(style, 'a style-src directive exists');
+  assert.match(style[0], /https:\/\/accounts\.google\.com\/gsi\/style/);
+});

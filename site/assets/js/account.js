@@ -20,6 +20,9 @@
   function mountAccount(root) {
     const A = window.skApp, t = A.t, esc = A.esc, Au = window.skAuth, H = window.skHomes;
     let brands = [], cfg = { providers: [] }, editing = null;
+    /* ?next=appliances.html: where to go once signed in. Only a bare page name
+       of this site is followed, so the parameter cannot become an open redirect. */
+    const NEXT = (v => /^[a-z][a-z0-9-]*\.html$/.test(v) ? v : null)(new URLSearchParams(location.search).get('next') || '');
 
     Promise.all([
       A.products().then(list => { brands = [...new Set(list.map(p => { const s = window.skSpecs.of(p); return s.brand && s.brand.en; }).filter(Boolean))].sort(); }).catch(() => {}),
@@ -29,6 +32,7 @@
     Au.onChange(u => { if (root.dataset.painted) render(u); });
 
     function render(user) {
+      if (user && NEXT) { location.replace(A.P(NEXT)); return; }
       root.dataset.painted = '1';
       // The login/signup screen takes over the page (its own background + logo,
       // no hero/footer). A signed-in user, the offline state, or a guest who

@@ -353,11 +353,14 @@
         if (user) Au.saveProfile({ address: fd.get('address'),
                          profile: { governorate: fd.get('governorate'), floor: fd.get('floor'), hasLift: fd.get('hasLift') === 'yes' } });
         window.skCart.clear();
-        done(r.order);
+        done(r.order, user);
       });
     }
 
-    function done(o) {
+    function done(o, user) {
+      /* My appliances belongs to an account, so a guest signs in first and
+         account.js carries them on to it. */
+      const appliancesHref = user ? A.P('appliances.html') : A.P('account.html?next=appliances.html');
       root.innerHTML = '<div class="panel" style="max-width:680px;margin:0 auto;text-align:center">' +
         '<h2 class="panel__h" style="justify-content:center">' + t('تم تسجيل طلبك', 'Your order is recorded') + '</h2>' +
         '<p style="font:900 1.6rem Cairo,sans-serif;color:var(--accent);margin:14px 0" class="ltr">' + esc(o.ref) + '</p>' +
@@ -374,7 +377,7 @@
         '</ul>' +
         '<div class="chips mt24" style="justify-content:center">' +
           '<a class="btn btn--teal" href="' + A.P('account.html') + '">' + t('اعرض طلباتى', 'View my orders') + '</a>' +
-          '<a class="btn btn--ghost" href="' + A.P('appliances.html') + '">' + t('ضيفه لأجهزتى', 'Add to my appliances') + '</a>' +
+          '<a class="btn btn--ghost" href="' + appliancesHref + '">' + t('ضيفه لأجهزتى', 'Add to my appliances') + '</a>' +
           '<a class="btn btn--ghost" href="tel:19140">' + t('اتصل 19140', 'Call 19140') + '</a>' +
         '</div></div>';
     }

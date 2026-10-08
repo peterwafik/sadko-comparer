@@ -122,7 +122,7 @@
       ] },
       { h: t('قبل الشراء', 'Before you buy'), items: [
         [t('ساعدنى أختار', 'Help me choose'), P('finder.html')],
-        [t('أدلة الشراء', 'Buying guides'), P('guides.html')],
+        [t('دليلك للاختيار', 'Buying guides'), P('guides.html')],
         [t('قارن الأسعار', 'Compare prices'), P('compare.html')],
         [t('خطط التجهيز', 'Shopping plans'), P('plan.html')],
       ] },

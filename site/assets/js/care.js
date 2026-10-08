@@ -48,7 +48,7 @@
       { id: 'choose', ar: 'اختيار منتج', en: 'Choosing a product',
         aAr: 'إن لم تكن تعرف ماذا تختار، فأجب عن بضعة أسئلة عن منزلك وعدد الأفراد والمساحة، وسنرشّح لك ٣ خيارات مكتوب مع كل منها سبب ترشيحه.' + (COMPARE ? ' ويمكنك مقارنة الأسعار قبل أن تقرر.' : ''),
         aEn: 'If you are not sure what to buy, answer a few questions about your home, household size and space, and we will suggest three options, each with the reason it was suggested.' + (COMPARE ? ' You can also compare prices before deciding.' : ''),
-        links: [['ساعدنى أختار', 'Help me choose', 'finder.html'], ['قارن الأسعار', 'Compare prices', 'compare.html'], ['أدلة الشراء', 'Buying guides', 'guides.html']] },
+        links: [['ساعدنى أختار', 'Help me choose', 'finder.html'], ['قارن الأسعار', 'Compare prices', 'compare.html'], ['دليلك للاختيار', 'Buying guides', 'guides.html']] },
 
       { id: 'delivery', ar: 'التوصيل والتركيب', en: 'Delivery & installation',
         aAr: 'شروط التوصيل والتركيب مكتوبة فى وصف كل منتج، وتختلف من منتج إلى آخر ومن محافظة إلى أخرى، والتركيب فى أنواع كثيرة (تكييف، سخان، غسالة أطباق) يتم بموعد منفصل بعد التوصيل. وأدق مصدر هو صفحة المنتج نفسها، وإن احتجت تأكيداً لطلب بعينه فاتصل بنا على ' + TEL + '.',

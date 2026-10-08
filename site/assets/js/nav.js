@@ -52,7 +52,7 @@
   const N = {
     ar: { home: 'الرئيسية', shop: 'المتجر', all: 'كل المنتجات', allPrefix: 'كل ', compare: 'قارن الأسعار',
       orders: 'الطلبات', showrooms: 'المعارض', call: 'اتصل 19140', cartAria: 'سلة التسوق',
-      finder: 'ساعدنى أختار', plan: 'خطط التجهيز', guides: 'أدلة الشراء', care: 'خدمة العملاء',
+      finder: 'ساعدنى أختار', plan: 'خطط التجهيز', guides: 'دليلك للاختيار', care: 'خدمة العملاء',
       savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
       more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
       grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
@@ -457,7 +457,7 @@
         [tt('تواصل معنا', 'Contact us'), 'contact.html'],
         [tt('المعارض', 'Showrooms'), 'showrooms.html'], [tt('حسابى', 'My account'), 'account.html'] ] },
       { h: tt('قبل الشراء', 'Before you buy'), items: [
-        [tt('ساعدنى أختار', 'Help me choose'), 'finder.html'], [tt('أدلة الشراء', 'Buying guides'), 'guides.html'],
+        [tt('ساعدنى أختار', 'Help me choose'), 'finder.html'], [tt('دليلك للاختيار', 'Buying guides'), 'guides.html'],
         [tt('قارن الأسعار', 'Compare prices'), 'compare.html'], [tt('خطط التجهيز', 'Shopping plans'), 'plan.html'] ] },
       { h: tt('بعد الشراء', 'After you buy'), items: [
         [tt('أجهزتى والضمان', 'My appliances & warranty'), 'appliances.html'], [tt('مركز خدمة العملاء', 'Customer care'), 'care.html'],

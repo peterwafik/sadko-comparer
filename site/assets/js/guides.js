@@ -98,7 +98,7 @@
       const art = slug ? DATA.articles.find(a => a.slug === slug) : null;
       if (slug && !art) { root.innerHTML = notFound(slug); return; }
       if (art) { root.innerHTML = article(art); document.title = L(art.title) + ' | ' + t('صادكو جروب', 'SADKO Group'); }
-      else { root.innerHTML = index(); document.title = t('أدلة الشراء | صادكو جروب', 'Buying guides | SADKO Group'); }
+      else { root.innerHTML = index(); document.title = t('دليلك للاختيار | صادكو جروب', 'Buying guides | SADKO Group'); }
       root.focus({ preventScroll: true });
       window.scrollTo({ top: 0, behavior: 'auto' });
     }

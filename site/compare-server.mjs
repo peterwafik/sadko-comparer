@@ -96,7 +96,7 @@ const randBytesHex = n => randomBytes(n).toString('hex');
    file would appear to work and then silently do nothing.
    These three are the site's OWN editorial content, which Ecwid cannot hold. */
 const ADMIN_CONTENT = {
-  guides: { file: 'guides.json', label: 'أدلة الشراء / Buying guides' },
+  guides: { file: 'guides.json', label: 'دليلك للاختيار / Buying guides' },
   finder: { file: 'finder.json', label: 'مساعد الاختيار / Finder questions' },
   /* Banner artwork can come from the dedicated Ecwid category, but derived
      banners carry no English — the store holds no usable translations — so

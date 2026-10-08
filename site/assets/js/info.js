@@ -649,7 +649,7 @@
               ['أرقام المساحات والسعات فى الأدلة قواعد تقريبية شائعة، والرقم الملزم هو الوارد فى دليل الطراز.', 'The area and capacity figures in the guides are common rules of thumb; the binding number is in the model’s manual.'],
               ['أعمال الغاز والكهرباء والتركيب يجب أن يقوم بها فنى مؤهل، والأدلة تدلك على ما تسأل عنه، لا على أن تؤديه بنفسك.', 'Gas, electrical and installation work must be done by a qualified technician. The guides tell you what to ask about, not how to do it yourself.'],
             ]),
-            links([['ساعدنى أختار', 'Help me choose', 'finder.html'], ['أدلة الشراء', 'Buying guides', 'guides.html']]),
+            links([['ساعدنى أختار', 'Help me choose', 'finder.html'], ['دليلك للاختيار', 'Buying guides', 'guides.html']]),
           ],
         },
         {
@@ -723,7 +723,7 @@
   function crossLinks(key) {
     const items = Object.keys(XLINKS).filter(k => k !== key).map(k => XLINKS[k]);
     items.push(['مركز خدمة العملاء', 'Customer care', 'care.html']);
-    items.push(['أدلة الشراء', 'Buying guides', 'guides.html']);
+    items.push(['دليلك للاختيار', 'Buying guides', 'guides.html']);
     items.push(['المعارض', 'Showrooms', 'showrooms.html']);
     return '<section class="panel info-x">' +
       '<h2 class="panel__h">' + E(t('صفحات أخرى قد تهمك', 'Other pages you may need')) + '</h2>' +

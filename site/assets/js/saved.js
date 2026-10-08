@@ -33,8 +33,9 @@
             t('المنتجات المحفوظة', 'Saved products') + ' <span class="badge">' + A.num(list.length) + '</span></h2>' +
             '<button class="btn btn--quiet btn--sm" id="clearAll">' + t('امسح الكل', 'Clear all') + '</button></div>' +
           '<div class="note note--soft small mt8">' + esc(St.scopeNote()) + ' ' +
-            t('نقارن السعر الحالى فى الكتالوج بالسعر وقت حفظك للمنتج. ولمعرفة عروض المتاجر الأخرى، استخدم مقارنة الأسعار.',
-              'We compare the current catalogue price with the price when you saved it. To see other stores\' offers, use price comparison.') + '</div>' +
+            t('نقارن السعر الحالى فى الكتالوج بالسعر وقت حفظك للمنتج.', 'We compare the current catalogue price with the price when you saved it.') +
+            (window.skFeature && !window.skFeature.on('compare') ? '' :
+              ' ' + t('ولمعرفة عروض المتاجر الأخرى، استخدم مقارنة الأسعار.', 'To see other stores\' offers, use price comparison.')) + '</div>' +
           '<div class="grid3 mt16">' + list.map(s => card(s, byId[s.id])).join('') + '</div>';
         wire();
       });

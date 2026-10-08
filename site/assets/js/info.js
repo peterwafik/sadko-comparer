@@ -88,6 +88,12 @@
   const links = items => ({ t: 'links', items });    // [[ar,en,href], …]
   const table = (head, rows) => ({ t: 'table', head, rows });
   const defs = rows => ({ t: 'defs', rows });        // [[k_ar,k_en,v_ar,v_en], …]
+  /* needs('compare', x): x (a section, block or list item) only shows while
+     nav.js has that page switched on (skFeature). Links to a switched-off page
+     are dropped by the renderer on their own. */
+  const needs = (feature, x) => Object.assign(x, { needs: feature });
+  const shown = x => !x.needs || !window.skFeature || window.skFeature.on(x.needs);
+  const linkShown = i => !window.skFeature || !window.skFeature.hidden(i[2]);
 
   const pick = pair => t(pair[0], pair[1]);
 
@@ -99,9 +105,9 @@
       case 'h':
         return '<h3>' + E(t(b.ar, b.en)) + '</h3>';
       case 'ul':
-        return '<ul>' + b.items.map(i => '<li>' + E(pick(i)) + '</li>').join('') + '</ul>';
+        return '<ul>' + b.items.filter(shown).map(i => '<li>' + E(pick(i)) + '</li>').join('') + '</ul>';
       case 'ol':
-        return '<ol>' + b.items.map(i => '<li>' + E(pick(i)) + '</li>').join('') + '</ol>';
+        return '<ol>' + b.items.filter(shown).map(i => '<li>' + E(pick(i)) + '</li>').join('') + '</ol>';
       case 'note':
         return '<p class="note note--' + (b.k || 'info') + '">' + E(t(b.ar, b.en)) + '</p>';
       case 'todo':
@@ -109,13 +115,14 @@
           '<span class="badge badge--amber">' + E(t('محتاج اعتماد صادكو', 'Needs SADKO sign-off')) + '</span>' +
           '<span>' + E(t(b.ar, b.en)) + '</span></div>';
       case 'links':
-        return '<p class="chips">' + b.items.map(i =>
+        if (!b.items.some(linkShown)) return '';
+        return '<p class="chips">' + b.items.filter(linkShown).map(i =>
           '<a class="chip" href="' + E(hrefOf(i[2])) + '">' + E(pick(i)) + '</a>').join('') + '</p>';
       case 'table':
         return '<div class="doc-scroll"><table class="tbl"><thead><tr>' +
           b.head.map(c => '<th scope="col">' + E(pick(c)) + '</th>').join('') +
           '</tr></thead><tbody>' +
-          b.rows.map(r => '<tr>' + r.map((c, i) => i === 0
+          b.rows.filter(shown).map(r => '<tr>' + r.map((c, i) => i === 0
             ? '<th scope="row">' + E(pick(c)) + '</th>'
             : '<td>' + E(pick(c)) + '</td>').join('') + '</tr>').join('') +
           '</tbody></table></div>';
@@ -153,7 +160,7 @@
     /* ------------------------------------------------------------------ */
     warranty: {
       sections: [
-        {
+        needs('compare', {
           id: 'seller',
           h: ['من هو البائع؟ هذا أهم سؤال فى الضمان', 'Who is the seller? That is the warranty question that matters'],
           sub: ['يعرض هذا الموقع أمرين مختلفين: منتجات تبيعها صادكو، ونتائج مقارنة أسعار من متاجر أخرى. والضمان والخدمة ليسا واحداً فى الحالتين.',
@@ -189,7 +196,7 @@
               ['مقارنة الأسعار', 'Price comparison', 'compare.html'],
             ]),
           ],
-        },
+        }),
         {
           id: 'covers',
           h: ['ماذا يغطى ضمان المصنّع عادةً، وما الذى يقع خارجه', 'What a manufacturer warranty usually covers, and what it does not'],
@@ -232,9 +239,9 @@
               ['إذا كان الضمان يتطلب تفعيلاً أو تسجيلاً خلال مدة محددة، فأنجزه فى الأسبوع نفسه.', 'If the warranty needs activation or registration within a period, do it the same week.'],
               ['واحتفظ بإيصال التركيب أيضاً، فهو يثبت أن التركيب تم بالطريقة المعتمدة.', 'Keep the installation receipt too: it proves the installation was done the approved way.'],
             ]),
-            note('soft',
+            needs('appliances', note('soft',
               'تحفظ صفحة «أجهزتى» على هذا الموقع الطراز والرقم التسلسلى وتاريخ الشراء ومدة الضمان، وتحسب لك الأيام المتبقية. وهذه البيانات مخزَّنة فى متصفحك أنت (لا على خادم)، ومن ثم يظل عليك الاحتفاظ بنسختك من الصور والفاتورة الأصلية.',
-              'The "My appliances" page stores the model, serial number, purchase date and warranty length, and counts the days left for you. That data lives in your own browser (not on a server), so you still need to keep your own copies of the invoice and photos.'),
+              'The "My appliances" page stores the model, serial number, purchase date and warranty length, and counts the days left for you. That data lives in your own browser (not on a server), so you still need to keep your own copies of the invoice and photos.')),
             links([['سجّل جهازك فى «أجهزتى»', 'Record your appliance in "My appliances"', 'appliances.html']]),
           ],
         },
@@ -309,7 +316,7 @@
             ul([
               ['افحص الجهاز أمام فريق التوصيل قبل التوقيع، وسجّل أى خدش أو كسر فى إيصال الاستلام نفسه.', 'Inspect the appliance in front of the delivery team before you sign, and record any scratch or damage on the delivery note itself.'],
               ['الجهاز الذى رُكّب أو شُغّل تسرى عليه شروط مختلفة عن جهاز ما زال فى عبوته.', 'An appliance that has been installed or used is treated differently from one still in its box.'],
-              ['إذا كان المنتج من متجر آخر عبر مقارنة الأسعار، فسياسة الاسترجاع الخاصة به هى التى تسرى.', 'If the product came from another store through price comparison, that store’s return policy applies.'],
+              needs('compare', ['إذا كان المنتج من متجر آخر عبر مقارنة الأسعار، فسياسة الاسترجاع الخاصة به هى التى تسرى.', 'If the product came from another store through price comparison, that store’s return policy applies.']),
             ]),
             todo('مدة الاسترجاع وشروطه المعتمدة من صادكو غير منشورة هنا، ولا يصح أن نخترعها. وإلى أن تُعتمد وتُكتب، اسأل خدمة العملاء على ' + TEL + ' قبل الشراء إذا كان الاسترجاع مهماً لك.',
               'SADKO’s approved return window and conditions are not published here, and we are not going to invent them. Until they are approved and written, ask customer care on ' + TEL + ' before buying if returns matter to you.'),
@@ -468,7 +475,7 @@
             ul([
               ['إذا أنشأت حساباً: يُخزَّن الاسم والبريد الإلكترونى ورقم الهاتف وعنوان التوصيل على خادم صادكو نفسه لتتمكن من تسجيل الدخول وتقديم طلب.', 'If you create an account: your name, e-mail, phone and delivery address are stored on SADKO’s own server so you can sign in and place an order.'],
               ['أما خطط التجهيز والمنتجات المحفوظة وأجهزتك والسلة والتقييمات والأسئلة التى تكتبها فكلها فى متصفحك أنت، على جهازك، ولا تُرفع إلى أى مكان. وإذا عرّفتنا بمكانك دون إنشاء حساب، فإنه يُحفظ على جهازك أيضاً، وينتقل معك بمجرد إنشاء الحساب.', 'Shopping plans, saved products, your appliances, the cart, and the reviews and questions you write all live in your own browser on your device and are not uploaded anywhere. If you describe a place without creating an account, that also stays on your device, and moves across with you when you do create one.'],
-              ['تجلب مقارنة الأسعار صفحات منتجات عامة من متاجر مدعومة، فهو بحث عن منتج، لا عنك أنت.', 'Price comparison fetches public product pages from supported stores: a search about a product, not about you.'],
+              needs('compare', ['تجلب مقارنة الأسعار صفحات منتجات عامة من متاجر مدعومة، فهو بحث عن منتج، لا عنك أنت.', 'Price comparison fetches public product pages from supported stores: a search about a product, not about you.']),
               ['لا توجد أى بيانات بطاقات على هذا الموقع البتة: لا رقم بطاقة، ولا رمز CVV، ولا صفحة دفع.', 'No card details anywhere on this site at all: no card number, no CVV, no payment page.'],
               ['إذا سجّلت الدخول بحساب جوجل: نتلقى منهم اسمك وبريدك الإلكترونى فقط، ولا نرى كلمة مرور جوجل ولا نصل إلى أى شىء آخر فى حسابك.', 'If you sign in with Google: we receive only your name and e-mail. We never see your Google password and cannot reach anything else in your account.'],
               ['لا يوجد تتبع إعلانى ولا تحليلات من طرف ثالث على هذه الصفحات.', 'No advertising trackers and no third-party analytics on these pages.'],
@@ -509,7 +516,7 @@
                 [['sadko-cart-v1', 'sadko-cart-v1'], ['سلة التسوق: المنتجات التى أضفتها والكميات.', 'The shopping cart: the products you added and their quantities.']],
                 [['sadko-saved-v1', 'sadko-saved-v1'], ['المنتجات المحفوظة والسعر وقت الحفظ لنعرض لك التغيّر.', 'Saved products and the price at the time you saved them, so we can show the change.']],
                 [['sadko-plans-v1', 'sadko-plans-v1'], ['خطط التجهيز: الأجهزة والميزانية والملاحظات.', 'Shopping plans: appliances, budget and notes.']],
-                [['sadko-owned-v1', 'sadko-owned-v1'], ['أجهزتك المسجَّلة: الطراز، والرقم التسلسلى، وتاريخ الشراء، ومدة الضمان.', 'Your recorded appliances: model, serial, purchase date and warranty length.']],
+                needs('appliances', [['sadko-owned-v1', 'sadko-owned-v1'], ['أجهزتك المسجَّلة: الطراز، والرقم التسلسلى، وتاريخ الشراء، ومدة الضمان.', 'Your recorded appliances: model, serial, purchase date and warranty length.']]),
                 [['sadko-profile-v1', 'sadko-profile-v1'], ['إجابات ملف المنزل إن أجبت عنها دون حساب.', 'Home-profile answers if you filled them in without an account.']],
                 [['sadko-qa-v1 / sadko-reviews-v1', 'sadko-qa-v1 / sadko-reviews-v1'], ['الأسئلة والتقييمات التى تكتبها، تُحفظ محلياً ولا تُنشر لأحد.', 'The questions and reviews you write, kept locally and not published to anyone.']],
                 [['sadko-lang', 'sadko-lang'], ['لغة العرض: العربية أم الإنجليزية.', 'The display language: Arabic or English.']],
@@ -520,7 +527,7 @@
               'Because this is local storage: if you clear browser data, or open the site on another device or in a private window, none of it will be there. There is no sync between devices.'),
           ],
         },
-        {
+        needs('compare', {
           id: 'compare',
           h: ['مقارنة الأسعار', 'Price comparison'],
           blocks: [
@@ -533,7 +540,7 @@
             ]),
             links([['مقارنة الأسعار', 'Price comparison', 'compare.html'], ['شروط الاستخدام', 'Terms of use', 'terms.html']]),
           ],
-        },
+        }),
         {
           id: 'payments',
           h: ['بيانات الدفع', 'Payment details'],
@@ -581,8 +588,8 @@
           id: 'use',
           h: ['استخدام الموقع', 'Using this site'],
           blocks: [
-            p('هذا الموقع نسخة معاد تصميمها (Rebrand Preview) لصادكو جروب، تعرض كتالوج منتجات وأدوات تساعدك على الاختيار: ترشيحات، ومقارنة أسعار، وأدلة شراء، وخطط تجهيز. واستخدامك للموقع يعنى موافقتك على الإرشادات المكتوبة هنا.',
-              'This site is a rebrand preview for SADKO Group. It presents a product catalogue and tools that help you choose: recommendations, price comparison, buying guides and shopping plans. Using the site means you accept the guidance set out here.'),
+            p('هذا الموقع نسخة معاد تصميمها (Rebrand Preview) لصادكو جروب، تعرض كتالوج منتجات وأدوات تساعدك على الاختيار: ترشيحات، ' + (window.skFeature && !window.skFeature.on('compare') ? '' : 'ومقارنة أسعار، ') + 'وأدلة شراء، وخطط تجهيز. واستخدامك للموقع يعنى موافقتك على الإرشادات المكتوبة هنا.',
+              'This site is a rebrand preview for SADKO Group. It presents a product catalogue and tools that help you choose: recommendations, ' + (window.skFeature && !window.skFeature.on('compare') ? '' : 'price comparison, ') + 'buying guides and shopping plans. Using the site means you accept the guidance set out here.'),
             ul([
               ['استخدم الموقع للأغراض الشخصية والمشروعة فقط.', 'Use the site for personal, lawful purposes only.'],
               ['لا تحاول سحب الكتالوج آلياً، أو إثقال الخادم بطلبات كثيرة، أو تعطيل الخدمة.', 'Do not scrape the catalogue automatically, overload the server with requests, or disrupt the service.'],
@@ -619,7 +626,7 @@
               'Before you buy on the strength of a particular figure (a dimension, a capacity, an energy rating, a warranty period), confirm it against the original product page or with customer care on ' + TEL + '. Automatic reading can get it wrong.'),
           ],
         },
-        {
+        needs('compare', {
           id: 'compare',
           h: ['مقارنة الأسعار', 'Price comparison'],
           blocks: [
@@ -631,7 +638,7 @@
             ]),
             links([['الضمان والاسترجاع', 'Warranty & returns', 'warranty.html'], ['مقارنة الأسعار', 'Price comparison', 'compare.html']]),
           ],
-        },
+        }),
         {
           id: 'advice',
           h: ['الترشيحات والأدلة إرشادية', 'Recommendations and guides are guidance'],
@@ -695,7 +702,7 @@
   /* ================= page chrome ================= */
 
   function topBlock(key, page) {
-    const toc = page.sections.map(s =>
+    const toc = page.sections.filter(shown).map(s =>
       '<a class="chip chip--mute" href="#' + E(key + '-' + s.id) + '">' + E(pick(s.h)) + '</a>').join('');
     return '<div class="panel info-top">' +
       block(BANNER) +
@@ -709,7 +716,7 @@
     return '<section class="panel" id="' + E(key + '-' + s.id) + '">' +
       '<h2 class="panel__h">' + E(pick(s.h)) + '</h2>' +
       (s.sub ? '<p class="panel__sub">' + E(pick(s.sub)) + '</p>' : '') +
-      '<div class="doc">' + s.blocks.map(block).join('') + '</div>' +
+      '<div class="doc">' + s.blocks.filter(shown).map(block).join('') + '</div>' +
       '</section>';
   }
 
@@ -738,7 +745,7 @@
     injectCSS();
     root.innerHTML =
       topBlock(key, page) +
-      page.sections.map(s => section(key, s)).join('') +
+      page.sections.filter(shown).map(s => section(key, s)).join('') +
       crossLinks(key);
   }
 

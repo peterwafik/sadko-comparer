@@ -120,7 +120,7 @@
         '<p class="ct-sub">' + esc(t(
           'لمعظم الأسئلة إجابة على الموقع دون انتظار رد من أحد. اطّلع على ما يخصك:',
           'Most questions already have an answer on this site without waiting for anyone to reply. Find yours:')) + '</p>' +
-        '<ul class="rts">' + ROUTES.map(r =>
+        '<ul class="rts">' + ROUTES.filter(r => !(window.skFeature && window.skFeature.hidden(r.href))).map(r =>
           '<li><a class="rt" href="' + P(r.href) + '">' +
             '<h3>' + esc(t(r.hAr, r.hEn)) + '</h3>' +
             '<p>' + esc(t(r.pAr, r.pEn)) + '</p>' +

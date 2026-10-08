@@ -67,3 +67,9 @@ site/preview.log
 
 # backups of the Ecwid credential file
 site/.ecwid.env*
+
+# VM data snapshot (personal data) taken before the Vercel move
+vm-backup/
+site/node_modules/
+site/.vercel/
+site/public/

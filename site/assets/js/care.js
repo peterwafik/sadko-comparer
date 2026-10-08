@@ -25,8 +25,11 @@
   function mountCare(root) {
     const A = window.skApp, S = window.skStore, O = S.owned;
     const t = A.t, esc = A.esc, num = A.num;
+    /* nav.js can switch pages off for a release (skFeature); while "My
+       appliances" is off this page neither reads it nor sends people to it. */
+    const F = window.skFeature, COMPARE = !F || F.on('compare'), MINE = !F || F.on('appliances');
 
-    const ref = A.qs('ref', '');
+    const ref = MINE ? A.qs('ref', '') : '';
     const refApp = ref ? O.get(ref) : null;
     const isExternal = a => String(a.seller || 'sadko') !== 'sadko';
     const sellerName = a => (a.sellerName ? a.sellerName : t('متجر آخر', 'another shop'));
@@ -43,8 +46,8 @@
     /* ================= topic sections ================= */
     const TOPICS = [
       { id: 'choose', ar: 'اختيار منتج', en: 'Choosing a product',
-        aAr: 'إن لم تكن تعرف ماذا تختار، فأجب عن بضعة أسئلة عن منزلك وعدد الأفراد والمساحة، وسنرشّح لك ٣ خيارات مكتوب مع كل منها سبب ترشيحه. ويمكنك مقارنة الأسعار قبل أن تقرر.',
-        aEn: 'If you are not sure what to buy, answer a few questions about your home, household size and space, and we will suggest three options, each with the reason it was suggested. You can also compare prices before deciding.',
+        aAr: 'إن لم تكن تعرف ماذا تختار، فأجب عن بضعة أسئلة عن منزلك وعدد الأفراد والمساحة، وسنرشّح لك ٣ خيارات مكتوب مع كل منها سبب ترشيحه.' + (COMPARE ? ' ويمكنك مقارنة الأسعار قبل أن تقرر.' : ''),
+        aEn: 'If you are not sure what to buy, answer a few questions about your home, household size and space, and we will suggest three options, each with the reason it was suggested.' + (COMPARE ? ' You can also compare prices before deciding.' : ''),
         links: [['ساعدنى أختار', 'Help me choose', 'finder.html'], ['قارن الأسعار', 'Compare prices', 'compare.html'], ['أدلة الشراء', 'Buying guides', 'guides.html']] },
 
       { id: 'delivery', ar: 'التوصيل والتركيب', en: 'Delivery & installation',
@@ -53,9 +56,9 @@
         links: [['المعارض والفروع', 'Showrooms', 'showrooms.html'], ['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL]] },
 
       { id: 'warranty', ar: 'الضمان', en: 'Warranty',
-        aAr: 'يبدأ الضمان من تاريخ الشراء ومدته مكتوبة فى بطاقة الضمان أو الفاتورة. سجّل الجهاز فى صفحة «أجهزتى» لنحسب لك الأيام المتبقية ونذكّرك قبل انتهائه بشهر. ومهم أن تعلم: الضمان يقدمه البائع المذكور فى الفاتورة، فإن اشتريت من متجر آخر، فالضمان يخصه هو.',
-        aEn: 'Warranty runs from the purchase date and its length is written on the warranty card or invoice. Record the appliance under "My appliances" and we will show how many days are left and remind you a month before it ends. Important: the warranty is provided by the seller named on the invoice. If you bought elsewhere, that seller carries it.',
-        links: [['أجهزتى والضمان', 'My appliances & warranty', 'appliances.html']] },
+        aAr: 'يبدأ الضمان من تاريخ الشراء ومدته مكتوبة فى بطاقة الضمان أو الفاتورة.' + (MINE ? ' سجّل الجهاز فى صفحة «أجهزتى» لنحسب لك الأيام المتبقية ونذكّرك قبل انتهائه بشهر.' : ' احتفظ بهما معاً فى مكان واحد.') + ' ومهم أن تعلم: الضمان يقدمه البائع المذكور فى الفاتورة، فإن اشتريت من متجر آخر، فالضمان يخصه هو.',
+        aEn: 'Warranty runs from the purchase date and its length is written on the warranty card or invoice.' + (MINE ? ' Record the appliance under "My appliances" and we will show how many days are left and remind you a month before it ends.' : ' Keep the two together in one place.') + ' Important: the warranty is provided by the seller named on the invoice. If you bought elsewhere, that seller carries it.',
+        links: [['أجهزتى والضمان', 'My appliances & warranty', 'appliances.html'], ['الضمان والاسترجاع', 'Warranty & returns', 'warranty.html']] },
 
       { id: 'usage', ar: 'استخدام الجهاز', en: 'Using the appliance',
         aAr: 'معظم المشكلات التى تصلنا (تبريد ضعيف، غسالة لا تُصرّف، صوت مرتفع) سببها ضبط أو تنظيف بسيط لا عطل. راجع دليل الجهاز أولاً، ثم جرّب الخطوات السريعة الواردة فى أدلة الاستخدام، فإن بقيت المشكلة، فاملأ الطلب أدناه.',
@@ -63,8 +66,8 @@
         links: [['أدلة الاستخدام', 'Guides', 'guides.html']] },
 
       { id: 'maint', ar: 'الصيانة', en: 'Maintenance',
-        aAr: 'إن احتاج الجهاز إلى فنى، فجهّز الطراز والرقم التسلسلى وتاريخ الشراء قبل الاتصال، فذلك يوفّر مكالمة كاملة. وتحفظ صفحة «أجهزتى» هذه البيانات وتذكّرك بمواعيد الصيانة الدورية (فلتر التكييف كل ٣ أشهر مثلاً).',
-        aEn: 'If the appliance needs a technician, have the model, serial number and purchase date ready before you call. It saves an entire phone call. "My appliances" stores these and reminds you about routine maintenance (an AC filter every three months, for example).',
+        aAr: 'إن احتاج الجهاز إلى فنى، فجهّز الطراز والرقم التسلسلى وتاريخ الشراء قبل الاتصال، فذلك يوفّر مكالمة كاملة.' + (MINE ? ' وتحفظ صفحة «أجهزتى» هذه البيانات وتذكّرك بمواعيد الصيانة الدورية (فلتر التكييف كل ٣ أشهر مثلاً).' : ''),
+        aEn: 'If the appliance needs a technician, have the model, serial number and purchase date ready before you call. It saves an entire phone call.' + (MINE ? ' "My appliances" stores these and reminds you about routine maintenance (an AC filter every three months, for example).' : ''),
         links: [['أجهزتى', 'My appliances', 'appliances.html'], ['اتصل على ' + TEL, 'Call ' + TEL, 'tel:' + TEL]] },
 
       { id: 'returns', ar: 'الاسترجاع والاستبدال', en: 'Returns & exchange',
@@ -136,7 +139,7 @@
     }
 
     function formSection() {
-      const owned = O.all();
+      const owned = MINE ? O.all() : [];
       const issues = state.stage === 'before' ? ISSUES_BEFORE : ISSUES_AFTER;
       return '<section class="panel mt24" aria-labelledby="gf-h"><h2 class="panel__h" id="gf-h" style="font-size:1.25rem">' +
         t('طلب مساعدة موجّه', 'Guided support request') + '</h2>' +
@@ -153,7 +156,7 @@
                 '<select class="select" name="deviceId"><option value="">' + t('(ليس من القائمة)', '(not from the list)') + '</option>' +
                 owned.map(a => '<option value="' + esc(a.id) + '"' + (state.deviceId === a.id ? ' selected' : '') + '>' +
                   esc(a.title || t('جهاز بدون اسم', 'Untitled appliance')) + '</option>').join('') + '</select></label>'
-              : '<p class="small muted">' + t('إن سجّلت أجهزتك فى صفحة «أجهزتى» ظهرت هنا وامتلأت تلقائياً. ',
+              : !MINE ? '' : '<p class="small muted">' + t('إن سجّلت أجهزتك فى صفحة «أجهزتى» ظهرت هنا وامتلأت تلقائياً. ',
                   'If you record your appliances under "My appliances" they will appear here and fill themselves in. ') +
                 '<a href="appliances.html">' + t('سجّل جهازك', 'Record an appliance') + '</a></p>') +
             '<label class="field"><span class="field__l small">' + t('أو اكتب الجهاز / الطلب', 'Or type the appliance / request') + '</span>' +

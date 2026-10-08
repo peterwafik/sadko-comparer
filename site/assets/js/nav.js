@@ -25,6 +25,22 @@
   const P = p => ROOT + p;
   const C = id => P(`category/${id}.html`);
 
+  /* ---- pages switched off for the launch ----
+     The price comparer needs the Node engine, which the Vercel launch does not
+     run, and "My appliances" is not part of the first release. Their files stay
+     in the repo; listing a page here takes it out of every menu, footer, button
+     and sentence that points at it, and sends a direct visit to the home page.
+     Empty this list to bring them back. Page scripts ask skFeature.on('compare'). */
+  const HIDDEN_PAGES = ['compare', 'appliances'];
+  // "compare.html?q=x", "../compare.html" and Vercel's clean "/compare" all name the same page
+  const pageOf = href => String(href || '').replace(/\\/g, '/').split(/[?#]/)[0].split('/').pop().replace(/\.html?$/, '');
+  window.skFeature = {
+    hidden: href => HIDDEN_PAGES.includes(pageOf(href)),
+    on: name => !HIDDEN_PAGES.includes(name),
+  };
+  if (window.skFeature.hidden(location.pathname)) { location.replace(P('index.html')); return; }
+  const shown = href => !window.skFeature.hidden(href);
+
   /* ---- site language: 'ar' (default) | 'en' — persisted, toggle in the strap.
      Pages read window.skLang.get() to localize their own content. ---- */
   const LANG_KEY = 'sadko-lang';
@@ -156,7 +172,7 @@
       { t: N.grpBefore, items: [['plan', N.plan, 'plan.html'], ['guides', N.guides, 'guides.html']] },
       { t: N.grpAfter,  items: [['orders', N.orders, 'orders.html'], ['appliances', N.appliances, 'appliances.html'],
                                 ['showrooms', N.showrooms, 'showrooms.html'], ['care', N.care, 'care.html']] },
-    ];
+    ].map(g => ({ t: g.t, items: g.items.filter(it => shown(it[2])) }));
     const shopMenuInner =
       `<a class="sk-menu__all" href="${P('shop.html')}">${N.all}</a>` +
       SHOP_TREE.map((t, i) =>
@@ -202,8 +218,10 @@
         // version of. Only one link may carry it; two amber pills is no emphasis.
         // It also takes the middle slot, where the eye lands first in a five-item
         // strap, so position and colour say the same thing.
-        A('compare', N.compare, 'compare.html', 'sk-link--cta') +
-        A('finder', N.finder, 'finder.html') +
+        // While the comparer is switched off the pill moves to the finder.
+        (shown('compare.html')
+          ? A('compare', N.compare, 'compare.html', 'sk-link--cta') + A('finder', N.finder, 'finder.html')
+          : A('finder', N.finder, 'finder.html', 'sk-link--cta')) +
         `<div class="sk-more">` +
           `<button type="button" class="sk-link sk-more__btn" aria-haspopup="true" aria-expanded="false">${N.more} <i class="sk-caret"></i></button>` +
           `<div class="sk-morepanel sk-glass" role="menu">` +
@@ -259,8 +277,9 @@
         `</div>` +
         // Same order and same pill as the desktop strap above — the drawer must not
         // disagree with it about which feature the site is leading with.
-        dLink('compare', N.compare, 'compare.html', 'sk-dlink--cta') +
-        dLink('finder', N.finder, 'finder.html') +
+        (shown('compare.html')
+          ? dLink('compare', N.compare, 'compare.html', 'sk-dlink--cta') + dLink('finder', N.finder, 'finder.html')
+          : dLink('finder', N.finder, 'finder.html', 'sk-dlink--cta')) +
         MORE.map(g => `<div class="sk-dgroup"><h4>${esc(g.t)}</h4>` +
           g.items.map(it => dLink(it[0], it[1], it[2])).join('') + `</div>`).join('') +
       `</nav>` +
@@ -364,6 +383,21 @@
     if (ROOT && document.querySelector('article.card')) enhanceCategoryCards();
     if (ROOT && LANG === 'en') translateCategoryPage();
     ensureFooter();
+    dropHiddenLinks(document.body);
+    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) dropHiddenLinks(n); })))
+      .observe(document.body, { childList: true, subtree: true });
+  }
+
+  /* Last line of defence for HIDDEN_PAGES: any stand-alone button or link a
+     page script renders to a switched-off page is removed. Sentences that
+     mention those pages are reworded where they are written. */
+  function dropHiddenLinks(root) {
+    const links = root.matches('a[href]') ? [root] : [...root.querySelectorAll('a[href]')];
+    links.forEach(a => {
+      if (!window.skFeature.hidden(a.getAttribute('href'))) return;
+      const li = a.parentElement && a.parentElement.tagName === 'LI' && a.parentElement.children.length === 1 ? a.parentElement : null;
+      (li || a).remove();
+    });
   }
 
   /* ---- English mode for the prebuilt (Arabic-authored) category pages ----
@@ -431,7 +465,7 @@
       { h: tt('معلومات', 'Information'), items: [
         [tt('الضمان والاسترجاع', 'Warranty & returns'), 'warranty.html'], [tt('الخصوصية', 'Privacy'), 'privacy.html'],
         [tt('شروط الاستخدام', 'Terms of use'), 'terms.html'] ] },
-    ];
+    ].map(g => ({ h: g.h, items: g.items.filter(it => shown(it[1])) }));
     let el = document.querySelector('footer.foot');
     const home = !!document.getElementById('world');
     if (!el) { el = document.createElement('footer'); (home ? document.body : document.body).appendChild(el); }
@@ -445,8 +479,8 @@
         '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li></ul>' +
         '<p class="foot__tag">' + tt('مجموعة صادكو، من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group, since 1986, sole distributor of Kiriazi.') + '</p></div>' +
       '</div><p class="foot__legal">' +
-        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وقد تتغير، يُرجى التأكد قبل الشراء. وتغطى مقارنة الأسعار متاجر مدعومة محددة. أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض.',
-           'Prices and specifications are taken from product pages at the last update and may change, so please confirm before buying. Price comparison covers a specific list of supported stores. Warranty, installation and returns are provided by the seller named on each offer.') +
+        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وقد تتغير، يُرجى التأكد قبل الشراء.' + (!(window.skFeature && !window.skFeature.on('compare')) ? ' وتغطى مقارنة الأسعار متاجر مدعومة محددة.' : '') + ' أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض.',
+           'Prices and specifications are taken from product pages at the last update and may change, so please confirm before buying.' + (!(window.skFeature && !window.skFeature.on('compare')) ? ' Price comparison covers a specific list of supported stores.' : '') + ' Warranty, installation and returns are provided by the seller named on each offer.') +
         '<br>© ' + tt('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }
 

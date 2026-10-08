@@ -377,7 +377,8 @@
         '</ul>' +
         '<div class="chips mt24" style="justify-content:center">' +
           '<a class="btn btn--teal" href="' + A.P('account.html') + '">' + t('اعرض طلباتى', 'View my orders') + '</a>' +
-          '<a class="btn btn--ghost" href="' + appliancesHref + '">' + t('ضيفه لأجهزتى', 'Add to my appliances') + '</a>' +
+          (window.skFeature && !window.skFeature.on('appliances') ? '' :
+            '<a class="btn btn--ghost" href="' + appliancesHref + '">' + t('ضيفه لأجهزتى', 'Add to my appliances') + '</a>') +
           '<a class="btn btn--ghost" href="tel:19140">' + t('اتصل 19140', 'Call 19140') + '</a>' +
         '</div></div>';
     }

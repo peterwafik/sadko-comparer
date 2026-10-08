@@ -89,6 +89,9 @@
     return r.label || A.catName(r.categoryId);
   }
   function priceNote() {
+    if (!!(window.skFeature && !window.skFeature.on('compare'))) return '<p class="note note--info mt16">' +
+      t('هذه أسعار الكتالوج وقت آخر تحديث وقد تكون تغيّرت، فأكّدها مع خدمة العملاء على 19140 قبل الشراء.',
+        'These are catalogue prices from the last update and may have changed, so confirm them with customer care on 19140 before you buy.') + '</p>';
     return '<p class="note note--info mt16">' +
       t('هذه أسعار الكتالوج وقت آخر تحديث وقد تكون تغيّرت. وقبل الشراء، ',
         'These are catalogue prices from the last update and may have changed. Before you buy, ') +

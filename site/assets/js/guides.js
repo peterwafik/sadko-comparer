@@ -292,8 +292,8 @@
       return '<section class="panel mt16">' +
         '<h3 class="panel__h">' + esc(t('الخطوة التالية', 'Your next step')) + '</h3>' +
         '<p class="panel__sub">' + esc(t(
-          'طبّق ما قرأته على الكتالوج: رشّح جهازاً على مقاسك، أو تصفّح الفئة، أو قارن الطراز نفسه لدى أكثر من بائع.',
-          'Take what you just read into the catalogue: get a shortlist for your home, browse the category, or compare the same model across sellers.'
+          'طبّق ما قرأته على الكتالوج: رشّح جهازاً على مقاسك، أو تصفّح الفئة' + (!(window.skFeature && !window.skFeature.on('compare')) ? '، أو قارن الطراز نفسه لدى أكثر من بائع.' : '.'),
+          'Take what you just read into the catalogue: get a shortlist for your home' + (!(window.skFeature && !window.skFeature.on('compare')) ? ', browse the category, or compare the same model across sellers.' : ' or browse the category.')
         )) + '</p>' +
         '<div class="chips">' + btns.map(b =>
           '<a class="btn ' + b[0] + ' btn--sm" href="' + esc(b[2]) + '">' + esc(b[1]) + '</a>').join('') + '</div>' +

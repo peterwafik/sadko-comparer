@@ -150,8 +150,12 @@ export function storeSpec(localFile) {
    prefix to the variable names (this project's is SADKO_), so both the plain
    and the prefixed names are accepted. */
 export function tursoEnv(env = process.env) {
-  return {
-    url: env.TURSO_DATABASE_URL || env.SADKO_TURSO_DATABASE_URL || null,
-    authToken: env.TURSO_AUTH_TOKEN || env.SADKO_TURSO_AUTH_TOKEN || undefined,
-  };
+  const url = env.TURSO_DATABASE_URL || env.SADKO_TURSO_DATABASE_URL || null;
+  /* Only a real remote address counts. `vercel env pull` writes the
+     placeholder "[SENSITIVE]" for protected values, and treating that as a
+     path once created a local file called "[SENSITIVE]" instead of reaching
+     Turso. Refuse anything else loudly rather than fall back to a file. */
+  if (url && !/^(libsql|https?|wss?):\/\//i.test(url))
+    throw new Error('TURSO database URL is not a libsql:// or https:// address (got a placeholder or a path)');
+  return { url, authToken: env.TURSO_AUTH_TOKEN || env.SADKO_TURSO_AUTH_TOKEN || undefined };
 }

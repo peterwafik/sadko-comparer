@@ -70,3 +70,11 @@ test('dbUrl turns Windows and POSIX paths into file: URLs and passes URLs throug
   assert.equal(dbUrl('libsql://x.turso.io'), 'libsql://x.turso.io');
   assert.match(dbUrl('D:\\tmp\\a.db'), /^file:D:\/tmp\/a\.db$/);
 });
+
+test('a placeholder or a path is never accepted as the hosted database', async () => {
+  const { tursoEnv } = await import('./db.mjs');
+  assert.throws(() => tursoEnv({ SADKO_TURSO_DATABASE_URL: '[SENSITIVE]' }), /not a libsql/);
+  assert.throws(() => tursoEnv({ TURSO_DATABASE_URL: 'D:/data/x.db' }), /not a libsql/);
+  assert.equal(tursoEnv({ SADKO_TURSO_DATABASE_URL: 'libsql://x.turso.io', SADKO_TURSO_AUTH_TOKEN: 't' }).url, 'libsql://x.turso.io');
+  assert.equal(tursoEnv({}).url, null);
+});

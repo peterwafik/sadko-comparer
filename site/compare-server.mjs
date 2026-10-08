@@ -1761,7 +1761,7 @@ let ECWID_STORE = null, ECWID_API = null, ECWID_SYNC = null, ECWID_SOURCE = null
 let READY = null;
 /* Why a store failed to open, for the operator only (see /healthz). */
 const STORE_ERRORS = {};
-function ready() {
+export function ready() {
   if (!READY) READY = (async () => {
     const open = async (label, fn) => {
       try { return await fn(); }

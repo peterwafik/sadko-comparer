@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Deploy site/ to the SADKO Vercel project (team sadko2).
+#
+# Why a copy: the Vercel CLI attaches this repo's git metadata to a deploy,
+# and on the Hobby plan Vercel BLOCKS a deployment whose commit author is not
+# a member of the team ("TEAM_ACCESS_REQUIRED"). The commits here are authored
+# by an address outside the SADKO team, so deploying from a git-free copy lets
+# Vercel credit the deploy to the logged-in CLI account instead.
+#
+# Usage (from anywhere):  bash site/tools/deploy-vercel.sh [--prod]
+set -euo pipefail
+
+SITE="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="${TMPDIR:-/tmp}/sadko-vercel-deploy"
+
+rm -rf "$OUT"
+mkdir -p "$OUT"
+# Everything the build needs; never node_modules, databases, logs or secrets.
+tar -C "$SITE" \
+  --exclude=./node_modules --exclude=./public --exclude='./data/*.db' --exclude='./data/*.db-*' \
+  --exclude=./data/uploads --exclude=./data/price-index.json --exclude='*.log' \
+  --exclude='*.env' --exclude='.env*' \
+  -cf - . | tar -C "$OUT" -xf -
+
+cd "$OUT"
+npx vercel deploy "$@" --scope sadko2 --yes

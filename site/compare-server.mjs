@@ -1759,11 +1759,17 @@ let ECWID_STORE = null, ECWID_API = null, ECWID_SYNC = null, ECWID_SOURCE = null
    simply hand back what it opened. A store that fails to open is recorded as
    false and the site carries on without it, exactly as before. */
 let READY = null;
+/* Why a store failed to open, for the operator only (see /healthz). */
+const STORE_ERRORS = {};
 function ready() {
   if (!READY) READY = (async () => {
     const open = async (label, fn) => {
       try { return await fn(); }
-      catch (e) { console.error('[' + label + '] unavailable:', e && e.message); return false; }
+      catch (e) {
+        console.error('[' + label + '] unavailable:', e && e.message);
+        STORE_ERRORS[label] = String((e && (e.code || e.message)) || e).slice(0, 300);
+        return false;
+      }
     };
     [ECWID_STORE, ACCOUNTS, CATALOG_ADMIN, ANALYTICS] = await Promise.all([
       ECWID_ON ? open('ecwid', () => openEcwidStore(path.join(ROOT, 'data', 'ecwid.db'))) : false,
@@ -2522,6 +2528,10 @@ export async function handle(req, res) {
       ok: !!(acc && !acc.error), uptimeSec: Math.round(process.uptime()),
       node: process.versions.node, accounts: acc,
       providers: enabledProviders().map(p => p.id),
+      /* Failure reasons can name hosts or paths, so they are shown only to a
+         caller holding the cron secret, never to the public. */
+      ...(process.env.CRON_SECRET && req.headers.authorization === 'Bearer ' + process.env.CRON_SECRET
+        ? { storeErrors: STORE_ERRORS, ecwid: { on: ECWID_ON, token: !!ECWID_TOKEN } } : {}),
     });
   }
 

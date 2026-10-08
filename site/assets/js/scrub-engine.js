@@ -292,7 +292,9 @@ function mountScrollWorld(container, config) {
     });
     totalW = off;
     track.style.height = (totalW * vh + vh) + 'px';   // +1vh so the last flight completes
+    gateMax = -1;                                       // force applyGate() to re-measure
     read();
+    pump();
   }
 
   function jumpTo(i) {
@@ -300,63 +302,315 @@ function mountScrollWorld(container, config) {
     window.scrollTo({ top: seg.start + (seg.end - seg.start) * 0.5, behavior: reduce ? 'auto' : 'smooth' });
   }
 
-  function loadClip(s) {
-    if (s.dead) return;
-    // Portrait phones show each ROOM as a fitted portrait image, so a room's own
-    // 16:9 flight is never fetched or scrubbed there. The CONNECTORS between
-    // rooms are the exception: those carry the movement from one room to the next
-    // and have portrait footage of their own (no stillM), so they load normally.
-    if (portraitMQ.matches && s.stillM) return;
-    // Under prefers-reduced-motion we never load the clips at all — the stills stay up
-    // and simply cross-dissolve as you scroll. No scrubbed video motion, no decode cost.
-    if (reduce || s.loading) return;
-    // Serve the lighter mobile encode on phones when one was provided. A segment
-    // may have ONLY a mobile clip (a portrait-only connector), so the source is
-    // resolved before the "is there anything to load" test rather than after it —
-    // testing `s.clip` alone silently skipped those.
-    const url = (isMobile() && s.clipM) ? s.clipM : (s.clip || s.clipM);
-    if (!url) return;
-    s.loading = true;
-    fetch(url).then(r => r.ok ? r.blob() : Promise.reject(new Error('404')))
-      .then(blob => {
-        const v = document.createElement('video');
-        v.className = 'sw-scene__video';
-        v.muted = true; v.playsInline = true; v.preload = 'auto';
-        v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-        v.src = URL.createObjectURL(blob);
-        v.addEventListener('loadedmetadata', () => { s.ready = true; read(); });
-        /* Reveal the video (hide the still poster) only once a real frame has
-           painted — on iOS a seeked-but-never-played muted video stays blank, so
-           hiding the still on metadata alone would flash an empty scene.
+  /* ---- clip loading ---------------------------------------------------------
+     Every transition is a pre-rendered clip that has to be in memory before it
+     can be scrubbed (a Blob is always seekable; a streamed file is not). The
+     clips used to be fetched only when the reader scrolled within ~1.6 screens
+     of them, so anyone who scrolled faster than a 4-12 MB file could download
+     reached a room with nothing to play: its still poster was shown and simply
+     cross-faded into the next one. That was the "the room fades and the next
+     one pops up" report. Four things now guarantee the movement instead:
 
-           `seeked` ALONE could not deliver that at the top of the page. The scrub
-           loop only writes currentTime when it differs from the target by more
-           than `eps`, and at scroll 0 the target IS 0 and the video is already at
-           0 — so no seek is ever issued, `seeked` never fires, and the first room
-           stayed on its still indefinitely. That still is a different frame from
-           the clip's, shown under a ken-burns zoom, and hotspots.js mirrors that
-           zoom, so every marker in the room sat off its appliance until something
-           finally moved the scroll: the reason the living room only "snapped into
-           place" after clicking its dock button (which glides 58px).
+     1. EAGER, ORDERED. All clips this device will play are queued at mount and
+        fetched nearest-ahead first, one or two at a time, never waiting for the
+        reader to scroll near them.
+     2. KEPT. A downloaded clip is stored in the Cache Storage API, so a
+        returning visitor has every transition instantly, even offline.
+     3. SIZED TO THE CONNECTION. Each clip has a light encode (`-lite.mp4`,
+        same frames and timing, about a quarter of the bytes). It is used when
+        the browser reports a slow or data-saver connection, when a download
+        measures below FAST_MBPS, and for the very first clip on an unknown
+        connection so the tour can start at once. On a fast connection the
+        full-quality clip replaces a light one later, while it is off screen.
+     4. GATED. The page is never longer than what has loaded: the scroll ends
+        just before the first room whose clip is not ready, with a progress pill,
+        and continues the moment it is. A download that truly stalls, or the
+        reader's own "skip", releases that one room to the old cross-fade, so
+        nobody is ever stuck. Failed downloads retry with backoff regardless. */
+  const CLIP_CACHE = 'sadko-clips-v1';
+  const LITE_ON = config.lite !== false;
+  const FAST_MBPS = 6;                 // measured below this, the rest of the tour goes light
+  const STALL_MS = 15000;              // no bytes for this long releases the gate for that room
+  const SKIP_AFTER_MS = 8000;          // the pill offers "skip" after this long at the gate
+  const liteOf = u => u.replace(/\.mp4$/i, '-lite.mp4');
+  const netInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+  let lite = LITE_ON && !!netInfo && !!(netInfo.saveData ||
+    /(^|-)(2g|3g)$/.test(netInfo.effectiveType || '') || (netInfo.downlink && netInfo.downlink < 3));
+  let speedKnown = false;              // set once one real download has been measured
+  let activeLoads = 0;
 
-           So: prefer requestVideoFrameCallback, which fires exactly when a frame
-           has been PRESENTED — the guarantee the iOS note above is really asking
-           for — and where it does not exist, nudge the clip off zero once so the
-           existing `seeked` path fires. The nudge is a hair over frame 0, well
-           inside `eps`, so the scrub loop leaves it alone. */
-        const reveal = () => s.el.classList.add('has-clip');
-        v.addEventListener('seeked', reveal, { once: true });
-        if (typeof v.requestVideoFrameCallback === 'function') {
-          try { v.requestVideoFrameCallback(reveal); } catch (e) {}
-        } else {
-          v.addEventListener('loadeddata', () => {
-            if (v.currentTime === 0) { try { v.currentTime = 0.001; } catch (e) {} }
-          }, { once: true });
-        }
-        v.addEventListener('loadeddata', () => { try { v.pause(); } catch (e) {} if (userReady) primeVideo(v); });
-        s.el.appendChild(v); s.video = v; s.hasClip = true;
-      }).catch(() => { s.loading = false; });
+  const clipSrc = s => ((isMobile() && s.clipM) ? s.clipM : (s.clip || s.clipM)) || null;
+  // A segment this device will actually scrub. Portrait rooms are fitted images, and
+  // reduced motion never loads clips at all.
+  const wantsClip = s => !s.dead && !reduce && !(portraitMQ.matches && s.stillM) && !!clipSrc(s);
+  // Whether a segment can be shown properly right now, whatever kind of scene it is.
+  function sceneReady(s) {
+    if (s.dead || reduce) return true;
+    if (portraitMQ.matches && s.stillM) return !s.mimg || s.mready;
+    if (!clipSrc(s)) return true;
+    return !!s.frameReady;
   }
+
+  async function cachedClip(url) {
+    try {
+      if (!('caches' in window)) return null;
+      const c = await caches.open(CLIP_CACHE);
+      const r = await c.match(url);
+      return r ? await r.blob() : null;
+    } catch (e) { return null; }
+  }
+  function keepClip(url, blob) {
+    try {
+      if (!('caches' in window)) return;
+      caches.open(CLIP_CACHE)
+        .then(c => c.put(url, new Response(blob, { headers: { 'content-type': 'video/mp4' } })))
+        .catch(() => {});                // quota or private mode: the clip still plays, just not kept
+    } catch (e) {}
+  }
+
+  /* Streams the file so the gate can show real progress and the speed can be
+     measured while it arrives. A full-quality download that is clearly too slow
+     for the reader to wait on is abandoned for the light one. */
+  async function download(s, url, mayDowngrade) {
+    const ctl = ('AbortController' in window) ? new AbortController() : null;
+    const t0 = performance.now();
+    s.lastByteAt = Date.now();
+    // A connection that goes silent is cut, so the queue's retry takes over
+    // instead of the request hanging for ever.
+    const watchdog = setInterval(() => {
+      if (Date.now() - s.lastByteAt > STALL_MS) { try { ctl && ctl.abort(); } catch (e) {} }
+    }, 2000);
+    try {
+    const r = await fetch(url, ctl ? { signal: ctl.signal } : {});
+    if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    const total = +r.headers.get('content-length') || 0;
+    s.total = total; s.got = 0; s.lastByteAt = Date.now();
+    if (!r.body || !r.body.getReader) {
+      const b = await r.blob(); s.got = b.size;
+      return { blob: b, ms: performance.now() - t0 };
+    }
+    const reader = r.body.getReader(), parts = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value); s.got += value.length; s.lastByteAt = Date.now();
+      if (gateSeg === s) paintGate();
+      const ms = performance.now() - t0;
+      if (mayDowngrade && !lite && ms > 1500 && total) {
+        const mbps = (s.got * 8) / ms / 1000;
+        const secsLeft = ((total - s.got) * 8) / (mbps * 1e6);
+        if (mbps < FAST_MBPS && secsLeft > 2.5) {
+          lite = true; speedKnown = true;
+          try { ctl && ctl.abort(); } catch (e) {}
+          const d = new Error('downgrade'); d.downgrade = true; throw d;
+        }
+      }
+    }
+    return { blob: new Blob(parts, { type: 'video/mp4' }), ms: performance.now() - t0 };
+    } finally { clearInterval(watchdog); }
+  }
+
+  async function fetchClip(s) {
+    const src = clipSrc(s);
+    const liteUrl = liteOf(src);
+    // A clip already on this device is used whatever the connection: full first.
+    let blob = await cachedClip(src), isLite = false;
+    if (!blob && LITE_ON) { blob = await cachedClip(liteUrl); isLite = !!blob; }
+    if (!blob) {
+      // The first clip on a connection we know nothing about starts light, so the
+      // tour can begin at once; its speed decides the rest.
+      const goLite = LITE_ON && (lite || !speedKnown);
+      let url = goLite ? liteUrl : src;
+      let got;
+      try { got = await download(s, url, !goLite); }
+      catch (e) {
+        if (e.downgrade) { url = liteUrl; got = await download(s, url, false); }
+        else if (goLite && e.status === 404) { url = src; got = await download(s, url, false); }   // no light encode shipped
+        else throw e;
+      }
+      blob = got.blob; isLite = url === liteUrl && url !== src;
+      const mbps = (blob.size * 8) / Math.max(1, got.ms) / 1000;
+      if (got.ms > 400) { speedKnown = true; if (LITE_ON) lite = mbps < FAST_MBPS; }
+      keepClip(url, blob);
+    }
+    attachClip(s, blob, isLite);
+  }
+
+  function makeVideo(blob) {
+    const v = document.createElement('video');
+    v.className = 'sw-scene__video';
+    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+    v.src = URL.createObjectURL(blob);
+    return v;
+  }
+
+  function attachClip(s, blob, isLite) {
+    const v = makeVideo(blob);
+    v.addEventListener('loadedmetadata', () => { s.ready = true; read(); });
+    /* Reveal the video (hide the still poster) only once a real frame has
+       painted — on iOS a seeked-but-never-played muted video stays blank, so
+       hiding the still on metadata alone would flash an empty scene.
+
+       `seeked` ALONE could not deliver that at the top of the page. The scrub
+       loop only writes currentTime when it differs from the target by more
+       than `eps`, and at scroll 0 the target IS 0 and the video is already at
+       0 — so no seek is ever issued, `seeked` never fires, and the first room
+       stayed on its still indefinitely. That still is a different frame from
+       the clip's, shown under a ken-burns zoom, and hotspots.js mirrors that
+       zoom, so every marker in the room sat off its appliance until something
+       finally moved the scroll: the reason the living room only "snapped into
+       place" after clicking its dock button (which glides 58px).
+
+       So: prefer requestVideoFrameCallback, which fires exactly when a frame
+       has been PRESENTED — the guarantee the iOS note above is really asking
+       for — and where it does not exist, nudge the clip off zero once so the
+       existing `seeked` path fires. The nudge is a hair over frame 0, well
+       inside `eps`, so the scrub loop leaves it alone. */
+    const reveal = () => s.el.classList.add('has-clip');
+    v.addEventListener('seeked', reveal, { once: true });
+    if (typeof v.requestVideoFrameCallback === 'function') {
+      try { v.requestVideoFrameCallback(reveal); } catch (e) {}
+    } else {
+      v.addEventListener('loadeddata', () => {
+        if (v.currentTime === 0) { try { v.currentTime = 0.001; } catch (e) {} }
+      }, { once: true });
+    }
+    v.addEventListener('loadeddata', () => {
+      try { v.pause(); } catch (e) {}
+      if (userReady) primeVideo(v);
+      // The gate waits for this, not for metadata: a decoded first frame is what
+      // makes the transition paint instead of the poster.
+      s.frameReady = true; read();
+    });
+    s.el.appendChild(v); s.video = v; s.hasClip = true; s.isLite = !!isLite;
+  }
+
+  /* Light → full, on a connection measured fast, once nothing else is waiting.
+     Swapped only while the scene is off screen (see read()), so the reader never
+     sees the switch. */
+  async function upgradeClip(s) {
+    const src = clipSrc(s);
+    let blob = await cachedClip(src);
+    if (!blob) { const got = await download(s, src, false); blob = got.blob; keepClip(src, blob); }
+    s.pendingUpgrade = blob;
+  }
+  function swapUpgraded(s) {
+    const blob = s.pendingUpgrade; s.pendingUpgrade = null;
+    const v = makeVideo(blob);
+    v.addEventListener('loadeddata', () => {
+      try { v.pause(); } catch (e) {}
+      if (userReady) primeVideo(v);
+      const old = s.video;
+      try { v.currentTime = Math.min(0.999, s.cur) * (v.duration || 1); } catch (e) {}
+      s.el.insertBefore(v, old);
+      s.video = v; s.isLite = false;
+      if (old) { try { URL.revokeObjectURL(old.src); } catch (e) {} old.remove(); }
+    }, { once: true });
+    v.style.visibility = 'hidden';       // decoding off-stage; shown once it replaces the old one
+    v.addEventListener('loadeddata', () => { v.style.visibility = ''; }, { once: true });
+    s.el.appendChild(v);
+  }
+
+  // The segment the reader is in (or about to enter), for ordering the queue.
+  function currentSeg() {
+    const y = window.scrollY || window.pageYOffset;
+    let ci = 0;
+    for (let i = 0; i < NSEG; i++) if (!SEGMENTS[i].dead && y >= SEGMENTS[i].start) ci = i;
+    return ci;
+  }
+
+  let pumpTimer = 0;
+  function pump() {
+    if (reduce) return;
+    const ci = currentSeg(), now = Date.now();
+    const cap = lite ? 1 : 2;
+    while (activeLoads < cap) {
+      let best = null, bestScore = Infinity;
+      for (let i = 0; i < NSEG; i++) {
+        const s = SEGMENTS[i];
+        if (!wantsClip(s) || s.hasClip || s.loading || now < (s.retryAt || 0)) continue;
+        const d = i - ci;
+        const score = d >= 0 ? d : 0.5 - d * 1.5;   // ahead first, then behind
+        if (score < bestScore) { bestScore = score; best = s; }
+      }
+      if (!best) break;
+      const s = best;
+      s.loading = true; activeLoads++;
+      s.lastByteAt = Date.now();         // the stall clock starts with the request, not the first byte
+      fetchClip(s)
+        .then(() => { s.fails = 0; })
+        .catch(() => {
+          s.fails = (s.fails || 0) + 1;
+          const wait = Math.min(30000, 1500 * Math.pow(2, s.fails));
+          s.retryAt = Date.now() + wait;
+          clearTimeout(pumpTimer); pumpTimer = setTimeout(pump, wait + 50);
+        })
+        .finally(() => { s.loading = false; activeLoads--; read(); pump(); });
+    }
+    // Everything this device needs is in: upgrade light clips on a fast connection.
+    if (!activeLoads && speedKnown && !lite) {
+      const s = SEGMENTS.find(x => wantsClip(x) && x.hasClip && x.isLite && !x.pendingUpgrade && !x.upgrading);
+      if (s) {
+        s.upgrading = true; activeLoads++;
+        upgradeClip(s).catch(() => {}).finally(() => { activeLoads--; pump(); });
+      }
+    }
+  }
+
+  /* ---- the gate ---- */
+  const gatePill = el('div', 'sw-gate');
+  gatePill.setAttribute('role', 'status'); gatePill.setAttribute('aria-live', 'polite');
+  container.appendChild(gatePill);
+  let gateSeg = null, gateAt = 0, gateMax = Infinity;
+  const EN = () => /^en/i.test(document.documentElement.lang || '');
+  function paintGate() {
+    if (!gateSeg) return;
+    const pct = gateSeg.total ? Math.min(99, Math.round((gateSeg.got || 0) / gateSeg.total * 100)) : null;
+    const num = n => EN() ? String(n) : String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    const label = EN() ? 'Preparing the tour' : 'جارٍ تجهيز الجولة';
+    const skip = Date.now() - gateAt > SKIP_AFTER_MS;
+    gatePill.innerHTML = '<i class="sw-gate__spin"></i><span>' + label + (pct != null ? ' ' + num(pct) + (EN() ? '%' : '٪') : '…') + '</span>' +
+      (skip ? '<button type="button" class="sw-gate__skip">' + (EN() ? 'Skip' : 'تخطَّ') + '</button>' : '');
+  }
+  gatePill.addEventListener('click', e => {
+    if (!e.target.closest('.sw-gate__skip') || !gateSeg) return;
+    gateSeg.skipGate = true; read();
+  });
+
+  /* The page ends just before the first segment that cannot be shown yet. The
+     cross-fade into a segment begins `fade` before its start, so the scroll stops
+     there: the room being left stays on its last frame, and the next room's
+     poster never starts to show. */
+  function applyGate(y, fade) {
+    let g = null;
+    if (!reduce) {
+      for (let i = 0; i < NSEG; i++) {
+        const s = SEGMENTS[i];
+        if (s.dead || s.skipGate || sceneReady(s)) continue;
+        // A download that has gone silent, or keeps failing, releases its room.
+        const stalled = s.lastByteAt && Date.now() - s.lastByteAt > STALL_MS;
+        if ((s.fails || 0) >= 3 || stalled) { s.skipGate = true; continue; }
+        g = s; break;
+      }
+    }
+    const max = g ? Math.max(0, g.start - fade) : Infinity;
+    if (g !== gateSeg) { gateSeg = g; gateAt = Date.now(); }
+    if (max !== gateMax) {
+      gateMax = max;
+      track.style.height = (g ? max + vh : totalW * vh + vh) + 'px';
+      document.documentElement.classList.toggle('sw-gated', !!g);
+    }
+    // Shown only to a reader actually waiting at the gate, not to one far above it.
+    const waiting = !!g && y >= max - 2;
+    gatePill.classList.toggle('is-on', waiting);
+    if (waiting) paintGate();
+  }
+  // Keeps "skip" appearing, and a stalled download releasing, even with no scroll.
+  setInterval(() => { if (gateSeg) read(); }, 1000);
+
+  // Kept as the name the rest of the engine uses; the queue does the work now.
+  function loadClip() { pump(); }
 
   /* ---- outro: fade the last leg out and hand off to another page ----------
      config.outro = { href, from }. Across the last section, `from`..1 of its
@@ -459,11 +713,11 @@ function mountScrollWorld(container, config) {
     const fade = (portrait ? 0.5 : CROSSFADE) * vh;
     let ci = 0;
     for (let i = 0; i < NSEG; i++) if (y >= SEGMENTS[i].start) ci = i;
+    applyGate(y, fade);
 
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
       if (s.dead) continue;                 // collapsed to zero scroll — see layout()
-      if (y > s.start - 1.6 * vh && y < s.end + 1.6 * vh) loadClip(s);
       const local = clamp((y - s.start) / (s.end - s.start), 0, 1);
       s.target = (s.linger ? lingerEase(local, s.linger) : local) * s.clipEnd;
       let outside = 0;
@@ -474,6 +728,7 @@ function mountScrollWorld(container, config) {
       // hold-over below decide what stays on screen instead.
       if (portrait && s.mimg && !s.mready) op = 0;
       s.el.style.opacity = op; s.visible = op > 0.001;
+      if (s.pendingUpgrade && !s.visible) swapUpgraded(s);
       s.el.style.zIndex = (i === ci) ? '120' : String(100 + Math.round(op * 10));
       if (!s.hasClip || !s.ready) {
         // '' not 'none': in portrait this element is a CONNECTOR's poster, and the
@@ -664,7 +919,11 @@ function mountScrollWorld(container, config) {
   const api = { sections: SECTIONS, segments: SEGMENTS, isMobile, relayout: layout,
     // QA: the hand-off is invisible until it fires, so expose why it has not.
     outroState: () => ({ on: !!OUTRO, from: outroFrom, t: outroT,
-                         armed: outroArmed, fired: outroFired, lastY: lastY }) };
+                         armed: outroArmed, fired: outroFired, lastY: lastY }),
+    // QA: what each transition is doing and why the page may be holding.
+    loadState: () => ({ lite, speedKnown, gate: gateSeg ? SEGMENTS.indexOf(gateSeg) : null, gateMax,
+      segs: SEGMENTS.map((s, i) => ({ i, kind: s.kind, wants: wantsClip(s), ready: sceneReady(s), lite: !!s.isLite,
+        got: s.got || 0, total: s.total || 0, fails: s.fails || 0, skip: !!s.skipGate })) }) };
 
   // ---- helpers ----
   function el(tag, cls) { const n = document.createElement(tag); if (cls) n.className = cls; return n; }
@@ -730,6 +989,12 @@ function injectCSS() {
   .sw-topcta{text-decoration:none;font-weight:600;font-size:.9rem;color:#fff;background:var(--sw-ink);padding:10px 20px;border-radius:999px;white-space:nowrap;}
   .sw-stage{position:fixed;inset:0;z-index:10;pointer-events:none;}
   .sw-scene{position:absolute;inset:0;opacity:0;overflow:hidden;will-change:opacity;}
+  .sw-gate{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);transform:translate(-50%,12px);z-index:400;display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:999px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 6px 24px rgba(36,29,43,.16);font:600 14px/1.2 var(--sw-font-body);color:var(--sw-ink);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;white-space:nowrap;}
+  .sw-gate.is-on{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+  .sw-gate__spin{width:14px;height:14px;border-radius:50%;border:2px solid color-mix(in srgb,var(--sw-accent) 30%,transparent);border-top-color:var(--sw-accent);animation:sw-spin .8s linear infinite;}
+  .sw-gate__skip{margin-inline-start:4px;border:0;background:transparent;color:var(--sw-accent);font:700 13px/1 var(--sw-font-body);cursor:pointer;padding:4px 2px;text-decoration:underline;}
+  @keyframes sw-spin{to{transform:rotate(360deg)}}
+  html.sw-gated .sk-foot{display:none !important;}
   .sw-scene__video,.sw-scene__still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;z-index:1;}
   .sw-scene__still{will-change:transform;} .sw-scene.has-clip .sw-scene__still{opacity:0;}
   .sw-scene__bg{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}

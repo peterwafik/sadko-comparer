@@ -28,7 +28,6 @@
    Rows come back as plain objects (column → value), never libSQL Row
    instances, so JSON.stringify and spreading behave like they did before.
    ========================================================================== */
-import { createClient } from '@libsql/client';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -51,10 +50,12 @@ export function dbUrl(spec) {
 
 export async function openDb(spec, { authToken } = {}) {
   const url = dbUrl(spec);
-  const client = createClient(url.startsWith('libsql:') || url.startsWith('http')
-    ? { url, authToken, intMode: 'number' }
-    : { url, intMode: 'number' });
   const local = !url.startsWith('libsql:') && !url.startsWith('http');
+  /* A hosted database goes through the pure-JavaScript client (HTTP), which
+     needs no native binary, so it runs on any serverless platform. Only a
+     local file or :memory: loads the native engine. */
+  const { createClient } = local ? await import('@libsql/client') : await import('@libsql/client/web');
+  const client = createClient(local ? { url, intMode: 'number' } : { url, authToken, intMode: 'number' });
   if (local) {
     // Same settings the DatabaseSync stores used; harmless to repeat.
     await client.execute('PRAGMA foreign_keys = ON');

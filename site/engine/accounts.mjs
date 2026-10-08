@@ -24,10 +24,11 @@
    are recorded with offline payment methods only — see the payment note in
    compare-server.mjs.
 
-   Storage is SQLite (engine/accounts-db.mjs) — transactional, indexed, and
-   safe under concurrent requests. An older accounts.json is imported once on
-   first boot and renamed aside. Deleting a user cascades to their homes,
-   sessions and orders.
+   Storage is libSQL (engine/accounts-db.mjs over engine/db.mjs): hosted Turso
+   on Vercel, a local SQLite file otherwise. Every method that reaches it is
+   async. An older accounts.json is imported once on first boot (local store
+   only) and renamed aside. Deleting a user removes their identities, homes,
+   sessions and orders in the same atomic batch.
    ========================================================================== */
 
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
@@ -118,27 +119,20 @@ export function makeHome(input, existingId) {
   }, p);
 }
 
-export function openAccounts(file) {
+/* Async: opening reaches the database (a local file, or hosted Turso when
+   TURSO_DATABASE_URL is set). Every method below that touches the store
+   returns a Promise. There is no timer in here; the server calls sweep(). */
+export async function openAccounts(file) {
   // Callers historically passed .../accounts.json. Keep that signature, but put
   // the data in a real database beside it and import the old file once.
   const dbFile = file.replace(/\.json$/i, '') + '.db';
-  const store = openAccountsDb(dbFile);
+  const store = await openAccountsDb(dbFile);
   if (/\.json$/i.test(file)) {
-    const r = importLegacyJson(store, file);
+    const r = await importLegacyJson(store, file);   // no-op on a hosted store
     if (r.imported) console.log('[accounts] imported ' + r.imported + ' user(s) from the legacy JSON file');
   }
 
   const norm = e => String(e || '').trim().toLowerCase();
-
-  /* Housekeeping that used to happen on every read of the JSON blob. Cheap
-     indexed deletes now, so it can run on a timer instead of per request. */
-  function sweep() {
-    store.pruneSessions();
-    store.pruneFails(FAIL_WINDOW_MS);
-  }
-  sweep();
-  const sweeper = setInterval(sweep, 10 * 60 * 1000);
-  if (sweeper.unref) sweeper.unref();
 
   function activeHome(u) {
     return (u.homes || []).find(h => h.id === u.activeHomeId) || (u.homes || [])[0] || null;
@@ -159,37 +153,56 @@ export function openAccounts(file) {
     };
   }
 
-  function issueSession(userId) {
+  async function issueSession(userId) {
     const raw = randomBytes(32).toString('base64url');
     const expires = new Date(Date.now() + SESSION_DAYS * 86400000).toISOString();
-    store.addSession(sha256(raw), userId, nowISO(), expires);
+    await store.addSession(sha256(raw), userId, nowISO(), expires);
     return { raw, expires };
   }
 
   return {
+    /* ---- housekeeping ----
+       Deletes expired sessions and login-failure rows older than the window.
+       Nothing depends on it for correctness (expired sessions are refused and
+       removed on read; old failures fall outside the counted window), it only
+       keeps the tables small. The server schedules it. */
+    async sweep() {
+      const sessions = await store.pruneSessions();
+      const fails = await store.pruneFails(FAIL_WINDOW_MS);
+      return { sessions, fails };
+    },
+
     /* ---- registration ---- */
-    register({ email, password, name, phone, address, profile }) {
+    async register({ email, password, name, phone, address, profile }) {
       const em = norm(email);
       if (!validateEmail(em)) return { error: 'bad-email' };
       const pw = validatePassword(password);
       if (!pw.ok) return { error: pw.error };
       if (!String(name || '').trim()) return { error: 'bad-name' };
       if (!validatePhone(phone)) return { error: 'bad-phone' };
-      if (store.getUserByEmail(em)) return { error: 'email-taken' };
+      if (await store.getUserByEmail(em)) return { error: 'email-taken' };
 
       const salt = randomBytes(16).toString('hex');
       const homes = [];
       if (profile && Object.keys(cleanProfile(profile)).length) homes.push(makeHome(profile));
-      const user = store.createUser({
-        id: 'u' + randomBytes(8).toString('hex'),
-        email: em, name: String(name).trim().slice(0, 80),
-        phone: String(phone || '').trim().slice(0, 30),
-        address: address ? String(address).trim().slice(0, 300) : null,
-        salt, hash: hashPassword(password, salt),
-        homes, activeHomeId: homes[0] ? homes[0].id : null,
-        identities: [], createdAt: nowISO(),
-      });
-      return { ok: true, user: publicUser(user), session: issueSession(user.id) };
+      let user;
+      try {
+        user = await store.createUser({
+          id: 'u' + randomBytes(8).toString('hex'),
+          email: em, name: String(name).trim().slice(0, 80),
+          phone: String(phone || '').trim().slice(0, 30),
+          address: address ? String(address).trim().slice(0, 300) : null,
+          salt, hash: hashPassword(password, salt),
+          homes, activeHomeId: homes[0] ? homes[0].id : null,
+          identities: [], createdAt: nowISO(),
+        });
+      } catch (e) {
+        // Two registrations for one email raced past the check above; the
+        // UNIQUE column refused the second. Same answer as the check gives.
+        if (/UNIQUE/i.test(String(e && e.message))) return { error: 'email-taken' };
+        throw e;
+      }
+      return { ok: true, user: publicUser(user), session: await issueSession(user.id) };
     },
 
     /* ---- social sign-in ----
@@ -200,22 +213,22 @@ export function openAccounts(file) {
        attach to an EXISTING password account when the provider asserts the
        email is verified. Without that check, anyone who could mint a token
        claiming someone else's address would inherit their account. */
-    signInWithIdentity(identity) {
+    async signInWithIdentity(identity) {
       if (!identity || !identity.provider || !identity.sub || !identity.email) return { error: 'bad-identity' };
       const em = norm(identity.email);
 
-      let user = store.userByIdentity(identity.provider, identity.sub);
+      let user = await store.userByIdentity(identity.provider, identity.sub);
       let created = false;
 
       if (!user) {
-        const byEmail = store.getUserByEmail(em);
+        const byEmail = await store.getUserByEmail(em);
         if (byEmail) {
           if (!identity.emailVerified) return { error: 'email-unverified' };
-          store.linkIdentity(byEmail.id, { provider: identity.provider, sub: identity.sub, email: em, linkedAt: nowISO() });
-          user = store.getUser(byEmail.id);
+          await store.linkIdentity(byEmail.id, { provider: identity.provider, sub: identity.sub, email: em, linkedAt: nowISO() });
+          user = await store.getUser(byEmail.id);
         } else {
           created = true;
-          user = store.createUser({
+          user = await store.createUser({
             id: 'u' + randomBytes(8).toString('hex'),
             email: em,
             name: (identity.name || em.split('@')[0]).slice(0, 80),
@@ -228,59 +241,69 @@ export function openAccounts(file) {
           });
         }
       }
-      return { ok: true, user: publicUser(user), session: issueSession(user.id), created };
+      return { ok: true, user: publicUser(user), session: await issueSession(user.id), created };
     },
 
     /* ---- home / room profiles ---- */
-    listHomes(userId) {
-      const u = store.getUser(userId);
+    async listHomes(userId) {
+      const u = await store.getUser(userId);
       return u ? u.homes : [];
     },
-    addHome(userId, input) {
-      const u = store.getUser(userId);
+    async addHome(userId, input) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
-      if (store.homeCount(userId) >= MAX_HOMES) return { error: 'too-many-homes' };
+      if ((u.homes || []).length >= MAX_HOMES) return { error: 'too-many-homes' };
       const h = makeHome(input);
-      store.addHome(userId, h);
-      if (!u.activeHomeId) store.saveUser(Object.assign(u, { activeHomeId: h.id }));
-      return { ok: true, home: h, user: publicUser(store.getUser(userId)) };
+      await store.addHome(userId, h);
+      if (!u.activeHomeId) await store.saveUser(Object.assign(u, { activeHomeId: h.id }));
+      return { ok: true, home: h, user: publicUser(await store.getUser(userId)) };
     },
-    updateHome(userId, homeId, patch) {
-      const u = store.getUser(userId);
+    async updateHome(userId, homeId, patch) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
       const cur = (u.homes || []).find(h => h.id === homeId);
       if (!cur) return { error: 'no-home' };
       const merged = Object.assign({}, cur, cleanProfile(patch));
       merged.id = cur.id;                       // id is never client-controlled
       merged.createdAt = cur.createdAt;
-      store.updateHome(userId, homeId, merged);
-      return { ok: true, home: merged, user: publicUser(store.getUser(userId)) };
+      await store.updateHome(userId, homeId, merged);
+      return { ok: true, home: merged, user: publicUser(await store.getUser(userId)) };
     },
-    removeHome(userId, homeId) {
-      const u = store.getUser(userId);
+    async removeHome(userId, homeId) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
-      store.removeHome(userId, homeId);
+      await store.removeHome(userId, homeId);
       if (u.activeHomeId === homeId) {
-        const rest = store.getUser(userId).homes;
-        store.saveUser(Object.assign(store.getUser(userId), { activeHomeId: rest[0] ? rest[0].id : null }));
+        const now = await store.getUser(userId);
+        await store.saveUser(Object.assign(now, { activeHomeId: now.homes[0] ? now.homes[0].id : null }));
       }
-      return { ok: true, user: publicUser(store.getUser(userId)) };
+      return { ok: true, user: publicUser(await store.getUser(userId)) };
     },
-    setActiveHome(userId, homeId) {
-      const u = store.getUser(userId);
+    async setActiveHome(userId, homeId) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
       if (homeId && !(u.homes || []).some(h => h.id === homeId)) return { error: 'no-home' };
-      store.saveUser(Object.assign(u, { activeHomeId: homeId || null }));
-      return { ok: true, user: publicUser(store.getUser(userId)) };
+      await store.saveUser(Object.assign(u, { activeHomeId: homeId || null }));
+      return { ok: true, user: publicUser(await store.getUser(userId)) };
     },
 
     /* ---- login ---- */
-    login({ email, password, ip }) {
+    async login({ email, password, ip }) {
       const em = norm(email);
       const key = em + '|' + (ip || '');
-      if (store.failCount(key, FAIL_WINDOW_MS) >= MAX_FAILS) return { error: 'too-many' };
+      // Record this attempt BEFORE counting. With an async store, "count, then
+      // write later" would let a burst of parallel requests all pass the check
+      // before any of them was recorded. Writing first means the last of any
+      // burst sees every attempt that got through, so at most MAX_FAILS
+      // passwords are tried per window. A refused attempt is withdrawn, so
+      // being refused does not itself extend the lock-out (as before).
+      const attempt = await store.addFail(key);
+      if (await store.failCount(key, FAIL_WINDOW_MS) > MAX_FAILS) {
+        await store.dropFail(attempt);
+        return { error: 'too-many' };
+      }
 
-      const found = store.getUserByEmail(em);
+      const found = await store.getUserByEmail(em);
       // An account created through Google/Microsoft has no password at all.
       // Treat it exactly like an unknown email — same work, same message — so
       // this endpoint cannot be used to discover which accounts are social.
@@ -293,48 +316,45 @@ export function openAccounts(file) {
       const a = Buffer.from(got, 'hex'), b = Buffer.from(expect, 'hex');
       const good = !!user && a.length === b.length && timingSafeEqual(a, b);
 
-      if (!good) {
-        store.addFail(key);
-        return { error: 'bad-credentials' };                 // deliberately vague
-      }
-      store.clearFails(key);
-      return { ok: true, user: publicUser(user), session: issueSession(user.id) };
+      if (!good) return { error: 'bad-credentials' };        // deliberately vague; the attempt stays recorded
+      await store.clearFails(key);
+      return { ok: true, user: publicUser(user), session: await issueSession(user.id) };
     },
 
     /* ---- sessions ---- */
-    userForToken(rawToken) {
+    async userForToken(rawToken) {
       if (!rawToken) return null;
-      return publicUser(store.userForSession(sha256(rawToken)));
+      return publicUser(await store.userForSession(sha256(rawToken)));
     },
-    logout(rawToken) {
+    async logout(rawToken) {
       if (!rawToken) return { ok: true, removed: 0 };
-      return { ok: true, removed: store.dropSession(sha256(rawToken)) };
+      return { ok: true, removed: await store.dropSession(sha256(rawToken)) };
     },
 
     /* ---- profile ---- */
-    updateProfile(userId, patch) {
-      const u = store.getUser(userId);
+    async updateProfile(userId, patch) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
       if (patch.name != null && String(patch.name).trim()) u.name = String(patch.name).trim().slice(0, 80);
       if (patch.phone != null) { if (!validatePhone(patch.phone)) return { error: 'bad-phone' }; u.phone = String(patch.phone).trim().slice(0, 30); }
       if (patch.address != null) u.address = String(patch.address).trim().slice(0, 300) || null;
-      store.saveUser(u);
+      await store.saveUser(u);
       // A profile patch edits the ACTIVE home, creating one if this account has
       // none yet — so the old single-profile call site keeps working unchanged.
       if (patch.profile) {
         const clean = cleanProfile(patch.profile);
         const cur = activeHome(u);
-        if (cur) { store.updateHome(userId, cur.id, Object.assign({}, cur, clean)); }
+        if (cur) { await store.updateHome(userId, cur.id, Object.assign({}, cur, clean)); }
         else if (Object.keys(clean).length) {
           const h = makeHome(clean);
-          store.addHome(userId, h);
-          store.saveUser(Object.assign(store.getUser(userId), { activeHomeId: h.id }));
+          await store.addHome(userId, h);
+          await store.saveUser(Object.assign(await store.getUser(userId), { activeHomeId: h.id }));
         }
       }
-      return { ok: true, user: publicUser(store.getUser(userId)) };
+      return { ok: true, user: publicUser(await store.getUser(userId)) };
     },
-    changePassword(userId, currentPassword, newPassword) {
-      const u = store.getUser(userId);
+    async changePassword(userId, currentPassword, newPassword) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
       if (!u.hash || !u.salt) return { error: 'no-password' };   // social-only account
       const got = Buffer.from(hashPassword(currentPassword, u.salt), 'hex');
@@ -344,17 +364,17 @@ export function openAccounts(file) {
       if (!pw.ok) return { error: pw.error };
       u.salt = randomBytes(16).toString('hex');
       u.hash = hashPassword(newPassword, u.salt);
-      store.saveUser(u);
+      await store.saveUser(u);
       // Signing out other devices is the correct behaviour after a password change.
-      store.dropUserSessions(userId);
+      await store.dropUserSessions(userId);
       return { ok: true };
     },
 
     /* ---- orders ---- */
     // Offline payment only. No card data is accepted, stored or transmitted
     // anywhere in this codebase; see PAYMENT_METHODS in compare-server.mjs.
-    createOrder(userId, { items, payment, delivery, note, totals, deliveryQuote }) {
-      const u = store.getUser(userId);
+    async createOrder(userId, { items, payment, delivery, note, totals, deliveryQuote }) {
+      const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
       if (!Array.isArray(items) || !items.length) return { error: 'empty-cart' };
       if (items.length > 60) return { error: 'too-many-items' };
@@ -392,17 +412,17 @@ export function openAccounts(file) {
           : { subtotal, deliveryFee: null, installFee: null, grandTotal: null, currency: 'EGP',
               note: 'رسوم التوصيل والتركيب بتتأكد من خدمة العملاء قبل التنفيذ.' },
       };
-      store.addOrder(order);
+      await store.addOrder(order);
       return { ok: true, order };
     },
-    ordersFor: userId => store.ordersFor(userId),
+    ordersFor: async userId => store.ordersFor(userId),
 
     /* A webhook carries no session, so a status update arriving from Ecwid
        needs the order by ref alone. Deliberately separate from
        orderByRef(userId, ref), which stays scoped to its owner for anything a
        customer can reach. */
-    orderByRefAny: ref => store.allOrders().find(o => o.ref === ref) || null,
-    orderByRef: (userId, ref) => store.orderByRef(userId, ref),
+    orderByRefAny: async ref => (ref ? store.orderByRefAny(String(ref)) : null),
+    orderByRef: async (userId, ref) => store.orderByRef(userId, ref),
 
     /* ---- privacy: the customer's own data, and erasing it ---- */
     /* One account, safe to hand outwards.
@@ -418,83 +438,86 @@ export function openAccounts(file) {
        token arrived. */
     /* By email, the key Ecwid files customers under. Normalised and
        credential-stripped for the same reasons as getUser above. */
-    getUserByEmail(email) {
+    async getUserByEmail(email) {
       const em = norm(email);
-      const u = em ? store.getUserByEmail(em) : null;
+      const u = em ? await store.getUserByEmail(em) : null;
       if (!u) return null;
       const { salt, hash, ...safe } = u;
       return safe;
     },
 
-    getUser(userId) {
-      const u = userId ? store.getUser(userId) : null;
+    async getUser(userId) {
+      const u = userId ? await store.getUser(userId) : null;
       if (!u) return null;
       const { salt, hash, ...safe } = u;
       return safe;
     },
 
-    exportUser(userId) {
-      const u = store.getUser(userId);
+    async exportUser(userId) {
+      const u = await store.getUser(userId);
       if (!u) return null;
       return {
         exportedAt: nowISO(),
         account: { id: u.id, email: u.email, name: u.name, phone: u.phone, address: u.address, createdAt: u.createdAt },
         places: u.homes,
         signInMethods: (u.identities || []).map(i => ({ provider: i.provider, linkedAt: i.linkedAt })),
-        orders: store.ordersFor(userId),
+        orders: await store.ordersFor(userId),
         note: 'كلمة المرور غير مدرجة هنا لأنها مخزَّنة مشفَّرة وغير قابلة للاسترجاع. / Your password is not included: it is stored hashed and cannot be recovered.',
       };
     },
-    deleteUser(userId) {
-      if (!store.getUser(userId)) return { error: 'no-user' };
-      store.deleteUser(userId);                 // cascades: homes, sessions, orders, identities
+    async deleteUser(userId) {
+      if (!(await store.getUser(userId))) return { error: 'no-user' };
+      await store.deleteUser(userId);           // one batch: identities, homes, sessions, orders, then the user
       return { ok: true };
     },
 
-    stats() { return { users: store.userCount(), sessions: store.sessionCount(), orders: store.orderCount() }; },
+    async stats() {
+      const [users, sessions, orders] = await Promise.all([store.userCount(), store.sessionCount(), store.orderCount()]);
+      return { users, sessions, orders };
+    },
 
     /* ---- admin desk ----
        These read across ALL customers, so the server MUST gate them behind an
        admin check before calling. They never expose password hashes or salts. */
     ORDER_STATUSES,
-    listUsersAdmin() {
-      const out = [];
-      store.eachUser(u => out.push({
+    async listUsersAdmin() {
+      const [users, counts] = await Promise.all([store.allUsers(), store.orderCountsByUser()]);
+      const out = users.map(u => ({
         id: u.id, email: u.email, name: u.name, phone: u.phone || '',
         createdAt: u.createdAt, homes: (u.homes || []).length,
-        orders: store.ordersFor(u.id).length,
+        orders: counts.get(u.id) || 0,
         providers: (u.identities || []).map(i => i.provider),
       }));
       out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
       return out;
     },
-    allOrders() {
+    async allOrders() {
       // attach a light customer label so the desk can show who ordered
-      const names = new Map();
-      store.eachUser(u => names.set(u.id, { name: u.name, email: u.email, phone: u.phone || '' }));
-      return store.allOrders().map(o => Object.assign({ customer: names.get(o.userId) || null }, o));
+      const [users, orders] = await Promise.all([store.allUsers(), store.allOrders()]);
+      const names = new Map(users.map(u => [u.id, { name: u.name, email: u.email, phone: u.phone || '' }]));
+      return orders.map(o => Object.assign({ customer: names.get(o.userId) || null }, o));
     },
-    setOrderStatus(ref, status) {
+    async setOrderStatus(ref, status) {
       status = String(status || '').trim();
       if (!ORDER_STATUSES.includes(status)) return { error: 'bad-status' };
-      const o = store.setOrderStatus(String(ref || ''), status);
+      const o = await store.setOrderStatus(String(ref || ''), status);
       if (!o) return { error: 'no-order' };
       return { ok: true, order: o };
     },
-    adminOverview() {
+    async adminOverview() {
       const dayAgo = new Date(Date.now() - 86400000).toISOString();
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      return {
-        users: store.userCount(), sessions: store.sessionCount(), orders: store.orderCount(),
-        ordersToday: store.ordersSince(dayAgo), ordersWeek: store.ordersSince(weekAgo),
-      };
+      const [users, sessions, orders, ordersToday, ordersWeek] = await Promise.all([
+        store.userCount(), store.sessionCount(), store.orderCount(),
+        store.ordersSince(dayAgo), store.ordersSince(weekAgo),
+      ]);
+      return { users, sessions, orders, ordersToday, ordersWeek };
     },
-    getOrderAny(ref) {
-      const all = store.allOrders();
-      return all.find(o => o.ref === ref) || null;
+    async getOrderAny(ref) {
+      return ref ? store.orderByRefAny(String(ref)) : null;
     },
 
-    __raw: () => store.raw,   // tests only: assert on the stored bytes/rows directly
-    close() { try { clearInterval(sweeper); store.close(); } catch (e) {} },
+    __raw: () => store.raw,   // tests only: assert on the stored rows directly (db.mjs API)
+    close() { try { store.close(); } catch (e) {} },
   };
 }

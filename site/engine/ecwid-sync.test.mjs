@@ -8,11 +8,11 @@ import { openEcwidStore } from './ecwid-store.mjs';
 import { createEcwidSync } from './ecwid-sync.mjs';
 import { toEcwidCustomer } from './ecwid-customers.mjs';
 
-function fresh(api) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'sadko-sync-'));
-  const store = openEcwidStore(path.join(dir, 'ecwid.db'));
+/* :memory: per test: fast, and nothing left on disk. */
+async function fresh(api) {
+  const store = await openEcwidStore(':memory:');
   const sync = createEcwidSync({ api, store });
-  return { store, sync, cleanup: () => { try { store.close(); } catch (e) {} rmSync(dir, { recursive: true, force: true }); } };
+  return { store, sync, cleanup: () => { try { store.close(); } catch (e) {} } };
 }
 
 /* Raw Ecwid product shape, using the real field names. */
@@ -37,12 +37,12 @@ const stubApi = over => ({
 /* ------------------------------- products ------------------------------- */
 
 test('syncProducts writes mapped products into the mirror', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => ({ items: [E(1), E(2)], total: 2, count: 2 }) }));
   try {
     const r = await sync.syncProducts({});
     assert.equal(r.written, 2);
-    const rows = store.allProducts();
+    const rows = await store.allProducts();
     assert.equal(rows.length, 2);
     assert.ok(rows[0].title.startsWith('ثلاجة'), 'rows must be MAPPED, not raw Ecwid');
     assert.equal(rows[0].weight, null, 'the mapper ran: weight 0 became null');
@@ -51,7 +51,7 @@ test('syncProducts writes mapped products into the mirror', async () => {
 
 test('syncProducts pages until every product is written', async () => {
   let call = 0;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => {
       call++;
       return call === 1
@@ -62,46 +62,46 @@ test('syncProducts pages until every product is written', async () => {
     const r = await sync.syncProducts({});
     assert.equal(r.written, 3);
     assert.equal(r.pages, 2);
-    assert.equal(store.allProducts().length, 3);
+    assert.equal((await store.allProducts()).length, 3);
   } finally { cleanup(); }
 });
 
 test('a successful sync records last_sync and clears last_error', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => ({ items: [E(1)], total: 1, count: 1 }) }));
   try {
-    store.setState('last_error', 'stale failure');
+    await store.setState('last_error', 'stale failure');
     await sync.syncProducts({});
-    assert.ok(store.getState('last_sync'));
-    assert.equal(store.getState('last_error'), null);
+    assert.ok(await store.getState('last_sync'));
+    assert.equal(await store.getState('last_error'), null);
   } finally { cleanup(); }
 });
 
 test('a failing sync records last_error and does NOT throw', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => { const e = new Error('ecwid-503: boom'); e.status = 503; throw e; } }));
   try {
     const r = await sync.syncProducts({});
     assert.equal(r.written, 0);
-    assert.match(String(store.getState('last_error')), /503/);
+    assert.match(String(await store.getState('last_error')), /503/);
   } finally { cleanup(); }
 });
 
 test('a failing sync leaves the previously mirrored data in place', async () => {
   let fail = false;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => { if (fail) throw new Error('down'); return { items: [E(1)], total: 1, count: 1 }; } }));
   try {
     await sync.syncProducts({});
     fail = true;
     await sync.syncProducts({});
-    assert.equal(store.allProducts().length, 1, 'last good data must survive an outage');
+    assert.equal((await store.allProducts()).length, 1, 'last good data must survive an outage');
   } finally { cleanup(); }
 });
 
 test('incremental sync passes updatedFrom through', async () => {
   let seen = null;
-  const { sync, cleanup } = fresh(stubApi({
+  const { sync, cleanup } = await fresh(stubApi({
     listProducts: async o => { seen = o.updatedFrom; return { items: [], total: 0 }; } }));
   try {
     await sync.syncProducts({ updatedFrom: 1758400000 });
@@ -112,12 +112,12 @@ test('incremental sync passes updatedFrom through', async () => {
 /* ------------------------------ categories ------------------------------ */
 
 test('syncCategories writes mapped categories', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listCategories: async () => [{ id: 206629517, name: 'نو فروست', parentId: 0, enabled: true,
       nameTranslated: { en: 'نو فروست' }, orderBy: 10 }] }));
   try {
     await sync.syncCategories();
-    const [c] = store.allCategories();
+    const [c] = await store.allCategories();
     assert.equal(c.name, 'نو فروست');
     assert.equal(c.parentId, null);
     assert.equal(c.nameEn, null, 'the Arabic-in-en-slot guard must still apply through the sync');
@@ -127,7 +127,7 @@ test('syncCategories writes mapped categories', async () => {
 /* ------------------- payment and shipping (revision 2) ------------------ */
 
 test('syncSettings mirrors the payment methods Ecwid offers', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProfile: async () => ({
       paymentOptions: [
         { id: 'cod', checkoutTitle: 'Cash on Delivery', enabled: true, orderBy: 1,
@@ -141,16 +141,16 @@ test('syncSettings mirrors the payment methods Ecwid offers', async () => {
     const r = await sync.syncSettings();
     assert.equal(r.payment, 2);
     assert.equal(r.shipping, 1);
-    const pay = store.allPaymentMethods();
+    const pay = await store.allPaymentMethods();
     assert.equal(pay[0].id, 'cod');
     assert.equal(pay[0].title, 'Cash on Delivery');
     assert.match(pay[1].instructions, /سيتم التواصل/);
-    assert.equal(store.allShippingMethods()[0].calcType, 'table');
+    assert.equal((await store.allShippingMethods())[0].calcType, 'table');
   } finally { cleanup(); }
 });
 
 test('a payment method disabled in Ecwid is not mirrored as available', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProfile: async () => ({
       paymentOptions: [{ id: 'cod', checkoutTitle: 'COD', enabled: true },
                        { id: 'old', checkoutTitle: 'Retired', enabled: false }],
@@ -158,7 +158,7 @@ test('a payment method disabled in Ecwid is not mirrored as available', async ()
     }) }));
   try {
     await sync.syncSettings();
-    assert.deepEqual(store.allPaymentMethods().map(m => m.id), ['cod'],
+    assert.deepEqual((await store.allPaymentMethods()).map(m => m.id), ['cod'],
       'offering a method the owner switched off would take an order we cannot honour');
   } finally { cleanup(); }
 });
@@ -168,7 +168,7 @@ test('a payment method still carrying Ecwid\'s placeholder name is not offered',
      enables it. Three of those sat enabled in the test store and showed at
      checkout as identical, meaningless choices. A method nobody named is not
      one a customer can knowingly pick, nor one staff could honour. */
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProfile: async () => ({
       paymentOptions: [{ id: 'cod', checkoutTitle: 'COD', enabled: true },
                        { id: 'p1', checkoutTitle: 'Custom Payment Method Name', enabled: true },
@@ -178,57 +178,57 @@ test('a payment method still carrying Ecwid\'s placeholder name is not offered',
     }) }));
   try {
     const r = await sync.syncSettings();
-    assert.deepEqual(store.allPaymentMethods().map(m => m.id), ['cod']);
+    assert.deepEqual((await store.allPaymentMethods()).map(m => m.id), ['cod']);
     assert.equal(r.payment, 1);
   } finally { cleanup(); }
 });
 
 test('syncSettings failing does not throw and records the error', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProfile: async () => { throw new Error('ecwid-403'); } }));
   try {
     const r = await sync.syncSettings();
     assert.equal(r.payment, 0);
-    assert.match(String(store.getState('last_error')), /403/);
+    assert.match(String(await store.getState('last_error')), /403/);
   } finally { cleanup(); }
 });
 
 /* ------------------------------- reconcile ------------------------------ */
 
 test('fullReconcile removes products Ecwid no longer has', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => ({ items: [E(1), E(3)], total: 2, count: 2 }),
     listAllProductIds: async () => new Set(['1', '3']) }));
   try {
-    store.upsertProducts([{ id: '2', title: 'phantom', price: 1, images: [], categoryIds: [] }]);
+    await store.upsertProducts([{ id: '2', title: 'phantom', price: 1, images: [], categoryIds: [] }]);
     const r = await sync.fullReconcile();
     assert.equal(r.removed, 1);
-    assert.deepEqual(store.allProducts().map(p => p.id).sort(), ['1', '3']);
+    assert.deepEqual((await store.allProducts()).map(p => p.id).sort(), ['1', '3']);
   } finally { cleanup(); }
 });
 
 test('fullReconcile does not empty the mirror when the id listing fails', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => ({ items: [E(1)], total: 1, count: 1 }),
     listAllProductIds: async () => { throw new Error('down'); } }));
   try {
     await sync.syncProducts({});
     const r = await sync.fullReconcile();
     assert.equal(r.removed, 0);
-    assert.equal(store.allProducts().length, 1);
+    assert.equal((await store.allProducts()).length, 1);
   } finally { cleanup(); }
 });
 
 test('fullReconcile does not empty the mirror when Ecwid returns no ids', async () => {
   /* The store-wiping scenario: a successful call that returns nothing. */
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     listProducts: async () => ({ items: [E(1)], total: 1, count: 1 }),
     listAllProductIds: async () => new Set() }));
   try {
     await sync.syncProducts({});
     const r = await sync.fullReconcile();
     assert.equal(r.removed, 0);
-    assert.equal(store.allProducts().length, 1, 'an empty id set must never wipe the catalogue');
+    assert.equal((await store.allProducts()).length, 1, 'an empty id set must never wipe the catalogue');
   } finally { cleanup(); }
 });
 
@@ -236,95 +236,95 @@ test('fullReconcile does not empty the mirror when Ecwid returns no ids', async 
 
 test('a product event re-fetches the entity and upserts it', async () => {
   let asked = null;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProduct: async id => { asked = id; return E(5, { name: 'اسم جديد' }); } }));
   try {
     const r = await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
     assert.equal(asked, '5');
     assert.equal(r.action, 'upserted');
-    assert.equal(store.allProducts()[0].title, 'اسم جديد');
+    assert.equal((await store.allProducts())[0].title, 'اسم جديد');
   } finally { cleanup(); }
 });
 
 test('the event PAYLOAD is ignored — only the re-fetched entity is trusted', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProduct: async () => E(5, { name: 'من الAPI' }) }));
   try {
     await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated',
       data: { name: 'من الحمولة — لا يجب استخدامه', price: 1 } });
-    assert.equal(store.allProducts()[0].title, 'من الAPI');
+    assert.equal((await store.allProducts())[0].title, 'من الAPI');
   } finally { cleanup(); }
 });
 
 test('applying the same event twice converges to one row', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({ getProduct: async () => E(5) }));
+  const { store, sync, cleanup } = await fresh(stubApi({ getProduct: async () => E(5) }));
   try {
     await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
     await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
-    assert.equal(store.allProducts().length, 1, 'replays must be harmless');
+    assert.equal((await store.allProducts()).length, 1, 'replays must be harmless');
   } finally { cleanup(); }
 });
 
 test('events arriving out of order still converge on current state', async () => {
   /* Both deliveries re-fetch, so whichever arrives last still writes the
      CURRENT product — no diff is ever applied. */
-  const { store, sync, cleanup } = fresh(stubApi({ getProduct: async () => E(5, { price: 999 }) }));
+  const { store, sync, cleanup } = await fresh(stubApi({ getProduct: async () => E(5, { price: 999 }) }));
   try {
     await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
     await sync.applyProductEvent({ entityId: '5', eventType: 'product.created' });
-    assert.equal(store.allProducts()[0].price, 999);
+    assert.equal((await store.allProducts())[0].price, 999);
   } finally { cleanup(); }
 });
 
 test('a delete event removes the row', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({ getProduct: async () => E(5) }));
+  const { store, sync, cleanup } = await fresh(stubApi({ getProduct: async () => E(5) }));
   try {
     await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
     const r = await sync.applyProductEvent({ entityId: '5', eventType: 'product.deleted' });
     assert.equal(r.action, 'deleted');
-    assert.equal(store.allProducts().length, 0);
+    assert.equal((await store.allProducts()).length, 0);
   } finally { cleanup(); }
 });
 
 test('an update event for a product Ecwid 404s deletes it rather than keeping a ghost', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({ getProduct: async () => null }));
+  const { store, sync, cleanup } = await fresh(stubApi({ getProduct: async () => null }));
   try {
-    store.upsertProducts([{ id: '5', title: 'ghost', price: 1, images: [], categoryIds: [] }]);
+    await store.upsertProducts([{ id: '5', title: 'ghost', price: 1, images: [], categoryIds: [] }]);
     const r = await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
     assert.equal(r.action, 'deleted');
-    assert.equal(store.allProducts().length, 0);
+    assert.equal((await store.allProducts()).length, 0);
   } finally { cleanup(); }
 });
 
 test('a webhook whose re-fetch fails records the error and does not throw', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     getProduct: async () => { throw new Error('ecwid-500'); } }));
   try {
     const r = await sync.applyProductEvent({ entityId: '5', eventType: 'product.updated' });
     assert.equal(r.action, 'error');
-    assert.match(String(store.getState('last_error')), /500/);
+    assert.match(String(await store.getState('last_error')), /500/);
   } finally { cleanup(); }
 });
 
 /* -------------------------------- timing -------------------------------- */
 
 test('lastSyncedUnix returns a unix seconds value after a sync, null before', async () => {
-  const { sync, cleanup } = fresh(stubApi({
+  const { sync, cleanup } = await fresh(stubApi({
     listProducts: async () => ({ items: [E(1)], total: 1, count: 1 }) }));
   try {
-    assert.equal(sync.lastSyncedUnix(), null);
+    assert.equal(await sync.lastSyncedUnix(), null);
     await sync.syncProducts({});
-    const t = sync.lastSyncedUnix();
+    const t = await sync.lastSyncedUnix();
     assert.ok(Number.isInteger(t) && t > 1_700_000_000, 'expected unix seconds, got ' + t);
   } finally { cleanup(); }
 });
 
 test('an unconfigured api makes syncAll a recorded no-op rather than a crash', async () => {
-  const { store, sync, cleanup } = fresh({ configured: false });
+  const { store, sync, cleanup } = await fresh({ configured: false });
   try {
     const r = await sync.syncAll();
     assert.equal(r.products, 0);
-    assert.match(String(store.getState('last_error')), /not configured/i);
+    assert.match(String(await store.getState('last_error')), /not configured/i);
   } finally { cleanup(); }
 });
 
@@ -357,10 +357,10 @@ test('a status changed in Ecwid reaches the local order on the poll', async () =
   const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
   const { api, loaders, seen } = orderHarness(
     { '900': { id: 900, fulfillmentStatus: 'SHIPPED', paymentStatus: 'AWAITING_PAYMENT' } }, local);
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueOrderPush('SDK-AAA111');
-    store.markPushed('SDK-AAA111', '900');
+    await store.enqueueOrderPush('SDK-AAA111');
+    await store.markPushed('SDK-AAA111', '900');
     const r = await sync.syncOrderStatuses(loaders);
     assert.equal(r.changed, 1);
     assert.deepEqual(seen, [['SDK-AAA111', 'shipping']]);
@@ -372,10 +372,10 @@ test('an unchanged status writes nothing', async () => {
   const local = { 'SDK-AAA111': LOCAL('SDK-AAA111', 'shipping') };
   const { api, loaders, seen } = orderHarness(
     { '900': { id: 900, fulfillmentStatus: 'SHIPPED' } }, local);
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueOrderPush('SDK-AAA111');
-    store.markPushed('SDK-AAA111', '900');
+    await store.enqueueOrderPush('SDK-AAA111');
+    await store.markPushed('SDK-AAA111', '900');
     const r = await sync.syncOrderStatuses(loaders);
     assert.equal(r.changed, 0);
     assert.deepEqual(seen, []);
@@ -387,10 +387,10 @@ test('an Ecwid status we do not map leaves the local one ALONE', async () => {
   const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
   const { api, loaders, seen } = orderHarness(
     { '900': { id: 900, fulfillmentStatus: 'SOMETHING_NEW' } }, local);
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueOrderPush('SDK-AAA111');
-    store.markPushed('SDK-AAA111', '900');
+    await store.enqueueOrderPush('SDK-AAA111');
+    await store.markPushed('SDK-AAA111', '900');
     await sync.syncOrderStatuses(loaders);
     assert.deepEqual(seen, []);
     assert.equal(local['SDK-AAA111'].status, 'received');
@@ -401,10 +401,10 @@ test('a cancelled or refunded PAYMENT cancels the order whatever fulfilment says
   const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
   const { api, loaders, seen } = orderHarness(
     { '900': { id: 900, fulfillmentStatus: 'PROCESSING', paymentStatus: 'REFUNDED' } }, local);
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueOrderPush('SDK-AAA111');
-    store.markPushed('SDK-AAA111', '900');
+    await store.enqueueOrderPush('SDK-AAA111');
+    await store.markPushed('SDK-AAA111', '900');
     await sync.syncOrderStatuses(loaders);
     assert.deepEqual(seen, [['SDK-AAA111', 'cancelled']]);
   } finally { cleanup(); }
@@ -415,9 +415,9 @@ test('an order that was never pushed is never asked about', async () => {
   const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
   let asked = 0;
   const api = stubApi({ getOrder: async () => { asked++; return null; } });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueOrderPush('SDK-AAA111');            // queued, never pushed
+    await store.enqueueOrderPush('SDK-AAA111');            // queued, never pushed
     await sync.syncOrderStatuses({ loadOrder: async r => local[r], setStatus: async () => {} });
     assert.equal(asked, 0);
   } finally { cleanup(); }
@@ -430,9 +430,9 @@ test('a DELIVERED or CANCELLED local order stops being polled', async () => {
   let asked = 0;
   const local = { a: LOCAL('a', 'delivered'), b: LOCAL('b', 'cancelled'), c: LOCAL('c', 'preparing') };
   const api = stubApi({ getOrder: async () => { asked++; return { id: 1, fulfillmentStatus: 'SHIPPED' }; } });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    for (const ref of ['a', 'b', 'c']) { store.enqueueOrderPush(ref); store.markPushed(ref, '90' + ref); }
+    for (const ref of ['a', 'b', 'c']) { await store.enqueueOrderPush(ref); await store.markPushed(ref, '90' + ref); }
     await sync.syncOrderStatuses({ loadOrder: async r => local[r], setStatus: async () => {} });
     assert.equal(asked, 1, 'only the unfinished order should be asked about');
   } finally { cleanup(); }
@@ -442,12 +442,12 @@ test('one tick is bounded, so a long order history cannot stall the poll', async
   let asked = 0;
   const local = {};
   const api = stubApi({ getOrder: async () => { asked++; return { id: 1, fulfillmentStatus: 'QUEUED' }; } });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
     for (let i = 0; i < 60; i++) {
       const ref = 'SDK-' + i;
       local[ref] = LOCAL(ref);
-      store.enqueueOrderPush(ref); store.markPushed(ref, String(1000 + i));
+      await store.enqueueOrderPush(ref); await store.markPushed(ref, String(1000 + i));
     }
     await sync.syncOrderStatuses({ loadOrder: async r => local[r], setStatus: async () => {} });
     assert.ok(asked <= 25, 'asked about ' + asked + ' orders in one tick');
@@ -459,10 +459,10 @@ test('a 403 answers quietly rather than failing the whole poll', async () => {
      not a fault, and the rest of the sync must carry on. */
   const local = { 'SDK-AAA111': LOCAL('SDK-AAA111') };
   const api = stubApi({ getOrder: async () => { const e = new Error('ecwid-403: no'); e.status = 403; throw e; } });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueOrderPush('SDK-AAA111');
-    store.markPushed('SDK-AAA111', '900');
+    await store.enqueueOrderPush('SDK-AAA111');
+    await store.markPushed('SDK-AAA111', '900');
     const r = await sync.syncOrderStatuses({ loadOrder: async x => local[x], setStatus: async () => {} });
     assert.equal(r.changed, 0);
     assert.equal(r.blocked, true, 'the caller should be able to tell access is missing');
@@ -491,53 +491,53 @@ function guestLoaders(store) {
   /* What the server wires: the accounts lookup misses for a guest, so it
      falls through to the outbox. */
   return {
-    loadOrder: async ref => store.getGuestOrder(ref),
+    loadOrder: async ref => await store.getGuestOrder(ref),
     loadUser: async o => ({ email: o.email, name: o.delivery.name, phone: o.delivery.phone }),
   };
 }
 
-test('a successful guest push DELETES the name, phone and address', () => {
+test('a successful guest push DELETES the name, phone and address', async () => {
   return (async () => {
     const api = stubApi({
       findOrderByRef: async () => null,
       createOrder: async () => ({ id: 777 }),
       allPaymentMethods: async () => [],
     });
-    const { store, sync, cleanup } = fresh(api);
+    const { store, sync, cleanup } = await fresh(api);
     try {
-      store.putGuestOrder(GUEST('SDK-G00001'));
-      store.enqueueOrderPush('SDK-G00001');
+      await store.putGuestOrder(GUEST('SDK-G00001'));
+      await store.enqueueOrderPush('SDK-G00001');
       const r = await sync.pushOrder('SDK-G00001', guestLoaders(store));
       assert.equal(r.ok, true, r.error);
-      assert.equal(store.getGuestOrder('SDK-G00001'), null,
+      assert.equal(await store.getGuestOrder('SDK-G00001'), null,
         'the guest payload must not survive a successful push');
       /* The push row stays: it carries the Ecwid id, which is what stops a
          retry creating the order twice. */
-      assert.equal(store.pushRow('SDK-G00001').ecwid_order_id, '777');
+      assert.equal((await store.pushRow('SDK-G00001')).ecwid_order_id, '777');
     } finally { cleanup(); }
   })();
 });
 
-test('a FAILED guest push keeps the payload, so the order is not lost', () => {
+test('a FAILED guest push keeps the payload, so the order is not lost', async () => {
   return (async () => {
     const api = stubApi({
       findOrderByRef: async () => { const e = new Error('ecwid-403: no'); e.status = 403; throw e; },
       allPaymentMethods: async () => [],
     });
-    const { store, sync, cleanup } = fresh(api);
+    const { store, sync, cleanup } = await fresh(api);
     try {
-      store.putGuestOrder(GUEST('SDK-G00002'));
-      store.enqueueOrderPush('SDK-G00002');
+      await store.putGuestOrder(GUEST('SDK-G00002'));
+      await store.enqueueOrderPush('SDK-G00002');
       const r = await sync.pushOrder('SDK-G00002', guestLoaders(store));
       assert.equal(r.ok, false);
-      assert.ok(store.getGuestOrder('SDK-G00002'), 'a lost order is worse than a retained one');
-      assert.equal(store.getGuestOrder('SDK-G00002').delivery.phone, '01012345678',
+      assert.ok(await store.getGuestOrder('SDK-G00002'), 'a lost order is worse than a retained one');
+      assert.equal((await store.getGuestOrder('SDK-G00002')).delivery.phone, '01012345678',
         'the phone has to survive, or nobody can ring the customer');
     } finally { cleanup(); }
   })();
 });
 
-test('an ADOPTED guest order drops its payload too', () => {
+test('an ADOPTED guest order drops its payload too', async () => {
   /* findOrderByRef found it already in Ecwid — a previous attempt succeeded
      and we lost the response. Ecwid has the details, so we should not. */
   return (async () => {
@@ -545,18 +545,18 @@ test('an ADOPTED guest order drops its payload too', () => {
       findOrderByRef: async () => ({ id: '888' }),
       allPaymentMethods: async () => [],
     });
-    const { store, sync, cleanup } = fresh(api);
+    const { store, sync, cleanup } = await fresh(api);
     try {
-      store.putGuestOrder(GUEST('SDK-G00003'));
-      store.enqueueOrderPush('SDK-G00003');
+      await store.putGuestOrder(GUEST('SDK-G00003'));
+      await store.enqueueOrderPush('SDK-G00003');
       const r = await sync.pushOrder('SDK-G00003', guestLoaders(store));
       assert.equal(r.adopted, true);
-      assert.equal(store.getGuestOrder('SDK-G00003'), null);
+      assert.equal(await store.getGuestOrder('SDK-G00003'), null);
     } finally { cleanup(); }
   })();
 });
 
-test('dropping the payload of an ACCOUNT order is harmless', () => {
+test('dropping the payload of an ACCOUNT order is harmless', async () => {
   /* The same code path runs for both; an account order simply has no outbox
      row, and the delete must not throw. */
   return (async () => {
@@ -565,9 +565,9 @@ test('dropping the payload of an ACCOUNT order is harmless', () => {
       createOrder: async () => ({ id: 999 }),
       allPaymentMethods: async () => [],
     });
-    const { store, sync, cleanup } = fresh(api);
+    const { store, sync, cleanup } = await fresh(api);
     try {
-      store.enqueueOrderPush('SDK-ACC001');
+      await store.enqueueOrderPush('SDK-ACC001');
       const r = await sync.pushOrder('SDK-ACC001', {
         loadOrder: async () => ({ ref: 'SDK-ACC001', status: 'received', payment: 'cod',
           items: [{ id: '1', title: 'x', price: 10, qty: 1 }], subtotal: 10,
@@ -610,14 +610,14 @@ const loadByEmail = async e => USERS[e] || null;
 
 test('a queued customer is created in Ecwid and marked linked', async () => {
   const { api, created } = linkHarness();
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('nour@example.com');
     const r = await sync.linkPendingCustomers(loadByEmail);
     assert.equal(r.linked, 1, JSON.stringify(r));
     assert.equal(created.length, 1);
     assert.equal(created[0].email, 'nour@example.com');
-    const row = store.customerLinkRow('nour@example.com');
+    const row = await store.customerLinkRow('nour@example.com');
     assert.equal(row.ecwid_customer_id, '501');
     assert.ok(row.linked_at);
   } finally { cleanup(); }
@@ -625,9 +625,9 @@ test('a queued customer is created in Ecwid and marked linked', async () => {
 
 test('an already-linked customer is not asked about again', async () => {
   const { api, created } = linkHarness();
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('nour@example.com');
     await sync.linkPendingCustomers(loadByEmail);
     const r = await sync.linkPendingCustomers(loadByEmail);
     assert.equal(r.linked, 0);
@@ -638,13 +638,13 @@ test('an already-linked customer is not asked about again', async () => {
 test('a customer Ecwid ALREADY has is adopted, not duplicated', async () => {
   /* Staff may have typed them in from a phone order first. */
   const { api, created } = linkHarness({ existing: () => ({ id: 909, name: 'نور حسن' }) });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('nour@example.com');
     const r = await sync.linkPendingCustomers(loadByEmail);
     assert.equal(r.linked, 1);
     assert.equal(created.length, 0, 'Ecwid already had them');
-    assert.equal(store.customerLinkRow('nour@example.com').ecwid_customer_id, '909');
+    assert.equal((await store.customerLinkRow('nour@example.com')).ecwid_customer_id, '909');
   } finally { cleanup(); }
 });
 
@@ -654,29 +654,29 @@ test('a 403 records the reason and STOPS, rather than burning every attempt', as
      token arrived. */
   const { api } = linkHarness({ api: {
     customerByEmail: async () => { const e = new Error('ecwid-403: '); e.status = 403; throw e; } } });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('nour@example.com');
-    store.enqueueCustomerLink('peter@example.com');
+    await store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('peter@example.com');
     const r = await sync.linkPendingCustomers(loadByEmail);
     assert.equal(r.blocked, true);
     assert.equal(r.linked, 0);
     /* Neither is burned: attempts stay at 0 so they are retried in full once
        the token can write. */
-    assert.equal(store.customerLinkRow('nour@example.com').attempts, 0);
-    assert.equal(store.customerLinkRow('peter@example.com').attempts, 0);
-    assert.equal(store.pendingCustomerLinks().length, 2);
+    assert.equal((await store.customerLinkRow('nour@example.com')).attempts, 0);
+    assert.equal((await store.customerLinkRow('peter@example.com')).attempts, 0);
+    assert.equal((await store.pendingCustomerLinks()).length, 2);
   } finally { cleanup(); }
 });
 
 test('an ordinary failure DOES count an attempt and backs off', async () => {
   const { api } = linkHarness({ api: {
     customerByEmail: async () => { throw new Error('ecwid-500: boom'); } } });
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('nour@example.com');
     await sync.linkPendingCustomers(loadByEmail);
-    const row = store.customerLinkRow('nour@example.com');
+    const row = await store.customerLinkRow('nour@example.com');
     assert.equal(row.attempts, 1);
     assert.match(row.last_error, /500/);
     assert.ok(row.next_attempt_at, 'a retry has to be scheduled');
@@ -687,24 +687,24 @@ test('an email with no account row is dropped, not retried forever', async () =>
   /* The account was deleted between enqueue and attempt. There is nothing
      to link, and retrying would park it for good. */
   const { api } = linkHarness();
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('gone@example.com');
+    await store.enqueueCustomerLink('gone@example.com');
     const r = await sync.linkPendingCustomers(loadByEmail);
     assert.equal(r.linked, 0);
     assert.equal(r.dropped, 1);
-    assert.equal(store.pendingCustomerLinks().length, 0, 'it should leave the queue');
+    assert.equal((await store.pendingCustomerLinks()).length, 0, 'it should leave the queue');
   } finally { cleanup(); }
 });
 
 test('one tick is bounded', async () => {
   const { api, created } = linkHarness();
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
     for (let i = 0; i < 60; i++) {
       const em = 'u' + i + '@example.com';
       USERS[em] = { email: em, name: 'u' + i, phone: '' };
-      store.enqueueCustomerLink(em);
+      await store.enqueueCustomerLink(em);
     }
     await sync.linkPendingCustomers(loadByEmail, 25);
     assert.ok(created.length <= 25, 'created ' + created.length + ' in one tick');
@@ -714,9 +714,9 @@ test('one tick is bounded', async () => {
 
 test('linkPendingCustomers never throws, whatever the loader does', async () => {
   const { api } = linkHarness();
-  const { store, sync, cleanup } = fresh(api);
+  const { store, sync, cleanup } = await fresh(api);
   try {
-    store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('nour@example.com');
     const r = await sync.linkPendingCustomers(async () => { throw new Error('db gone'); });
     assert.ok(r, 'it must return a result rather than throw out of the poll');
   } finally { cleanup(); }
@@ -729,11 +729,11 @@ test('linkPendingCustomers never throws, whatever the loader does', async () => 
 
 test('a status set on the site is pushed to the order in Ecwid', async () => {
   const seen = [];
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     updateOrder: async (id, body) => { seen.push({ id, body }); return { updateCount: 1 }; } }));
   try {
-    store.enqueueOrderPush('SDK-AB12CD');
-    store.markPushed('SDK-AB12CD', '7483');
+    await store.enqueueOrderPush('SDK-AB12CD');
+    await store.markPushed('SDK-AB12CD', '7483');
     const r = await sync.pushOrderStatus('SDK-AB12CD', 'shipping');
     assert.equal(r.ok, true);
     assert.deepEqual(seen, [{ id: '7483', body: { fulfillmentStatus: 'SHIPPED' } }]);
@@ -742,9 +742,9 @@ test('a status set on the site is pushed to the order in Ecwid', async () => {
 
 test('an order Ecwid has never seen is not pushed — there is nothing to update', async () => {
   let called = 0;
-  const { store, sync, cleanup } = fresh(stubApi({ updateOrder: async () => { called++; } }));
+  const { store, sync, cleanup } = await fresh(stubApi({ updateOrder: async () => { called++; } }));
   try {
-    store.enqueueOrderPush('SDK-NOTYET');           // queued, never sent
+    await store.enqueueOrderPush('SDK-NOTYET');           // queued, never sent
     const r = await sync.pushOrderStatus('SDK-NOTYET', 'shipping');
     assert.equal(r.ok, false);
     assert.equal(r.reason, 'not-in-ecwid');
@@ -754,10 +754,10 @@ test('an order Ecwid has never seen is not pushed — there is nothing to update
 
 test('confirmed is never pushed, because the echo would rewrite it', async () => {
   let called = 0;
-  const { store, sync, cleanup } = fresh(stubApi({ updateOrder: async () => { called++; } }));
+  const { store, sync, cleanup } = await fresh(stubApi({ updateOrder: async () => { called++; } }));
   try {
-    store.enqueueOrderPush('SDK-AB12CD');
-    store.markPushed('SDK-AB12CD', '7483');
+    await store.enqueueOrderPush('SDK-AB12CD');
+    await store.markPushed('SDK-AB12CD', '7483');
     const r = await sync.pushOrderStatus('SDK-AB12CD', 'confirmed');
     assert.equal(r.ok, false);
     assert.equal(r.reason, 'not-pushable');
@@ -766,11 +766,11 @@ test('confirmed is never pushed, because the echo would rewrite it', async () =>
 });
 
 test('a 403 is a configuration state, not a fault that reaches the operator', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     updateOrder: async () => { throw new Error('ecwid-403: '); } }));
   try {
-    store.enqueueOrderPush('SDK-AB12CD');
-    store.markPushed('SDK-AB12CD', '7483');
+    await store.enqueueOrderPush('SDK-AB12CD');
+    await store.markPushed('SDK-AB12CD', '7483');
     const r = await sync.pushOrderStatus('SDK-AB12CD', 'delivered');
     assert.equal(r.ok, false);
     assert.equal(r.reason, 'no-access');
@@ -778,11 +778,11 @@ test('a 403 is a configuration state, not a fault that reaches the operator', as
 });
 
 test('pushing a status never throws, whatever Ecwid does', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     updateOrder: async () => { throw new Error('boom'); } }));
   try {
-    store.enqueueOrderPush('SDK-AB12CD');
-    store.markPushed('SDK-AB12CD', '7483');
+    await store.enqueueOrderPush('SDK-AB12CD');
+    await store.markPushed('SDK-AB12CD', '7483');
     const r = await sync.pushOrderStatus('SDK-AB12CD', 'delivered');
     assert.equal(r.ok, false, 'an admin action must not 500 because Ecwid hiccuped');
   } finally { cleanup(); }
@@ -791,28 +791,28 @@ test('pushing a status never throws, whatever Ecwid does', async () => {
 /* ============== the customer link, with the snapshot rule ================= */
 
 test('a new customer is created and what we sent is remembered', async () => {
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     customerByEmail: async () => null,
     createCustomer: async () => ({ id: 366742801 }) }));
   try {
-    store.enqueueCustomerLink('nada@example.com');
+    await store.enqueueCustomerLink('nada@example.com');
     const r = await sync.linkCustomer({ email: 'nada@example.com', name: 'ندى', phone: '01000000000' });
     assert.equal(r.ok, true);
     assert.equal(r.created, true);
-    const snap = store.customerPushSnapshot('nada@example.com');
+    const snap = await store.customerPushSnapshot('nada@example.com');
     assert.equal(snap.name, 'ندى', 'without the snapshot the next push cannot tell user from staff');
   } finally { cleanup(); }
 });
 
 test('only the fields that changed are written, so a staff edit survives', async () => {
   const puts = [];
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     customerByEmail: async () => ({ id: 9, name: 'ندى محمد', billingPerson: { phone: '01000000000' } }),
     updateCustomer: async (id, body) => { puts.push({ id, body }); return {}; } }));
   try {
-    store.enqueueCustomerLink('nada@example.com');
+    await store.enqueueCustomerLink('nada@example.com');
     /* We last pushed the old phone; staff have since corrected the name. */
-    store.markCustomerLinked('nada@example.com', '9',
+    await store.markCustomerLinked('nada@example.com', '9',
       { email: 'nada@example.com', name: 'ندى', billingPerson: { phone: '01000000000', countryCode: 'EG' } });
     await sync.linkCustomer({ email: 'nada@example.com', name: 'ندى', phone: '01111111111' });
     assert.equal(puts.length, 1);
@@ -823,13 +823,13 @@ test('only the fields that changed are written, so a staff edit survives', async
 
 test('nothing to change means no write at all', async () => {
   let puts = 0;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     customerByEmail: async () => ({ id: 9, name: 'ندى', billingPerson: { phone: '01000000000' } }),
     updateCustomer: async () => { puts++; return {}; } }));
   try {
-    store.enqueueCustomerLink('nada@example.com');
+    await store.enqueueCustomerLink('nada@example.com');
     const user = { email: 'nada@example.com', name: 'ندى', phone: '01000000000' };
-    store.markCustomerLinked('nada@example.com', '9', toEcwidCustomer(user));
+    await store.markCustomerLinked('nada@example.com', '9', toEcwidCustomer(user));
     await sync.linkCustomer(user);
     assert.equal(puts, 0);
   } finally { cleanup(); }
@@ -837,20 +837,20 @@ test('nothing to change means no write at all', async () => {
 
 /* ============ the brand-restriction warning must reach the order ==========
    Regression guard for a bug an end-to-end test caught and every unit test
-   missed: pushOrder read store.allPaymentMethods() raw, and `restricted` is
+   missed: pushOrder read await store.allPaymentMethods() raw, and `restricted` is
    DERIVED from the Arabic title rather than stored, so toEcwidOrder never saw
    it and the staff warning was silently never written. */
 
 test('a brand-restricted plan warns staff in the pushed order', async () => {
   let sent = null;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     findOrderByRef: async () => null,
     createOrder: async (payload) => { sent = payload; return { id: 9001 }; } }));
   try {
-    store.upsertPaymentMethods([
+    await store.upsertPaymentMethods([
       { id: 'p-arabi', title: 'مبادرة العربى تقسيط ( منتجات العربى فقط )', enabled: true, order: 1 },
     ]);
-    store.enqueueOrderPush('SDK-RES111');
+    await store.enqueueOrderPush('SDK-RES111');
     const r = await sync.pushOrder('SDK-RES111', {
       loadOrder: async () => ({ ref: 'SDK-RES111', payment: 'p-arabi', subtotal: 1000,
         items: [{ id: '1', title: 'ثلاجة', price: 1000, qty: 1 }],
@@ -865,14 +865,14 @@ test('a brand-restricted plan warns staff in the pushed order', async () => {
 
 test('an unrestricted method produces no warning line', async () => {
   let sent = null;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     findOrderByRef: async () => null,
     createOrder: async (payload) => { sent = payload; return { id: 9002 }; } }));
   try {
-    store.upsertPaymentMethods([
+    await store.upsertPaymentMethods([
       { id: 'p-cod', title: 'Cash on Delivery  الدفع عند الاستلام', enabled: true, order: 0 },
     ]);
-    store.enqueueOrderPush('SDK-COD111');
+    await store.enqueueOrderPush('SDK-COD111');
     await sync.pushOrder('SDK-COD111', {
       loadOrder: async () => ({ ref: 'SDK-COD111', payment: 'p-cod', subtotal: 1000,
         items: [{ id: '1', title: 'ثلاجة', price: 1000, qty: 1 }],
@@ -887,14 +887,14 @@ test('an order on a method the owner later DISABLED still pushes', async () => {
   /* Why withRestriction must not filter the way toStorefrontMethods does: a
      filtered-out method makes toEcwidOrder throw and parks a real order. */
   let sent = null;
-  const { store, sync, cleanup } = fresh(stubApi({
+  const { store, sync, cleanup } = await fresh(stubApi({
     findOrderByRef: async () => null,
     createOrder: async (payload) => { sent = payload; return { id: 9003 }; } }));
   try {
-    store.upsertPaymentMethods([
+    await store.upsertPaymentMethods([
       { id: 'p-off', title: 'تقسيط كريازى', enabled: false, order: 3 },
     ]);
-    store.enqueueOrderPush('SDK-OFF111');
+    await store.enqueueOrderPush('SDK-OFF111');
     const r = await sync.pushOrder('SDK-OFF111', {
       loadOrder: async () => ({ ref: 'SDK-OFF111', payment: 'p-off', subtotal: 500,
         items: [{ id: '1', title: 'بوتجاز', price: 500, qty: 1 }],
@@ -903,5 +903,84 @@ test('an order on a method the owner later DISABLED still pushes', async () => {
     });
     assert.equal(r.ok, true, 'a disabled method must not park the order');
     assert.match(sent.paymentMethod, /كريازى/);
+  } finally { cleanup(); }
+});
+
+/* ===================== more than one instance at once ======================
+   On Vercel several instances share one database and no memory. */
+
+const tick = ms => new Promise(r => setTimeout(r, ms));
+
+test('a full sync already running elsewhere makes syncAll report busy, not run twice', async () => {
+  let pulls = 0;
+  const { store, sync, cleanup } = await fresh(stubApi({
+    listProducts: async () => { pulls++; return { items: [E(1)], total: 1, count: 1 }; },
+    listAllProductIds: async () => new Set(['1']) }));
+  try {
+    const other = await store.acquireLease('sync_all', 60_000);   // another instance
+    assert.ok(other);
+    const r = await sync.syncAll();
+    assert.equal(r.busy, true);
+    assert.equal(pulls, 0, 'the catalogue must not be pulled a second time in parallel');
+    await store.releaseLease('sync_all', other);
+    const r2 = await sync.syncAll();
+    assert.ok(!r2.busy);
+    assert.equal(r2.products, 1);
+    assert.ok(await store.acquireLease('sync_all', 1000), 'syncAll releases its lease when done');
+  } finally { cleanup(); }
+});
+
+test('two syncAll calls in one instance share one run', async () => {
+  let pulls = 0;
+  const { sync, cleanup } = await fresh(stubApi({
+    listProducts: async () => { pulls++; await tick(10); return { items: [E(1)], total: 1, count: 1 }; },
+    listAllProductIds: async () => new Set(['1']) }));
+  try {
+    const [a, b] = await Promise.all([sync.syncAll(), sync.syncAll()]);
+    assert.equal(a, b, 'the second caller should get the running result');
+    assert.equal(pulls, 1);
+  } finally { cleanup(); }
+});
+
+test('two instances working the link queue create each customer once', async () => {
+  const created = [];
+  const api = stubApi({
+    customerByEmail: async () => null,
+    createCustomer: async p => { await tick(10); created.push(p.email); return { id: created.length }; },
+  });
+  const { store, cleanup } = await fresh(api);
+  try {
+    await store.enqueueCustomerLink('nour@example.com');
+    await store.enqueueCustomerLink('peter@example.com');
+    const a = createEcwidSync({ api, store }), b = createEcwidSync({ api, store });
+    await Promise.all([a.linkPendingCustomers(loadByEmail), b.linkPendingCustomers(loadByEmail)]);
+    assert.deepEqual([...created].sort(), ['nour@example.com', 'peter@example.com']);
+  } finally { cleanup(); }
+});
+
+test('a loader failure releases the claim, so the next tick can try again', async () => {
+  const { api } = linkHarness();
+  const { store, sync, cleanup } = await fresh(api);
+  try {
+    await store.enqueueCustomerLink('nour@example.com');
+    await sync.linkPendingCustomers(async () => { throw new Error('db gone'); });
+    assert.equal((await store.dueCustomerLinks()).length, 1, 'the customer is stuck behind its own claim');
+  } finally { cleanup(); }
+});
+
+test('adFolderState works from the stored state it is handed, synchronously', async () => {
+  /* The storefront reads it on the hot path; the stored copy comes from the
+     source's snapshot, which refresh() keeps current across instances. */
+  const { store, cleanup } = await fresh(stubApi({ listCategoryProductIds: async () => ['7'] }));
+  try {
+    const sync = createEcwidSync({ api: stubApi({ listCategoryProductIds: async () => ['7'] }), store,
+                                   adFolders: { hero: '500' } });
+    assert.deepEqual(sync.adFolderState().map, {}, 'nothing loaded yet reads as no ads');
+    await sync.syncAdFolders();
+    assert.deepEqual(sync.adFolderState().map, { '7': 'hero' }, 'its own sync updates the copy');
+    const fresh2 = createEcwidSync({ api: stubApi(), store, adFolders: { hero: '500' } });
+    assert.deepEqual(fresh2.adFolderState(await store.getState('ad_folders')).map, { '7': 'hero' });
+    assert.deepEqual((await fresh2.loadAdFolderState()).map, { '7': 'hero' });
+    assert.deepEqual(fresh2.adFolderState(null).map, {}, 'an explicit null means no stored state');
   } finally { cleanup(); }
 });

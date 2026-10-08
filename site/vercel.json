@@ -1,0 +1,31 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "regions": ["fra1"],
+  "functions": {
+    "api/index.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{category/*.html,data/*.json}"
+    },
+    "api/cron.mjs": {
+      "maxDuration": 300,
+      "includeFiles": "{category/*.html,data/*.json}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/healthz", "destination": "/api/index" },
+    { "source": "/data/:path*", "destination": "/api/index" },
+    { "source": "/category/:path*", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 2 * * *" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/vid/(.*)",
+      "headers": [{ "key": "cache-control", "value": "public, max-age=604800" }]
+    }
+  ]
+}

@@ -14,12 +14,11 @@
    "still thinking about these?" prompt: a chosen reason (or free text), plus a
    snapshot of what was in the cart. That is the owner's most actionable signal.
 
-   Storage is SQLite (node:sqlite), same discipline as the other stores.
+   Storage is libSQL through engine/db.mjs (a local file in dev, Turso on
+   Vercel). Every method that touches the database returns a Promise.
    ========================================================================== */
 
-import { DatabaseSync } from 'node:sqlite';
-import { existsSync, mkdirSync } from 'node:fs';
-import path from 'node:path';
+import { openDb, storeSpec } from './db.mjs';
 
 /* The funnel, in order. Every event type must be one of these — a bad value can
    never reach the table. `purchase` is written server-side when an order lands. */
@@ -59,22 +58,12 @@ const MIGRATIONS = [{
   `,
 }];
 
-const RETENTION_DAYS = 365;   // keep a year of raw events; older rows are pruned on open
+const RETENTION_DAYS = 365;   // keep a year of raw events; older rows are pruned on open (and by prune())
 
-export function openAnalytics(file) {
-  const dir = path.dirname(file);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const db = new DatabaseSync(file);
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA busy_timeout = 5000');
-  db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (id INTEGER PRIMARY KEY, name TEXT, applied_at TEXT)');
-  const done = new Set(db.prepare('SELECT id FROM schema_migrations').all().map(r => r.id));
-  for (const m of MIGRATIONS) {
-    if (done.has(m.id)) continue;
-    db.exec('BEGIN');
-    try { db.exec(m.sql); db.prepare('INSERT INTO schema_migrations VALUES (?,?,?)').run(m.id, m.name, new Date().toISOString()); db.exec('COMMIT'); }
-    catch (e) { db.exec('ROLLBACK'); throw e; }
-  }
+export async function openAnalytics(file) {
+  const { spec, authToken } = storeSpec(file);
+  const db = await openDb(spec, { authToken });
+  await db.migrate('analytics', MIGRATIONS);
 
   const q = {
     insert:    db.prepare('INSERT INTO events (at,vid,user_id,product_id,type,meta_json) VALUES (?,?,?,?,?,?)'),
@@ -97,73 +86,89 @@ export function openAnalytics(file) {
     countAband:    db.prepare('SELECT COUNT(*) AS n FROM abandon'),
   };
 
-  // Housekeeping: drop events older than the retention window.
-  try { q.prune.run(new Date(Date.now() - RETENTION_DAYS * 86400000).toISOString()); } catch (e) {}
-
   const now = () => new Date().toISOString();
   const clip = (s, n) => s == null ? null : String(s).slice(0, n);
 
   const api = {
+    /* ---- housekeeping: drop events older than the retention window ---- */
+    async prune() {
+      try { return (await q.prune.run(new Date(Date.now() - RETENTION_DAYS * 86400000).toISOString())).changes; }
+      catch (e) { return 0; }
+    },
+
     /* ---- write ---- */
-    record({ vid, userId, productId, type, meta }) {
+    async record({ vid, userId, productId, type, meta }) {
       if (!EVENT_TYPES.includes(type)) return { error: 'bad-type' };
-      q.insert.run(now(), clip(vid, 40), clip(userId, 40), clip(productId, 40), type,
+      await q.insert.run(now(), clip(vid, 40), clip(userId, 40), clip(productId, 40), type,
         meta ? JSON.stringify(meta).slice(0, 500) : null);
       return { ok: true };
     },
-    // Convenience used by the order route: one purchase event per line item.
-    recordPurchase({ vid, userId, items }) {
+    // Convenience used by the order route: one purchase event per line item, in one batch.
+    async recordPurchase({ vid, userId, items }) {
+      const at = now();
+      const stmts = [];
       for (const it of (items || [])) {
         if (!it || !it.id) continue;
-        q.insert.run(now(), clip(vid, 40), clip(userId, 40), clip(it.id, 40), 'purchase',
-          JSON.stringify({ qty: it.qty || 1, price: it.price || 0 }).slice(0, 500));
+        stmts.push(q.insert.bind(at, clip(vid, 40), clip(userId, 40), clip(it.id, 40), 'purchase',
+          JSON.stringify({ qty: it.qty || 1, price: it.price || 0 }).slice(0, 500)));
       }
+      await db.batch(stmts);
       return { ok: true };
     },
-    recordAbandon({ vid, userId, reason, note, value, items }) {
-      q.insAband.run(now(), clip(vid, 40), clip(userId, 40), clip(reason, 60), clip(note, 600),
+    async recordAbandon({ vid, userId, reason, note, value, items }) {
+      await q.insAband.run(now(), clip(vid, 40), clip(userId, 40), clip(reason, 60), clip(note, 600),
         Math.round(Number(value) || 0), items ? JSON.stringify(items).slice(0, 4000) : null);
       return { ok: true };
     },
 
     /* ---- read: funnel ---- */
-    funnel(sinceIso) {
-      const stages = FUNNEL_STAGES.map(type => {
-        const people = sinceIso ? q.sinceVisitors.get(type, sinceIso).n : q.stageVisitors.get(type).n;
-        return { stage: type, people, hits: q.stageHits.get(type).n };
-      });
+    async funnel(sinceIso) {
+      const stages = await Promise.all(FUNNEL_STAGES.map(async type => {
+        const [p, h] = await Promise.all([
+          sinceIso ? q.sinceVisitors.get(type, sinceIso) : q.stageVisitors.get(type),
+          q.stageHits.get(type),
+        ]);
+        return { stage: type, people: p.n, hits: h.n };
+      }));
       // conversion of each stage relative to the first (views)
       const base = stages[0].people || 0;
       stages.forEach(s => { s.ofViews = base ? Math.round((s.people / base) * 100) : null; });
       return stages;
     },
-    productFunnel(productId) {
+    async productFunnel(productId) {
       const byType = {};
-      q.oneProduct.all(String(productId)).forEach(r => { byType[r.type] = { people: r.people, hits: r.hits }; });
+      (await q.oneProduct.all(String(productId))).forEach(r => { byType[r.type] = { people: r.people, hits: r.hits }; });
       return FUNNEL_STAGES.map(type => ({ stage: type, people: (byType[type] || {}).people || 0, hits: (byType[type] || {}).hits || 0 }));
     },
     // Map of productId -> {view, save, add_to_cart, checkout_start, purchase} people counts,
     // for decorating the admin product list. One query, folded in memory.
-    productStatsMap() {
+    async productStatsMap() {
       const m = {};
-      q.perProduct.all().forEach(r => {
+      (await q.perProduct.all()).forEach(r => {
         (m[r.id] || (m[r.id] = {}))[r.type] = r.people;
       });
       return m;
     },
-    topProducts(type, limit) { return q.topByType.all(type, Math.min(50, Math.max(1, limit || 8))); },
+    async topProducts(type, limit) { return q.topByType.all(type, Math.min(50, Math.max(1, limit || 8))); },
 
     /* ---- read: abandonment ---- */
-    abandonList(limit) { return q.recentAband.all(Math.min(500, Math.max(1, limit || 50))).map(r => ({
-      id: r.id, at: r.at, reason: r.reason, note: r.note, value: r.value,
-      items: (() => { try { return JSON.parse(r.items_json || '[]'); } catch { return []; } })(),
-      signedIn: !!r.user_id,
-    })); },
-    abandonReasons() { return q.reasonAgg.all(); },
+    async abandonList(limit) {
+      return (await q.recentAband.all(Math.min(500, Math.max(1, limit || 50)))).map(r => ({
+        id: r.id, at: r.at, reason: r.reason, note: r.note, value: r.value,
+        items: (() => { try { return JSON.parse(r.items_json || '[]'); } catch { return []; } })(),
+        signedIn: !!r.user_id,
+      }));
+    },
+    async abandonReasons() { return q.reasonAgg.all(); },
 
-    stats() { return { events: q.countEvents.get().n, abandonments: q.countAband.get().n }; },
-    close() { try { db.close(); } catch (e) {} },
+    async stats() {
+      const [e, a] = await Promise.all([q.countEvents.get(), q.countAband.get()]);
+      return { events: e.n, abandonments: a.n };
+    },
+    close() { db.close(); },
     raw: db,
   };
+
+  await api.prune();
   return api;
 }

@@ -21,6 +21,16 @@
    Out-of-stock products are NOT filtered. 470 of the 990 visible products
    cannot be bought, and hiding them would understate the range SADKO carries.
    They are ordered last instead.
+
+   IN MEMORY, PER INSTANCE. The mirror is async now (libSQL, often Turso over
+   the network), but the request code that builds pages reads this module
+   synchronously. So every read accessor works over a SNAPSHOT of products,
+   categories and the ad-folder state, and `await refresh()` keeps it current:
+   it reads the store's catalogue version (one row, at most once per
+   maxAgeMs) and reloads the snapshot only when that number moved. Before the
+   first refresh the snapshot is empty, which reads exactly like an empty
+   mirror did: the seed is served. catalogBase() and banners() refresh on
+   their own; call refresh() at the top of a request before the sync ones.
    ========================================================================== */
 import { adSlotOf, isAd, adDestination, liveDestination } from './ecwid-ads.mjs';
 
@@ -56,6 +66,60 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     catch (e) { return {}; }
   };
   let cache = null;                       // built catalogue, invalidated on write
+  let world = null;                       // advert destinations, ditto
+
+  /* The snapshot. `loaded` is false until the first successful read, and the
+     empty arrays make every accessor behave as an empty mirror until then. */
+  const EMPTY_META = { lastSync: null, lastError: null, paymentMethods: 0, shippingMethods: 0 };
+  let snap = { loaded: false, version: null, products: [], categories: [], ad: null };
+  let meta = { ...EMPTY_META };
+  let checkedAt = 0;                      // when the version was last read
+  let stale = false;                      // invalidate() asked for a reload
+  let inflight = null;                    // the one refresh in progress, shared
+
+  /* Re-read the version, and the catalogue only if it changed. Safe to call on
+     every request and from many requests at once: concurrent callers share
+     one in-flight read, and within maxAgeMs of the last check it costs
+     nothing. A failed read keeps the last good snapshot (never an empty
+     one) and resolves false; it never rejects. Resolves true when the
+     snapshot was reloaded. */
+  function refresh({ maxAgeMs = 5000 } = {}) {
+    if (!enabled) return Promise.resolve(false);
+    /* Join the read in progress. If invalidate() came after it started, it
+       may have read the old rows, so run once more when it finishes. */
+    if (inflight) return stale ? inflight.then(() => refresh({ maxAgeMs })) : inflight;
+    if (!stale && checkedAt && Date.now() - checkedAt < maxAgeMs) return Promise.resolve(false);
+    const run = (async () => {
+      try {
+        const m = typeof store.catalogMeta === 'function'
+          ? await store.catalogMeta()
+          : { version: await store.catalogVersion() };
+        meta = {
+          lastSync: m.lastSync ?? null, lastError: m.lastError ?? null,
+          paymentMethods: Number(m.paymentMethods) || 0, shippingMethods: Number(m.shippingMethods) || 0,
+        };
+        if (snap.loaded && !stale && m.version === snap.version) return false;
+        stale = false;                    // set again by an invalidate() during the read
+        /* The version is read BEFORE the rows, so the rows are at least as new
+           as the version recorded; a write landing in between just makes the
+           next check reload once more. */
+        const [products, categories, ad] = await Promise.all([
+          store.allProducts(), store.allCategories(),
+          typeof store.getState === 'function' ? store.getState('ad_folders') : null,
+        ]);
+        snap = { loaded: true, version: m.version, products: products || [], categories: categories || [], ad: ad ?? null };
+        cache = null; world = null;
+        return true;
+      } catch (e) {
+        return false;
+      } finally {
+        checkedAt = Date.now();
+      }
+    })();
+    inflight = run;
+    run.finally(() => { if (inflight === run) inflight = null; });
+    return run;
+  }
 
   /* Which source is live, computed FRESH every time rather than remembered
      from the last catalogue read.
@@ -68,15 +132,14 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
      having run first. */
   function liveSource() {
     if (!enabled) return 'disabled';
-    try { return store.productIds && store.productIds().size ? 'ecwid' : 'seed'; }
-    catch (e) { return 'seed'; }
+    return snap.products.length ? 'ecwid' : 'seed';
   }
 
   const banner = bannerCategoryId == null ? null : String(bannerCategoryId);
 
   function servedCount() {
     if (!enabled) return 0;
-    try { return store.allProducts().filter(isServed).length; } catch (e) { return 0; }
+    try { return snap.products.filter(isServed).length; } catch (e) { return 0; }
   }
 
   const inBannerCategory = p => banner != null && (
@@ -169,12 +232,11 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
      an advert rail asks this once per advert and must not re-read the mirror
      each time. An empty read yields NO lookups rather than an empty world —
      a failed query must not silently strip every destination on the site. */
-  let world = null;
   function adWorld() {
     if (world) return world;
     const ids = new Set(), cats = new Set();
-    try { for (const p of store.allProducts()) if (isServed(p)) ids.add(String(p.id)); } catch (e) {}
-    try { for (const c of store.allCategories()) cats.add(String(c.id)); } catch (e) {}
+    try { for (const p of snap.products) if (isServed(p)) ids.add(String(p.id)); } catch (e) {}
+    try { for (const c of snap.categories) cats.add(String(c.id)); } catch (e) {}
     world = {};
     if (ids.size) world.hasProduct = id => ids.has(String(id));
     if (cats.size) world.hasCategory = id => cats.has(String(id));
@@ -184,10 +246,10 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
   return {
     async catalogBase() {
       if (!enabled) return seed();
+      await refresh();
       if (cache) return cache;
 
-      let rows = [];
-      try { rows = store.allProducts(); } catch (e) { rows = []; }
+      const rows = snap.products;
 
       if (!rows.length) return seed();
       cache = build(rows);
@@ -204,8 +266,7 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
        and the page shows its "not found" state. */
     productDetail(id) {
       if (!enabled || id == null) return null;
-      let rows = [];
-      try { rows = store.allProducts(); } catch (e) { return null; }
+      const rows = snap.products;
       const want = String(id);
       const hit = rows.find(p => p && String(p.id) === want);
       return hit && isServed(hit) ? hit : null;
@@ -217,8 +278,8 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
     async banners() {
       /* No category needed: the SKU convention works on its own. */
       if (!enabled) return [];
-      let rows = [];
-      try { rows = store.allProducts(); } catch (e) { return []; }
+      await refresh();
+      const rows = snap.products;
       /* Deliberately does NOT require enabled. Banner entries are kept DISABLED
          in Ecwid so they never appear in Ecwid own storefront — the category
          description tells staff exactly that — so requiring enabled here would
@@ -237,17 +298,43 @@ export function createEcwidSource({ store, seedLoader, enabled, bannerCategoryId
        fallback then applies. */
     adDestinationOf: p => liveDestination(adDestination(p && p.sku), adWorld()),
 
-    invalidate() { cache = null; world = null; },
+    /* Drop what was built AND force the next refresh() to reload, whatever
+       the version says. Call it after a sync or webhook in this instance;
+       other instances see the version move instead. */
+    invalidate() { cache = null; world = null; stale = true; checkedAt = 0; },
+
+    refresh,
+
+    /* The version the snapshot was loaded at (null before the first load). */
+    snapshotVersion: () => snap.version,
+
+    /* The stored ad-folder state from the snapshot, for
+       ecwidSync().adFolderState(stored). undefined before the first load, so
+       the sync falls back to its own copy. */
+    storedAdFolders: () => (snap.loaded ? snap.ad : undefined),
+
+    /* Categories from the snapshot. */
+    categories: () => snap.categories,
 
     activeSource: () => liveSource(),
 
     /* Counts and the last error only. There is no code path here that can
        reveal any part of the token. */
     describe() {
-      let s = { products: 0, enabled: 0, buyable: 0, categories: 0, outOfStock: 0,
-                discounted: 0, incomplete: 0, paymentMethods: 0, shippingMethods: 0,
-                lastSync: null, lastError: null };
-      try { s = store.stats(); } catch (e) {}
+      /* Counted over the snapshot with the same rules stats() uses in SQL,
+         so it stays synchronous; the status values come from the last
+         version check. */
+      const rows = snap.products;
+      const on = p => p && p.enabled === true;
+      const s = {
+        products: rows.length,
+        categories: snap.categories.length,
+        outOfStock: rows.filter(p => on(p) && p.inStock === false).length,
+        buyable: rows.filter(p => on(p) && p.inStock === true).length,
+        incomplete: rows.filter(p => p && p.incomplete === true).length,
+        discounted: rows.filter(p => p && p.compareToPrice != null).length,
+        ...meta,
+      };
       return {
         enabled: !!enabled,
         source: liveSource(),

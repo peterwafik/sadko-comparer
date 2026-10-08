@@ -8,8 +8,9 @@
        replays and out-of-order delivery harmless. Never "optimise" this by
        trusting the payload — a test asserts the payload is ignored.
 
-     • Nothing here throws. These methods run from timers and from a public
-       HTTP route; a failure records last_error and returns a zero result,
+     • Nothing here throws. These methods run on the caller's schedule (a
+       cron, or after a request; there are no timers in here) and from a
+       public HTTP route; a failure records last_error and returns a zero result,
        leaving the last good mirror in place. The site must never go down, or
        serve an empty catalogue, because Ecwid did.
    ========================================================================== */
@@ -20,6 +21,10 @@ import { withRestriction } from './ecwid-payments.mjs';
 import { AD_SLOTS, buildSlotMap } from './ecwid-ads.mjs';
 
 const PAGE = 100;
+
+/* How long a full sync may hold the cross-instance lease. A full pull of
+   ~1,500 products is well under a minute; a crashed run frees it after this. */
+const SYNC_LEASE_MS = 10 * 60_000;
 
 /* Ecwid's payment and shipping options, flattened to what checkout needs.
    Kept here rather than in ecwid-map.mjs because these come from the store
@@ -89,24 +94,24 @@ export const toShippingMethodForTest = toShippingMethod;
 
 export function createEcwidSync({ api, store, adFolders = {},
                                  map = { toSadkoProduct, toSadkoCategory, toEcwidOrder } }) {
-  const fail = (where, e) => {
+  const fail = async (where, e) => {
     const msg = `${where}: ${(e && e.message) || e}`;
-    try { store.setState('last_error', msg); } catch (x) {}
+    try { await store.setState('last_error', msg); } catch (x) {}
     console.error('[ecwid] ' + msg);
   };
-  const ok = extra => {
+  const ok = async extra => {
     try {
-      store.setState('last_sync', { at: new Date().toISOString(), ...extra });
-      store.setState('last_error', null);
+      await store.setState('last_sync', { at: new Date().toISOString(), ...extra });
+      await store.setState('last_error', null);
     } catch (x) {}
   };
-  const notConfigured = where => {
-    fail(where, new Error('ecwid is not configured'));
+  const notConfigured = async where => {
+    await fail(where, new Error('ecwid is not configured'));
     return false;
   };
 
   async function syncProducts({ updatedFrom } = {}) {
-    if (!api.configured) { notConfigured('syncProducts'); return { written: 0, pages: 0 }; }
+    if (!api.configured) { await notConfigured('syncProducts'); return { written: 0, pages: 0 }; }
     let written = 0, pages = 0;
     try {
       for (let offset = 0; ; ) {
@@ -114,42 +119,42 @@ export function createEcwidSync({ api, store, adFolders = {},
         const items = (page && page.items) || [];
         pages++;
         if (items.length) {
-          store.upsertProducts(items.map(map.toSadkoProduct));
+          await store.upsertProducts(items.map(map.toSadkoProduct));
           written += items.length;
         }
         offset += items.length;
         const total = page && page.total != null ? page.total : offset;
         if (!items.length || offset >= total) break;
       }
-      ok({ products: written, incremental: updatedFrom != null });
+      await ok({ products: written, incremental: updatedFrom != null });
       return { written, pages };
-    } catch (e) { fail('syncProducts', e); return { written, pages }; }
+    } catch (e) { await fail('syncProducts', e); return { written, pages }; }
   }
 
   async function syncCategories() {
-    if (!api.configured) { notConfigured('syncCategories'); return { written: 0 }; }
+    if (!api.configured) { await notConfigured('syncCategories'); return { written: 0 }; }
     try {
       const rows = (await api.listCategories()).map(map.toSadkoCategory);
-      const r = store.upsertCategories(rows);
-      ok({ categories: rows.length });
+      const r = await store.upsertCategories(rows);
+      await ok({ categories: rows.length });
       return r;
-    } catch (e) { fail('syncCategories', e); return { written: 0 }; }
+    } catch (e) { await fail('syncCategories', e); return { written: 0 }; }
   }
 
   /* Payment and shipping methods, mirrored from the store profile. Only
      ENABLED methods are stored: offering one the owner switched off would take
      an order on terms SADKO cannot honour. Nor are unnamed ones. */
   async function syncSettings() {
-    if (!api.configured) { notConfigured('syncSettings'); return { payment: 0, shipping: 0 }; }
+    if (!api.configured) { await notConfigured('syncSettings'); return { payment: 0, shipping: 0 }; }
     try {
       const p = await api.getProfile();
       const pay = (p.paymentOptions || []).map(toPaymentMethod).filter(m => m.enabled && isNamedPayment(m));
       const ship = (p.shippingOptions || []).map(toShippingMethod).filter(m => m.enabled);
-      store.upsertPaymentMethods(pay);
-      store.upsertShippingMethods(ship);
-      ok({ payment: pay.length, shipping: ship.length });
+      await store.upsertPaymentMethods(pay);
+      await store.upsertShippingMethods(ship);
+      await ok({ payment: pay.length, shipping: ship.length });
       return { payment: pay.length, shipping: ship.length };
-    } catch (e) { fail('syncSettings', e); return { payment: 0, shipping: 0 }; }
+    } catch (e) { await fail('syncSettings', e); return { payment: 0, shipping: 0 }; }
   }
 
   /* Daily. updatedFrom can never report deletions, so the only way to find a
@@ -160,19 +165,48 @@ export function createEcwidSync({ api, store, adFolders = {},
     if (!api.configured) return { written, removed: 0 };
     try {
       const live = await api.listAllProductIds();
-      const { removed } = store.deleteMissingProducts(live);
-      ok({ products: written, removed, reconcile: true });
+      const { removed } = await store.deleteMissingProducts(live);
+      await ok({ products: written, removed, reconcile: true });
       return { written, removed };
-    } catch (e) { fail('fullReconcile', e); return { written, removed: 0 }; }
+    } catch (e) { await fail('fullReconcile', e); return { written, removed: 0 }; }
+  }
+
+  /* Run fn only if no other instance holds the named lease. Resolves to
+     { busy: true } without running it when the lease is taken. A store with
+     no lease support (an old stub) just runs it. */
+  async function runExclusive(name, ms, fn) {
+    if (typeof store.acquireLease !== 'function') return { busy: false, result: await fn() };
+    let owner = null;
+    try { owner = await store.acquireLease(name, ms); } catch (e) { owner = null; }
+    if (!owner) return { busy: true };
+    try { return { busy: false, result: await fn() }; }
+    finally { try { await store.releaseLease(name, owner); } catch (e) {} }
+  }
+
+  /* One full sync at a time: in THIS instance by sharing the running promise,
+     and across instances by a lease in the mirror. A second instance that
+     finds the lease held reports busy rather than pulling 1,500 products a
+     second time in parallel. */
+  let allRunning = null;
+  function syncAll() {
+    if (!allRunning) allRunning = syncAllOnce().finally(() => { allRunning = null; });
+    return allRunning;
+  }
+
+  async function syncAllOnce() {
+    if (!api.configured) {
+      await notConfigured('syncAll');
+      return { products: 0, categories: 0, payment: 0, shipping: 0, removed: 0 };
+    }
+    const r = await runExclusive('sync_all', SYNC_LEASE_MS, syncEverything);
+    return r.busy
+      ? { products: 0, categories: 0, payment: 0, shipping: 0, removed: 0, ads: 0, busy: true }
+      : r.result;
   }
 
   /* Everything, in dependency order: categories and settings first so a
      product arriving in a brand-new category already has somewhere to sit. */
-  async function syncAll() {
-    if (!api.configured) {
-      notConfigured('syncAll');
-      return { products: 0, categories: 0, payment: 0, shipping: 0, removed: 0 };
-    }
+  async function syncEverything() {
     const c = await syncCategories();
     const s = await syncSettings();
     const r = await fullReconcile();
@@ -187,25 +221,25 @@ export function createEcwidSync({ api, store, adFolders = {},
   }
 
   async function applyProductEvent({ entityId, eventType }) {
-    if (!api.configured) { notConfigured('applyProductEvent'); return { action: 'error' }; }
+    if (!api.configured) { await notConfigured('applyProductEvent'); return { action: 'error' }; }
     const id = String(entityId);
     try {
       if (/deleted/i.test(String(eventType))) {
-        store.deleteProduct(id);
-        ok({ event: eventType, id });
+        await store.deleteProduct(id);
+        await ok({ event: eventType, id });
         return { action: 'deleted' };
       }
       /* Re-fetch. The event's own payload is deliberately not read. */
       const live = await api.getProduct(id);
       if (!live) {                          // 404: it is gone, don't keep a ghost
-        store.deleteProduct(id);
-        ok({ event: eventType, id, gone: true });
+        await store.deleteProduct(id);
+        await ok({ event: eventType, id, gone: true });
         return { action: 'deleted' };
       }
-      store.upsertProducts([map.toSadkoProduct(live)]);
-      ok({ event: eventType, id });
+      await store.upsertProducts([map.toSadkoProduct(live)]);
+      await ok({ event: eventType, id });
       return { action: 'upserted' };
-    } catch (e) { fail('applyProductEvent ' + id, e); return { action: 'error' }; }
+    } catch (e) { await fail('applyProductEvent ' + id, e); return { action: 'error' }; }
   }
 
   /* ---- pushing orders into Ecwid -------------------------------------
@@ -225,20 +259,35 @@ export function createEcwidSync({ api, store, adFolders = {},
      Wrapped, because failing to clean up must never turn a SUCCESSFUL push
      into a reported failure. A payload left behind is visible in the admin
      desk; an order pushed twice is not fixable. */
-  function dropGuestPayload(ref) {
-    try { if (typeof store.dropGuestOrder === 'function') store.dropGuestOrder(ref); }
+  async function dropGuestPayload(ref) {
+    try { if (typeof store.dropGuestOrder === 'function') await store.dropGuestOrder(ref); }
     catch (e) { /* the row stays and shows in the desk; the order is fine */ }
   }
 
   async function pushOrder(ref, { loadOrder, loadUser } = {}) {
-    const row = store.pushRow(ref);
+    let row = await store.pushRow(ref);
     if (row && row.ecwid_order_id)
       return { ok: true, ecwidOrderId: row.ecwid_order_id, already: true };
 
+    /* THE CLAIM, before anything reaches Ecwid. Another serverless instance
+       may be pushing this very order right now (the checkout's own push and
+       the after-request retry, or two retries), and check-then-create alone
+       cannot stop that: Ecwid's search may not show an order created a
+       second ago. Only one caller gets the row; the other backs off WITHOUT
+       spending an attempt. Every exit below either marks the row pushed or
+       parks it, and both release the claim. A crash leaves it to expire. */
+    if (!row) { await store.enqueueOrderPush(ref); row = await store.pushRow(ref); }
+    if (!(await store.claimPush(ref))) {
+      const now = await store.pushRow(ref);
+      if (now && now.ecwid_order_id)
+        return { ok: true, ecwidOrderId: now.ecwid_order_id, already: true };
+      return { ok: false, busy: true, error: 'another worker is pushing this order' };
+    }
+
     const attempts = row ? row.attempts : 0;
     const schedule = n => new Date(Date.now() + BACKOFF_MS[Math.min(n, BACKOFF_MS.length - 1)]).toISOString();
-    const park = msg => {
-      store.markPushFailed(ref, msg, schedule(attempts));
+    const park = async msg => {
+      await store.markPushFailed(ref, msg, schedule(attempts));
       console.error(`[ecwid] order push ${ref} failed: ${msg}`);
       return { ok: false, error: msg };
     };
@@ -256,7 +305,7 @@ export function createEcwidSync({ api, store, adFolders = {},
          the Arabic title rather than stored, so the raw rows always read as
          unrestricted and toEcwidOrder silently dropped the staff warning for a
          brand-restricted instalment plan. */
-      payload = map.toEcwidOrder(order, user, withRestriction(store.allPaymentMethods()));
+      payload = map.toEcwidOrder(order, user, withRestriction(await store.allPaymentMethods()));
       loaded = order;
     } catch (e) { return park(String((e && e.message) || e)); }
 
@@ -288,32 +337,35 @@ export function createEcwidSync({ api, store, adFolders = {},
     try {
       const existing = await api.findOrderByRef(ref);
       if (existing && existing.id) {
-        store.markPushed(ref, existing.id);
-        dropGuestPayload(ref);
+        await store.markPushed(ref, existing.id);
+        await dropGuestPayload(ref);
         return { ok: true, ecwidOrderId: String(existing.id), adopted: true };
       }
       const created = await api.createOrder(payload);
       const id = created && (created.id ?? created.orderId);
       if (id == null) return park('ecwid returned no order id');
-      store.markPushed(ref, id);
-      dropGuestPayload(ref);
+      await store.markPushed(ref, id);
+      await dropGuestPayload(ref);
       return { ok: true, ecwidOrderId: String(id) };
     } catch (e) { return park(String((e && e.message) || e)); }
   }
 
   async function pushPendingOrders(loaders) {
-    let pushed = 0, failed = 0;
+    let pushed = 0, failed = 0, busy = 0;
     for (let i = 0; i < 25; i++) {            // bounded: one tick cannot run forever
-      const due = store.nextDuePush();
+      const due = await store.nextDuePush();
       if (!due) break;
       const r = await pushOrder(due.ref, loaders);
       if (r.ok) { pushed++; continue; }
+      /* Another instance claimed it between our read and our claim. Not a
+         failure, and nextDuePush now skips it, so move on to the next. */
+      if (r.busy) { busy++; continue; }
       failed++;
       /* Stop on the first failure. The next due order is almost always blocked
          by the same outage, so retrying them all now just multiplies it. */
       break;
     }
-    return { pushed, failed };
+    return busy ? { pushed, failed, busy } : { pushed, failed };
   }
 
   /* ---- which products are advertisements, and in which slot -------------
@@ -339,11 +391,11 @@ export function createEcwidSync({ api, store, adFolders = {},
        adverts — adFolderState() already refuses to use them, and this stops
        them accumulating in the mirror as well. */
     if (!slots.length) {
-      try { store.setState('ad_folders', null); } catch (e) {}
+      try { await store.setState('ad_folders', null); adStored = null; } catch (e) {}
       return { slots: 0, ads: 0, failed: [] };
     }
 
-    const prev = (store.getState('ad_folders') || {});
+    const prev = (await store.getState('ad_folders') || {});
     const prevContents = prev.contents || {};
     const contents = {};
     const failed = [];
@@ -359,19 +411,31 @@ export function createEcwidSync({ api, store, adFolders = {},
     }
 
     const { map, conflicts } = buildSlotMap(folders, contents);
-    store.setState('ad_folders', {
-      folders, contents, map, conflicts, failed,
-      at: new Date().toISOString(),
-    });
+    const next = { folders, contents, map, conflicts, failed, at: new Date().toISOString() };
+    await store.setState('ad_folders', next);
+    adStored = next;
     return { slots: slots.length, ads: Object.keys(map).length, conflicts, failed };
+  }
+
+  /* The last stored ad state THIS instance has seen. The store is async now,
+     and adFolderState() is read synchronously on the storefront's hot path,
+     so it works from a copy: written by syncAdFolders, re-read by
+     loadAdFolderState(), or handed in by the caller from the source's
+     snapshot (ecwidSource().storedAdFolders()), which refresh() keeps current
+     across instances. undefined = never loaded. */
+  let adStored;
+
+  async function loadAdFolderState() {
+    try { adStored = await store.getState('ad_folders'); } catch (e) { /* keep the last copy */ }
+    return adFolderState();
   }
 
   /* The stored map, for the storefront and the admin panel. Shaped so a store
      that has never synced ads reads as "no ads configured" rather than
-     throwing. */
-  function adFolderState() {
-    let st = null;
-    try { st = store.getState('ad_folders'); } catch (e) { st = null; }
+     throwing. Pass the stored state to use it instead of this instance's
+     copy. */
+  function adFolderState(stored) {
+    const st = stored !== undefined ? stored : (adStored ?? null);
     if (!st || typeof st !== 'object') {
       return { folders: {}, map: {}, contents: {}, conflicts: [], failed: [], at: null };
     }
@@ -423,16 +487,16 @@ export function createEcwidSync({ api, store, adFolders = {},
         /* Remember what we sent. Without this the NEXT push cannot tell a change
            the user made here from a correction staff made in Ecwid, and falls
            back to filling only what is missing. */
-        store.markCustomerLinked(desired.email, id, desired);
+        await store.markCustomerLinked(desired.email, id, desired);
         return { ok: true, created: true, id };
       }
       /* Only the fields that actually changed. Sending the whole payload would
          overwrite every detail staff corrected in Ecwid, which is why this used
          to send a single hardcoded field and no more. */
-      const patch = customerUpdatePatch(existing, desired, store.customerPushSnapshot(desired.email));
+      const patch = customerUpdatePatch(existing, desired, await store.customerPushSnapshot(desired.email));
       if (Object.keys(patch).length) {
         await api.updateCustomer(existing.id, patch);
-        store.markCustomerLinked(desired.email, String(existing.id), desired);
+        await store.markCustomerLinked(desired.email, String(existing.id), desired);
         return { ok: true, updated: true, id: String(existing.id) };
       }
       return { ok: true, id: String(existing.id) };
@@ -473,7 +537,7 @@ export function createEcwidSync({ api, store, adFolders = {},
     if (!api.configured || typeof loadOrder !== 'function') return { changed: 0, checked: 0 };
     let changed = 0, checked = 0, blocked = false;
 
-    for (const row of store.pushedOrders(400)) {
+    for (const row of await store.pushedOrders(400)) {
       if (checked >= limit) break;                  // bounded: one tick cannot run forever
       let local = null;
       try { local = await loadOrder(row.ref); } catch (e) { continue; }
@@ -525,39 +589,46 @@ export function createEcwidSync({ api, store, adFolders = {},
     let linked = 0, dropped = 0, failed = 0, blocked = false;
     const schedule = n => new Date(Date.now() + BACKOFF_MS[Math.min(n, BACKOFF_MS.length - 1)]).toISOString();
 
-    for (const row of store.dueCustomerLinks(limit)) {
+    for (const row of await store.dueCustomerLinks(limit)) {
       const email = row.email;
+      /* Claimed first, so two instances working the queue cannot both create
+         the same customer in Ecwid. Someone else has it: skip. */
+      if (typeof store.claimCustomerLink === 'function' && !(await store.claimCustomerLink(email))) continue;
+      const release = async () => {
+        try { if (typeof store.releaseCustomerLink === 'function') await store.releaseCustomerLink(email); } catch (e) {}
+      };
 
       let user = null;
       try { user = await loadByEmail(email); }
       catch (e) {
         /* Reading the accounts database failed — not this customer's fault
            and not a reason to spend an attempt. */
+        await release();
         continue;
       }
 
       /* The account was deleted between enqueue and attempt. There is nothing
          to link, so it leaves the queue rather than parking for good. */
       if (!user) {
-        store.markCustomerLinked(email, null);
+        await store.markCustomerLinked(email, null);
         dropped++;
         continue;
       }
 
       const r = await linkCustomer(user);
       if (r.ok) {
-        store.markCustomerLinked(email, r.id || null);
+        await store.markCustomerLinked(email, r.id || null);
         linked++;
         continue;
       }
-      if (r.reason === 'no-access') { blocked = true; break; }
-      store.markCustomerLinkFailed(email, r.message || r.reason || 'unknown', schedule(row.attempts));
+      if (r.reason === 'no-access') { await release(); blocked = true; break; }
+      await store.markCustomerLinkFailed(email, r.message || r.reason || 'unknown', schedule(row.attempts));
       failed++;
     }
 
     if (blocked)
       console.warn('[ecwid] customers cannot be written with this token (403) — ' +
-        store.pendingCustomerLinks().length + ' waiting. A secret_ token is needed.');
+        (await store.pendingCustomerLinks()).length + ' waiting. A secret_ token is needed.');
     else if (linked)
       console.log('[ecwid] linked ' + linked + ' customer(s) into Ecwid');
 
@@ -598,7 +669,7 @@ export function createEcwidSync({ api, store, adFolders = {},
     if (!api.configured) return { ok: false, reason: 'not-configured' };
     const remote = toEcwidFulfillment(status);
     if (!remote) return { ok: false, reason: 'not-pushable' };
-    const row = store.pushRow(ref);
+    const row = await store.pushRow(ref);
     /* No Ecwid id means the order is still in the push queue. Nothing to
        update, and nothing lost: toEcwidOrder carries the status when the order
        is finally created. */
@@ -623,14 +694,16 @@ export function createEcwidSync({ api, store, adFolders = {},
     syncOrderStatuses,
     syncAdFolders,
     adFolderState,
+    loadAdFolderState,
+    runExclusive,
     syncCategories,
     syncSettings,
     fullReconcile,
     syncAll,
     applyProductEvent,
 
-    lastSyncedUnix() {
-      const s = store.getState('last_sync');
+    async lastSyncedUnix() {
+      const s = await store.getState('last_sync');
       if (!s || !s.at) return null;
       const t = Date.parse(s.at);
       return Number.isFinite(t) ? Math.floor(t / 1000) : null;

@@ -59,17 +59,18 @@ test('quoteFor classes each line from the served catalogue, never from the brows
   assert.deepEqual(unknown, { quotable: false, reason: 'unclassified', id: 'gone' });
 });
 
-test('createOrder stores the fee and grand total when a quote is quotable', () => {
+test('createOrder stores the fee and grand total when a quote is quotable', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'sadko-deliv-'));
-  const acc = openAccounts(path.join(dir, 'accounts.json'));
-  const u = acc.register({ email: 'd@example.test', password: 'sadko1234', name: 'D', phone: '01012345678' });
+  const acc = await openAccounts(path.join(dir, 'accounts.json'));
+  const u = await acc.register({ email: 'd@example.test', password: 'sadko1234', name: 'D', phone: '01012345678' });
   const uid = (u.user || u).id;
   assert.ok(uid, JSON.stringify(u));
   const items = [{ id: '1', title: 'x', price: 1000, qty: 1 }];
-  const a = acc.createOrder(uid, { items, payment: 'cod', deliveryQuote: { quotable: true, fee: 300, methodName: 'القاهرة الكبرى', lines: [{ id: '1', cls: 'small', fee: 50 }] } });
+  const a = await acc.createOrder(uid, { items, payment: 'cod', deliveryQuote: { quotable: true, fee: 300, methodName: 'القاهرة الكبرى', lines: [{ id: '1', cls: 'small', fee: 50 }] } });
   assert.deepEqual([a.order.totals.deliveryFee, a.order.totals.grandTotal, a.order.totals.methodName], [300, 1300, 'القاهرة الكبرى']);
-  const b = acc.createOrder(uid, { items, payment: 'cod', deliveryQuote: { quotable: false, reason: 'no-region' } });
+  const b = await acc.createOrder(uid, { items, payment: 'cod', deliveryQuote: { quotable: false, reason: 'no-region' } });
   assert.deepEqual([b.order.totals.deliveryFee, b.order.totals.grandTotal], [null, null]);
+  acc.close();
 });
 
 test('the admin delivery-classes route exists behind the admin guard', () => {

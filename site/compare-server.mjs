@@ -106,6 +106,10 @@ const ADMIN_CONTENT = {
 };
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+/* Vercel sets VERCEL=1 in every function. There the process is frozen between
+   requests and the disk is read-only, so nothing below may listen, keep a
+   timer, or write a file; the jobs run from cron and after requests instead. */
+const ON_VERCEL = !!process.env.VERCEL;
 const PORT = +(process.env.PORT || 8082);
 const REG_FILE = path.join(ROOT, 'data', 'stores.json');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
@@ -1643,7 +1647,7 @@ async function compare(q, min, max, discover, lang, override) {
    almost always hit the instant path. One query per tick, never stacking on
    top of live customer scans. ---- */
 const REFRESH_AFTER = 3 * 3600e3;
-setInterval(async () => {
+if (!ON_VERCEL) setInterval(async () => {
   try {
     await loadIndex();
     if (JOBS.size) return;                      // customer scans have priority
@@ -1692,11 +1696,11 @@ const PAYMENT_METHODS = ['cod', 'bank', 'showroom'];
    Two of the ten are restricted to one manufacturer's products, and Ecwid
    cannot enforce that; engine/ecwid-payments.mjs detects it from the label so
    checkout can say so at the point of choice. */
-function activePaymentMethods() {
+async function activePaymentMethods() {
   const store = ecwidStore();
   if (store && ecwidSource().activeSource() === 'ecwid') {
     try {
-      const live = toStorefrontMethods(store.allPaymentMethods());
+      const live = toStorefrontMethods(await store.allPaymentMethods());
       if (live.length) return live;
     } catch (e) { /* fall through to the built-in three */ }
   }
@@ -1750,12 +1754,29 @@ const ECWID_POLL_MS = (() => {
 const ECWID_BANNER_CATEGORY = process.env.SADKO_ECWID_BANNER_CATEGORY || null;
 let ECWID_STORE = null, ECWID_API = null, ECWID_SYNC = null, ECWID_SOURCE = null;
 
+/* The stores open asynchronously (they may live in Turso), so ready() opens
+   all four once, before the first request is handled, and the accessors below
+   simply hand back what it opened. A store that fails to open is recorded as
+   false and the site carries on without it, exactly as before. */
+let READY = null;
+function ready() {
+  if (!READY) READY = (async () => {
+    const open = async (label, fn) => {
+      try { return await fn(); }
+      catch (e) { console.error('[' + label + '] unavailable:', e && e.message); return false; }
+    };
+    [ECWID_STORE, ACCOUNTS, CATALOG_ADMIN, ANALYTICS] = await Promise.all([
+      ECWID_ON ? open('ecwid', () => openEcwidStore(path.join(ROOT, 'data', 'ecwid.db'))) : false,
+      open('accounts', () => openAccounts(path.join(ROOT, 'data', 'accounts.json'))),
+      open('catalog-admin', () => openCatalogAdmin(path.join(ROOT, 'data', 'catalog-admin.db'))),
+      open('analytics', () => openAnalytics(path.join(ROOT, 'data', 'analytics.db'))),
+    ]);
+  })();
+  return READY.then(() => ecwidSource().refresh && ecwidSource().refresh());
+}
+
 function ecwidStore() {
   if (!ECWID_ON) return null;
-  if (ECWID_STORE === null) {
-    try { ECWID_STORE = openEcwidStore(path.join(ROOT, 'data', 'ecwid.db')); }
-    catch (e) { console.error('[ecwid] store unavailable:', e.message); ECWID_STORE = false; }
-  }
   return ECWID_STORE || null;
 }
 function ecwidApi() {
@@ -1780,12 +1801,12 @@ function ecwidSource() {
          captured here would pin the storefront to whatever the ad folders
          held at boot — the same stale-value trap that once made
          activeSource() serve July's catalogue. */
-      adSlotMap: () => { try { return ecwidSync().adFolderState().map; } catch (e) { return {}; } },
+      adSlotMap: () => { try { return ecwidSync().adFolderState(ecwidSource().storedAdFolders()).map; } catch (e) { return {}; } },
       store: store || {
-        allProducts: () => [],
-        stats: () => ({ products: 0, enabled: 0, buyable: 0, categories: 0, outOfStock: 0,
-                        discounted: 0, incomplete: 0, paymentMethods: 0, shippingMethods: 0,
-                        lastSync: null, lastError: null }),
+        catalogMeta: async () => ({ version: 0, lastSync: null, lastError: null, paymentMethods: 0, shippingMethods: 0 }),
+        allProducts: async () => [],
+        allCategories: async () => [],
+        getState: async () => null,
       },
       seedLoader: seedCatalog,
       enabled: ECWID_ON && !!ECWID_TOKEN,
@@ -1796,13 +1817,7 @@ function ecwidSource() {
 }
 
 let ACCOUNTS = null;
-function accounts() {
-  if (ACCOUNTS === null) {
-    try { ACCOUNTS = openAccounts(path.join(ROOT, 'data', 'accounts.json')); }
-    catch (e) { console.error('[accounts] unavailable:', e.message); ACCOUNTS = false; }
-  }
-  return ACCOUNTS;
-}
+function accounts() { return ACCOUNTS || false; }
 
 const SESSION_COOKIE = 'sadko_session';
 
@@ -1818,22 +1833,21 @@ const isAdminEmail = email => ADMIN_EMAILS.has(String(email || '').trim().toLowe
 const isAdminUser  = user => !!(user && isAdminEmail(user.email));
 
 let CATALOG_ADMIN = null;
-function catalogAdmin() {
-  if (CATALOG_ADMIN === null) {
-    try { CATALOG_ADMIN = openCatalogAdmin(path.join(ROOT, 'data', 'catalog-admin.db')); }
-    catch (e) { console.error('[catalog-admin] unavailable:', e.message); CATALOG_ADMIN = false; }
-  }
-  return CATALOG_ADMIN;
+function catalogAdmin() { return CATALOG_ADMIN || false; }
+
+/* An ADMIN_CONTENT file as the site should serve it: the owner's saved edit
+   if there is one, otherwise the file shipped with the site. */
+async function contentText(name) {
+  const cadm = catalogAdmin();
+  let saved = null;
+  try { saved = cadm ? await cadm.getContent(name) : null; } catch (e) { saved = null; }
+  if (saved != null) return saved;
+  try { return await readFile(path.join(ROOT, 'data', ADMIN_CONTENT[name].file), 'utf8'); }
+  catch (e) { return '{}'; }
 }
 
 let ANALYTICS = null;
-function analytics() {
-  if (ANALYTICS === null) {
-    try { ANALYTICS = openAnalytics(path.join(ROOT, 'data', 'analytics.db')); }
-    catch (e) { console.error('[analytics] unavailable:', e.message); ANALYTICS = false; }
-  }
-  return ANALYTICS;
-}
+function analytics() { return ANALYTICS || false; }
 
 /* The STATIC seed catalogue: the July scrape, cached in memory and re-read only
    when the file's mtime changes. Once Ecwid is on and mirrored this is only a
@@ -1858,7 +1872,7 @@ async function baseCatalog() { return ecwidSource().catalogBase(); }
 async function mergedCatalog() {
   const base = await baseCatalog();
   const adm = catalogAdmin();
-  return adm ? adm.merge(base) : base;
+  return adm ? await adm.merge(base) : base;
 }
 
 /* ---- production hardening -------------------------------------------------
@@ -1950,10 +1964,10 @@ function clearSessionCookie(res, req) {
   if (isSecure(req)) bits.push('Secure');
   res.setHeader('Set-Cookie', bits.join('; '));
 }
-function currentUser(req) {
+async function currentUser(req) {
   const db = accounts();
   if (!db) return null;
-  try { return db.userForToken(readCookie(req, SESSION_COOKIE)); } catch { return null; }
+  try { return await db.userForToken(readCookie(req, SESSION_COOKIE)); } catch { return null; }
 }
 async function readJson(req, limit = 40000) {
   let body = '';
@@ -2011,8 +2025,7 @@ export { ADAPTERS, searchStore, loadRegistry, isRelevant, fetchPage, jsonLdProdu
    resolution is the no-op 'id' tier. */
 function liveCategoryList() {
   try {
-    const st = ecwidStore();
-    const rows = st ? st.allCategories() : [];
+    const rows = ecwidStore() ? ecwidSource().categories() : [];
     if (rows.length) {
       return rows.filter(c => c && c.id != null && c.name)
                  .map(c => ({ id: String(c.id), name: c.name, nameEn: c.nameEn || null }));
@@ -2061,7 +2074,7 @@ async function pollEcwid() {
   ECWID_POLL_INFLIGHT = (async () => {
     try {
       const es = ecwidSync();
-      const from = es.lastSyncedUnix();
+      const from = await es.lastSyncedUnix();
 
       /* 1. Everything Ecwid says changed since last time. Incremental, so it
             is one request that usually returns nothing — and every one of the
@@ -2079,7 +2092,7 @@ async function pollEcwid() {
             fixes that too. */
       try {
         const live = await ecwidApi().productCount();
-        const mine = ecwidStore().stats().products;
+        const mine = (await ecwidStore().stats()).products;
         if (live != null && live !== mine) {
           console.log(`[ecwid] product count ${mine} -> ${live}, reconciling`);
           await es.fullReconcile();
@@ -2122,7 +2135,17 @@ async function ecwidFresh() {
   if (!ECWID_ON || !ECWID_TOKEN) return;
   if (ECWID_POLL_MS <= 0) return;
   if (Date.now() - ECWID_POLLED_AT < ECWID_POLL_MS) return;
-  try { await pollEcwid(); } catch (e) {}
+  if (!ON_VERCEL) { try { await pollEcwid(); } catch (e) {} return; }
+  /* Vercel: many short-lived instances. One poll per interval across ALL of
+     them (a lease row in the database), run after the response so no
+     customer waits on Ecwid; webhooks already bring edits in instantly. */
+  ECWID_POLLED_AT = Date.now();
+  const st = ecwidStore();
+  bg((async () => {
+    const lease = st && await st.acquireLease('poll', ECWID_POLL_MS);
+    if (!lease) return;
+    await pollEcwid();
+  })());
 }
 
 const REMOTE_ORDERS_TTL_MS = 60_000;
@@ -2162,16 +2185,16 @@ async function remoteOrdersCached(email) {
    Never throws. By the time this runs the status change has committed and been
    audited, so a cache miss must not turn a successful admin action into a 500 —
    and the worst case if it did nothing is the stale minute this removes. */
-function forgetRemoteOrders(ref) {
+async function forgetRemoteOrders(ref) {
   try {
     const db = accounts();
     if (!db) return;
-    const order = db.orderByRefAny(String(ref));
+    const order = await db.orderByRefAny(String(ref));
     /* A guest order carries the email on itself; an account order points at a
        user. Either way it is the email that keys the cache, because that is what
        Ecwid files orders under. */
     const email = (order && order.email) ||
-      (order && order.userId && (db.getUser(order.userId) || {}).email) || '';
+      (order && order.userId && ((await db.getUser(order.userId)) || {}).email) || '';
     if (email) REMOTE_ORDERS.delete(String(email).toLowerCase());
   } catch (e) { /* a stale cache entry is not worth failing an admin action */ }
 }
@@ -2240,14 +2263,11 @@ function linkCustomerSoon(user) {
   try {
     const st = ecwidStore(), esy = ecwidSync();
     if (!st || !esy) return;
-    st.enqueueCustomerLink(user.email);
     /* Chained, not awaited: the route still returns immediately, but two quick
-       edits to the same customer reach Ecwid in the order they were made. */
-    chainCustomerPush(user.email, () => esy.linkCustomer(user).then(r => {
-      if (r && r.ok) {
-        st.markCustomerLinked(user.email, r.id || null);
-        return;
-      }
+       edits to the same customer reach Ecwid in the order they were made.
+       bg() keeps a Vercel function alive until the push has finished. */
+    bg(chainCustomerPush(user.email, () => st.enqueueCustomerLink(user.email).then(() => esy.linkCustomer(user)).then(r => {
+      if (r && r.ok) return st.markCustomerLinked(user.email, r.id || null);
       /* Said out loud, once. A silent failure here is why an account could
          be created on the site and simply not exist in Ecwid. */
       const why = (r && r.reason) || 'unknown';
@@ -2255,7 +2275,7 @@ function linkCustomerSoon(user) {
         console.warn('[ecwid] customer not written (403 — this token cannot write customers); queued');
       else if (why !== 'not-configured')
         console.warn('[ecwid] customer link failed (' + why + '); queued for retry');
-    }));
+    })));
   } catch (e) { console.warn('[ecwid] could not queue customer link:', e && e.message); }
 }
 
@@ -2264,7 +2284,7 @@ function linkCustomerSoon(user) {
    keeps it from becoming a second copy of the customer. */
 const LINK_LOADER = async email => {
   const db = accounts();
-  return db ? db.getUserByEmail(email) : null;
+  return db ? await db.getUserByEmail(email) : null;
 };
 
 /* Re-price an order's lines against the catalogue, for BOTH order routes.
@@ -2288,8 +2308,8 @@ async function deliveryFor(items, governorate) {
   try {
     const st = ecwidStore();
     if (st) {
-      methods = st.allShippingMethods();
-      cats = new Map(st.allCategories().map(c => [String(c.id), c.name || c.title || '']));
+      methods = await st.allShippingMethods();
+      cats = new Map((await st.allCategories()).map(c => [String(c.id), c.name || c.title || '']));
     }
   } catch (e) {}
   return quoteFor({ items, governorate, catalogue, methods, categoryName: id => cats.get(String(id)) || '' });
@@ -2332,12 +2352,12 @@ function guestRateOk(ip) {
 
 /* A purchase event is written server-side, never accepted from a browser, so
    it cannot be faked. A guest has no user id — only the anonymous funnel. */
-function trackPurchase(order) {
+async function trackPurchase(order) {
   try {
     const an = analytics();
     if (!an) return;
     for (const it of order.items)
-      an.record({ vid: null, userId: null, productId: it.id, type: 'purchase', meta: { qty: it.qty, guest: true } });
+      await an.record({ vid: null, userId: null, productId: it.id, type: 'purchase', meta: { qty: it.qty, guest: true } });
   } catch (e) { /* analytics must never affect an order */ }
 }
 
@@ -2346,10 +2366,10 @@ const ORDER_LOADERS = {
      retry schedule, one admin desk — a guest order is not a second system. */
   loadOrder: async ref => {
     const db = accounts();
-    const own = db ? db.orderByRefAny(ref) : null;
+    const own = db ? await db.orderByRefAny(ref) : null;
     if (own) return own;
     const st = ecwidStore();
-    return st ? st.getGuestOrder(ref) : null;
+    return st ? await st.getGuestOrder(ref) : null;
   },
   /* The sync layer writes a status through this seam rather than reaching
      into the accounts database itself — the same boundary it already reads
@@ -2358,7 +2378,7 @@ const ORDER_LOADERS = {
   setStatus: async (ref, status) => {
     const db = accounts();
     if (!db) return;
-    const r = db.setOrderStatus(ref, status);
+    const r = await db.setOrderStatus(ref, status);
     if (r && r.error) throw new Error(r.error);
   },
   loadUser: async order => {
@@ -2371,7 +2391,7 @@ const ORDER_LOADERS = {
       if (g) return g;
     }
     const db = accounts();
-    const u = db && order ? db.getUser(order.userId) : null;
+    const u = db && order ? await db.getUser(order.userId) : null;
     return u || { email: '', name: (order.delivery || {}).name || '', phone: (order.delivery || {}).phone || '' };
   },
 };
@@ -2391,14 +2411,97 @@ async function applyEcwidOrderEvent(ev) {
   if (!ref) return;
   const status = toLocalStatus(remote);
   if (!status) return;
-  const local = db.orderByRefAny(ref);
+  const local = await db.orderByRefAny(ref);
   if (!local || local.status === status) return;
-  const r = db.setOrderStatus(ref, status);
+  const r = await db.setOrderStatus(ref, status);
   if (r && r.error) return console.error('[ecwid] status update rejected:', r.error);
   console.log(`[ecwid] order ${ref} -> ${status} (from Ecwid ${ev.entityId})`);
 }
 
-const HTTP_SERVER = http.createServer(async (req, res) => {
+/* ---- background work -------------------------------------------------------
+   On the VM, timers did this. On Vercel a function is frozen once its
+   response is sent, so anything started during a request is registered with
+   bg(), and api/index.mjs hands afterResponse() to waitUntil so the function
+   stays alive until it has finished. */
+const BG = new Set();
+function bg(p) {
+  const q = Promise.resolve(p)
+    .catch(e => console.error('[bg]', (e && e.message) || e))
+    .finally(() => BG.delete(q));
+  BG.add(q);
+  return q;
+}
+
+/* Orders that did not reach Ecwid at checkout are retried here: after a
+   response, at most every two minutes per instance. The store claims each
+   order atomically, so two instances can never push the same one twice. */
+let LAST_ORDER_RETRY = 0;
+export function afterResponse() {
+  if (ON_VERCEL && ECWID_ON && ECWID_TOKEN && Date.now() - LAST_ORDER_RETRY > 2 * 60 * 1000) {
+    LAST_ORDER_RETRY = Date.now();
+    const es = ecwidSync();
+    if (es) bg(es.pushPendingOrders(ORDER_LOADERS));
+  }
+  return BG.size ? Promise.allSettled([...BG]) : null;
+}
+
+/* BACKFILL. Every account that has never been linked goes into the customer
+   queue, and every order Ecwid does not have is made due again, including the
+   ones that exhausted their retries while the token was broken (SDK-DED885
+   sat there with seven attempts). enqueueCustomerLink is INSERT OR IGNORE and
+   resetPush clears attempts as well as the delay. Run at boot on a long-lived
+   server and from the daily cron on Vercel; it writes history with no
+   confirmation by design, and logs the counts. */
+async function ecwidBackfill() {
+  const adb = accounts(), est = ecwidStore();
+  const out = { customers: 0, orders: 0 };
+  if (!est) return out;
+  if (adb) {
+    for (const u of await adb.listUsersAdmin()) {
+      if (!u.email) continue;
+      const row = await est.customerLinkRow(u.email);
+      if (row && row.linked_at) continue;
+      await est.enqueueCustomerLink(u.email);
+      out.customers++;
+    }
+    if (out.customers) console.log('[ecwid] ' + out.customers + ' account(s) queued for customer linking');
+  }
+  const unsent = await est.unsentOrderRefs();
+  for (const ref of unsent) await est.resetPush(ref);
+  out.orders = unsent.length;
+  if (unsent.length) console.log('[ecwid] ' + unsent.length + ' order(s) queued for push: ' + unsent.join(', '));
+  return out;
+}
+
+/* The daily job (api/cron.mjs on Vercel): full Ecwid sync and reconcile,
+   backfill, every due order and customer pushed, expired sessions swept and
+   old analytics pruned. Each step reports separately so one failure does not
+   hide the others. */
+export async function maintenance({ full = true } = {}) {
+  await ready();
+  const out = {};
+  const step = async (name, fn) => {
+    try { out[name] = await fn(); } catch (e) { out[name] = { error: String((e && e.message) || e) }; }
+  };
+  const es = ecwidSync();
+  if (es) {
+    if (full) await step('sync', async () => { const r = await es.syncAll(); ecwidSource().invalidate(); return r; });
+    await step('backfill', ecwidBackfill);
+    await step('orders', () => es.pushPendingOrders(ORDER_LOADERS));
+    await step('customers', () => es.linkPendingCustomers(LINK_LOADER, 200));
+  }
+  const db = accounts();
+  if (db) await step('sweep', () => db.sweep());
+  const an = analytics();
+  if (an && an.prune) await step('analyticsPruned', () => an.prune());
+  if (BG.size) await Promise.allSettled([...BG]);
+  return out;
+}
+
+/* The whole site API as one request handler. The local server below listens
+   with it; on Vercel, api/index.mjs exports it as the function. */
+export async function handle(req, res) {
+  await ready();
   const u = new URL(req.url, 'http://x');
   const secure = isSecure(req);
   applySecurityHeaders(res, secure);
@@ -2414,7 +2517,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   /* Liveness/readiness for the host's health checks and for uptime pings. */
   if (u.pathname === '/healthz') {
     let acc = null;
-    try { const db = accounts(); acc = db ? db.stats() : null; } catch (e) { acc = { error: true }; }
+    try { const db = accounts(); acc = db ? await db.stats() : null; } catch (e) { acc = { error: true }; }
     return json(acc && !acc.error ? 200 : 503, {
       ok: !!(acc && !acc.error), uptimeSec: Math.round(process.uptime()),
       node: process.versions.node, accounts: acc,
@@ -2457,8 +2560,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       const b = await readJson(req, 4000);
       const type = String(b.type || '');
       if (type === 'purchase' || !EVENT_TYPES.includes(type)) return json(400, { error: 'bad-type' });
-      const me = currentUser(req);
-      an.record({ vid: b.vid, userId: me ? me.id : null, productId: b.productId, type, meta: b.meta });
+      const me = await currentUser(req);
+      await an.record({ vid: b.vid, userId: me ? me.id : null, productId: b.productId, type, meta: b.meta });
       return json(200, { ok: true });
     } catch (e) { return json(400, { error: 'bad-request' }); }
   }
@@ -2469,8 +2572,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     if (!an) return json(200, { ok: false });
     try {
       const b = await readJson(req, 8000);
-      const me = currentUser(req);
-      an.recordAbandon({ vid: b.vid, userId: me ? me.id : null,
+      const me = await currentUser(req);
+      await an.recordAbandon({ vid: b.vid, userId: me ? me.id : null,
         reason: b.reason, note: b.note, value: b.value, items: Array.isArray(b.items) ? b.items.slice(0, 40) : [] });
       return json(200, { ok: true });
     } catch (e) { return json(400, { error: 'bad-request' }); }
@@ -2526,7 +2629,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     const ref = String((b && b.ref) || '').trim().toUpperCase();
     if (!/^SDK-[A-F0-9]{6}$/.test(ref) || !(b && b.phone)) return notFound();
     const st = ecwidStore(), api = ecwidApi();
-    const row = st && st.pushRow(ref);
+    const row = st && await st.pushRow(ref);
     if (!row || !row.ecwid_order_id || !api || !api.configured) return notFound();
     let remote = null;
     try { remote = await api.getOrder(row.ecwid_order_id); } catch (e) {}
@@ -2568,7 +2671,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
     /* The payment method has to be one the owner currently offers — the same
        check the account path makes, against the same live list. */
-    if (!activePaymentMethods().map(m => String(m.id)).includes(order.payment))
+    if (!(await activePaymentMethods()).map(m => String(m.id)).includes(order.payment))
       return bad('bad-payment', 'طريقة دفع غير مدعومة.', 'Unsupported payment method.');
 
     /* The catalogue is the authority for price — see engine/order-pricing.mjs.
@@ -2601,8 +2704,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
     /* Stored BEFORE the push, so an outage cannot lose it. */
     try {
-      st.putGuestOrder(order);
-      st.enqueueOrderPush(order.ref);
+      await st.putGuestOrder(order);
+      await st.enqueueOrderPush(order.ref);
     } catch (e) {
       console.error('[guest] could not queue order:', e && e.message);
       return json(503, { error: 'unavailable', message: lang === 'en'
@@ -2625,9 +2728,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         /* The row has to exist first: linking records itself with an UPDATE, so
            without this the guest's customer id and push snapshot would be
            written to nothing and silently lost. */
-        st.enqueueCustomerLink(guestCustomer.email);
+        await st.enqueueCustomerLink(guestCustomer.email);
         const lr = await esy.linkCustomer(guestCustomer);
-        if (lr && lr.ok) st.markCustomerLinked(guestCustomer.email, lr.id || null);
+        if (lr && lr.ok) await st.markCustomerLinked(guestCustomer.email, lr.id || null);
         else console.warn(`[ecwid] guest customer not linked: ${(lr && lr.reason) || 'unknown'}`);
       } catch (e) { console.warn('[ecwid] guest customer not linked:', e && e.message); }
     }
@@ -2638,7 +2741,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
        phone number. Telling them it failed would lose a sale already made. */
     let pushed = null;
     try { pushed = await esy.pushOrder(order.ref, ORDER_LOADERS); } catch (e) { pushed = null; }
-    if (pushed && pushed.ok) trackPurchase(order);
+    if (pushed && pushed.ok) await trackPurchase(order);
 
     return json(200, {
       ok: true,
@@ -2698,16 +2801,16 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       const alsoFolders = Object.keys(ECWID_AD_FOLDERS).length
         ? () => es.syncAdFolders().catch(() => {})
         : () => {};
-      es.applyProductEvent(ev)
+      bg(es.applyProductEvent(ev)
         .then(alsoFolders)
         .then(done)
-        .catch(e => console.error('[ecwid] webhook product:', e.message));
+        .catch(e => console.error('[ecwid] webhook product:', e.message)));
     } else if (/^category\./.test(ev.eventType)) {
-      es.syncCategories().then(done).catch(e => console.error('[ecwid] webhook category:', e.message));
+      bg(es.syncCategories().then(done).catch(e => console.error('[ecwid] webhook category:', e.message)));
     } else if (/^(profile|payment|shipping)\./.test(ev.eventType)) {
-      es.syncSettings().then(done).catch(e => console.error('[ecwid] webhook settings:', e.message));
+      bg(es.syncSettings().then(done).catch(e => console.error('[ecwid] webhook settings:', e.message)));
     } else if (/^order\./.test(ev.eventType)) {
-      applyEcwidOrderEvent(ev).then(done).catch(e => console.error('[ecwid] webhook order:', e.message));
+      bg(applyEcwidOrderEvent(ev).then(done).catch(e => console.error('[ecwid] webhook order:', e.message)));
     } else {
       console.log(`[ecwid] webhook ignored, unhandled type: ${ev.eventType}`);
     }
@@ -2720,7 +2823,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     const cadm = catalogAdmin();
     if (!db || !cadm) return json(503, { error: 'unavailable' });
 
-    const me = currentUser(req);
+    const me = await currentUser(req);
     if (!me) return json(401, { error: 'no-user', message: lang === 'en' ? 'Sign in first.' : 'سجّل دخولك الأول.' });
     if (!isAdminUser(me)) return json(403, { error: 'not-admin', message: lang === 'en'
       ? 'This account is not an administrator.' : 'هذا الحساب ليس من المسؤولين.' });
@@ -2744,7 +2847,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         let catalogue = [];
         try { catalogue = await ecwidSource().catalogBase(); } catch (e) {}
         const st = ecwidStore();
-        const cats = new Map(((st && st.allCategories()) || []).map(c => [String(c.id), c.name || c.title || '']));
+        const cats = new Map(((st && await st.allCategories()) || []).map(c => [String(c.id), c.name || c.title || '']));
         const counts = { small: 0, medium: 0, large: 0, xl: 0, craft: 0, none: 0 };
         const unclassified = [], products = [];
         for (const p of catalogue) {
@@ -2754,32 +2857,30 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           products.push({ id: p.id, title: p.title, cls: r.cls, why: r.why });
           if (!r.cls) unclassified.push({ id: p.id, title: p.title, category: cat, why: r.why });
         }
-        const card = rateCard((st && st.allShippingMethods()) || []);
+        const card = rateCard((st && await st.allShippingMethods()) || []);
         return json(200, { counts, unclassified, products,
                            problems: card ? card.problems : [{ title: '-', code: 'no-rates' }] });
       }
 
       if (rest === 'overview' && req.method === 'GET') {
         const base = await baseCatalog();
-        const cat = cadm.stats();
+        const cat = await cadm.stats();
         const an = analytics();
         return json(200, {
-          accounts: db.adminOverview(),
+          accounts: await db.adminOverview(),
           catalog: { base: base.length, live: (await mergedCatalog()).length,
                      edited: cat.overrides, custom: cat.custom, hidden: cat.hidden },
-          funnel: an ? an.funnel() : null,
-          abandonments: an ? an.stats().abandonments : 0,
+          funnel: an ? await an.funnel() : null,
+          abandonments: an ? (await an.stats()).abandonments : 0,
           providers: enabledProviders().map(p => p.id),
-          audit: cadm.audit(12),
+          audit: await cadm.audit(12),
         });
       }
 
       /* ------- products ------- */
       if (seg[0] === 'products' && seg.length === 1 && req.method === 'GET') {
         const base = await baseCatalog();
-        const ov = cadm.overridesMap();
-        const hidden = cadm.hiddenSet();
-        const custom = cadm.customList();
+        const [ov, hidden, custom] = await Promise.all([cadm.overridesMap(), cadm.hiddenSet(), cadm.customList()]);
         const q = (u.searchParams.get('q') || '').trim().toLowerCase();
         const cat = (u.searchParams.get('cat') || '').trim();
         const view = u.searchParams.get('view') || 'all';   // all | edited | hidden | custom
@@ -2803,7 +2904,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
         const total = rows.length;
         const an = analytics();
-        const stat = an ? an.productStatsMap() : {};
+        const stat = an ? await an.productStatsMap() : {};
         const slice = rows.slice((page - 1) * per, page * per).map(r => {
           const s = stat[String(r.id)] || {};
           return {
@@ -2826,7 +2927,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             : 'أضف المنتجات في إكويد. الكتالوج يُزامن من هناك، وأي منتج يُضاف هنا سيختفي مع المزامنة التالية.',
         });
         const b = await readJson(req, 80000);
-        const r = cadm.createProduct(b, actor);
+        const r = await cadm.createProduct(b, actor);
         if (r.error) return json(400, { error: r.error, message: r.error === 'title-required'
           ? (lang === 'en' ? 'A product needs a title.' : 'المنتج لازم يكون له اسم.') : r.error });
         return json(200, r);
@@ -2836,7 +2937,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const id = decodeURIComponent(seg[1]);
         if (req.method === 'GET') {
           const base = await baseCatalog();
-          const d = cadm.describe(base, id);
+          const d = await cadm.describe(base, id);
           if (!d) return json(404, { error: 'not-found' });
           return json(200, d);
         }
@@ -2856,12 +2957,12 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             });
           }
           const isCustom = id.startsWith('adm-');
-          if (isCustom) { const r = cadm.updateCustom(id, b, actor); if (r.error) return json(404, { error: r.error }); return json(200, r); }
-          const merged = cadm.setOverride(id, b, actor);
+          if (isCustom) { const r = await cadm.updateCustom(id, b, actor); if (r.error) return json(404, { error: r.error }); return json(200, r); }
+          const merged = await cadm.setOverride(id, b, actor);
           return json(200, { ok: true, override: merged });
         }
         if (req.method === 'DELETE') {
-          const r = cadm.remove(id, actor);
+          const r = await cadm.remove(id, actor);
           return json(200, { ok: true, ...r });
         }
       }
@@ -2870,9 +2971,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (seg[0] === 'products' && seg[2] && req.method === 'POST') {
         const id = decodeURIComponent(seg[1]);
         const action = seg[2];
-        if (action === 'hide')   { cadm.hide(id, actor);   return json(200, { ok: true, hidden: true }); }
-        if (action === 'show')   { cadm.unhide(id, actor); return json(200, { ok: true, hidden: false }); }
-        if (action === 'revert') { cadm.revert(id, actor); return json(200, { ok: true, reverted: true }); }
+        if (action === 'hide')   { await cadm.hide(id, actor);   return json(200, { ok: true, hidden: true }); }
+        if (action === 'show')   { await cadm.unhide(id, actor); return json(200, { ok: true, hidden: false }); }
+        if (action === 'revert') { await cadm.revert(id, actor); return json(200, { ok: true, reverted: true }); }
       }
 
       /* ------- image upload (base64 data URL -> file under assets/img/uploads) ------- */
@@ -2882,25 +2983,29 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (!m) return json(400, { error: 'bad-image', message: lang === 'en' ? 'Send a PNG/JPG/WebP image.' : 'أرسل صورة PNG/JPG/WebP.' });
         const ext = m[2] === 'jpeg' ? 'jpg' : m[2];
         const buf = Buffer.from(m[3], 'base64');
-        if (buf.length > 4_500_000) return json(413, { error: 'too-large', message: lang === 'en' ? 'Image must be under 4MB.' : 'الصورة لازم تكون أقل من ٤ ميجا.' });
-        const dir = path.join(ROOT, 'data', 'uploads');
-        await mkdir(dir, { recursive: true });
+        // Vercel refuses request bodies over 4.5 MB, and base64 adds a third: 3 MB is the real ceiling.
+        if (buf.length > 3_000_000) return json(413, { error: 'too-large', message: lang === 'en' ? 'Image must be under 3MB.' : 'الصورة لازم تكون أقل من ٣ ميجا.' });
+        /* Stored in the database, not on disk: a Vercel function has no disk
+           that outlives the request. putUpload writes its own audit entry.
+           Served back by the /data/uploads/ route. */
         const name = 'p' + Date.now().toString(36) + randBytesHex(4) + '.' + ext;
-        await writeFile(path.join(dir, name), buf);
-        const url = 'data/uploads/' + name;
-        cadm.log(actor, 'image.upload', name, { bytes: buf.length });
-        return json(200, { ok: true, url });
+        try { await cadm.putUpload({ name, mime: m[1], bytes: buf, actor }); }
+        catch (e) {
+          if (e && e.code === 'too-large') return json(413, { error: 'too-large', message: lang === 'en' ? 'Image must be under 3MB.' : 'الصورة لازم تكون أقل من ٣ ميجا.' });
+          return json(400, { error: 'bad-image', message: lang === 'en' ? 'Send a PNG/JPG/WebP image.' : 'أرسل صورة PNG/JPG/WebP.' });
+        }
+        return json(200, { ok: true, url: 'data/uploads/' + name });
       }
 
       /* ------- orders desk ------- */
       if (rest === 'orders' && req.method === 'GET')
-        return json(200, { orders: db.allOrders(), statuses: ORDER_STATUSES });
+        return json(200, { orders: await db.allOrders(), statuses: ORDER_STATUSES });
       if (seg[0] === 'orders' && seg[2] === 'status' && req.method === 'POST') {
         const b = await readJson(req);
         const ref = decodeURIComponent(seg[1]);
-        const r = db.setOrderStatus(ref, b.status);
+        const r = await db.setOrderStatus(ref, b.status);
         if (r.error) return json(400, { error: r.error });
-        cadm.log(actor, 'order.status', ref, { status: b.status });
+        await cadm.log(actor, 'order.status', ref, { status: b.status });
         /* AND tell Ecwid. Without this the desk wrote the status here and the
            control panel stayed stale — staff working in one place could not see
            what staff in the other had done.
@@ -2921,13 +3026,13 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         /* Her own page reads a 60s cache of what Ecwid holds, and mergeOrders
            prefers that remote status — so without this she would see the OLD
            status for up to a minute after staff changed it. */
-        forgetRemoteOrders(ref);
+        await forgetRemoteOrders(ref);
         return json(200, { ...r, ecwid });
       }
 
       /* ------- customers ------- */
       if (rest === 'customers' && req.method === 'GET')
-        return json(200, { customers: db.listUsersAdmin() });
+        return json(200, { customers: await db.listUsersAdmin() });
 
       /* ------- content / config JSON files (guides, finder …) ------- */
       if (seg[0] === 'content' && seg[1] && seg.length === 2) {
@@ -2935,26 +3040,26 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (!ADMIN_CONTENT[name]) return json(404, { error: 'unknown-content' });
         const file = path.join(ROOT, 'data', ADMIN_CONTENT[name].file);
         if (req.method === 'GET') {
-          const txt = existsSync(file) ? await readFile(file, 'utf8') : '{}';
+          const txt = (await cadm.getContent(name)) ?? (existsSync(file) ? await readFile(file, 'utf8') : '{}');
           return json(200, { name, label: ADMIN_CONTENT[name].label, json: txt });
         }
         if (req.method === 'PUT') {
           const b = await readJson(req, 2_000_000);
           let parsed; try { parsed = JSON.parse(b.json); } catch { return json(400, { error: 'bad-json', message: lang === 'en' ? 'That is not valid JSON.' : 'هذا JSON غير صحيح.' }); }
-          await writeFile(file, JSON.stringify(parsed, null, 2));
-          cadm.log(actor, 'content.save', name, null);
+          // The owner's edit lives in the database; the bundled file stays the default.
+          await cadm.setContent(name, JSON.stringify(parsed, null, 2), actor);
           return json(200, { ok: true });
         }
       }
 
       /* ------- site settings ------- */
       if (rest === 'settings' && req.method === 'GET')
-        return json(200, { settings: cadm.settings() });
+        return json(200, { settings: await cadm.settings() });
       if (rest === 'settings' && req.method === 'PUT') {
         const b = await readJson(req, 200000);
         const patch = (b && typeof b.settings === 'object') ? b.settings : {};
-        for (const [k, v] of Object.entries(patch)) cadm.setSetting(k, v, actor);
-        return json(200, { ok: true, settings: cadm.settings() });
+        for (const [k, v] of Object.entries(patch)) await cadm.setSetting(k, v, actor);
+        return json(200, { ok: true, settings: await cadm.settings() });
       }
 
       /* ------- funnel analytics ------- */
@@ -2962,27 +3067,33 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const an = analytics();
         if (!an) return json(200, { available: false });
         const base = await baseCatalog();
-        const titleOf = id => { const p = cadm.describe(base, id); return p && p.product ? p.product.title : null; };
+        // One overlay read for every title, instead of one describe() per row.
+        const merged = await cadm.merge(base);
+        const titles = new Map(merged.map(p => [String(p.id), p.title]));
+        const titleOf = id => titles.get(String(id)) || null;
         const decorate = rows => rows.map(r => ({ id: r.id, people: r.people, title: titleOf(r.id) }));
+        const [funnel, tv, ts, tc, tp, reasons, abandons, stats] = await Promise.all([
+          an.funnel(), an.topProducts('view', 10), an.topProducts('save', 10), an.topProducts('add_to_cart', 10),
+          an.topProducts('purchase', 10), an.abandonReasons(), an.abandonList(40), an.stats()]);
         return json(200, {
           available: true,
           stages: FUNNEL_STAGES,
-          funnel: an.funnel(),
-          topViewed: decorate(an.topProducts('view', 10)),
-          topSaved: decorate(an.topProducts('save', 10)),
-          topCarted: decorate(an.topProducts('add_to_cart', 10)),
-          topPurchased: decorate(an.topProducts('purchase', 10)),
-          abandonReasons: an.abandonReasons(),
-          abandons: an.abandonList(40).map(a => Object.assign(a, {
+          funnel,
+          topViewed: decorate(tv),
+          topSaved: decorate(ts),
+          topCarted: decorate(tc),
+          topPurchased: decorate(tp),
+          abandonReasons: reasons,
+          abandons: abandons.map(a => Object.assign(a, {
             items: (a.items || []).map(i => ({ id: i.id, title: i.title || titleOf(i.id) || i.id, qty: i.qty, price: i.price })),
           })),
-          stats: an.stats(),
+          stats,
         });
       }
       // per-product funnel, used by the product editor / list drill-down
       if (seg[0] === 'analytics' && seg[1] === 'product' && seg[2] && req.method === 'GET') {
         const an = analytics();
-        return json(200, { funnel: an ? an.productFunnel(decodeURIComponent(seg[2])) : [] });
+        return json(200, { funnel: an ? await an.productFunnel(decodeURIComponent(seg[2])) : [] });
       }
 
       /* ------- Ecwid connection and sync -------
@@ -2991,7 +3102,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
          it rather than reading the environment here. */
       if (rest === 'ecwid' && req.method === 'GET') {
         const store = ecwidStore();
-        const cats = store ? store.allCategories() : [];
+        const cats = store ? await store.allCategories() : [];
         const rails = resolveRailCategories(cats, {
           offers: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
           bestSellers: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
@@ -3005,7 +3116,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
            gets answered, alongside "which folder am I even reading". */
         let ads = null;
         try {
-          const st = ecwidSync().adFolderState();
+          const st = await ecwidSync().loadAdFolderState();
           ads = {
             folders: st.folders,
             bySlot: adCounts(bannerList, st.map),
@@ -3040,12 +3151,12 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
              an account on the site was absent from Ecwid's customers tab with
              nothing saying why — this is where that is answered. */
           customers: store ? {
-            linked: store.linkedCustomerCount(),
-            pending: store.pendingCustomerLinks().length,
-            parked: store.failedCustomerLinks().length,
+            linked: await store.linkedCustomerCount(),
+            pending: (await store.pendingCustomerLinks()).length,
+            parked: (await store.failedCustomerLinks()).length,
           } : null,
-          pendingPushes: store ? store.pendingPushes() : [],
-          failedPushes: store ? store.failedPushes() : [],
+          pendingPushes: store ? await store.pendingPushes() : [],
+          failedPushes: store ? await store.failedPushes() : [],
         });
       }
 
@@ -3055,10 +3166,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const esy = ecwidSync(), est = ecwidStore();
         if (!esy || !est) return json(503, { error: 'ecwid-off' });
         const ref = decodeURIComponent(seg[2]);
-        est.resetPush(ref);                       // make it due now
+        await est.resetPush(ref);                 // make it due now
         const r = await esy.pushOrder(ref, ORDER_LOADERS);
-        cadm.log(actor, 'ecwid.push', ref, r);
-        return json(r.ok ? 200 : 400, r);
+        await cadm.log(actor, 'ecwid.push', ref, r);
+        // busy: another instance holds this order's claim and is pushing it now.
+        return json(r.ok ? 200 : r.busy ? 409 : 400, r);
       }
 
       /* ------- every order, against its Ecwid counterpart -------
@@ -3076,14 +3188,14 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         /* The local order carries the customer and the status; the push row
            carries what happened between here and Ecwid. Neither alone tells
            the story. */
-        const join = row => {
+        const join = async row => {
           /* An account order, or a guest order still in the outbox. A guest
              order that has SHIPPED has no payload left here at all, by design
              — Ecwid has it, and the link in the panel goes there. What matters
              is that a guest order which has NOT shipped shows its name and
              phone, because somebody has to ring that customer. */
-          const local = (db ? db.orderByRefAny(row.ref) : null)
-            || (st ? st.getGuestOrder(row.ref) : null);
+          const local = (db ? await db.orderByRefAny(row.ref) : null)
+            || (st ? await st.getGuestOrder(row.ref) : null);
           return {
             guest: !!(local && local.guest),
             ref: row.ref,
@@ -3106,9 +3218,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           /* null until the poll has actually asked. An empty queue on a token
              that cannot read orders looks exactly like "no orders yet". */
           ordersReadable: ECWID_ORDERS_READABLE,
-          pushed: store.pushedOrders(200).map(join),
-          pending: store.pendingPushes().map(join),
-          parked: store.failedPushes().map(join),
+          pushed: await Promise.all((await store.pushedOrders(200)).map(join)),
+          pending: await Promise.all((await store.pendingPushes()).map(join)),
+          parked: await Promise.all((await store.failedPushes()).map(join)),
         });
       }
 
@@ -3119,11 +3231,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const store = ecwidStore(), es = ecwidSync();
         if (!store || !es) return json(503, { error: 'ecwid-off' });
         const ref = decodeURIComponent(seg[2]);
-        if (!store.pushRow(ref)) return json(404, { error: 'unknown-order' });
-        store.resetPush(ref);
+        if (!(await store.pushRow(ref))) return json(404, { error: 'unknown-order' });
+        await store.resetPush(ref);
         const r = await es.pushOrder(ref, ORDER_LOADERS);
-        cadm.log(actor, 'ecwid.order.retry', ref, r);
-        return json(200, { ok: !!r.ok, ...r, row: store.pushRow(ref) });
+        await cadm.log(actor, 'ecwid.order.retry', ref, r);
+        return json(200, { ok: !!r.ok, ...r, row: await store.pushRow(ref) });
       }
 
       /* ------- push every waiting customer to Ecwid now -------
@@ -3132,14 +3244,14 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (seg[0] === 'ecwid' && seg[1] === 'customers' && seg[2] === 'link' && req.method === 'POST') {
         const store = ecwidStore(), esy = ecwidSync();
         if (!store || !esy) return json(503, { error: 'ecwid-off' });
-        for (const row of store.failedCustomerLinks()) store.resetCustomerLink(row.email);
+        for (const row of await store.failedCustomerLinks()) await store.resetCustomerLink(row.email);
         const r = await esy.linkPendingCustomers(LINK_LOADER, 200);
-        cadm.log(actor, 'ecwid.customers.link', null, r);
+        await cadm.log(actor, 'ecwid.customers.link', null, r);
         return json(200, {
           ok: !r.blocked, ...r,
-          pending: store.pendingCustomerLinks().length,
-          parked: store.failedCustomerLinks().length,
-          linkedTotal: store.linkedCustomerCount(),
+          pending: (await store.pendingCustomerLinks()).length,
+          parked: (await store.failedCustomerLinks()).length,
+          linkedTotal: await store.linkedCustomerCount(),
         });
       }
 
@@ -3187,13 +3299,13 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           : 'إكويد غير متصل. تحقّق من المفتاح في /etc/sadko.env.' });
         const r = await es.syncAll();
         ecwidSource().invalidate();
-        cadm.log(actor, 'ecwid.sync', null, r);
+        await cadm.log(actor, 'ecwid.sync', null, r);
         return json(200, { ok: true, ...r, ecwid: ecwidSource().describe() });
       }
 
       /* ------- audit log ------- */
       if (rest === 'audit' && req.method === 'GET')
-        return json(200, { audit: cadm.audit(+u.searchParams.get('limit') || 100) });
+        return json(200, { audit: await cadm.audit(+u.searchParams.get('limit') || 100) });
 
       return json(404, { error: 'not-found' });
     } catch (e) {
@@ -3211,7 +3323,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
     try {
       if (u.pathname === '/api/auth/me' && req.method === 'GET') {
-        const me = currentUser(req);
+        const me = await currentUser(req);
         // tell the account page whether to surface the "control room" link
         return json(200, { user: me ? Object.assign({}, me, { isAdmin: isAdminUser(me) }) : null });
       }
@@ -3234,7 +3346,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
             ? 'We could not verify that sign-in. Please try again.'
             : 'مقدرناش نتأكد من تسجيل الدخول ده. جرّب تانى.' });
         }
-        const r = db.signInWithIdentity(v.identity);
+        const r = await db.signInWithIdentity(v.identity);
         if (r.error === 'email-unverified') return json(409, { error: r.error, message: lang === 'en'
           ? 'That email already has a SADKO account, and your provider has not verified the address. Sign in with your password instead.'
           : 'لهذا البريد الإلكترونى حساب فى صادكو بالفعل، ولم يؤكد مزوّد الخدمة ملكيتك له. سجّل دخولك بكلمة المرور.' });
@@ -3248,7 +3360,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (u.pathname === '/api/auth/register' && req.method === 'POST') {
         if (PASSWORDLESS) return json(403, passwordsOff(lang));
         const b = await readJson(req);
-        const r = db.register(b);
+        const r = await db.register(b);
         if (r.error) return json(400, authErr(r.error, lang));
         setSessionCookie(res, req, r.session.raw, r.session.expires);
         /* Give Ecwid the customer record now, not at the first order, so staff
@@ -3267,25 +3379,25 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (u.pathname === '/api/auth/login' && req.method === 'POST') {
         if (PASSWORDLESS) return json(403, passwordsOff(lang));
         const b = await readJson(req);
-        const r = db.login({ email: b.email, password: b.password, ip });
+        const r = await db.login({ email: b.email, password: b.password, ip });
         if (r.error) return json(r.error === 'too-many' ? 429 : 401, authErr(r.error, lang));
         setSessionCookie(res, req, r.session.raw, r.session.expires);
         return json(200, { ok: true, user: r.user });
       }
 
       if (u.pathname === '/api/auth/logout' && req.method === 'POST') {
-        db.logout(readCookie(req, SESSION_COOKIE));
+        await db.logout(readCookie(req, SESSION_COOKIE));
         clearSessionCookie(res, req);
         return json(200, { ok: true });
       }
 
       // Everything below needs a signed-in user.
-      const me = currentUser(req);
+      const me = await currentUser(req);
       if (!me) return json(401, authErr('no-user', lang));
 
       if (u.pathname === '/api/auth/profile' && (req.method === 'POST' || req.method === 'PATCH')) {
         const b = await readJson(req);
-        const r = db.updateProfile(me.id, b);
+        const r = await db.updateProfile(me.id, b);
         if (r.error) return json(400, authErr(r.error, lang));
         /* Keep Ecwid's copy current: staff ring the number on the customer
            record, and a corrected phone that never left this site is a call
@@ -3299,7 +3411,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       if (u.pathname === '/api/auth/password' && req.method === 'POST') {
         if (PASSWORDLESS) return json(403, passwordsOff(lang));
         const b = await readJson(req);
-        const r = db.changePassword(me.id, b.current, b.next);
+        const r = await db.changePassword(me.id, b.current, b.next);
         if (r.error) return json(400, authErr(r.error, lang));
         clearSessionCookie(res, req);      // every device is signed out, including this one
         return json(200, { ok: true, signedOut: true });
@@ -3307,11 +3419,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
 
       /* ---- house / room profiles ---- */
       if (u.pathname === '/api/auth/homes' && req.method === 'GET')
-        return json(200, { homes: db.listHomes(me.id) });
+        return json(200, { homes: await db.listHomes(me.id) });
 
       if (u.pathname === '/api/auth/homes' && req.method === 'POST') {
         const b = await readJson(req);
-        const r = db.addHome(me.id, b);
+        const r = await db.addHome(me.id, b);
         if (r.error) return json(400, r.error === 'too-many-homes'
           ? { error: r.error, message: lang === 'en' ? 'You can keep up to 8 places.' : 'يمكنك الاحتفاظ بثمانية أماكن كحد أقصى.' }
           : authErr(r.error, lang));
@@ -3323,14 +3435,14 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       }
       if (u.pathname === '/api/auth/homes' && (req.method === 'PATCH' || req.method === 'PUT')) {
         const b = await readJson(req);
-        const r = db.updateHome(me.id, String(b.id || ''), b.patch || b);
+        const r = await db.updateHome(me.id, String(b.id || ''), b.patch || b);
         if (r.error) return json(400, authErr(r.error, lang));
         linkCustomerSoon(r.user);
         return json(200, { ok: true, home: r.home, user: r.user });
       }
       if (u.pathname === '/api/auth/homes' && req.method === 'DELETE') {
         const b = await readJson(req);
-        const r = db.removeHome(me.id, String(b.id || ''));
+        const r = await db.removeHome(me.id, String(b.id || ''));
         if (r.error) return json(400, authErr(r.error, lang));
         /* A DELETE must shrink the mirror too, or Ecwid keeps an address the
            customer deliberately removed. */
@@ -3339,7 +3451,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       }
       if (u.pathname === '/api/auth/homes/active' && req.method === 'POST') {
         const b = await readJson(req);
-        const r = db.setActiveHome(me.id, b.id ? String(b.id) : null);
+        const r = await db.setActiveHome(me.id, b.id ? String(b.id) : null);
         if (r.error) return json(400, authErr(r.error, lang));
         /* The active home leads the address list in Ecwid, so switching it
            reorders what staff see first — which is the address checkout will
@@ -3353,7 +3465,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
          account erased. These make that self-serve rather than an email
          someone has to action by hand. */
       if (u.pathname === '/api/auth/export' && req.method === 'GET') {
-        const data = db.exportUser(me.id);
+        const data = await db.exportUser(me.id);
         res.setHeader('content-disposition', 'attachment; filename="sadko-my-data.json"');
         return json(200, data || {});
       }
@@ -3364,7 +3476,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
           return json(400, { error: 'confirm-mismatch', message: lang === 'en'
             ? 'Type your account email exactly to confirm deletion.'
             : 'اكتب بريد حسابك الإلكترونى بالضبط لتأكيد الحذف.' });
-        const r = db.deleteUser(me.id);
+        const r = await db.deleteUser(me.id);
         if (r.error) return json(400, authErr(r.error, lang));
         clearSessionCookie(res, req);
         return json(200, { ok: true });
@@ -3380,7 +3492,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
            test store's public_ token) not readable at all. mergeOrders keys on
            our own SDK- reference, so an order placed here and mirrored back
            appears once. */
-        const local = db.ordersFor(me.id);
+        const local = await db.ordersFor(me.id);
         const remote = await remoteOrdersCached(me.email);
         return json(200, {
           orders: remote.length ? mergeOrders(local, remote) : local,
@@ -3392,7 +3504,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         const b = await readJson(req);
         /* Validated against the LIVE list, so an Ecwid instalment plan is a
            valid choice and a method the owner has retired is not. */
-        const allowed = activePaymentMethods().map(m => m.id);
+        const allowed = (await activePaymentMethods()).map(m => m.id);
         if (b.payment && !allowed.includes(b.payment))
           return json(400, { error: 'bad-payment', message: lang === 'en'
             ? 'Unsupported payment method.' : 'طريقة دفع غير مدعومة.' });
@@ -3418,11 +3530,11 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         if (feeMismatch(quote, b.quotedFee) || subtotalMismatch(priced.subtotal, b.quotedSubtotal))
           return json(409, feeChanged(lang, quote, priced.subtotal, b.quotedFee));
 
-        const r = db.createOrder(me.id, { ...b, items: priced.items, deliveryQuote: quote });
+        const r = await db.createOrder(me.id, { ...b, items: priced.items, deliveryQuote: quote });
         if (r.error) return json(400, authErr(r.error, lang));
         // Close the funnel: record a purchase event per line item, server-side so
         // it is authoritative (the browser cannot fabricate a purchase).
-        try { const an = analytics(); if (an) an.recordPurchase({ vid: b.vid, userId: me.id, items: r.order.items }); } catch (e) {}
+        try { const an = analytics(); if (an) await an.recordPurchase({ vid: b.vid, userId: me.id, items: r.order.items }); } catch (e) {}
 
         /* Hand the order to Ecwid so staff fulfil it from the desk they know.
            Deliberately NOT awaited: the customer's receipt already exists, and
@@ -3431,9 +3543,9 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
         try {
           const est = ecwidStore(), esy = ecwidSync();
           if (est && esy) {
-            est.enqueueOrderPush(r.order.ref);
-            esy.pushOrder(r.order.ref, ORDER_LOADERS)
-              .catch(e => console.error('[ecwid] immediate push failed, queued for retry:', e.message));
+            await est.enqueueOrderPush(r.order.ref);
+            bg(esy.pushOrder(r.order.ref, ORDER_LOADERS)
+              .catch(e => console.error('[ecwid] immediate push failed, queued for retry:', e.message)));
           }
         } catch (e) { console.error('[ecwid] could not queue order push:', e.message); }
         return json(200, { ok: true, order: r.order });
@@ -3503,8 +3615,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     let methods = [], counts = {};
     try {
       const st = ecwidStore();
-      methods = st ? st.allShippingMethods() : [];
-      const stats = st ? st.stats() : null;
+      methods = st ? await st.allShippingMethods() : [];
+      const stats = st ? await st.stats() : null;
       counts = { productCount: (stats && stats.products) || 0,
                  productsWithWeight: (stats && stats.withWeight) || 0 };
     } catch (e) { methods = []; }
@@ -3514,7 +3626,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   if (u.pathname === '/api/payment-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
     /* a payment method switched off in Ecwid must stop being offered. */
     await ecwidFresh();
-    const methods = activePaymentMethods();
+    const methods = await activePaymentMethods();
     return json(200, {
       source: methods === FALLBACK_METHODS ? 'builtin' : 'ecwid',
       note: 'All methods are offline: nothing here takes a card number. Two of the ' +
@@ -3534,7 +3646,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     const store = ecwidStore();
     if (store && ecwidSource().activeSource() === 'ecwid') {
       try {
-        const cats = store.allCategories()
+        const cats = (await store.allCategories())
           .filter(c => c.enabled !== false && c.name)
           .map(c => ({ id: c.id, name: c.name, nameEn: c.nameEn, parentId: c.parentId,
                        order: c.order, count: c.productCount }));
@@ -3554,7 +3666,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
       try {
         const store = ecwidStore();
         const collections = deriveRails(await mergedCatalog(), {
-          categories: store ? store.allCategories() : [],
+          categories: store ? await store.allCategories() : [],
           offersCategoryId: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
           bestSellersCategoryId: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
         });
@@ -3619,7 +3731,7 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
              instead of to no banners. */
           let local = null;
           try {
-            local = JSON.parse(await readFile(path.join(ROOT, 'data', 'promos.json'), 'utf8')).promos;
+            local = JSON.parse(await contentText('promos')).promos;
           } catch (e) { local = null; }
           const merged = mergePromos(derived, local);
           const promos = merged.promos;
@@ -3742,6 +3854,32 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
     } catch (e) { /* fall through to the static handler, which will 404 */ }
   }
 
+  /* The owner's editorial JSON (guides, finder, promos): an edit made in the
+     control room is stored in the database and wins over the bundled file. */
+  {
+    const cm = /^\/data\/([a-z]+)\.json$/.exec(u.pathname);
+    if (cm && ADMIN_CONTENT[cm[1]] && (req.method === 'GET' || req.method === 'HEAD')) {
+      const txt = await contentText(cm[1]);
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.setHeader('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+      return res.end(req.method === 'HEAD' ? undefined : txt);
+    }
+  }
+
+  /* Images the owner uploaded in the control room, kept in the database.
+     The name is random and never reused, so it may be cached for ever. */
+  {
+    const um = /^\/data\/uploads\/([^/]+)$/.exec(u.pathname);
+    if (um && (req.method === 'GET' || req.method === 'HEAD')) {
+      const cadm = catalogAdmin();
+      const img = cadm ? await cadm.getUpload(um[1]) : null;
+      if (!img) { res.statusCode = 404; return res.end('not found'); }
+      res.setHeader('content-type', img.mime);
+      res.setHeader('cache-control', 'public, max-age=31536000, immutable');
+      return res.end(req.method === 'HEAD' ? undefined : img.bytes);
+    }
+  }
+
   let p; try { p = decodeURIComponent(u.pathname); } catch { p = ''; }
   if (p === '/') p = '/index.html';
   // Allow-list: this used to serve every file under site/, customer database
@@ -3751,7 +3889,8 @@ const HTTP_SERVER = http.createServer(async (req, res) => {
   if (!f.startsWith(ROOT) || !existsSync(f) || !statSync(f).isFile()) { res.statusCode = 404; res.end('not found'); return; }
   res.setHeader('content-type', MIME[path.extname(f).toLowerCase()] || 'application/octet-stream');
   createReadStream(f).pipe(res);
-});
+}
+const HTTP_SERVER = http.createServer(handle);
 
 /* Hosts stop a container by sending SIGTERM and then killing it. Close the
    listener, let in-flight requests finish, and check the databases point
@@ -3769,12 +3908,14 @@ function shutdown(signal) {
   try { SERVER.close(done); } catch (e) { done(); }
   setTimeout(done, 8000).unref();
 }
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+if (!ON_VERCEL) {
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
 process.on('unhandledRejection', e => console.error('[server] unhandled rejection:', e && e.message || e));
 
-if (!process.env.SADKO_NO_SERVE)
-SERVER = HTTP_SERVER.listen(PORT, () => {
+if (!process.env.SADKO_NO_SERVE && !ON_VERCEL)
+SERVER = HTTP_SERVER.listen(PORT, async () => {
   console.log(`SADKO self-owned comparer engine on http://localhost:${PORT}`);
   console.log(NVIDIA_KEY
     ? `AI layer ON — ${AI_MODEL}`
@@ -3792,6 +3933,7 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
 
      Every call is invalidate-then-serve: the source caches the built
      catalogue, so it must be told when the mirror changed. */
+  await ready();
   const es = ecwidSync();
   if (es) {
     console.log(`Ecwid sync ON — store ${ECWID_STORE_ID}` +
@@ -3814,7 +3956,7 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
       /* Per slot, plus anything that cannot render, because "3 ads" does not
          answer "why is the square row still the old artwork". */
       try {
-        const st = es.adFolderState();
+        const st = await es.loadAdFolderState();
         if (Object.keys(st.folders).length) {
           const ads = (await ecwidSource().banners());
           const counts = adCounts(ads, st.map);
@@ -3828,51 +3970,7 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
       } catch (e) {}
     }).catch(e => console.error('[ecwid] first sync failed:', e.message));
 
-    /* BACKFILL. Every account that has never been linked goes into the queue
-       once, at startup. Without this, the accounts created before a working
-       token existed would never be tried again — which is precisely the
-       situation the owner found: an account on the site, absent from Ecwid.
-
-       enqueueCustomerLink is INSERT OR IGNORE, so this is safe to run on
-       every boot and cannot reset a customer that is already linked. */
-    try {
-      const adb = accounts(), est = ecwidStore();
-      if (adb && est) {
-        let queued = 0;
-        for (const u of adb.listUsersAdmin()) {
-          if (!u.email) continue;
-          const row = est.customerLinkRow(u.email);
-          if (row && row.linked_at) continue;
-          est.enqueueCustomerLink(u.email);
-          queued++;
-        }
-        if (queued) console.log('[ecwid] ' + queued + ' account(s) queued for customer linking');
-      }
-    } catch (e) { console.warn('[ecwid] customer backfill skipped:', e && e.message); }
-
-    /* ORDER BACKFILL, the same idea for orders. Every order Ecwid does not have
-       is made due again at startup — including the ones that exhausted their
-       retries while the token was broken, which is precisely where SDK-DED885
-       sat: seven attempts, no Ecwid id, and invisible to nextDuePush because
-       the due query also filters on the retry budget.
-
-       resetPush now clears attempts as well as the delay, so this genuinely
-       revives them rather than queueing work the poller will never pick up.
-
-       This DOES write history into the store on a restart, with no
-       confirmation — that is the chosen behaviour, matching how accounts
-       already work. The count is logged so a restart says what it is about
-       to do. */
-    try {
-      const est = ecwidStore();
-      if (est) {
-        const unsent = est.unsentOrderRefs();
-        for (const ref of unsent) est.resetPush(ref);
-        if (unsent.length) {
-          console.log('[ecwid] ' + unsent.length + ' order(s) queued for push: ' + unsent.join(', '));
-        }
-      }
-    } catch (e) { console.warn('[ecwid] order backfill skipped:', e && e.message); }
+    ecwidBackfill().catch(e => console.warn('[ecwid] backfill skipped:', e && e.message));
 
     if (ECWID_POLL_MS > 0) {
       console.log(`[ecwid] polling every ${Math.round(ECWID_POLL_MS / 1000)}s` +
@@ -3899,4 +3997,5 @@ SERVER = HTTP_SERVER.listen(PORT, () => {
   } else if (ECWID_ON) {
     console.log('Ecwid flag is on but no token is configured — serving the seed catalogue');
   }
+  setInterval(() => { const db = accounts(); if (db) db.sweep().catch(() => {}); }, 10 * 60 * 1000).unref();
 });

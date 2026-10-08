@@ -18,7 +18,7 @@ import { createEcwidSource } from '../engine/ecwid-source.mjs';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const env = ecwidEnv();
-const store = openEcwidStore(path.join(ROOT, 'data', 'ecwid.db'));
+const store = await openEcwidStore(path.join(ROOT, 'data', 'ecwid.db'));
 
 if (process.argv.includes('--sync')) {
   const api = openEcwidApi({ storeId: env.storeId, token: env.token });
@@ -56,7 +56,7 @@ const renamed = kept.filter(k => String(S.get(k).title).trim() !== String(L.get(
 const oos = live.filter(p => p.inStock === false);
 const discounted = live.filter(p => p.compareToPrice != null);
 const gallery = live.filter(p => Array.isArray(p.images) && p.images.length > 1);
-const st = store.stats();
+const st = await store.stats();
 
 const money = n => Number(n).toLocaleString('en-EG', { maximumFractionDigits: 0 });
 

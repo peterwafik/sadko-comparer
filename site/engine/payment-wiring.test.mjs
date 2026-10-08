@@ -34,7 +34,8 @@ test('the endpoint sits BEFORE the admin gate, so it is reachable without a sess
 test('orders are validated against the LIVE list, not the hard-coded three', () => {
   /* With Ecwid on, a real instalment plan must be a valid choice, and a method
      the owner retired must not be. */
-  assert.match(server, /activePaymentMethods\(\)\.map\(m => m\.id\)/);
+  // Awaited since the stores became async (Turso); still the live list.
+  assert.match(server, /\(await activePaymentMethods\(\)\)\.map\(m => m\.id\)/);
 });
 
 test('activePaymentMethods falls back to the built-in three', () => {

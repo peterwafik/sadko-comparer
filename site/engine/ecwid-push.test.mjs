@@ -18,11 +18,11 @@ const ORDER = {
 const USER = { email: 'buyer@example.com', name: 'محمد', phone: '+201000000000' };
 const loaders = { loadOrder: async () => ORDER, loadUser: async () => USER };
 
-function fresh(api) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'sadko-push-'));
-  const store = openEcwidStore(path.join(dir, 'ecwid.db'));
+/* :memory: per test: fast, and nothing left on disk. */
+async function fresh(api) {
+  const store = await openEcwidStore(':memory:');
   const sync = createEcwidSync({ api, store });
-  return { store, sync, cleanup: () => { try { store.close(); } catch (e) {} rmSync(dir, { recursive: true, force: true }); } };
+  return { store, sync, cleanup: () => { try { store.close(); } catch (e) {} } };
 }
 const stub = over => ({
   configured: true,
@@ -40,22 +40,22 @@ const stub = over => ({
 /* ------------------------------ the happy path -------------------------- */
 
 test('enqueue then push stores the Ecwid order id against the ref', async () => {
-  const { store, sync, cleanup } = fresh(stub());
+  const { store, sync, cleanup } = await fresh(stub());
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     const r = await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(r.ok, true);
     assert.equal(r.ecwidOrderId, 'EC-1');
-    assert.equal(store.pushRow('SDK-A1B2C3').ecwid_order_id, 'EC-1');
-    assert.ok(store.pushRow('SDK-A1B2C3').pushed_at, 'the row must be marked pushed');
+    assert.equal((await store.pushRow('SDK-A1B2C3')).ecwid_order_id, 'EC-1');
+    assert.ok((await store.pushRow('SDK-A1B2C3')).pushed_at, 'the row must be marked pushed');
   } finally { cleanup(); }
 });
 
 test('the payload carries the subtotal and the fees note, and no invented shipping', async () => {
   let sent = null;
-  const { store, sync, cleanup } = fresh(stub({ createOrder: async p => { sent = p; return { id: 'EC-2' }; } }));
+  const { store, sync, cleanup } = await fresh(stub({ createOrder: async p => { sent = p; return { id: 'EC-2' }; } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(sent.total, 21499);
     assert.ok(sent.orderComments.includes(FEES_NOTE_AR));
@@ -67,11 +67,11 @@ test('the payload carries the subtotal and the fees note, and no invented shippi
 
 test('a push whose response was lost ADOPTS the existing order, never duplicates', async () => {
   let created = 0;
-  const { store, sync, cleanup } = fresh(stub({
+  const { store, sync, cleanup } = await fresh(stub({
     findOrderByRef: async ref => (ref === 'SDK-A1B2C3' ? { id: 'EC-EXISTING' } : null),
     createOrder: async () => { created++; return { id: 'EC-NEW' }; } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     const r = await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(created, 0, 'a duplicate order must never be created');
     assert.equal(r.adopted, true);
@@ -82,13 +82,13 @@ test('a push whose response was lost ADOPTS the existing order, never duplicates
 test('pushing the same ref twice creates exactly ONE Ecwid order', async () => {
   let created = 0;
   const seen = new Map();
-  const { store, sync, cleanup } = fresh(stub({
+  const { store, sync, cleanup } = await fresh(stub({
     findOrderByRef: async ref => (seen.has(ref) ? { id: seen.get(ref) } : null),
     createOrder: async p => { created++; const id = 'EC-' + created; seen.set(p.externalOrderId, id); return { id }; } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     await sync.pushOrder('SDK-A1B2C3', loaders);
-    store.resetPush('SDK-A1B2C3');           // force it due again, as a retry would
+    await store.resetPush('SDK-A1B2C3');           // force it due again, as a retry would
     await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(created, 1, 'two pushes produced ' + created + ' orders');
   } finally { cleanup(); }
@@ -96,11 +96,11 @@ test('pushing the same ref twice creates exactly ONE Ecwid order', async () => {
 
 test('an already-pushed ref short-circuits without calling Ecwid at all', async () => {
   let calls = 0;
-  const { store, sync, cleanup } = fresh(stub({
+  const { store, sync, cleanup } = await fresh(stub({
     createOrder: async () => { calls++; return { id: 'EC-1' }; },
     findOrderByRef: async () => { calls++; return null; } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     await sync.pushOrder('SDK-A1B2C3', loaders);
     const before = calls;
     const r = await sync.pushOrder('SDK-A1B2C3', loaders);
@@ -111,9 +111,9 @@ test('an already-pushed ref short-circuits without calling Ecwid at all', async 
 
 test('the worker skips orders already pushed', async () => {
   let created = 0;
-  const { store, sync, cleanup } = fresh(stub({ createOrder: async () => { created++; return { id: 'EC-1' }; } }));
+  const { store, sync, cleanup } = await fresh(stub({ createOrder: async () => { created++; return { id: 'EC-1' }; } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     await sync.pushOrder('SDK-A1B2C3', loaders);
     const r = await sync.pushPendingOrders(loaders);
     assert.equal(r.pushed, 0);
@@ -124,13 +124,13 @@ test('the worker skips orders already pushed', async () => {
 /* ---------------------------- failure handling -------------------------- */
 
 test('a failed push is retried later, not lost', async () => {
-  const { store, sync, cleanup } = fresh(stub({
+  const { store, sync, cleanup } = await fresh(stub({
     createOrder: async () => { const e = new Error('ecwid-503'); e.status = 503; throw e; } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     const r = await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(r.ok, false);
-    const row = store.pushRow('SDK-A1B2C3');
+    const row = await store.pushRow('SDK-A1B2C3');
     assert.equal(row.attempts, 1);
     assert.match(row.last_error, /503/);
     assert.ok(row.next_attempt_at, 'a retry must be scheduled');
@@ -140,40 +140,40 @@ test('a failed push is retried later, not lost', async () => {
 });
 
 test('the retry backs off — each attempt is scheduled further out', async () => {
-  const { store, sync, cleanup } = fresh(stub({ createOrder: async () => { throw new Error('down'); } }));
+  const { store, sync, cleanup } = await fresh(stub({ createOrder: async () => { throw new Error('down'); } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     await sync.pushOrder('SDK-A1B2C3', loaders);
-    const first = store.pushRow('SDK-A1B2C3').next_attempt_at;
-    store.resetPush('SDK-A1B2C3');
+    const first = (await store.pushRow('SDK-A1B2C3')).next_attempt_at;
+    await store.resetPush('SDK-A1B2C3');
     await sync.pushOrder('SDK-A1B2C3', loaders);
-    const second = store.pushRow('SDK-A1B2C3').next_attempt_at;
+    const second = (await store.pushRow('SDK-A1B2C3')).next_attempt_at;
     assert.ok(Date.parse(second) > Date.parse(first), 'backoff must increase');
   } finally { cleanup(); }
 });
 
 test('after the attempt cap the order PARKS as failed and is surfaced, never dropped', async () => {
-  const { store, sync, cleanup } = fresh(stub({ createOrder: async () => { throw new Error('down'); } }));
+  const { store, sync, cleanup } = await fresh(stub({ createOrder: async () => { throw new Error('down'); } }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     /* No resetPush here: it now restores the retry BUDGET as well as clearing
        the delay (so the boot backfill can revive a parked order), which would
        stop attempts ever reaching the cap. pushOrder called directly does not
        consult next_attempt_at — that gate is nextDuePush's job — so the loop
        accumulates attempts on its own. */
     for (let i = 0; i < 8; i++) await sync.pushOrder('SDK-A1B2C3', loaders);
-    const failed = store.failedPushes();
+    const failed = await store.failedPushes();
     assert.equal(failed.length, 1);
     assert.equal(failed[0].ref, 'SDK-A1B2C3');
     assert.ok(failed[0].attempts >= store.MAX_PUSH_ATTEMPTS);
-    assert.equal(store.pendingPushes().length, 0, 'a parked order leaves the pending queue');
+    assert.equal((await store.pendingPushes()).length, 0, 'a parked order leaves the pending queue');
   } finally { cleanup(); }
 });
 
 test('an unknown payment method parks the order rather than pushing a wrong status', async () => {
-  const { store, sync, cleanup } = fresh(stub());
+  const { store, sync, cleanup } = await fresh(stub());
   try {
-    store.enqueueOrderPush('SDK-BAD');
+    await store.enqueueOrderPush('SDK-BAD');
     const r = await sync.pushOrder('SDK-BAD', {
       loadOrder: async () => ({ ...ORDER, ref: 'SDK-BAD', payment: 'crypto' }),
       loadUser: async () => USER });
@@ -183,9 +183,9 @@ test('an unknown payment method parks the order rather than pushing a wrong stat
 });
 
 test('a missing local order parks rather than crashing the worker', async () => {
-  const { store, sync, cleanup } = fresh(stub());
+  const { store, sync, cleanup } = await fresh(stub());
   try {
-    store.enqueueOrderPush('SDK-GONE');
+    await store.enqueueOrderPush('SDK-GONE');
     const r = await sync.pushOrder('SDK-GONE', { loadOrder: async () => null, loadUser: async () => USER });
     assert.equal(r.ok, false);
     assert.match(r.error, /not found/i);
@@ -193,35 +193,35 @@ test('a missing local order parks rather than crashing the worker', async () => 
 });
 
 test('Ecwid answering without an order id parks rather than marking success', async () => {
-  const { store, sync, cleanup } = fresh(stub({ createOrder: async () => ({}) }));
+  const { store, sync, cleanup } = await fresh(stub({ createOrder: async () => ({}) }));
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     const r = await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(r.ok, false);
-    assert.equal(store.pushRow('SDK-A1B2C3').pushed_at, null);
+    assert.equal((await store.pushRow('SDK-A1B2C3')).pushed_at, null);
   } finally { cleanup(); }
 });
 
 /* ------------------------------ the queue ------------------------------- */
 
-test('nextDuePush skips a row whose retry time has not arrived', () => {
-  const { store, cleanup } = fresh(stub());
+test('nextDuePush skips a row whose retry time has not arrived', async () => {
+  const { store, cleanup } = await fresh(stub());
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
-    store.markPushFailed('SDK-A1B2C3', 'down', '2099-01-01T00:00:00.000Z');
-    assert.equal(store.nextDuePush('2026-09-22T00:00:00.000Z'), null);
-    assert.ok(store.nextDuePush('2099-06-01T00:00:00.000Z'));
+    await store.enqueueOrderPush('SDK-A1B2C3');
+    await store.markPushFailed('SDK-A1B2C3', 'down', '2099-01-01T00:00:00.000Z');
+    assert.equal(await store.nextDuePush('2026-09-22T00:00:00.000Z'), null);
+    assert.ok(await store.nextDuePush('2099-06-01T00:00:00.000Z'));
   } finally { cleanup(); }
 });
 
 test('pushPendingOrders drains everything due', async () => {
-  const { store, sync, cleanup } = fresh(stub({ createOrder: async p => ({ id: 'EC-' + p.externalOrderId }) }));
+  const { store, sync, cleanup } = await fresh(stub({ createOrder: async p => ({ id: 'EC-' + p.externalOrderId }) }));
   try {
-    for (const ref of ['SDK-1', 'SDK-2', 'SDK-3']) store.enqueueOrderPush(ref);
+    for (const ref of ['SDK-1', 'SDK-2', 'SDK-3']) await store.enqueueOrderPush(ref);
     const r = await sync.pushPendingOrders({
       loadOrder: async ref => ({ ...ORDER, ref }), loadUser: async () => USER });
     assert.equal(r.pushed, 3);
-    assert.equal(store.pendingPushes().length, 0);
+    assert.equal((await store.pendingPushes()).length, 0);
   } finally { cleanup(); }
 });
 
@@ -229,10 +229,10 @@ test('the worker stops on the first failure instead of hammering a dead API', as
   /* The next due order is almost always blocked by the same outage, so retrying
      all of them immediately just multiplies the failures. */
   let calls = 0;
-  const { store, sync, cleanup } = fresh(stub({
+  const { store, sync, cleanup } = await fresh(stub({
     createOrder: async () => { calls++; throw new Error('down'); } }));
   try {
-    for (const ref of ['SDK-1', 'SDK-2', 'SDK-3']) store.enqueueOrderPush(ref);
+    for (const ref of ['SDK-1', 'SDK-2', 'SDK-3']) await store.enqueueOrderPush(ref);
     const r = await sync.pushPendingOrders({
       loadOrder: async ref => ({ ...ORDER, ref }), loadUser: async () => USER });
     assert.equal(r.failed, 1);
@@ -240,21 +240,114 @@ test('the worker stops on the first failure instead of hammering a dead API', as
   } finally { cleanup(); }
 });
 
-test('enqueueing the same ref twice leaves one queue row', () => {
-  const { store, cleanup } = fresh(stub());
+test('enqueueing the same ref twice leaves one queue row', async () => {
+  const { store, cleanup } = await fresh(stub());
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
-    store.enqueueOrderPush('SDK-A1B2C3');
-    assert.equal(store.pendingPushes().length, 1);
+    await store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
+    assert.equal((await store.pendingPushes()).length, 1);
   } finally { cleanup(); }
 });
 
 test('an unconfigured api parks the push rather than throwing', async () => {
-  const { store, sync, cleanup } = fresh({ configured: false });
+  const { store, sync, cleanup } = await fresh({ configured: false });
   try {
-    store.enqueueOrderPush('SDK-A1B2C3');
+    await store.enqueueOrderPush('SDK-A1B2C3');
     const r = await sync.pushOrder('SDK-A1B2C3', loaders);
     assert.equal(r.ok, false);
-    assert.equal(store.pushRow('SDK-A1B2C3').pushed_at, null);
+    assert.equal((await store.pushRow('SDK-A1B2C3')).pushed_at, null);
+  } finally { cleanup(); }
+});
+
+/* ============ two instances, one queue: each order pushed ONCE =============
+   On Vercel the checkout's own push, the after-request retry and the daily
+   cron can all run at the same moment in different instances. Check-then-
+   create cannot stop a duplicate there, because Ecwid's search does not yet
+   show an order created a second ago. The claim has to. */
+
+const tick = ms => new Promise(r => setTimeout(r, ms));
+
+test('two concurrent pushPendingOrders runs push each order exactly once', async () => {
+  const created = [];
+  /* findOrderByRef ALWAYS misses, as Ecwid's search would for an order made a
+     moment ago, and createOrder is slow, so the two runs genuinely overlap. */
+  const api = stub({
+    findOrderByRef: async () => null,
+    createOrder: async p => { await tick(15); created.push(p.externalOrderId); return { id: 'EC-' + created.length }; },
+  });
+  const { store, cleanup } = await fresh(api);
+  try {
+    /* Two sync objects over one database: two instances, no shared memory. */
+    const a = createEcwidSync({ api, store });
+    const b = createEcwidSync({ api, store });
+    for (const ref of ['SDK-1', 'SDK-2', 'SDK-3']) await store.enqueueOrderPush(ref);
+    const ld = { loadOrder: async ref => ({ ...ORDER, ref }), loadUser: async () => USER };
+    const [ra, rb] = await Promise.all([a.pushPendingOrders(ld), b.pushPendingOrders(ld)]);
+    assert.deepEqual([...created].sort(), ['SDK-1', 'SDK-2', 'SDK-3'],
+      'an order reached Ecwid twice, or not at all: ' + JSON.stringify(created));
+    assert.equal(ra.pushed + rb.pushed, 3);
+    assert.equal(ra.failed + rb.failed, 0, 'losing a claim is not a failure');
+    assert.equal((await store.pendingPushes()).length, 0);
+  } finally { cleanup(); }
+});
+
+test('the checkout push and a retry racing on ONE order create one Ecwid order', async () => {
+  let created = 0;
+  const api = stub({
+    findOrderByRef: async () => null,
+    createOrder: async () => { await tick(15); created++; return { id: 'EC-' + created }; },
+  });
+  const { store, cleanup } = await fresh(api);
+  try {
+    const a = createEcwidSync({ api, store });
+    const b = createEcwidSync({ api, store });
+    await store.enqueueOrderPush('SDK-A1B2C3');
+    const [ra, rb] = await Promise.all([a.pushOrder('SDK-A1B2C3', loaders), b.pushOrder('SDK-A1B2C3', loaders)]);
+    assert.equal(created, 1, 'two pushes produced ' + created + ' orders');
+    const loser = ra.busy ? ra : rb;
+    assert.equal(loser.busy, true);
+    assert.equal(loser.ok, false);
+    const row = await store.pushRow('SDK-A1B2C3');
+    assert.equal(row.ecwid_order_id, 'EC-1');
+    assert.equal(row.attempts, 0, 'the loser must not spend one of the order\'s attempts');
+  } finally { cleanup(); }
+});
+
+test('the same race on two connections to one database file is just as safe', async () => {
+  /* Closer to production: separate clients, as two instances have. */
+  const { mkdtempSync } = await import('node:fs');
+  const dir = mkdtempSync(path.join(tmpdir(), 'sadko-push-race-'));
+  const file = path.join(dir, 'ecwid.db');
+  let created = 0;
+  const api = stub({
+    findOrderByRef: async () => null,
+    createOrder: async () => { await tick(15); created++; return { id: 'EC-' + created }; },
+  });
+  const s1 = await openEcwidStore(file);
+  const s2 = await openEcwidStore(file);
+  try {
+    for (const ref of ['SDK-1', 'SDK-2']) await s1.enqueueOrderPush(ref);
+    const ld = { loadOrder: async ref => ({ ...ORDER, ref }), loadUser: async () => USER };
+    await Promise.all([createEcwidSync({ api, store: s1 }).pushPendingOrders(ld),
+                       createEcwidSync({ api, store: s2 }).pushPendingOrders(ld)]);
+    assert.equal(created, 2);
+    assert.equal((await s1.pendingPushes()).length, 0);
+  } finally {
+    s1.close(); s2.close();
+    try { rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); } catch (e) {}
+  }
+});
+
+test('an order another worker holds is reported busy and not parked', async () => {
+  let calls = 0;
+  const { store, sync, cleanup } = await fresh(stub({
+    createOrder: async () => { calls++; return { id: 'EC-1' }; } }));
+  try {
+    await store.enqueueOrderPush('SDK-A1B2C3');
+    assert.ok(await store.claimPush('SDK-A1B2C3'));       // someone else has it
+    const r = await sync.pushOrder('SDK-A1B2C3', loaders);
+    assert.equal(r.busy, true);
+    assert.equal(calls, 0, 'Ecwid must not be called for a claimed order');
+    assert.equal((await store.pushRow('SDK-A1B2C3')).attempts, 0);
   } finally { cleanup(); }
 });

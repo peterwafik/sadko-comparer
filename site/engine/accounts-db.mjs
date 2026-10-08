@@ -27,7 +27,7 @@
    ========================================================================== */
 
 import { existsSync, readFileSync, renameSync } from 'node:fs';
-import { openDb, storeSpec } from './db.mjs';
+import { openDb, storeSpec, tursoEnv } from './db.mjs';
 
 const MIGRATIONS = [
   {
@@ -302,7 +302,7 @@ export async function openAccountsDb(file) {
    Only meaningful for a local store: on Vercel (TURSO_DATABASE_URL set) there
    is no legacy file to read, so this does nothing at all. */
 export async function importLegacyJson(api, jsonFile) {
-  if (process.env.TURSO_DATABASE_URL) return { imported: 0, skipped: 'hosted' };
+  if (tursoEnv().url) return { imported: 0, skipped: 'hosted' };
   if (!existsSync(jsonFile)) return { imported: 0 };
   let data;
   try { data = JSON.parse(readFileSync(jsonFile, 'utf8')); }

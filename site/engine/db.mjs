@@ -141,6 +141,16 @@ export function splitSql(sql) {
    every store shares the hosted database; otherwise each keeps its own file
    under data/, exactly as before. */
 export function storeSpec(localFile) {
-  const url = process.env.TURSO_DATABASE_URL;
-  return url ? { spec: url, authToken: process.env.TURSO_AUTH_TOKEN } : { spec: localFile };
+  const { url, authToken } = tursoEnv();
+  return url ? { spec: url, authToken } : { spec: localFile };
+}
+
+/* The hosted database's credentials. Vercel's Turso integration may add a
+   prefix to the variable names (this project's is SADKO_), so both the plain
+   and the prefixed names are accepted. */
+export function tursoEnv(env = process.env) {
+  return {
+    url: env.TURSO_DATABASE_URL || env.SADKO_TURSO_DATABASE_URL || null,
+    authToken: env.TURSO_AUTH_TOKEN || env.SADKO_TURSO_AUTH_TOKEN || undefined,
+  };
 }

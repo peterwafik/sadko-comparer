@@ -23,7 +23,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { openDb } from '../engine/db.mjs';
+import { openDb, tursoEnv } from '../engine/db.mjs';
 import { openAccounts } from '../engine/accounts.mjs';
 import { openCatalogAdmin } from '../engine/catalog-admin.mjs';
 import { openAnalytics } from '../engine/analytics.mjs';
@@ -32,7 +32,8 @@ import { openEcwidStore } from '../engine/ecwid-store.mjs';
 const [dir, ...flags] = process.argv.slice(2);
 const DRY = flags.includes('--dry-run');
 if (!dir) { console.error('usage: node tools/import-to-turso.mjs <backup-dir> [--dry-run]'); process.exit(2); }
-if (!process.env.TURSO_DATABASE_URL) { console.error('TURSO_DATABASE_URL is not set: refusing to import into a local file by mistake.'); process.exit(2); }
+const TURSO = tursoEnv();
+if (!TURSO.url) { console.error('TURSO_DATABASE_URL is not set: refusing to import into a local file by mistake.'); process.exit(2); }
 
 const STORES = [
   { file: 'accounts.db',      open: () => openAccounts(path.join(dir, '__unused__.json')) },
@@ -43,7 +44,7 @@ const STORES = [
 const SKIP_TABLES = /^(sqlite_|schema_migrations$|.*_migrations$)/;
 const CHUNK = 200;
 
-const target = await openDb(process.env.TURSO_DATABASE_URL, { authToken: process.env.TURSO_AUTH_TOKEN });
+const target = await openDb(TURSO.url, { authToken: TURSO.authToken });
 let total = 0;
 
 for (const s of STORES) {

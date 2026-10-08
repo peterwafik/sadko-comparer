@@ -73,3 +73,6 @@ vm-backup/
 site/node_modules/
 site/.vercel/
 site/public/
+
+# VM backup (customer data + server secrets)
+backups/

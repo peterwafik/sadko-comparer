@@ -335,12 +335,16 @@
     ar: {
       'default': 'الترتيب الافتراضى',
       'price-asc': 'السعر: من الأقل للأعلى',
-      'price-desc': 'السعر: من الأعلى للأقل'
+      'price-desc': 'السعر: من الأعلى للأقل',
+      'newest': 'الأحدث',
+      'best': 'الأكثر مبيعاً'
     },
     en: {
       'default': 'Default order',
       'price-asc': 'Price: low to high',
-      'price-desc': 'Price: high to low'
+      'price-desc': 'Price: high to low',
+      'newest': 'Newest',
+      'best': 'Best sellers'
     }
   };
 
@@ -536,7 +540,7 @@
   function toolbar(state, total, L) {
     var sortLabels = (L && L.sorts) || {};
     var fallback = DEFAULT_SORT_LABELS[isEN() ? 'en' : 'ar'];
-    var keys = ['default', 'price-asc', 'price-desc'];
+    var keys = (L && L.sortKeys) || ['default', 'price-asc', 'price-desc'];
     return '<div class="stoolbar">' +
       searchBox(state && state.q, L) +
       '<span class="stoolbar__count">' + esc(L.count(total)) + '</span>' +

@@ -125,7 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
       el.innerHTML =
         '<img src="' + (i.image||'') + '" alt="">' +
         '<div><h3></h3><span class="p">' + fmt((i.price||0)*i.qty) + t(' جنيه', ' EGP') + '</span>' +
-          '<span class="qty"><button type="button" data-d="-1">−</button><b>' + i.qty + '</b><button type="button" data-d="1">+</button></span>' +
+          '<span class="qty"><button type="button" data-d="-1">−</button><b>' + i.qty + '</b><button type="button" data-d="1"' + (i.max != null && i.qty >= i.max ? ' disabled' : '') + '>+</button></span>' +
+          (i.max != null && i.qty >= i.max ? '<span class="small">' + t('وصلت للكمية المتاحة بالمخزن (' + i.max + ')', 'Maximum available in stock (' + i.max + ')') + '</span>' : '') +
         '</div>' +
         '<button class="rm" type="button">' + t('شيل', 'Remove') + '</button>';
       el.querySelector('h3').textContent = clean(i.title);

@@ -95,6 +95,24 @@ const randBytesHex = n => randomBytes(n).toString('hex');
    Ecwid category membership (engine/ecwid-rails.mjs), so editing the static
    file would appear to work and then silently do nothing.
    These three are the site's OWN editorial content, which Ecwid cannot hold. */
+/* A missing page, answered with the site's own 404 page when the visitor is
+   navigating (a browser asks for text/html) and plain text for scripts, images
+   and API-ish fetches — those must not receive a page they would try to parse. */
+async function notFoundPage(req, res, p) {
+  res.statusCode = 404;
+  const wantsPage = (req.method === 'GET' || req.method === 'HEAD') &&
+    String(req.headers.accept || '').includes('text/html') && !/^\/(api|data|assets)\//.test(p || '');
+  if (wantsPage) {
+    try {
+      const html = await readFile(path.join(ROOT, '404.html'), 'utf8');
+      res.setHeader('content-type', MIME['.html']);
+      res.setHeader('cache-control', 'no-cache');
+      return res.end(req.method === 'HEAD' ? undefined : html);
+    } catch (e) { /* fall through to plain text */ }
+  }
+  res.end('not found');
+}
+
 const ADMIN_CONTENT = {
   guides: { file: 'guides.json', label: 'دليلك للاختيار / Buying guides' },
   finder: { file: 'finder.json', label: 'مساعد الاختيار / Finder questions' },
@@ -2692,6 +2710,10 @@ export async function handle(req, res) {
         return json(503, { error: priced.error, message: lang === 'en'
           ? 'We could not confirm prices just now. Please try again, or call 19140.'
           : 'تعذّر تأكيد الأسعار الآن. حاول مرة أخرى أو اتصل بـ19140.' });
+      if (priced.error === 'insufficient-stock')
+        return json(409, { error: priced.error, available: priced.available, message: lang === 'en'
+          ? 'We do not have that quantity in stock. Please lower the quantity in your cart.'
+          : 'الكمية المطلوبة أكبر من المتاح بالمخزن. قلّل الكمية فى السلة.' });
       return bad('item-unavailable', 'أحد الأصناف لم يعد متاحاً. حدّث السلة.',
                                      'One of the items is no longer available. Please refresh your cart.');
     }
@@ -3530,6 +3552,9 @@ export async function handle(req, res) {
               ? 'We could not confirm prices just now. Please try again, or call 19140.'
               : 'تعذّر تأكيد الأسعار الآن. حاول مرة أخرى أو اتصل بـ19140.' });
           if (priced.error === 'empty-cart') return json(400, authErr('empty-cart', lang));
+          if (priced.error === 'insufficient-stock') return json(409, { error: priced.error, available: priced.available, message: lang === 'en'
+            ? 'We do not have that quantity in stock. Please lower the quantity in your cart.'
+            : 'الكمية المطلوبة أكبر من المتاح بالمخزن. قلّل الكمية فى السلة.' });
           return json(400, { error: 'item-unavailable', message: lang === 'en'
             ? 'One of the items is no longer available. Please refresh your cart.'
             : 'أحد الأصناف لم يعد متاحاً. حدّث السلة.' });
@@ -3894,9 +3919,9 @@ export async function handle(req, res) {
   if (p === '/') p = '/index.html';
   // Allow-list: this used to serve every file under site/, customer database
   // included (/data/accounts.db). See engine/static-allow.mjs.
-  if (!isPublicPath(p)) { res.statusCode = 404; res.end('not found'); return; }
+  if (!isPublicPath(p)) return notFoundPage(req, res, p);
   const f = path.join(ROOT, p);
-  if (!f.startsWith(ROOT) || !existsSync(f) || !statSync(f).isFile()) { res.statusCode = 404; res.end('not found'); return; }
+  if (!f.startsWith(ROOT) || !existsSync(f) || !statSync(f).isFile()) return notFoundPage(req, res, p);
   res.setHeader('content-type', MIME[path.extname(f).toLowerCase()] || 'application/octet-stream');
   createReadStream(f).pipe(res);
 }

@@ -56,14 +56,14 @@
       savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
       more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
       grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
-      pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ أُضيف', soldOut: 'غير متوفر حالياً', langBtn: 'EN', langTitle: 'Switch to English' },
+      pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ أُضيف', maxQty: 'وصلت للحد المتاح', soldOut: 'غير متوفر حالياً', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
       orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
       finder: 'Help me choose', plan: 'Shopping plans', guides: 'Buying guides', care: 'Customer care',
       savedAria: 'Saved products', acctAria: 'My account', details: 'Details & size',
       more: 'More', appliances: 'My appliances', account: 'My account', saved: 'Saved', cart: 'Cart',
       grpBefore: 'Plan your purchase', grpAfter: 'After buying', menu: 'Menu', close: 'Close',
-      pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', soldOut: 'Out of stock', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
+      pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', maxQty: 'Max available in cart', soldOut: 'Out of stock', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
   }[LANG];
   const CAT_EN = {
     'ثلاجات': 'Refrigerators', 'نو فروست': 'No frost', 'ديفروست': 'Defrost',
@@ -120,13 +120,26 @@
       if (p && p.inStock === false) return false;
       const items = readCart();
       const hit = items.find(i => i.id === p.id);
-      if (hit) hit.qty += (qty || 1);
-      else items.push({ id: p.id, title: p.title, price: p.price, image: p.image, url: p.url, qty: qty || 1 });
+      /* Remaining stock, only when Ecwid is tracking it (an untracked
+         product's quantity is not a stock figure). null = no limit. The
+         server re-checks at order time; this keeps the cart honest. */
+      const max = (p.stockTracked === true && isFinite(Number(p.quantity))) ? Math.max(0, Number(p.quantity)) : null;
+      if (hit) { if (max !== null) hit.max = max; }
+      const want = (hit ? hit.qty : 0) + (qty || 1);
+      const cap = hit ? (hit.max != null ? hit.max : null) : max;
+      if (cap !== null && want > cap) {
+        if (hit) hit.qty = Math.min(hit.qty, cap);
+        else if (cap > 0) items.push({ id: p.id, title: p.title, price: p.price, image: p.image, url: p.url, qty: cap, max });
+        writeCart(items);
+        return 'max';
+      }
+      if (hit) hit.qty = want;
+      else items.push({ id: p.id, title: p.title, price: p.price, image: p.image, url: p.url, qty: want, max });
       writeCart(items);
     },
     setQty(id, qty) {
       let items = readCart();
-      items.forEach(i => { if (i.id === id) i.qty = qty; });
+      items.forEach(i => { if (i.id === id) i.qty = (i.max != null) ? Math.min(qty, i.max) : qty; });
       items = items.filter(i => i.qty > 0);
       writeCart(items);
     },
@@ -137,6 +150,28 @@
   // The storefront re-renders its grid on every facet change, so it needs to
   // re-run these over the new cards. Additive only; existing pages are unaffected.
   window.skNav = { enhanceCategoryCards };
+
+  /* ---- offline notice ----
+     A shopper who loses signal mid-browse otherwise sees grids that silently
+     stop loading. Says so plainly and clears itself when the connection returns. */
+  (function offlineNotice() {
+    let bar = null;
+    function show(off) {
+      if (off && !bar) {
+        bar = document.createElement('div');
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = 'position:fixed;inset-inline:0;bottom:0;z-index:99999;background:#7a2e1c;color:#fff;' +
+          'font:700 .9rem Cairo,sans-serif;text-align:center;padding:10px 16px';
+        bar.textContent = LANG === 'en'
+          ? 'You are offline. Some pages and prices may not load until your connection returns.'
+          : 'أنت غير متصل بالإنترنت. قد لا تظهر بعض الصفحات والأسعار حتى يعود الاتصال.';
+        document.body.appendChild(bar);
+      } else if (!off && bar) { bar.remove(); bar = null; }
+    }
+    window.addEventListener('offline', () => show(true));
+    window.addEventListener('online', () => show(false));
+    document.addEventListener('DOMContentLoaded', () => show(navigator.onLine === false));
+  })();
 
   /* ================= header ================= */
   function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
@@ -567,8 +602,8 @@
           b.className = 'sk-addbtn';
           b.textContent = N.add;
           b.addEventListener('click', () => {
-            skCart.add(prod);
-            b.textContent = N.added;
+            const r = skCart.add(prod);
+            b.textContent = r === 'max' ? N.maxQty : N.added;
             b.classList.add('is-done');
             setTimeout(() => { b.textContent = N.add; b.classList.remove('is-done'); }, 1400);
           });

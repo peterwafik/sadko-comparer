@@ -8,7 +8,7 @@
 })(this, function () {
   'use strict';
 
-  var SORTS = ['default', 'price-asc', 'price-desc'];
+  var SORTS = ['default', 'price-asc', 'price-desc', 'newest', 'best'];
 
   function num(v) {
     var n = parseInt(v, 10);
@@ -596,10 +596,20 @@
     return out.slice(0, limit);
   }
 
-  function sortList(list, sort) {
+  // ctx.bestIds: set of category ids {id:true} that staff curate as "best sellers".
+  // There is no sales data to rank by, so 'best' means exactly that curated
+  // category first, and is only offered when it exists.
+  function sortList(list, sort, ctx) {
     var out = list.slice();
     if (sort === 'price-asc') out.sort(function (a, b) { return a.price - b.price; });
     else if (sort === 'price-desc') out.sort(function (a, b) { return b.price - a.price; });
+    else if (sort === 'newest') out.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    else if (sort === 'best') {
+      var set = (ctx && ctx.bestIds) || {};
+      var isBest = function (p) { return catIdsOf(p).some(function (id) { return set[String(id)] === true; }); };
+      var yes = out.filter(isBest), no = out.filter(function (p) { return !isBest(p); });
+      out = yes.concat(no);
+    }
     // Whatever the shopper sorted by, what they cannot buy goes last. The data
     // layer already partitions on stock, but a price sort re-orders the WHOLE
     // list and would scatter unavailable products back through the grid — 470

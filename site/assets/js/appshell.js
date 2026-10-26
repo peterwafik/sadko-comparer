@@ -67,6 +67,18 @@
      Ecwid holds none for this store. Arabic-only names are used for both
      languages, which is honest — the alternative is a numeric id. */
   let ECWID_CATS = {};
+  /* The store's Arabic names differ from nav.js's curated keys only in spelling
+     (hamza on/off, a space after و), so compare on a normalised form. Names the
+     curated table has no entry for at all are listed here. */
+  const EXTRA_EN = { 'المنتجات الاكثر مبيعا': 'Best sellers', 'افران': 'Ovens' };
+  const norm = x => String(x).replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ً/g, '').replace(/وs+/g, 'و').replace(/s+/g, ' ').trim();
+  function enByArabic(name) {
+    const want = norm(name);
+    if (EXTRA_EN[want]) return EXTRA_EN[want];
+    const cur = window.skCatEn || {};
+    for (const k of Object.keys(cur)) if (norm(k) === want) return cur[k];
+    return null;
+  }
   let ecwidCatsLoaded = null;
   function loadEcwidCats() {
     if (ecwidCatsLoaded) return ecwidCatsLoaded;
@@ -75,7 +87,9 @@
       .then(d => {
         for (const c of (d && d.categories) || []) {
           if (!c || !c.id || !c.name) continue;
-          ECWID_CATS[String(c.id)] = { ar: c.name, en: c.nameEn || c.name };
+          /* Ecwid holds no English name for this store, so fall back to nav.js's
+             curated name table (keyed by the Arabic name) before the Arabic one. */
+          ECWID_CATS[String(c.id)] = { ar: c.name, en: c.nameEn || enByArabic(c.name) || c.name };
         }
         return ECWID_CATS;
       })

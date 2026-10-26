@@ -85,6 +85,17 @@
     return undefined;
   }
 
+  /* The brand the owner registered on the product (Ecwid's BRAND attribute) is
+     authoritative, and was being ignored: only the fixed list above was scanned,
+     so a product whose brand is registered but not in that list showed the brand
+     as unavailable. Known brands keep their bilingual names; any other registered
+     brand is shown as typed, in both languages, rather than dropped. */
+  function registeredBrand(v) {
+    const name = String(v == null ? '' : v).replace(/&nbsp;/g, ' ').replace(/s+/g, ' ').trim();
+    if (!name) return undefined;
+    return brandOf(norm(name)) || { en: name, ar: name };
+  }
+
   /* ---------- dimensions (cm) ---------- */
   // Handles "Width: 55 cm.Depth: 62.5 cm.Height: 153.1 cm", "Width 59.5, Depth 64.5 and Height 101.5",
   // "عرض 55 سم", and bare "55 x 62 x 153".
@@ -231,7 +242,7 @@
     const s = {
       id: p.id, title, family,
       price: typeof p.price === 'number' ? p.price : num(p.price),
-      brand: brandOf(hay),
+      brand: registeredBrand(p.brand) || brandOf(hay),
       dims: dimsOf(hay),
       cap: capacityOf(hay),
       energy: energyOf(hay),

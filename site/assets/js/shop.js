@@ -44,7 +44,9 @@
   var SORT_LABELS = EN ? {
     'default': 'Default order',
     'price-asc': 'Price: low to high',
-    'price-desc': 'Price: high to low'
+    'price-desc': 'Price: high to low',
+    'newest': 'Newest',
+    'best': 'Best sellers'
   } : undefined;
 
   // Builds a price-band link that PRESERVES every other active facet (cat, q,
@@ -125,15 +127,31 @@
 
   // Option lists for the advanced-search panel, built from the LIVE catalogue so a
   // category or brand can never be offered that no product actually has.
+  // Sort options are offered only when the data can back them: "newest" needs
+  // a creation date on the products, "best" needs staff's best-sellers category.
+  function bestIds() {
+    var out = {}, any = false;
+    ((CACHE && CACHE.cats) || []).forEach(function (c) {
+      if (c && c.name && /مبيع/.test(c.name)) { out[String(c.id)] = true; any = true; }
+    });
+    return any ? out : null;
+  }
+  function sortKeysFor(products) {
+    var keys = ['default', 'price-asc', 'price-desc'];
+    if ((products || []).some(function (p) { return p.createdAt; })) keys.push('newest');
+    if (bestIds()) keys.push('best');
+    return keys;
+  }
+
   function advData(root, products) {
-    var sortNames = SORT_LABELS || { 'default': 'الأحدث أولاً', 'price-asc': 'الأرخص أولاً', 'price-desc': 'الأغلى أولاً' };
+    var sortNames = SORT_LABELS || { 'default': 'الترتيب الافتراضى', 'price-asc': 'الأرخص أولاً', 'price-desc': 'الأغلى أولاً', 'newest': 'الأحدث', 'best': 'الأكثر مبيعاً' };
     return {
       cats: C.liveCategories(products).map(function (c) {
         return { value: c.id, label: catNameOf(root, c.id), count: c.count };
       }),
       brands: C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; })
         .map(function (b) { return { value: b.key, label: t(b.ar, b.en), count: b.count }; }),
-      sorts: ['default', 'price-asc', 'price-desc'].map(function (k) {
+      sorts: sortKeysFor(products).map(function (k) {
         return { value: k, label: sortNames[k] };
       })
     };
@@ -369,7 +387,7 @@
   function renderBrowse(root, state, products) {
     var fixed = root.getAttribute('data-cat');
     var matched = C.filter(products, state, specOf, TR);
-    var sorted = C.sortList(matched, state.sort);
+    var sorted = C.sortList(matched, state.sort, { bestIds: bestIds() });
     var pg = C.paginate(sorted, state.page, 24);
 
     // Facet counts are computed against everything EXCEPT the facet being shown,
@@ -436,7 +454,7 @@
           facetsHtml +
         '</aside>' +
         '<div class="shopgrid__main">' +
-          U.toolbar(state, pg.total, { count: function (n) { return t(n + ' منتج', n + ' products'); }, sorts: SORT_LABELS }) +
+          U.toolbar(state, pg.total, { count: function (n) { return t(n + ' منتج', n + ' products'); }, sorts: SORT_LABELS, sortKeys: sortKeysFor(products) }) +
           // Before the grid, after the count: an aside about the list, not a
           // banner over it. nav.js's preference bar inserts itself immediately
           // before `.grid`, so the two invitations end up stacked here in the

@@ -191,6 +191,8 @@ export function toSadkoProduct(e) {
     categoryIds: catIds,
     brand: brandOf(e),
     sku: e.sku ? String(e.sku) : '',
+    /* When staff added it (epoch seconds) — the only honest basis for a "newest" sort. */
+    createdAt: num(e.createTimestamp) > 0 ? num(e.createTimestamp) : null,
     inStock: stock.inStock,
     stockTracked: stock.tracked,
     quantity: stock.quantity,

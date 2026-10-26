@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>الصفحة غير موجودة | صادكو جروب</title>
+<link rel="icon" href="/assets/img/sadko-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/app.css?v=a7">
+<style>
+/* 404 — layout only, built on the app.css tokens. Absolute asset paths: this
+   page is served for a missing URL at ANY depth (/category/x.html, /a/b). */
+.nf { max-width: 640px; margin: clamp(32px,8vw,88px) auto; padding: 0 16px; text-align: center; }
+.nf__code { font: 900 clamp(4rem,16vw,7.5rem)/1 'Cairo', sans-serif; color: var(--accent); margin: 0; letter-spacing: .02em; }
+.nf h1 { font-size: clamp(1.3rem,3.6vw,1.8rem); font-weight: 900; margin: 8px 0 10px; }
+.nf p { color: var(--ink-soft); font-weight: 700; line-height: 1.9; margin: 0 0 22px; }
+.nf__go { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.nf__go a { text-decoration: none; font: 800 .92rem 'Cairo', sans-serif; border-radius: 999px; padding: 11px 20px;
+  background: #fff; color: var(--accent); border: 1.5px solid var(--accent); }
+.nf__go a.is-main { background: var(--accent); color: #fff; }
+.nf__go a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main class="nf">
+  <p class="nf__code" aria-hidden="true">404</p>
+  <h1 data-i18n="h">الصفحة دى مش موجودة</h1>
+  <p data-i18n="p">يمكن الرابط اتغير أو المنتج لم يعد متاحاً. جرّب واحدة من الصفحات دى، أو كلّمنا على 19140 ونساعدك.</p>
+  <div class="nf__go">
+    <a class="is-main" href="/index.html" data-i18n="home">الصفحة الرئيسية</a>
+    <a href="/shop.html" data-i18n="shop">تصفح المتجر</a>
+    <a href="/finder.html" data-i18n="finder">ساعدنى أختار</a>
+    <a href="/contact.html" data-i18n="contact">تواصل معنا</a>
+  </div>
+</main>
+<script>
+(function () {
+  var lang = 'ar';
+  try { lang = localStorage.getItem('sadko-lang') === 'en' ? 'en' : 'ar'; } catch (e) {}
+  if (lang !== 'en') return;
+  var T = { h: 'We could not find that page',
+    p: 'The link may have changed, or the product may no longer be available. Try one of these pages, or call us on 19140 and we will help.',
+    home: 'Home', shop: 'Browse the shop', finder: 'Help me choose', contact: 'Contact us' };
+  document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+  document.title = 'Page not found | SADKO Group';
+  document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = T[el.getAttribute('data-i18n')]; });
+})();
+</script>
+<script src="/assets/js/nav.js?v=g30" defer></script>
+</body>
+</html>

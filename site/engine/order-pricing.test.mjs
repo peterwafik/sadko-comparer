@@ -86,3 +86,18 @@ test('nothing else from the posted line survives', () => {
   const r = repriceLines([{ id: '865565209', qty: 1, hacked: true, price: 1 }], CAT);
   assert.deepEqual(Object.keys(r.items[0]).sort(), ['id', 'image', 'price', 'qty', 'title']);
 });
+
+
+test('a tracked product refuses a quantity above its stock', () => {
+  const cat = [{ id: '1', title: 'T', price: 100, stockTracked: true, quantity: 2 }];
+  const r = repriceLines([{ id: '1', qty: 3 }], cat);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'insufficient-stock');
+  assert.equal(r.available, 2);
+  assert.equal(repriceLines([{ id: '1', qty: 2 }], cat).ok, true);
+});
+
+test('an untracked product is never capped by its quantity field', () => {
+  const cat = [{ id: '1', title: 'T', price: 100, stockTracked: false, quantity: 0 }];
+  assert.equal(repriceLines([{ id: '1', qty: 5 }], cat).ok, true);
+});

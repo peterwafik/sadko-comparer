@@ -26,7 +26,7 @@
 
 /* items: the lines as posted. catalogue: the served product list.
    Returns { ok: true, items, subtotal } with prices and titles taken from the
-   catalogue, or { ok: false, error: 'item-unavailable', id }. */
+   catalogue, or { ok: false, error: 'item-unavailable' | 'insufficient-stock', id }. */
 export function repriceLines(items, catalogue) {
   const lines = Array.isArray(items) ? items : [];
   if (!lines.length) return { ok: false, error: 'empty-cart', id: null };
@@ -47,6 +47,12 @@ export function repriceLines(items, catalogue) {
        than trusted. */
     if (!Number.isFinite(price) || price <= 0) return { ok: false, error: 'item-unavailable', id };
 
+    const qty = Math.max(1, Math.min(20, Number(it && it.qty) || 1));
+    /* Stock is only a limit when Ecwid is TRACKING it. An untracked product's
+       "quantity" is not a stock figure (see ecwid-map.mjs), so it never caps. */
+    if (p.stockTracked === true && Number.isFinite(Number(p.quantity)) && qty > Number(p.quantity))
+      return { ok: false, error: 'insufficient-stock', id, available: Math.max(0, Number(p.quantity)) };
+
     out.push({
       id,
       /* Title from the catalogue too: it is what the customer's receipt and
@@ -55,7 +61,7 @@ export function repriceLines(items, catalogue) {
       title: String(p.title || (it && it.title) || '').slice(0, 300),
       price,
       /* Quantity IS the customer's to choose — bounded, not replaced. */
-      qty: Math.max(1, Math.min(20, Number(it && it.qty) || 1)),
+      qty,
       image: String((p.image || (it && it.image)) || '').slice(0, 500),
     });
   }

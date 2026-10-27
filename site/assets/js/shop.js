@@ -157,6 +157,21 @@
     };
   }
 
+  // The admin portal's Shop page screen (data/shop.json, engine/shop-layout.mjs):
+  // section order and switches, titles, rail sizes, which brands and categories
+  // get a tile, and brand logos. With no layout saved this returns null and
+  // every caller falls back to the page as it always was.
+  function layout() { return (CACHE && CACHE.layout) || null; }
+  function sectionTitle(key, ar, en) {
+    var o = layout() && layout().titles && layout().titles[key];
+    var v = o && String(EN ? (o.en || '') : (o.ar || '')).trim();
+    return v || t(ar, en);
+  }
+  function railLimit(key) {
+    var n = layout() && layout().limits && Number(layout().limits[key]);
+    return n > 0 ? n : 8;
+  }
+
   // A rail built from a CURATED id list in data/collections.json rather than from a
   // category. Those lists are scraped from SADKO's own live site — its offers page,
   // its best-sellers page, and the products it features on its homepage — so a rail
@@ -172,10 +187,10 @@
     var byId = {};
     products.forEach(function (p) { byId[String(p.id)] = p; });
     var items = col.ids.map(function (id) { return byId[String(id)]; })
-      .filter(Boolean).slice(0, 8);
+      .filter(Boolean).slice(0, railLimit(key));
     // No "see all": these are curated lists, not a browsable facet, so there is no
     // URL that would show the rest. rail() omits the link when the href is empty.
-    return U.rail(t(col.titleAr, col.titleEn), items, '', RAIL_LABELS);
+    return U.rail(sectionTitle(key, col.titleAr, col.titleEn), items, '', RAIL_LABELS);
   }
 
   // Which categories a promo belongs to. Explicit `cats` in promos.json wins;
@@ -277,42 +292,73 @@
     };
   }
 
+  // Today's running order, and the order a missing or broken layout falls back
+  // to: brand, offers, an ad, category, picks, ads, best sellers. Every ad sits
+  // between two rails, so a shopper meets one each screenful.
+  var HUB_SECTIONS = ['brands', 'offers', 'adWide', 'categories', 'featured', 'adGrid', 'bestSellers'];
+
   function renderHub(root, products, promos) {
+    var L = layout();
+    // Category tiles: every live category, or the admin's picked list in its
+    // order. The tile picture is the Ecwid category image (data/categories.json).
+    var catImage = {};
+    ((CACHE && CACHE.cats) || []).forEach(function (c) { if (c && c.image) catImage[String(c.id)] = c.image; });
     var cats = C.liveCategories(products).map(function (c) {
-      return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id };
+      return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id, image: catImage[String(c.id)] || '' };
     });
-    var brands = C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; }).slice(0, 12)
-      .map(function (b) {
+    if (L && L.categories && L.categories.mode === 'manual' && L.categories.pick.length) {
+      var byCat = {};
+      cats.forEach(function (c) { byCat[String(c.id)] = c; });
+      cats = L.categories.pick.map(function (id) { return byCat[String(id)]; }).filter(Boolean);
+    }
+    // Brand tiles: the brands with the most products, or the admin's picked list.
+    // Logos: the admin's (data/shop.json carries full paths) over the bundled
+    // manifest (assets/img/brands/logos.json, bare file names).
+    var allBrands = C.brandsOf(products, specOf).filter(function (b) { return b.key !== '__none__'; });
+    var bl = L && L.brands;
+    var chosen = bl && bl.mode === 'manual' && bl.pick.length
+      ? bl.pick.map(function (k) { return allBrands.filter(function (b) { return b.key === k; })[0]; }).filter(Boolean)
+      : allBrands.slice(0, bl ? bl.max : 12);
+    var brands = chosen.map(function (b) {
+        var named = bl && bl.names && bl.names[b.key];
+        var shipped = ((CACHE && CACHE.logos) || {})[b.key];
+        var logo = bl && bl.logos && bl.logos[b.key] ? P(bl.logos[b.key]) : shipped ? P('assets/img/brands/') + shipped : '';
         return {
-          key: b.key, count: b.count, name: t(b.ar, b.en),
+          key: b.key, count: b.count,
+          name: named && (EN ? named.en : named.ar) ? (EN ? named.en : named.ar) : t(b.ar, b.en),
           href: P('shop.html?brand=') + encodeURIComponent(b.key),
-          // Only brands listed in assets/img/brands/logos.json get a logo request;
-          // everyone else renders the wordmark disc. The manifest carries the file
-          // name, not just the key, because the logos do not all arrive in the same
-          // format. See brandTile() and the folder's README.
-          logo: ((CACHE && CACHE.logos) || {})[b.key]
-            ? P('assets/img/brands/') + CACHE.logos[b.key] : ''
+          // Only brands with a known logo get a request; everyone else renders
+          // the wordmark disc. See brandTile() and assets/img/brands/README.md.
+          logo: logo
         };
       });
     var ads = adsFor(promos, '', products);
     var deal = adDealer(ads.slots);
+
+    var BLOCKS = {
+      brands: function () {
+        return brands.length ? '<h2 class="shop-h2">' + U.esc(sectionTitle('brands', 'تسوّق حسب الماركة', 'Shop by brand')) + '</h2>' +
+          '<div class="btiles">' + brands.map(U.brandTile).join('') + '</div>' : '';
+      },
+      offers: function () { return collectionRail(products, 'offers'); },
+      adWide: function () { return deal(1, 'solo'); },
+      categories: function () {
+        return cats.length ? '<h2 class="shop-h2">' + U.esc(sectionTitle('categories', 'تسوّق حسب الفئة', 'Shop by category')) + '</h2>' +
+          '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' : '';
+      },
+      featured: function () { return collectionRail(products, 'featured'); },
+      adGrid: function () { return deal(4, 'grid'); },
+      bestSellers: function () { return collectionRail(products, 'bestSellers'); }
+    };
+    var order = L && L.sections ? L.sections : HUB_SECTIONS.map(function (k) { return { key: k, on: true }; });
 
     root.innerHTML =
       // The hero ad sits ABOVE the breadcrumb — it is the first thing on the page.
       U.adHero(ads.hero) +
       U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
       U.advancedSearch({ q: '', sort: 'default' }, advData(root, products)) +
-      // Section order: brand -> offers -> category -> picks -> best sellers, with an
-      // ad between each pair of rails so one arrives every screenful.
-      '<h2 class="shop-h2">' + t('تسوّق حسب الماركة', 'Shop by brand') + '</h2>' +
-      '<div class="btiles">' + brands.map(U.brandTile).join('') + '</div>' +
-      collectionRail(products, 'offers') +
-      deal(1, 'solo') +
-      '<h2 class="shop-h2">' + t('تسوّق حسب الفئة', 'Shop by category') + '</h2>' +
-      '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' +
-      collectionRail(products, 'featured') +
-      deal(4, 'grid') +
-      collectionRail(products, 'bestSellers');
+      order.filter(function (s) { return s && s.on !== false && BLOCKS[s.key]; })
+        .map(function (s) { return BLOCKS[s.key](); }).join('');
     // "Shop by price" is deliberately NOT on the hub. It is a filter, and the hub
     // is for browsing; the price facet is already in the rail on every category
     // page and on the browse view, which is where someone narrowing by price is.
@@ -942,19 +988,26 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { return (d && d.categories) || []; })
       .catch(function () { return []; });
+    // The admin portal's Shop page layout. Hub-only like the rails; a failure
+    // resolves to null, which renders the page exactly as it was before.
+    var shopLayout = fixedPage ? Promise.resolve(null)
+      : fetch(P('data/shop.json')).then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
     Promise.all([
       window.skApp.products(),
       promos,
       logos,
       collections,
-      cats
+      cats,
+      shopLayout
     ]).then(function (res) {
       CACHE = {
         products: res[0],
         promos: (res[1] && res[1].promos) || null,
         logos: res[2] || {},
         collections: (res[3] && res[3].collections) || null,
-        cats: res[4] || []
+        cats: res[4] || [],
+        layout: res[5] || null
       };
       render();
     });

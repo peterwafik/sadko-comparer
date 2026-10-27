@@ -87,6 +87,8 @@ import { mkdir } from 'node:fs/promises';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import QRCode from 'qrcode';
 import { openAdminAuth } from './engine/admin-auth.mjs';
+import { cleanLayout, defaultLayout, pinOrder, publicLayout } from './engine/shop-layout.mjs';
+import { createRequire } from 'node:module';
 import { productPatch, couponPayload, adDescription, adSku, adName, imageSize, shapeProblem, AD_SHAPES,
          paymentPatch, adPagePreview, cleanDestination, htmlToText } from './engine/admin-ecwid.mjs';
 const randBytesHex = n => randomBytes(n).toString('hex');
@@ -2807,6 +2809,37 @@ async function servedPromos() {
   catch (e) { return { source: 'local', promos: [] }; }
 }
 
+
+/* ---- the shop page's layout (engine/shop-layout.mjs) ----------------------
+   One site setting. The shop's own brand logic (assets/js/specs.js and
+   shop-core.js, which are UMD) names the brands, so the admin portal lists
+   exactly the brands the page would show. */
+const requireCjs = createRequire(import.meta.url);
+const SPECS = requireCjs('./assets/js/specs.js');
+const SHOP_CORE = requireCjs('./assets/js/shop-core.js');
+async function shopLayout() {
+  try { const c = catalogAdmin(); return cleanLayout(c ? await c.getSetting('shop.layout', null) : null); }
+  catch (e) { return defaultLayout(); }
+}
+/* The bundled logo manifest (assets/img/brands/logos.json): key -> file. */
+async function bundledLogos() {
+  try {
+    const d = JSON.parse(await readFile(path.join(ROOT, 'assets', 'img', 'brands', 'logos.json'), 'utf8'));
+    const l = d && d.logos;
+    if (Array.isArray(l)) return Object.fromEntries(l.map(k => [k, 'assets/img/brands/' + k + '.png']));
+    return Object.fromEntries(Object.entries(l || {}).map(([k, f]) => [k, 'assets/img/brands/' + f]));
+  } catch (e) { return {}; }
+}
+/* The rail categories (offers, best sellers): env first, else by Arabic name. */
+async function railCategoryIds() {
+  const st = ecwidStore();
+  const cats = st ? await st.allCategories() : [];
+  return resolveRailCategories(cats, {
+    offers: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
+    bestSellers: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
+  });
+}
+
 export async function handle(req, res) {
   await ready();
   const u = new URL(req.url, 'http://x');
@@ -2820,6 +2853,21 @@ export async function handle(req, res) {
     if (!u.pathname.startsWith('/api/auth') && !u.pathname.startsWith('/api/orders'))
       res.setHeader('access-control-allow-origin', '*');
     res.end(JSON.stringify(obj)); };
+
+  /* Clean addresses: no page path ends in ".html" (vercel.json cleanUrls does
+     the same for the static pages; category pages come through here). An old
+     link or bookmark is redirected, query string kept, and a trailing slash is
+     dropped because the pages use relative paths. */
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    const old = /^\/((?:category\/)?[A-Za-z0-9_-]+)\.html$/.exec(u.pathname);
+    const slash = u.pathname.length > 1 && u.pathname.endsWith('/') && !/^\/(api|data)\//.test(u.pathname);
+    if (old || slash) {
+      const clean = old ? (old[1] === 'index' ? '/' : '/' + old[1]) : u.pathname.replace(/\/+$/, '');
+      res.statusCode = 308;
+      res.setHeader('location', clean + u.search);
+      return res.end();
+    }
+  }
 
   /* Liveness/readiness for the host's health checks and for uptime pings. */
   if (u.pathname === '/healthz') {
@@ -3698,6 +3746,111 @@ export async function handle(req, res) {
         }
       }
 
+      /* ------- the shop page (engine/shop-layout.mjs) -------
+         Presentation is a site setting; what a rail contains is Ecwid
+         category membership; a category tile's picture is its Ecwid image. */
+      if (rest === 'shop/layout' && req.method === 'GET') {
+        const layout = await shopLayout();
+        const st = ecwidStore();
+        const products = await mergedCatalog();
+        const logos = { ...(await bundledLogos()), ...layout.brands.logos };
+        const brands = SHOP_CORE.brandsOf(products, p => SPECS.of(p))
+          .filter(b => b.key !== '__none__')
+          .map(b => ({ key: b.key, ar: b.ar, en: b.en, count: b.count, logo: logos[b.key] || null,
+                       uploaded: !!layout.brands.logos[b.key] }));
+        const allCats = st ? await st.allCategories() : [];
+        const counts = {};
+        for (const p of products) for (const id of (p.categoryIds && p.categoryIds.length ? p.categoryIds : [p.categoryId]))
+          if (id != null) counts[String(id)] = (counts[String(id)] || 0) + 1;
+        const ids = await railCategoryIds();
+        const byId = new Map(products.map(p => [String(p.id), p]));
+        const rail = key => {
+          const cat = ids[key];
+          return cat ? { categoryId: cat, name: (allCats.find(c => String(c.id) === cat) || {}).name || null }
+                     : { categoryId: null, name: null };
+        };
+        const railProducts = async key => {
+          const cat = ids[key];
+          if (!cat || !st) return [];
+          const list = (await st.allProducts()).filter(p => !isAdProduct(p) &&
+            (String(p.categoryId) === cat || (p.categoryIds || []).map(String).includes(cat)));
+          const ordered = pinOrder(list.map(p => String(p.id)), layout.order[key] || []);
+          const all = new Map(list.map(p => [String(p.id), p]));
+          return ordered.map(id => all.get(id)).map(p => ({ id: String(p.id), title: p.title, image: p.image, price: p.price,
+            onSale: byId.has(String(p.id)), inStock: p.inStock !== false, pinned: (layout.order[key] || []).includes(String(p.id)) }));
+        };
+        return json(200, {
+          layout,
+          brands,
+          categories: allCats.filter(c => c.enabled !== false && c.name)
+            .map(c => ({ id: String(c.id), name: c.name, nameEn: c.nameEn || null, image: c.image || null, count: counts[String(c.id)] || 0 }))
+            .filter(c => c.count > 0),
+          rails: {
+            offers: { ...rail('offers'), products: await railProducts('offers') },
+            bestSellers: { ...rail('bestSellers'), products: await railProducts('bestSellers') },
+          },
+        });
+      }
+      if (rest === 'shop/layout' && req.method === 'PUT') {
+        const b = await readJson(req, 60000);
+        const layout = cleanLayout(b && b.layout);
+        await cadm.setSetting('shop.layout', layout, actor);
+        return json(200, { ok: true, layout });
+      }
+      /* A brand logo: stored with the site's uploads (Ecwid has no brand
+         records to hold one) and recorded in the layout straight away. */
+      if (rest === 'shop/brand-logo' && req.method === 'POST') {
+        const b = await readJson(req, 6_000_000);
+        const key = String((b && b.key) || '').trim().slice(0, 80);
+        if (!key) return json(400, { error: 'bad-brand' });
+        const layout = await shopLayout();
+        if (b.data === null) { delete layout.brands.logos[key]; }
+        else {
+          const img = decodeImage(b.data);
+          if (!img) return formErr('bad-image');
+          const ext = img.mime === 'image/png' ? 'png' : img.mime === 'image/webp' ? 'webp' : 'jpg';
+          const name = 'p' + Date.now().toString(36) + randBytesHex(4) + '.' + ext;
+          try { await cadm.putUpload({ name, mime: img.mime, bytes: img.buf, actor }); }
+          catch (e) { return formErr('bad-image'); }
+          layout.brands.logos[key] = 'data/uploads/' + name;
+        }
+        const clean = cleanLayout(layout);
+        await cadm.setSetting('shop.layout', clean, actor);
+        return json(200, { ok: true, logo: clean.brands.logos[key] || null });
+      }
+      /* Put a product in, or take it out of, a rail: its Ecwid category. */
+      if (seg[0] === 'shop' && seg[1] === 'rail' && ['offers', 'bestSellers'].includes(seg[2]) && ['add', 'remove'].includes(seg[3]) && req.method === 'POST') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const cat = (await railCategoryIds())[seg[2]];
+        if (!cat) return json(400, { error: 'no-rail-category', message: lang === 'en'
+          ? 'This rail has no Ecwid category. Create one named "عروض صادكو" or "الأكثر مبيعا" in Ecwid.'
+          : 'لا يوجد قسم فى إكويد لهذا الشريط. أنشئ قسماً باسم «عروض صادكو» أو «الأكثر مبيعا».' });
+        const id = String(((await readJson(req, 2000)) || {}).productId || '');
+        if (!/^\d{1,20}$/.test(id)) return json(400, { error: 'bad-product' });
+        try {
+          const p = await api.getProduct(id);
+          if (!p) return json(404, { error: 'not-found' });
+          const ids = (p.categoryIds || []).map(String).filter(x => x !== '0');
+          let next = seg[3] === 'add' ? Array.from(new Set(ids.concat(cat))) : ids.filter(x => x !== cat);
+          const patch = { categoryIds: next.map(Number) };
+          /* The main category must stay one the product is still in. */
+          if (seg[3] === 'remove' && String(p.defaultCategoryId) === cat && next.length) patch.defaultCategoryId = Number(next[0]);
+          await api.updateProduct(id, patch);
+        } catch (e) { return ecwidFailed(e); }
+        await refreshProduct(id);
+        await cadm.log(actor, 'ecwid.rail.' + seg[3], id, { rail: seg[2] });
+        return json(200, { ok: true });
+      }
+      if (seg[0] === 'shop' && seg[1] === 'category-image' && seg[2] && req.method === 'POST') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const img = decodeImage(((await readJson(req, 6_000_000)) || {}).data);
+        if (!img) return formErr('bad-image');
+        try { await api.uploadCategoryImage(decodeURIComponent(seg[2]), img.buf, img.mime); } catch (e) { return ecwidFailed(e); }
+        try { await ecwidSync().syncCategories(); ecwidSource().invalidate(); } catch (e) {}
+        await cadm.log(actor, 'ecwid.category.image', seg[2], null);
+        return json(200, { ok: true });
+      }
+
       /* ------- where a home-page point may link -------
          The 30 built category pages (named from their own data-cat-name),
          the live Ecwid categories (as a filtered shop link) and the site's
@@ -3707,14 +3860,14 @@ export async function handle(req, res) {
         try {
           for (const f of (await readdir(path.join(ROOT, 'category'))).filter(f => /^\d+\.html$/.test(f))) {
             const html = await readFile(path.join(ROOT, 'category', f), 'utf8');
-            built.push({ href: 'category/' + f, name: (/data-cat-name="([^"]*)"/.exec(html) || [])[1] || f });
+            built.push({ href: 'category/' + f.replace(/\.html$/, ''), name: (/data-cat-name="([^"]*)"/.exec(html) || [])[1] || f });
           }
         } catch (e) {}
         const st = ecwidStore();
-        const live = st ? (await st.allCategories()).map(c => ({ href: 'shop.html?cat=' + c.id, name: c.name || String(c.id) })) : [];
+        const live = st ? (await st.allCategories()).map(c => ({ href: 'shop?cat=' + c.id, name: c.name || String(c.id) })) : [];
         return json(200, { built: built.sort((a, b) => a.name.localeCompare(b.name, 'ar')), live,
           pages: ['shop', 'finder', 'guides', 'care', 'plan', 'delivery', 'contact', 'about', 'showrooms', 'warranty', 'values']
-            .map(p => ({ href: p + '.html', name: p })) });
+            .map(p => ({ href: p, name: p })) });
       }
 
       /* ------- site settings (hotline, announcement, maintenance) ------- */
@@ -4377,7 +4530,9 @@ export async function handle(req, res) {
         const cats = (await store.allCategories())
           .filter(c => c.enabled !== false && c.name)
           .map(c => ({ id: c.id, name: c.name, nameEn: c.nameEn, parentId: c.parentId,
-                       order: c.order, count: c.productCount }));
+                       order: c.order, count: c.productCount,
+                       /* the tile picture on the shop page, set in Ecwid from the admin portal */
+                       image: c.image || null }));
         res.setHeader('content-type', 'application/json; charset=utf-8');
         res.setHeader('cache-control', 'no-cache');
         return res.end(JSON.stringify({ source: 'ecwid', categories: cats }));
@@ -4393,11 +4548,15 @@ export async function handle(req, res) {
     if (ecwidSource().activeSource() === 'ecwid') {
       try {
         const store = ecwidStore();
+        const layout = await shopLayout();
         const collections = deriveRails(await mergedCatalog(), {
           categories: store ? await store.allCategories() : [],
           offersCategoryId: process.env.SADKO_ECWID_OFFERS_CATEGORY || null,
           bestSellersCategoryId: process.env.SADKO_ECWID_BESTSELLERS_CATEGORY || null,
         });
+        /* The admin's pinned products lead their rail (Shop page screen). */
+        for (const k of ['offers', 'bestSellers'])
+          if (collections[k]) collections[k].ids = pinOrder(collections[k].ids, layout.order[k]);
         res.setHeader('content-type', 'application/json; charset=utf-8');
         res.setHeader('cache-control', 'no-cache');
         return res.end(JSON.stringify({
@@ -4490,8 +4649,10 @@ export async function handle(req, res) {
 
      In production, where the ids already agree, resolveCategory returns the
      same id by the 'id' tier and the file is served untouched. */
-  if (/^\/category\/[^/]+\.html$/.test(u.pathname) && (req.method === 'GET' || req.method === 'HEAD')) {
-    const wantedId = decodeURIComponent(u.pathname.slice('/category/'.length, -'.html'.length));
+  /* The address is clean (/category/38003882); an old .html one was
+     redirected at the top of handle(). */
+  if (/^\/category\/[^/.]+$/.test(u.pathname) && (req.method === 'GET' || req.method === 'HEAD')) {
+    const wantedId = decodeURIComponent(u.pathname.slice('/category/'.length));
     const file = path.join(ROOT, 'category', wantedId + '.html');
     const inRoot = file.startsWith(path.join(ROOT, 'category'));
 
@@ -4538,7 +4699,18 @@ export async function handle(req, res) {
     } catch (e) { /* fall through to the static handler, which will 404 */ }
   }
 
-    /* Site-wide settings for every page (nav.js applySiteSettings): hotline,
+    /* The shop page's layout for shop.js (the admin portal's Shop page screen):
+     sections, titles, limits, brand choice and logos, category choice. */
+  if (u.pathname === '/data/shop.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const l = await shopLayout();
+    const pub = publicLayout(l);
+    pub.brands = { ...pub.brands, logos: { ...(await bundledLogos()), ...l.brands.logos } };
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    setEditableCache(res);
+    return res.end(req.method === 'HEAD' ? undefined : JSON.stringify(pub));
+  }
+
+  /* Site-wide settings for every page (nav.js applySiteSettings): hotline,
      announcement, maintenance notice. Only what is switched on is sent. */
   if (u.pathname === '/data/site.json' && (req.method === 'GET' || req.method === 'HEAD')) {
     const c = await siteConfig();
@@ -4578,9 +4750,8 @@ export async function handle(req, res) {
   }
 
   let p; try { p = decodeURIComponent(u.pathname); } catch { p = ''; }
-  // The portal lives at /admin, as in vercel.json; /admin/ would break its relative paths.
-  if (p === '/admin/') { res.statusCode = 308; res.setHeader('location', '/admin'); return res.end(); }
-  if (p === '/admin') p = '/admin.html';
+  // Clean address -> its page file (/shop -> shop.html), as vercel.json cleanUrls.
+  if (/^\/[A-Za-z0-9_-]+$/.test(p)) p += '.html';
   if (p === '/') p = '/index.html';
   // Allow-list: this used to serve every file under site/, customer database
   // included (/data/accounts.db). See engine/static-allow.mjs.

@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "outputDirectory": "public",
   "regions": [
     "fra1"
@@ -15,18 +17,7 @@
       "includeFiles": "{category/*.html,data/*.json}"
     }
   },
-  "redirects": [
-    {
-      "source": "/admin/",
-      "destination": "/admin",
-      "permanent": true
-    }
-  ],
   "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "/admin.html"
-    },
     {
       "source": "/api/:path*",
       "destination": "/api/index"

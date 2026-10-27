@@ -63,3 +63,30 @@ test('index.html mounts only after the scenes load or time out', () => {
   assert.ok(html.indexOf('loadScenes.then') < html.indexOf('mountScrollWorld('));
   assert.match(html, /scenes\.js\?v=/);
 });
+
+/* The editor (admin pages-site.js) draws each room's frame from its own copy
+   of the scene timing. It once used progress × duration, a different frame
+   from the one the home page shows, so points placed there missed. */
+test('the scene editor shows the exact frame the home page settles on', () => {
+  const ED = readFileSync(new URL('../assets/js/admin/pages-site.js', import.meta.url), 'utf8');
+  const ENGINE = readFileSync(new URL('../assets/js/scrub-engine.js', import.meta.url), 'utf8');
+  const media = new Function(ED.slice(ED.indexOf('const MEDIA = {'), ED.indexOf('/* The clip time the home page')) + '; return MEDIA;')();
+  for (const s of builtIn()) {
+    const m = media[s.id];
+    assert.ok(m, s.id + ' has editor media');
+    assert.equal(m.at, s.showcase, s.id + ': showcase');
+    assert.equal(m.linger || 0, s.linger || 0, s.id + ': linger');
+    assert.equal(m.clip, s.clip, s.id + ': clip');
+    assert.equal(m.phone, s.stillMobile, s.id + ': phone still');
+    if (s.clipEnd != null) assert.equal(m.clipEnd, s.clipEnd, s.id + ': clipEnd');
+  }
+  /* Same easing as the engine, character for character. */
+  const eng = /const lingerEase = \(x, L\) => \{ L = clamp\(L\); const c = x - 0\.5; return \(1 - L\) \* x \+ L \* \(4 \* c \* c \* c \+ 0\.5\); \};/;
+  assert.match(ENGINE, eng, 'scrub-engine lingerEase changed: update the editor too');
+  assert.match(ED, /const lingerEase = \(x, L\) => \{ const c = x - 0\.5; return \(1 - L\) \* x \+ L \* \(4 \* c \* c \* c \+ 0\.5\); \};/);
+  assert.match(ED, /frameTime\(media\) \* vid\.duration/);
+  assert.ok(ED.includes('blobFor(media.clip)'), 'the clip must load as a Blob, or it cannot seek past frame 0');
+  /* the living room: measured at 0.46 s of the 8.04 s clip */
+  const ease = (x, L) => { const c = x - 0.5; return (1 - L) * x + L * (4 * c * c * c + 0.5); };
+  assert.equal(Math.round(ease(0.03, 0.5) * 8.04 * 100) / 100, 0.46);
+});

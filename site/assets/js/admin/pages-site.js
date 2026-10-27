@@ -79,14 +79,26 @@
   A.actionName = actionName;
 
   /* =================== home scenes =================== */
-  /* The structure each scene's picture comes from (index.html SECTIONS):
-     the clip and the moment the points were measured on, and the phone still. */
+  /* The structure each scene's picture comes from (index.html SECTIONS): the
+     clip, the room's showcase progress (`at`), its `linger`, and the phone
+     still. engine/scenes.test.mjs checks these against index.html. */
   const MEDIA = {
-    living: { clip: 'assets/vid/leg_1.mp4', at: 0.03, still: 'assets/img/still_1.jpg?v=2', phone: 'assets/img/m_living.jpg?v=2' },
-    kitchen: { clip: 'assets/vid/leg_2.mp4', at: 0.92, still: 'assets/img/still_2.jpg', phone: 'assets/img/m_kitchen.jpg?v=2' },
-    laundry: { clip: 'assets/vid/leg_3.mp4', at: 0.50, still: 'assets/img/still_3.jpg', phone: 'assets/img/m_laundry.jpg?v=2' },
-    shop: { clip: 'assets/vid/leg_4.mp4', at: 0.22, still: 'assets/img/still_shop.jpg', phone: 'assets/img/m_laundry.jpg?v=2', textOnly: true },
+    living: { clip: 'assets/vid/leg_1.mp4', at: 0.03, linger: 0.5, still: 'assets/img/still_1.jpg?v=2', phone: 'assets/img/m_living.jpg?v=2' },
+    kitchen: { clip: 'assets/vid/leg_2.mp4', at: 0.92, linger: 0.5, still: 'assets/img/still_2.jpg', phone: 'assets/img/m_kitchen.jpg?v=2' },
+    laundry: { clip: 'assets/vid/leg_3.mp4', at: 0.50, linger: 0.45, still: 'assets/img/still_3.jpg', phone: 'assets/img/m_laundry.jpg?v=2' },
+    shop: { clip: 'assets/vid/leg_4.mp4', at: 0.22, linger: 0, clipEnd: 0.22, still: 'assets/img/still_shop.jpg', phone: 'assets/img/m_laundry.jpg?v=2', textOnly: true },
   };
+  /* The clip time the home page shows at a scroll progress: scrub-engine.js
+     eases progress through `linger` (lingerEase) and scales by clipEnd. The
+     editor once used progress × duration, a different frame with the camera
+     still moving (living room: 0.24 s instead of 0.46 s), so points lined up
+     here missed their appliances on the site. */
+  const lingerEase = (x, L) => { const c = x - 0.5; return (1 - L) * x + L * (4 * c * c * c + 0.5); };
+  const frameTime = m => (m.linger ? lingerEase(m.at, m.linger) : m.at) * (m.clipEnd || 1);
+  const BLOBS = {};
+  const blobFor = src => BLOBS[src] || (BLOBS[src] = fetch(src).then(r => (r.ok ? r.blob() : null))
+    .then(b => (b ? URL.createObjectURL(b) : null)).catch(() => null));
+  A.sceneFrameTime = frameTime;
   A.page('scenes', {
     group: 'site', icon: 'scene', label: ['مشاهد الصفحة الرئيسية', 'Home scenes'], source: 'site',
     sub: ['النصوص والنقاط التى يضغط عليها الزائر فى كل غرفة.', 'The text and the points visitors tap in each room.'],
@@ -99,7 +111,7 @@
       const save = document.createElement('button');
       save.className = 'btn'; save.textContent = t('حفظ التغييرات', 'Save changes'); save.disabled = true;
       const view = document.createElement('a');
-      view.className = 'btn btn--ghost'; view.href = 'index.html'; view.target = '_blank'; view.innerHTML = I.ext + t('عرض على الموقع', 'View on site');
+      view.className = 'btn btn--ghost'; view.href = './'; view.target = '_blank'; view.innerHTML = I.ext + t('عرض على الموقع', 'View on site');
       ctx.actions.append(view, save);
       const dirty = () => { st.dirty = true; save.disabled = false; save.textContent = t('حفظ التغييرات •', 'Save changes •'); };
       save.onclick = async () => {
@@ -202,9 +214,15 @@
         const vid = el.querySelector('#vid');
         if (vid) {
           const media = MEDIA[data.scenes[st.i].id];
-          vid.src = media.clip;
-          vid.onloadedmetadata = () => { vid.currentTime = Math.max(0, Math.min(vid.duration - 0.05, media.at * vid.duration)); };
-          vid.onseeked = () => { vid.style.opacity = 1; };
+          /* As a Blob, like scrub-engine.js: a clip streamed from a server that
+             does not answer byte ranges cannot seek, and stayed on frame 0, so
+             the editor showed the opening still instead of the measured frame. */
+          blobFor(media.clip).then(url => {
+            if (!url || !document.body.contains(vid)) return;
+            vid.onloadedmetadata = () => { vid.currentTime = Math.max(0, Math.min(vid.duration - 0.05, frameTime(media) * vid.duration)); };
+            vid.onseeked = () => { vid.style.opacity = 1; };
+            vid.src = url;
+          });
         }
         const sc = data.scenes[st.i];
         stage.querySelectorAll('.pin').forEach(pin => {
@@ -389,6 +407,230 @@
       }
 
       await paint();
+    },
+  });
+
+  /* =================== the shop page (engine/shop-layout.mjs) ===================
+     Section order, titles and sizes, brands and their logos, and category
+     choice are the site's (Save). What the offers and best-seller rails
+     CONTAIN is Ecwid category membership, and a category's picture is its
+     Ecwid image: those buttons write to Ecwid at once. */
+  const SECTION_NAMES = {
+    brands: ['تسوّق حسب الماركة', 'Shop by brand'], offers: ['عروض صادكو', 'SADKO offers'], adWide: ['إعلان عريض', 'Wide ad'],
+    categories: ['تسوّق حسب الفئة', 'Shop by category'], featured: ['مختارات صادكو (خصومات حقيقية)', 'SADKO picks (real discounts)'],
+    adGrid: ['مربعات إعلانات', 'Ad tiles'], bestSellers: ['الأكثر مبيعاً', 'Best sellers'],
+  };
+  const TITLED = ['brands', 'offers', 'categories', 'featured', 'bestSellers'];
+  const LIMITED = ['offers', 'featured', 'bestSellers'];
+  A.page('shop', {
+    group: 'site', icon: 'store', label: ['صفحة المتجر', 'Shop page'],
+    sub: ['ترتيب أقسام صفحة المتجر، والماركات وشعاراتها، والعروض، والأكثر مبيعاً، والفئات.', 'The order of the shop page sections, brands and their logos, offers, best sellers and categories.'],
+    async render(el, ctx) {
+      let r = await A.api('GET', 'shop/layout');
+      if (ctx.stale()) return;
+      if (!r.ok) { el.innerHTML = '<div class="note note--bad">' + esc(r.message || '') + '</div>'; return; }
+      const L = r.layout;
+      const save = document.createElement('button');
+      save.className = 'btn'; save.textContent = t('حفظ', 'Save'); save.disabled = true;
+      const view = document.createElement('a');
+      view.className = 'btn btn--ghost'; view.href = 'shop'; view.target = '_blank'; view.innerHTML = I.ext + t('عرض صفحة المتجر', 'View the shop page');
+      ctx.actions.append(view, save);
+      let dirty = false;
+      const touch = () => { dirty = true; save.disabled = false; save.textContent = t('حفظ •', 'Save •'); };
+      window.onbeforeunload = () => (dirty ? true : undefined);
+      save.onclick = async () => {
+        save.disabled = true;
+        const x = await A.api('PUT', 'shop/layout', { layout: L });
+        if (A.report(x, t('تم الحفظ. يظهر على الموقع خلال دقيقة.', 'Saved. Live on the site within a minute.'))) { dirty = false; save.textContent = t('حفظ', 'Save'); }
+        else save.disabled = false;
+      };
+      const move = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; };
+      const upDown = (i, n, attr) => '<button class="icon-btn" ' + attr + '="' + i + '" data-d="-1"' + (i === 0 ? ' disabled' : '') + ' title="' + t('لأعلى', 'Up') + '">' + I.up + '</button>' +
+        '<button class="icon-btn" ' + attr + '="' + i + '" data-d="1"' + (i === n - 1 ? ' disabled' : '') + ' title="' + t('لأسفل', 'Down') + '">' + I.down + '</button>';
+      const seg = (name, val) => '<span class="seg" data-seg="' + name + '"><button data-v="auto" class="' + (val === 'auto' ? 'on' : '') + '">' + t('تلقائى', 'Automatic') +
+        '</button><button data-v="manual" class="' + (val === 'manual' ? 'on' : '') + '">' + t('اختيار يدوى', 'Hand-picked') + '</button></span>';
+      const pickImage = () => new Promise(res => {
+        const f = document.createElement('input'); f.type = 'file'; f.accept = 'image/png,image/jpeg,image/webp';
+        f.onchange = async () => { const img = await A.readImage(f.files[0]); if (img && img.error) A.toast(img.error, true); res(img && !img.error ? img : null); };
+        f.click();
+      });
+
+      function paint() {
+        el.innerHTML = sectionsCard() + brandsCard() + railCard('offers') + railCard('bestSellers') + categoriesCard();
+        wire();
+      }
+
+      /* ---- sections ---- */
+      function sectionsCard() {
+        return '<div class="card"><h2>' + t('أقسام الصفحة وترتيبها', 'Page sections and their order') + '</h2>' +
+          '<p class="small muted" style="margin:0 0 10px">' + t('البانر الرئيسى والبحث يبقيان فى الأعلى دائماً.', 'The top banner and the search box always stay at the top.') + '</p>' +
+          '<div class="lines">' + L.sections.map((s, i) => {
+            const custom = L.titles[s.key] || { ar: '', en: '' };
+            return '<div class="card" style="padding:10px 12px;margin:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+              upDown(i, L.sections.length, 'data-sec') + '<b style="flex:1;min-width:160px">' + esc(t(...SECTION_NAMES[s.key])) + '</b>' +
+              (LIMITED.includes(s.key) ? '<label class="small muted">' + t('عدد المنتجات', 'Products') + ' <input class="input" type="number" min="1" max="24" style="width:70px;display:inline-block" data-limit="' + s.key + '" value="' + L.limits[s.key] + '"></label>' : '') +
+              '<label class="check">' + A.sw('on', s.on, 'data-on="' + i + '"') + ' ' + t('ظاهر', 'Shown') + '</label></div>' +
+              (TITLED.includes(s.key) ? '<div class="pair" style="margin-top:8px">' +
+                '<input class="input" dir="rtl" data-title="' + s.key + '" data-l="ar" placeholder="' + esc(SECTION_NAMES[s.key][0]) + '" value="' + esc(custom.ar) + '">' +
+                '<input class="input" dir="ltr" data-title="' + s.key + '" data-l="en" placeholder="' + esc(SECTION_NAMES[s.key][1]) + '" value="' + esc(custom.en) + '"></div>' : '') +
+              '</div>';
+          }).join('') + '</div><p class="tiny muted" style="margin:8px 0 0">' + t('اترك العنوان فارغاً لاستخدام العنوان الأصلى.', 'Leave a title empty to keep the original one.') + '</p></div>';
+      }
+
+      /* ---- brands ---- */
+      const brandByKey = k => r.brands.find(b => b.key === k);
+      function shownBrands() {
+        return L.brands.mode === 'manual' ? L.brands.pick.map(brandByKey).filter(Boolean) : r.brands.slice(0, L.brands.max);
+      }
+      function brandsCard() {
+        const list = shownBrands();
+        const others = r.brands.filter(b => !L.brands.pick.includes(b.key));
+        return '<div class="card"><h2><span class="lft">' + t('الماركات', 'Brands') + ' ' + A.srcTag('site') + '</span>' + seg('brands', L.brands.mode) + '</h2>' +
+          (L.brands.mode === 'auto'
+            ? '<p class="small muted" style="margin:0 0 10px">' + t('تظهر الماركات الأكثر منتجات. العدد: ', 'The brands with the most products are shown. How many: ') +
+              '<input class="input" type="number" min="1" max="30" style="width:70px;display:inline-block" id="bMax" value="' + L.brands.max + '"></p>'
+            : '<div class="toolbar"><select class="select grow" id="bAdd"><option value="">' + t('+ أضف ماركة…', '+ Add a brand…') + '</option>' +
+              others.map(b => '<option value="' + esc(b.key) + '">' + esc(t(b.ar, b.en)) + ' (' + A.num(b.count) + ')</option>').join('') + '</select></div>') +
+          '<div class="tbl-wrap"><table class="tbl"><tbody>' + list.map((b, i) => {
+            const nm = L.brands.names[b.key] || { ar: '', en: '' };
+            const logo = L.brands.logos[b.key] || b.logo;
+            return '<tr><td style="width:64px">' + (logo ? '<img class="thumb" style="object-fit:contain;background:#fff" src="' + esc(logo) + '" alt="">' : '<div class="thumb" style="display:grid;place-items:center;font-weight:800">' + esc(String(b.en || b.ar).slice(0, 2)) + '</div>') + '</td>' +
+              '<td><b>' + esc(t(b.ar, b.en)) + '</b> <span class="chip">' + A.num(b.count) + '</span>' +
+              (logo ? '' : ' <span class="chip chip--warn">' + t('بدون شعار', 'No logo') + '</span>') +
+              '<div class="pair" style="margin-top:6px"><input class="input" dir="rtl" data-bname="' + esc(b.key) + '" data-l="ar" placeholder="' + esc(b.ar) + '" value="' + esc(nm.ar) + '">' +
+              '<input class="input" dir="ltr" data-bname="' + esc(b.key) + '" data-l="en" placeholder="' + esc(b.en) + '" value="' + esc(nm.en) + '"></div></td>' +
+              '<td style="white-space:nowrap"><button class="btn btn--ghost btn--sm" data-logo="' + esc(b.key) + '">' + t('رفع شعار', 'Upload logo') + '</button>' +
+              (L.brands.logos[b.key] ? ' <button class="btn btn--quiet btn--sm" data-unlogo="' + esc(b.key) + '">' + t('إزالة', 'Remove') + '</button>' : '') + '</td>' +
+              (L.brands.mode === 'manual' ? '<td style="white-space:nowrap">' + upDown(i, list.length, 'data-bmove') +
+                ' <button class="icon-btn" data-bdel="' + esc(b.key) + '" title="' + t('حذف', 'Remove') + '">' + I.x + '</button></td>' : '') + '</tr>';
+          }).join('') + '</tbody></table></div><p class="tiny muted" style="margin:8px 0 0">' +
+          t('الأسماء اختيارية: اتركها فارغة لاستخدام الاسم المعروف. الشعار يُرفع فوراً ويُحفظ على الموقع.', 'Names are optional: leave them empty to keep the known name. A logo uploads at once and is kept on the site.') + '</p></div>';
+      }
+
+      /* ---- the two Ecwid rails ---- */
+      function railCard(key) {
+        const rail = r.rails[key];
+        const title = key === 'offers' ? t('عروض صادكو', 'SADKO offers') : t('الأكثر مبيعاً', 'Best sellers');
+        if (!rail.categoryId) return '<div class="card"><h2>' + title + '</h2><div class="note note--warn">' +
+          t('لا يوجد قسم فى إكويد لهذا الشريط.', 'There is no Ecwid category for this rail.') + '</div></div>';
+        return '<div class="card"><h2><span class="lft">' + title + ' ' + A.srcTag('ecwid') + ' <span class="chip">' + A.num(rail.products.length) + '</span></span></h2>' +
+          '<p class="small muted" style="margin:0 0 10px">' + t('المنتجات هنا هى منتجات قسم «', 'These are the products in the Ecwid category “') + esc(rail.name || '') +
+          t('» فى إكويد. الإضافة والحذف يحدثان فى إكويد فوراً، والترتيب يُحفظ بزر حفظ. المنتجات غير المتاحة لا تظهر فى الشريط.', '”. Adding and removing happen in Ecwid at once; the order is kept with Save. Products that cannot be bought are left out of the rail.') + '</p>' +
+          '<div class="toolbar"><input class="input grow" data-search="' + key + '" placeholder="' + t('ابحث عن منتج لإضافته…', 'Search for a product to add…') + '"></div><div data-results="' + key + '"></div>' +
+          '<div class="tbl-wrap"><table class="tbl"><tbody>' + (rail.products.length ? rail.products.map((p, i) =>
+            '<tr><td style="width:56px">' + (p.image ? '<img class="thumb" src="' + esc(p.image) + '" alt="" loading="lazy">' : '') + '</td><td><b>' + esc(p.title) + '</b>' +
+            (!p.onSale ? ' <span class="chip chip--bad">' + t('غير معروض', 'Not on sale') + '</span>' : !p.inStock ? ' <span class="chip chip--warn">' + t('نفد', 'Out of stock') + '</span>' : '') + '</td>' +
+            '<td class="num">' + A.money(p.price) + '</td><td style="white-space:nowrap">' + upDown(i, rail.products.length, 'data-rmove-' + key) +
+            ' <button class="icon-btn" data-rdel="' + key + '" data-id="' + p.id + '" title="' + t('إخراج من الشريط', 'Take out of the rail') + '">' + I.x + '</button></td></tr>').join('')
+            : '<tr><td class="empty">' + t('لا منتجات بعد.', 'No products yet.') + '</td></tr>') + '</tbody></table></div></div>';
+      }
+
+      /* ---- categories ---- */
+      const catById = id => r.categories.find(c => c.id === String(id));
+      function shownCats() {
+        return L.categories.mode === 'manual' ? L.categories.pick.map(catById).filter(Boolean) : r.categories;
+      }
+      function categoriesCard() {
+        const list = shownCats();
+        const others = r.categories.filter(c => !L.categories.pick.includes(c.id));
+        return '<div class="card"><h2><span class="lft">' + t('تسوّق حسب الفئة', 'Shop by category') + '</span>' + seg('cats', L.categories.mode) + '</h2>' +
+          (L.categories.mode === 'auto' ? '<p class="small muted" style="margin:0 0 10px">' + t('تظهر كل الفئات التى بها منتجات.', 'Every category that has products is shown.') + '</p>'
+            : '<div class="toolbar"><select class="select grow" id="cAdd"><option value="">' + t('+ أضف فئة…', '+ Add a category…') + '</option>' +
+              others.map(c => '<option value="' + c.id + '">' + esc(c.name) + ' (' + A.num(c.count) + ')</option>').join('') + '</select></div>') +
+          '<div class="tbl-wrap"><table class="tbl"><tbody>' + list.map((c, i) =>
+            '<tr><td style="width:64px">' + (c.image ? '<img class="thumb" style="object-fit:contain;background:#fff" src="' + esc(c.image) + '" alt="">' : '<div class="thumb"></div>') + '</td>' +
+            '<td><b>' + esc(c.name) + '</b> <span class="chip">' + A.num(c.count) + '</span></td>' +
+            '<td style="white-space:nowrap"><button class="btn btn--ghost btn--sm" data-cimg="' + c.id + '">' + t('صورة الفئة', 'Category picture') + '</button></td>' +
+            (L.categories.mode === 'manual' ? '<td style="white-space:nowrap">' + upDown(i, list.length, 'data-cmove') +
+              ' <button class="icon-btn" data-cdel="' + c.id + '" title="' + t('حذف', 'Remove') + '">' + I.x + '</button></td>' : '') + '</tr>').join('') +
+          '</tbody></table></div><p class="tiny muted" style="margin:8px 0 0">' + t('صورة الفئة تُرفع إلى إكويد فوراً.', 'A category picture uploads to Ecwid at once.') + '</p></div>';
+      }
+
+      async function reloadRails() {
+        const x = await A.api('GET', 'shop/layout');
+        if (x.ok) { r.rails = x.rails; r.brands = x.brands; r.categories = x.categories; }
+        paint();
+      }
+
+      function wire() {
+        const on = (sel, ev, fn) => el.querySelectorAll(sel).forEach(n => { n[ev] = e => fn(n, e); });
+        on('[data-sec]', 'onclick', b => { move(L.sections, Number(b.dataset.sec), Number(b.dataset.d)); touch(); paint(); });
+        on('[data-on]', 'onchange', b => { L.sections[Number(b.dataset.on)].on = b.checked; touch(); });
+        on('[data-limit]', 'oninput', b => { L.limits[b.dataset.limit] = Math.min(24, Math.max(1, Number(b.value) || 1)); touch(); });
+        on('[data-title]', 'oninput', b => {
+          const k = b.dataset.title; L.titles[k] = L.titles[k] || { ar: '', en: '' }; L.titles[k][b.dataset.l] = b.value;
+          if (!L.titles[k].ar && !L.titles[k].en) delete L.titles[k];
+          touch();
+        });
+        on('[data-seg]', 'onclick', (s, e) => {
+          const v = e.target.dataset.v; if (!v) return;
+          if (s.dataset.seg === 'brands') { if (v === 'manual' && !L.brands.pick.length) L.brands.pick = shownBrands().map(b => b.key); L.brands.mode = v; }
+          else { if (v === 'manual' && !L.categories.pick.length) L.categories.pick = shownCats().map(c => c.id); L.categories.mode = v; }
+          touch(); paint();
+        });
+        const bMax = el.querySelector('#bMax');
+        if (bMax) bMax.oninput = () => { L.brands.max = Math.min(30, Math.max(1, Number(bMax.value) || 1)); touch(); };
+        const bAdd = el.querySelector('#bAdd');
+        if (bAdd) bAdd.onchange = () => { if (bAdd.value) { L.brands.pick.push(bAdd.value); touch(); paint(); } };
+        on('[data-bmove]', 'onclick', b => { move(L.brands.pick, Number(b.dataset.bmove), Number(b.dataset.d)); touch(); paint(); });
+        on('[data-bdel]', 'onclick', b => { L.brands.pick = L.brands.pick.filter(k => k !== b.dataset.bdel); touch(); paint(); });
+        on('[data-bname]', 'oninput', b => {
+          const k = b.dataset.bname; L.brands.names[k] = L.brands.names[k] || { ar: '', en: '' }; L.brands.names[k][b.dataset.l] = b.value;
+          if (!L.brands.names[k].ar && !L.brands.names[k].en) delete L.brands.names[k];
+          touch();
+        });
+        on('[data-logo]', 'onclick', async b => {
+          const img = await pickImage(); if (!img) return;
+          b.disabled = true;
+          const x = await A.api('POST', 'shop/brand-logo', { key: b.dataset.logo, data: img.dataUrl });
+          if (A.report(x, t('تم رفع الشعار.', 'Logo uploaded.'))) { L.brands.logos[b.dataset.logo] = x.logo; paint(); } else b.disabled = false;
+        });
+        on('[data-unlogo]', 'onclick', async b => {
+          const x = await A.api('POST', 'shop/brand-logo', { key: b.dataset.unlogo, data: null });
+          if (A.report(x, t('تمت إزالة الشعار.', 'Logo removed.'))) { delete L.brands.logos[b.dataset.unlogo]; await reloadRails(); }
+        });
+        for (const key of ['offers', 'bestSellers']) {
+          on('[data-rmove-' + key + ']', 'onclick', b => {
+            const list = r.rails[key].products; move(list, Number(b.getAttribute('data-rmove-' + key)), Number(b.dataset.d));
+            L.order[key] = list.map(p => p.id); touch(); paint();
+          });
+          const box = el.querySelector('[data-results="' + key + '"]');
+          on('[data-search="' + key + '"]', 'oninput', A.debounce(async inp => {
+            const q = inp.value.trim();
+            if (q.length < 2) { box.innerHTML = ''; return; }
+            const x = await A.api('GET', 'store/products?per=10&view=on&q=' + encodeURIComponent(q));
+            const inRail = new Set(r.rails[key].products.map(p => p.id));
+            box.innerHTML = '<div class="lines" style="margin:0 0 10px">' + ((x.products || []).filter(p => !inRail.has(p.id)).map(p =>
+              '<div class="l"><img src="' + esc(p.image || '') + '" alt=""><div style="flex:1"><b class="small">' + esc(p.title) + '</b><div class="tiny muted">' + A.money(p.price) + '</div></div>' +
+              '<button class="btn btn--sm" data-radd="' + key + '" data-id="' + p.id + '">' + t('إضافة', 'Add') + '</button></div>').join('') ||
+              '<p class="small muted">' + t('لا نتائج.', 'No results.') + '</p>') + '</div>';
+            box.querySelectorAll('[data-radd]').forEach(btn => {
+              btn.onclick = async () => {
+                btn.disabled = true;
+                const y = await A.api('POST', 'shop/rail/' + key + '/add', { productId: btn.dataset.id });
+                if (A.report(y, t('أضيف فى إكويد.', 'Added in Ecwid.'))) await reloadRails(); else btn.disabled = false;
+              };
+            });
+          }, 350));
+        }
+        on('[data-rdel]', 'onclick', async b => {
+          if (!(await A.confirm(t('إخراج هذا المنتج من الشريط؟ سيُزال من القسم فى إكويد.', 'Take this product out of the rail? It is removed from the category in Ecwid.'), t('إخراج', 'Take out'), true))) return;
+          const x = await A.api('POST', 'shop/rail/' + b.dataset.rdel + '/remove', { productId: b.dataset.id });
+          if (A.report(x, t('أزيل فى إكويد.', 'Removed in Ecwid.'))) await reloadRails();
+        });
+        const cAdd = el.querySelector('#cAdd');
+        if (cAdd) cAdd.onchange = () => { if (cAdd.value) { L.categories.pick.push(cAdd.value); touch(); paint(); } };
+        on('[data-cmove]', 'onclick', b => { move(L.categories.pick, Number(b.dataset.cmove), Number(b.dataset.d)); touch(); paint(); });
+        on('[data-cdel]', 'onclick', b => { L.categories.pick = L.categories.pick.filter(id => id !== b.dataset.cdel); touch(); paint(); });
+        on('[data-cimg]', 'onclick', async b => {
+          const img = await pickImage(); if (!img) return;
+          b.disabled = true;
+          const x = await A.api('POST', 'shop/category-image/' + b.dataset.cimg, { data: img.dataUrl });
+          if (A.report(x, t('تم رفع الصورة إلى إكويد.', 'Picture uploaded to Ecwid.'))) await reloadRails(); else b.disabled = false;
+        });
+      }
+
+      paint();
     },
   });
 

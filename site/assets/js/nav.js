@@ -41,6 +41,29 @@
   if (window.skFeature.hidden(location.pathname)) { location.replace(P('index.html')); return; }
   const shown = href => !window.skFeature.hidden(href);
 
+  /* ---- clean addresses: no page path ends in ".html" ----
+     The server and vercel.json (cleanUrls) serve /shop for shop.html and
+     redirect old .html addresses. Page scripts still build "shop.html?cat=1"
+     links, so every link on the page is rewritten to its clean form, and the
+     addresses scripts push into the history are cleaned the same way; that is
+     the one place it can be done for every page at once. */
+  function cleanHref(h) {
+    const s = String(h == null ? '' : h);
+    const m = /^(\/?(?:\.\.?\/)*(?:[A-Za-z0-9_-]+\/)*)([A-Za-z0-9_-]+)\.html(?=$|[?#])(.*)$/.exec(s);
+    if (!m) return s;                                   // absolute URLs, tel:, #, assets/… stay as they are
+    return m[2] === 'index' ? (m[1] || './') + m[3] : m[1] + m[2] + m[3];
+  }
+  window.skCleanHref = cleanHref;
+  ['pushState', 'replaceState'].forEach(k => {
+    const orig = history[k].bind(history);
+    history[k] = (state, title, url) => orig(state, title, url == null ? url : cleanHref(url));
+  });
+  if (/\.html$/.test(location.pathname)) history.replaceState(history.state, '', cleanHref(location.pathname.split('/').pop()) + location.search + location.hash);
+  function cleanLinks(root) {
+    const links = root.matches && root.matches('a[href]') ? [root] : [...root.querySelectorAll('a[href]')];
+    links.forEach(a => { const h = a.getAttribute('href'), c = cleanHref(h); if (c !== h) a.setAttribute('href', c); });
+  }
+
   /* ---- site language: 'ar' (default) | 'en' — persisted, toggle in the strap.
      Pages read window.skLang.get() to localize their own content. ---- */
   const LANG_KEY = 'sadko-lang';
@@ -420,8 +443,11 @@
     ensureFooter();
     applySiteSettings();
     dropHiddenLinks(document.body);
-    new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) dropHiddenLinks(n); })))
-      .observe(document.body, { childList: true, subtree: true });
+    cleanLinks(document);
+    new MutationObserver(ms => ms.forEach(m => {
+      if (m.type === 'attributes') { if (m.target.tagName === 'A') cleanLinks(m.target); return; }
+      m.addedNodes.forEach(n => { if (n.nodeType === 1) { dropHiddenLinks(n); cleanLinks(n); } });
+    })).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['href'] });
   }
 
   /* Site-wide settings the owner edits in the admin portal (Site bar &

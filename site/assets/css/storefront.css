@@ -534,3 +534,8 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   :root { --sale: #ff8a80; --sale-bg: #3a1614; }
   .card__soldout { color: #ec8e9e; background: #331c21; border-color: #4a2a30; }
 }
+
+/* A category tile with its Ecwid picture (admin portal, Shop page screen):
+   the picture on top, name and count below. Tiles without one are unchanged. */
+.ctile--img { flex-wrap: wrap; align-content: flex-start; }
+.ctile__img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 10px; background: #fff; display: block; flex: 1 0 100%; }

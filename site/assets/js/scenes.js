@@ -12,7 +12,7 @@
 
   /* Where a point may send someone: a page of this site or a category page.
      Nothing absolute, no protocol, nothing that climbs out of the site. */
-  var HREF = /^(category\/\d{1,20}\.html|shop\.html(\?cat=\d{1,20})?|[a-z]+\.html)$/;
+  var HREF = /^(category\/\d{1,20}(\.html)?|shop(\.html)?(\?cat=\d{1,20})?|[a-z]+(\.html)?)$/;
   var frac = function (v) { var n = Number(v); return isFinite(n) && n >= 0 && n <= 1 ? n : null; };
   var pick = function (pair, en) {
     if (!pair || typeof pair !== 'object') return null;

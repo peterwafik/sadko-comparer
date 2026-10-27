@@ -199,6 +199,16 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
       return text ? JSON.parse(text) : null;
     },
     getCategory: id => call(`/categories/${encodeURIComponent(id)}`, { allow404: true }),
+    /* A category's picture, as raw bytes: the tile image on the shop page. */
+    async uploadCategoryImage(id, bytes, mime) {
+      if (!configured) { const e = new Error('ecwid-not-configured'); e.status = 0; throw e; }
+      const res = await doFetch(`${base}/categories/${encodeURIComponent(id)}/image`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': mime }, body: bytes,
+      });
+      const text = await res.text();
+      if (!res.ok) { const e = new Error(`ecwid-${res.status}: ${String(text).slice(0, 300)}`); e.status = res.status; throw e; }
+      return text ? JSON.parse(text) : null;
+    },
     createCategory: payload => call('/categories', { method: 'POST', body: payload }),
 
     /* One page of orders, newest first, for the orders desk. */

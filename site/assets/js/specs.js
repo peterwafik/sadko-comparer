@@ -74,12 +74,17 @@
     ['Home Elec', 'هوم اليك', ['هوم اليك', 'home elec']],
     ['General', 'جنرال', ['جنرال', 'general']],
   ];
+  /* Arabic letters that are spelled either way: Ecwid's registered "كريازي"
+     never matched the list's "كريازى", so Kiriazi showed as an unknown brand
+     with no logo. Both sides are folded before comparing. */
+  const foldAr = s => String(s).replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[أإآ]/g, 'ا');
   function brandOf(hay) {
+    const H = foldAr(hay);
     for (const [en, ar, keys] of BRANDS) {
       for (const k of keys) {
         const re = /[a-z]/i.test(k) ? new RegExp('(^|[^a-z])' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)', 'i')
-                                    : new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        if (re.test(hay)) return { en, ar };
+                                    : new RegExp(foldAr(k).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        if (re.test(H)) return { en, ar };
       }
     }
     return undefined;
@@ -91,7 +96,8 @@
      as unavailable. Known brands keep their bilingual names; any other registered
      brand is shown as typed, in both languages, rather than dropped. */
   function registeredBrand(v) {
-    const name = String(v == null ? '' : v).replace(/&nbsp;/g, ' ').replace(/s+/g, ' ').trim();
+    /* \s, not s: the bare "s" stripped the letter, so "Samsung" read "Sam ung". */
+    const name = String(v == null ? '' : v).replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
     if (!name) return undefined;
     return brandOf(norm(name)) || { en: name, ar: name };
   }

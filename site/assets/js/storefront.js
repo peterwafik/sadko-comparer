@@ -154,7 +154,10 @@
   }
 
   function categoryTile(c) {
-    return '<a class="ctile" href="' + esc(c.href) + '">' +
+    // The picture is the category's Ecwid image, set from the admin portal's
+    // Shop page screen. No image, no request: the tile stays text-only.
+    return '<a class="ctile' + (c.image ? ' ctile--img' : '') + '" href="' + esc(c.href) + '">' +
+      (c.image ? '<img class="ctile__img" src="' + esc(c.image) + '" alt="" loading="lazy" decoding="async">' : '') +
       '<span class="ctile__name">' + esc(c.name) + '</span>' +
       '<span class="ctile__count">' + esc(String(c.count)) + '</span></a>';
   }

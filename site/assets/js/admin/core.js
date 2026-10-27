@@ -214,12 +214,29 @@
   function page(key, def) { PAGES.push(Object.assign({ key }, def)); }
 
   let ME = null, BADGES = {};
+  /* Access, as the server decides it (engine/admin-perms.mjs): a page's
+     section is its `perm` ('any' for everyone, 'master' for the master
+     alone) or its own key. The server refuses anything this would hide. */
+  const sectionOfPage = p => p.perm || p.key;
+  function can(section, write) {
+    if (!ME) return false;
+    if (ME.role === 'master' || section === 'any') return true;
+    if (section === 'master') return false;
+    const lv = (ME.perms || {})[section];
+    return write ? lv === 'edit' : lv === 'view' || lv === 'edit';
+  }
+  const visible = () => PAGES.filter(p => can(sectionOfPage(p), false));
   function current() {
     const h = location.hash.replace(/^#\/?/, '');
     const key = h.split('?')[0] || 'dashboard';
-    return PAGES.find(p => p.key === key) ? key : 'dashboard';
+    return visible().find(p => p.key === key) ? key : 'dashboard';
   }
-  function shell() {
+  async function shell() {
+    /* Role and access come with "me"; a fresh sign-in has only the email. */
+    if (ME && !ME.role) {
+      const m = await api('GET', 'me');
+      if (m.ok) ME = { email: m.email, role: m.role, perms: m.perms || {} };
+    }
     const root = document.getElementById('root');
     root.innerHTML = '<div class="shell" id="shell"><aside class="side" id="side"></aside><main class="main" id="main"></main></div>';
     paintSide();
@@ -230,21 +247,49 @@
     const side = document.getElementById('side');
     if (!side) return;
     const on = current();
+    const pages = visible();
     side.innerHTML = '<a class="side__brand" href="#/dashboard"><img src="assets/img/sadko-logo.png" alt=""><div><b>' + t('إدارة صادكو', 'SADKO Admin') +
       '</b><span>' + t('بوابة الإدارة', 'Admin portal') + '</span></div></a>' +
       GROUPS.map(g => {
-        const items = PAGES.filter(p => p.group === g.key);
+        const items = pages.filter(p => p.group === g.key);
         if (!items.length) return '';
         return (g.ar ? '<div class="side__grp">' + esc(t(g.ar, g.en)) + (g.tag ? '<em>' + g.tag + '</em>' : '') + '</div>' : '') +
           items.map(p => '<a class="nav' + (p.key === on ? ' on' : '') + '" href="#/' + p.key + '">' + (ICON[p.icon] || '') +
             '<span>' + esc(t(p.label[0], p.label[1])) + '</span>' + (BADGES[p.key] ? '<span class="count">' + BADGES[p.key] + '</span>' : '') + '</a>').join('');
       }).join('') +
       '<div class="side__foot"><div class="muted tiny">' + t('مسجّل الدخول باسم', 'Signed in as') + '</div><div class="who">' + esc(ME ? ME.email : '') + '</div>' +
+      (ME && ME.role === 'master' ? '<div class="role-badge">' + t('المسؤول الرئيسى', 'Master admin') + '</div>' : '') +
       '<button id="langBtn">' + (EN() ? 'العربية' : 'English') + '</button> <button id="outBtn">' + t('تسجيل الخروج', 'Sign out') + '</button></div>';
     side.querySelector('#outBtn').onclick = async () => { await auth('POST', 'logout', {}); location.hash = ''; location.reload(); };
     side.querySelector('#langBtn').onclick = () => { setLang(EN() ? 'ar' : 'en'); paintSide(); route(); };
   }
   function setBadge(key, n) { BADGES[key] = n || 0; paintSide(); }
+
+  /* View-only pages: every control that changes something is disabled, and
+     stays disabled as the page redraws or opens a dialog. What lets an admin
+     LOOK (search, filters, tabs, paging, opening a row, closing a dialog) is
+     kept. The server refuses the change regardless; this just says so first. */
+  const KEEP = '#q, #status, #cat, #catSel, [data-search], #views button, .tabs button, [data-view], [data-scene], [data-pick], ' +
+               '[data-x], .pager button, #menuBtn, #langBtn, #outBtn, .modal__f .btn--ghost, [data-tab]';
+  let lockObserver = null;
+  function lockdown(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('button, input, select, textarea').forEach(el => {
+      if (el.disabled || el.matches(KEEP) || el.closest('.side')) return;
+      el.disabled = true;
+      el.title = t('عرض فقط', 'View only');
+    });
+  }
+  function setReadOnly(on) {
+    if (lockObserver) { lockObserver.disconnect(); lockObserver = null; }
+    if (!on) return;
+    lockdown(document.getElementById('main'));
+    lockObserver = new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => {
+      if (n.nodeType === 1) lockdown(n.closest('.modal-bg') || n.parentElement || n);
+    })));
+    lockObserver.observe(document.body, { childList: true, subtree: true });
+  }
+
   let routeSeq = 0;
   async function route() {
     const key = current();
@@ -253,14 +298,18 @@
     if (!main || !p) return;
     document.getElementById('shell').classList.remove('menu-open');
     paintSide();
+    setReadOnly(false);
     const seq = ++routeSeq;
+    const readOnly = !can(sectionOfPage(p), true);
     main.innerHTML = '<div class="top"><div><h1><button class="icon-btn menu-btn" id="menuBtn">' + ICON.menu + '</button>' +
-      esc(t(p.label[0], p.label[1])) + (p.source ? ' ' + srcTag(p.source) : '') + '</h1>' +
+      esc(t(p.label[0], p.label[1])) + (p.source ? ' ' + srcTag(p.source) : '') +
+      (readOnly ? ' <span class="chip chip--warn">' + t('عرض فقط', 'View only') + '</span>' : '') + '</h1>' +
       (p.sub ? '<p class="sub">' + esc(t(p.sub[0], p.sub[1])) + '</p>' : '') + '</div><div class="top__actions" id="topActions"></div></div><div id="pageBody">' + loading() + '</div>';
     main.querySelector('#menuBtn').onclick = () => document.getElementById('shell').classList.toggle('menu-open');
     const body = main.querySelector('#pageBody');
     try {
-      await p.render(body, { actions: main.querySelector('#topActions'), stale: () => seq !== routeSeq, query: new URLSearchParams(location.hash.split('?')[1] || '') });
+      await p.render(body, { actions: main.querySelector('#topActions'), stale: () => seq !== routeSeq, query: new URLSearchParams(location.hash.split('?')[1] || ''), readOnly });
+      if (readOnly && seq === routeSeq) setReadOnly(true);
     } catch (e) {
       if (seq === routeSeq) body.innerHTML = '<div class="note note--bad">' + esc(t('تعذّر تحميل هذه الصفحة: ', 'This page could not load: ') + (e && e.message || e)) + '</div>';
       console.error(e);
@@ -287,6 +336,6 @@
 
   window.ADM = { t, EN, setLang, applyLang, esc, num, money, date, api, auth, toast, report, modal, confirm: confirmBox,
     field, input, textarea, select, sw, formData, pager, readImage, debounce, loading, srcTag, ICON, page, setBadge,
-    boot, signedOut, shell: () => shell(), me: () => ME, setMe: m => { ME = m; }, rerender: () => route() };
+    boot, signedOut, shell: () => shell(), me: () => ME, can, setMe: m => { ME = m; }, rerender: () => route() };
   document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 0));
 })();

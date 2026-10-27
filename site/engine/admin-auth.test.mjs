@@ -161,7 +161,7 @@ test('the list never carries secrets; removing an admin ends their sessions', as
   const { auth, token } = await enrolled();
   const list = await auth.list();
   assert.equal(list.length, 1);
-  assert.deepEqual(Object.keys(list[0]).sort(), ['createdAt', 'createdBy', 'email', 'lastLoginAt', 'locked', 'setupDone'].sort());
+  assert.deepEqual(Object.keys(list[0]).sort(), ['createdAt', 'createdBy', 'email', 'lastLoginAt', 'locked', 'perms', 'role', 'setupDone'].sort());
   await auth.remove('peter.w.gamil@gmail.com');
   assert.equal(await auth.session(token), null);
   assert.equal((await auth.list()).length, 0);
@@ -170,4 +170,54 @@ test('the list never carries secrets; removing an admin ends their sessions', as
 test('without a long enough secret the store refuses to open', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'adm-'));
   await assert.rejects(openAdminAuth(path.join(dir, 'a.db'), { secret: 'short' }), /SADKO_ADMIN_SECRET/);
+});
+
+/* ---- the master account and per-admin access ---- */
+import { FULL } from './admin-perms.mjs';
+
+test('an admin with no saved access keeps full access (nobody loses access on upgrade)', async () => {
+  const { auth, token } = await enrolled();
+  const s = await auth.session(token);
+  assert.equal(s.role, 'admin');
+  assert.deepEqual(s.perms, FULL);
+});
+
+test('access is set per admin, and a re-invite keeps it', async () => {
+  const { auth } = await fresh();
+  await auth.invite('a@sadko.test', 'boss', { perms: { orders: 'view' } });
+  assert.deepEqual((await auth.list()).find(x => x.email === 'a@sadko.test').perms, { orders: 'view' });
+  await auth.setPerms('a@sadko.test', { orders: 'edit', coupons: 'view', bogus: 'edit' });
+  await auth.invite('a@sadko.test', 'boss');
+  assert.deepEqual((await auth.list()).find(x => x.email === 'a@sadko.test').perms, { orders: 'edit', coupons: 'view' });
+});
+
+test('there is one master; making another demotes the first', async () => {
+  const { auth } = await fresh();
+  await auth.invite('a@sadko.test', 'cli'); await auth.invite('b@sadko.test', 'cli');
+  assert.equal((await auth.setMaster('a@sadko.test')).ok, true);
+  await auth.setMaster('b@sadko.test');
+  const roles = Object.fromEntries((await auth.list()).map(x => [x.email, x.role]));
+  assert.deepEqual(roles, { 'a@sadko.test': 'admin', 'b@sadko.test': 'master' });
+  assert.equal((await auth.setMaster('nobody@x.y')).error, 'not-found');
+});
+
+test('the master cannot be removed, restricted or re-invited from the portal', async () => {
+  const { auth } = await enrolled();
+  await auth.setMaster('peter.w.gamil@gmail.com');
+  assert.equal((await auth.remove('peter.w.gamil@gmail.com')).error, 'master');
+  assert.equal((await auth.setPerms('peter.w.gamil@gmail.com', {})).error, 'master');
+  assert.equal((await auth.invite('peter.w.gamil@gmail.com', 'someone@x.y')).error, 'master');
+  assert.equal((await auth.list()).length, 1, 'still there');
+  /* the operator (SADKO_ADMIN_SECRET) can still reset it: the way back in */
+  const r = await auth.invite('peter.w.gamil@gmail.com', 'operator');
+  assert.ok(r.tempPassword);
+  assert.equal((await auth.list())[0].role, 'master', 'a reset keeps the role');
+});
+
+test('a session carries the role and the access', async () => {
+  const { auth, token } = await enrolled();
+  await auth.setPerms('peter.w.gamil@gmail.com', { products: 'view' });
+  assert.deepEqual((await auth.session(token)).perms, { products: 'view' });
+  await auth.setMaster('peter.w.gamil@gmail.com');
+  assert.equal((await auth.session(token)).role, 'master');
 });

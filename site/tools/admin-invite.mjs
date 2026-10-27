@@ -10,6 +10,12 @@
    hours; the first sign-in must replace it and enrol an authenticator app.
    Running this again for the same email resets that admin completely.
 
+     node --env-file=.admin.prod.env tools/admin-invite.mjs --url https://sadko-home.vercel.app --master owner@example.com
+
+   --master makes an EXISTING admin the master account instead (no password
+   reset): the one admin no one else can remove or restrict, and the only one
+   who manages the others. There is one master; this moves the role.
+
    Authorised by SADKO_ADMIN_SECRET, the same value the server has. Nothing is
    written to disk here.
    ========================================================================== */
@@ -18,11 +24,14 @@ const args = process.argv.slice(2);
 let url = 'http://localhost:8082';
 const i = args.indexOf('--url');
 if (i >= 0) { url = args[i + 1]; args.splice(i, 2); }
+const m = args.indexOf('--master');
+const master = m >= 0;
+if (master) args.splice(m, 1);
 const email = args[0];
 const secret = process.env.SADKO_ADMIN_SECRET || '';
 
 if (!email || !/@/.test(email)) {
-  console.error('usage: node --env-file=.admin.env tools/admin-invite.mjs [--url https://site] someone@example.com');
+  console.error('usage: node --env-file=.admin.env tools/admin-invite.mjs [--url https://site] [--master] someone@example.com');
   process.exit(2);
 }
 if (secret.length < 24) {
@@ -30,7 +39,7 @@ if (secret.length < 24) {
   process.exit(2);
 }
 
-const res = await fetch(url.replace(/\/$/, '') + '/api/admin-auth/invite?lang=en', {
+const res = await fetch(url.replace(/\/$/, '') + '/api/admin-auth/' + (master ? 'master' : 'invite') + '?lang=en', {
   method: 'POST',
   headers: { 'content-type': 'application/json', authorization: 'Bearer ' + secret },
   body: JSON.stringify({ email }),
@@ -40,6 +49,10 @@ const body = await res.json().catch(() => ({}));
 if (!res.ok || !body.ok) {
   console.error(`Invite failed (${res.status}): ${body.message || body.error || 'unknown error'}`);
   process.exit(1);
+}
+if (master) {
+  console.log('\n  ' + body.email + ' is now the master admin.\n');
+  process.exit(0);
 }
 console.log('');
 console.log('  Admin:              ' + body.email);

@@ -8,37 +8,39 @@
 
   /* =================== dashboard =================== */
   A.page('dashboard', {
-    group: 'top', icon: 'dash', label: ['لوحة المتابعة', 'Dashboard'],
+    group: 'top', icon: 'dash', label: ['لوحة المتابعة', 'Dashboard'], perm: 'any',
     sub: ['نظرة سريعة على المتجر والموقع.', 'The shop and the website at a glance.'],
     async render(el, ctx) {
       const [o, e] = await Promise.all([A.api('GET', 'overview'), A.api('GET', 'ecwid')]);
       if (ctx.stale()) return;
       if (!o.ok) { el.innerHTML = '<div class="note note--bad">' + esc(o.message || 'error') + '</div>'; return; }
-      A.setBadge('orders', o.orders.awaiting || 0);
+      /* Each part is null when this admin may not view its section. */
+      if (o.orders) A.setBadge('orders', o.orders.awaiting || 0);
       const tile = (href, k, v, s, cls) => '<a class="tile ' + (cls || '') + '" href="' + href + '"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</a>';
       const f = o.funnel || [];
       const stage = k => { const r = (f || []).find(x => x.stage === k); return r ? r.people : 0; };
       el.innerHTML =
         (o.ecwidConnected ? '' : '<div class="note note--bad" style="margin-bottom:14px">' + t('إكويد غير متصل، فصفحات المتجر لن تعمل.', 'Ecwid is not connected, so the store pages will not work.') + '</div>') +
-        (o.orders.parked ? '<div class="note note--bad" style="margin-bottom:14px"><b>' + A.num(o.orders.parked) + '</b> ' +
+        (o.orders && o.orders.parked ? '<div class="note note--bad" style="margin-bottom:14px"><b>' + A.num(o.orders.parked) + '</b> ' +
           t('طلب لم يصل إلى إكويد بعد عدة محاولات. ', 'orders could not reach Ecwid after several tries. ') + '<a href="#/orders">' + t('افتح الطلبات', 'Open orders') + '</a></div>' : '') +
         '<div class="grid grid--tiles">' +
-          tile('#/orders', t('طلبات بانتظار التجهيز', 'Orders awaiting processing'), A.num(o.orders.awaiting), t('من إجمالى ', 'of ') + A.num(o.orders.total), o.orders.awaiting ? 'tile--warn' : '') +
-          tile('#/orders', t('لم تصل إكويد بعد', 'Not in Ecwid yet'), A.num(o.orders.pending + o.orders.parked), t('تُعاد المحاولة تلقائياً', 'retried automatically'), o.orders.parked ? 'tile--bad' : '') +
-          tile('#/products', t('منتجات معروضة', 'Products on sale'), A.num(o.products.on), A.num(o.products.off) + t(' مخفى · ', ' hidden · ') + A.num(o.products.out) + t(' نفد', ' out of stock')) +
-          tile('#/coupons', t('كوبونات مفعّلة', 'Active coupons'), o.coupons ? A.num(o.coupons.active) : '-', o.coupons ? t('من ', 'of ') + A.num(o.coupons.total) : '') +
-          tile('#/customers', t('حسابات على الموقع', 'Website accounts'), A.num((o.accounts && (o.accounts.users ?? o.accounts.accounts)) || 0), '') +
-          tile('#/products', t('زيارات ← سلة ← شراء', 'Views → cart → purchase'), A.num(stage('view')) + ' → ' + A.num(stage('add_to_cart')) + ' → ' + A.num(stage('purchase')), t('أشخاص مختلفون', 'unique people')) +
+          (o.orders ? tile('#/orders', t('طلبات بانتظار التجهيز', 'Orders awaiting processing'), A.num(o.orders.awaiting), t('من إجمالى ', 'of ') + A.num(o.orders.total), o.orders.awaiting ? 'tile--warn' : '') +
+            tile('#/orders', t('لم تصل إكويد بعد', 'Not in Ecwid yet'), A.num(o.orders.pending + o.orders.parked), t('تُعاد المحاولة تلقائياً', 'retried automatically'), o.orders.parked ? 'tile--bad' : '') : '') +
+          (o.products ? tile('#/products', t('منتجات معروضة', 'Products on sale'), A.num(o.products.on), A.num(o.products.off) + t(' مخفى · ', ' hidden · ') + A.num(o.products.out) + t(' نفد', ' out of stock')) : '') +
+          (o.coupons ? tile('#/coupons', t('كوبونات مفعّلة', 'Active coupons'), A.num(o.coupons.active), t('من ', 'of ') + A.num(o.coupons.total)) : '') +
+          (o.accounts ? tile('#/customers', t('حسابات على الموقع', 'Website accounts'), A.num(o.accounts.users ?? o.accounts.accounts ?? 0), '') : '') +
+          (o.funnel ? tile('#/products', t('زيارات ← سلة ← شراء', 'Views → cart → purchase'), A.num(stage('view')) + ' → ' + A.num(stage('add_to_cart')) + ' → ' + A.num(stage('purchase')), t('أشخاص مختلفون', 'unique people')) : '') +
         '</div>' +
         (o.leftovers ? '<div class="note note--warn" style="margin-top:14px">' + t('توجد تعديلات قديمة محفوظة على الموقع بدلاً من إكويد. ', 'There are old edits saved on the website instead of Ecwid. ') +
           '<a href="#/products">' + t('راجعها', 'Review them') + '</a></div>' : '') +
         '<div class="grid grid--2" style="margin-top:14px">' +
           '<div class="card"><h2><span class="lft">' + t('الاتصال بإكويد', 'Ecwid connection') + ' ' + A.srcTag('ecwid') + '</span>' +
-            '<button class="btn btn--ghost btn--sm" id="syncBtn">' + t('مزامنة الآن', 'Sync now') + '</button></h2>' + ecwidBox(e) + '</div>' +
-          '<div class="card"><h2>' + t('آخر النشاط', 'Recent activity') + '</h2>' + activity(o.audit || []) +
-            '<a class="btn btn--quiet btn--sm" href="#/activity">' + t('كل النشاط', 'All activity') + '</a></div>' +
+            (A.can('products', true) ? '<button class="btn btn--ghost btn--sm" id="syncBtn">' + t('مزامنة الآن', 'Sync now') + '</button>' : '') + '</h2>' + ecwidBox(e) + '</div>' +
+          (o.audit ? '<div class="card"><h2>' + t('آخر النشاط', 'Recent activity') + '</h2>' + activity(o.audit) +
+            '<a class="btn btn--quiet btn--sm" href="#/activity">' + t('كل النشاط', 'All activity') + '</a></div>' : '') +
         '</div>';
-      el.querySelector('#syncBtn').onclick = async ev => {
+      const syncBtn = el.querySelector('#syncBtn');
+      if (syncBtn) syncBtn.onclick = async ev => {
         ev.target.disabled = true; ev.target.innerHTML = '<span class="spin spin--sm"></span>';
         const r = await A.api('POST', 'ecwid/sync', {});
         A.report(r, t('تمت المزامنة.', 'Synced.'));
@@ -72,7 +74,8 @@
     'ecwid.payment.edit': ['طريقة دفع', 'Payment method'], 'ecwid.delivery.toggle': ['طريقة توصيل', 'Delivery method'],
     'ecwid.ad.create': ['إعلان جديد', 'Ad added'], 'ecwid.ad.edit': ['تعديل إعلان', 'Ad edited'], 'ecwid.ad.move': ['ترتيب إعلان', 'Ad moved'],
     'ecwid.ad.delete': ['حذف إعلان', 'Ad deleted'], 'content.save': ['حفظ محتوى', 'Content saved'], 'setting.set': ['إعداد', 'Setting'],
-    'admin.invite': ['دعوة مسؤول', 'Admin invited'], 'admin.remove': ['حذف مسؤول', 'Admin removed'], 'ecwid.sync': ['مزامنة', 'Sync'],
+    'admin.invite': ['دعوة مسؤول', 'Admin invited'], 'admin.remove': ['حذف مسؤول', 'Admin removed'], 'admin.perms': ['صلاحيات مسؤول', 'Admin access changed'], 'admin.master': ['تعيين المسؤول الرئيسى', 'Master admin set'],
+    'ecwid.rail.add': ['إضافة لشريط', 'Added to a rail'], 'ecwid.rail.remove': ['إخراج من شريط', 'Removed from a rail'], 'ecwid.category.image': ['صورة فئة', 'Category picture'], 'ecwid.sync': ['مزامنة', 'Sync'],
     'leftovers.discard': ['حذف تعديلات قديمة', 'Old edits discarded'], 'ecwid.order.retry': ['إعادة إرسال طلب', 'Order resent'],
   };
   const actionName = a => (ACTIONS[a] ? t(ACTIONS[a][0], ACTIONS[a][1]) : a);

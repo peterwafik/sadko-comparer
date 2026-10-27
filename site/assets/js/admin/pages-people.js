@@ -52,26 +52,89 @@
         : '<p class="muted">' + t('لا طلبات.', 'No orders.') + '</p>');
   }
 
-  /* =================== admins =================== */
+  /* =================== admins (the master's alone) ===================
+     The master account cannot be removed, restricted or re-invited here; the
+     server refuses it too. Each other admin gets, per section, no access,
+     view only, or edit. */
+  const SECTION_LABELS = {
+    scenes: ['مشاهد الصفحة الرئيسية', 'Home scenes'], ads: ['الإعلانات', 'Ads'], shop: ['صفحة المتجر', 'Shop page'],
+    guides: ['دليلك للاختيار', 'Buying guides'], finder: ['أسئلة مساعد الاختيار', 'Finder questions'], site: ['شريط الموقع والخط الساخن', 'Site bar & hotline'],
+    orders: ['الطلبات', 'Orders'], products: ['المنتجات', 'Products'], coupons: ['الكوبونات', 'Coupons'], delivery: ['رسوم التوصيل', 'Delivery fees'],
+    payments: ['طرق الدفع', 'Payment methods'], customers: ['العملاء', 'Customers'], activity: ['سجل النشاط', 'Activity log'],
+  };
+  const LEVEL_NAMES = { none: ['لا يرى', 'No access'], view: ['عرض فقط', 'View only'], edit: ['عرض وتعديل', 'View & edit'] };
+  function accessSummary(perms, sections) {
+    const n = lv => sections.filter(s => (perms[s] || 'none') === lv).length;
+    if (n('edit') === sections.length) return '<span class="chip chip--ok">' + t('كل الصلاحيات', 'Full access') + '</span>';
+    if (n('none') === sections.length) return '<span class="chip chip--bad">' + t('بدون صلاحيات', 'No access') + '</span>';
+    return '<span class="chip chip--teal">' + A.num(n('edit')) + t(' تعديل', ' edit') + '</span> <span class="chip">' + A.num(n('view')) + t(' عرض', ' view') + '</span>';
+  }
+  /* The access grid: one row per section, three choices, plus quick presets. */
+  function accessGrid(perms, sections) {
+    return '<div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-preset="edit">' + t('الكل: تعديل', 'All: edit') + '</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-preset="view">' + t('الكل: عرض فقط', 'All: view only') + '</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-preset="none">' + t('الكل: لا يرى', 'All: no access') + '</button></div>' +
+      '<div class="tbl-wrap"><table class="tbl"><tbody>' + sections.map(s => '<tr><td><b>' + esc(t(...(SECTION_LABELS[s] || [s, s]))) + '</b></td>' +
+        ['none', 'view', 'edit'].map(lv => '<td style="white-space:nowrap"><label class="check" style="font-weight:600"><input type="radio" name="p_' + s + '" value="' + lv + '"' +
+          ((perms[s] || 'none') === lv ? ' checked' : '') + '> ' + esc(t(...LEVEL_NAMES[lv])) + '</label></td>').join('') + '</tr>').join('') +
+      '</tbody></table></div>';
+  }
+  function readGrid(box, sections) {
+    const out = {};
+    sections.forEach(s => { const v = (box.querySelector('input[name="p_' + s + '"]:checked') || {}).value; if (v === 'view' || v === 'edit') out[s] = v; });
+    return out;
+  }
+  function wirePresets(box, sections) {
+    box.querySelectorAll('[data-preset]').forEach(b => {
+      b.onclick = () => sections.forEach(s => { const r = box.querySelector('input[name="p_' + s + '"][value="' + b.dataset.preset + '"]'); if (r) r.checked = true; });
+    });
+  }
+
   A.page('admins', {
-    group: 'people', icon: 'shield', label: ['المسؤولون', 'Admins'], source: 'site',
-    sub: ['من يستطيع دخول هذه البوابة. كل مسؤول يدخل بكلمة مرور وتطبيق مصادقة.', 'Who can sign in here. Every admin uses a password and an authenticator app.'],
+    group: 'people', icon: 'shield', label: ['المسؤولون', 'Admins'], source: 'site', perm: 'master',
+    sub: ['أنت المسؤول الرئيسى: تدعو المسؤولين، وتحدد ما يراه ويعدله كل منهم، وتحذفهم. لا يستطيع أحد تعديل حسابك.',
+          'You are the master admin: you invite admins, decide what each can see and change, and remove them. No one can change your account.'],
     async render(el, ctx) {
       const add = document.createElement('button');
       add.className = 'btn'; add.textContent = '+ ' + t('دعوة مسؤول', 'Invite an admin');
-      add.onclick = () => invite('');
       ctx.actions.append(add);
       const r = await A.api('GET', 'admins');
       if (ctx.stale()) return;
-      el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + t('البريد', 'Email') + '</th><th>' + t('الحالة', 'Status') + '</th><th>' + t('آخر دخول', 'Last sign-in') + '</th><th>' +
-        t('دعاه', 'Invited by') + '</th><th></th></tr></thead><tbody>' +
-        r.admins.map(a => '<tr><td class="ltr"><b>' + esc(a.email) + '</b>' + (a.email === r.me ? ' <span class="chip chip--teal">' + t('أنت', 'You') + '</span>' : '') + '</td>' +
-          '<td>' + (a.locked ? '<span class="chip chip--bad">' + t('موقوف مؤقتاً', 'Locked') + '</span>' : a.setupDone ? '<span class="chip chip--ok">' + t('مفعّل', 'Active') + '</span>' : '<span class="chip chip--warn">' + t('لم يُكمل الإعداد', 'Setup pending') + '</span>') + '</td>' +
-          '<td class="small">' + esc(A.date(a.lastLoginAt, true)) + '</td><td class="small ltr">' + esc(a.createdBy || '-') + '</td>' +
-          '<td style="white-space:nowrap">' + (a.email === r.me ? '' : '<button class="btn btn--ghost btn--sm" data-reset="' + esc(a.email) + '">' + t('إعادة دعوة', 'Re-invite') + '</button> ' +
-            '<button class="btn btn--ghost btn--bad btn--sm" data-del="' + esc(a.email) + '">' + I.trash + '</button>') + '</td></tr>').join('') + '</tbody></table></div>' +
-        '<p class="small muted" style="margin-top:10px">' + t('إعادة الدعوة تصنع كلمة مرور مؤقتة جديدة وتلغى تطبيق المصادقة القديم، لمن نسى كلمته أو فقد هاتفه.', 'Re-inviting makes a new temporary password and clears the old authenticator, for anyone who forgot their password or lost their phone.') + '</p>';
-      el.querySelectorAll('[data-reset]').forEach(b => { b.onclick = () => invite(b.dataset.reset); });
+      if (!r.ok) { el.innerHTML = '<div class="note note--bad">' + esc(r.message || '') + '</div>'; return; }
+      const sections = r.sections;
+      add.onclick = () => invite('', sections);
+      el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + t('البريد', 'Email') + '</th><th>' + t('الدور', 'Role') + '</th><th>' +
+        t('الصلاحيات', 'Access') + '</th><th>' + t('الحالة', 'Status') + '</th><th>' + t('آخر دخول', 'Last sign-in') + '</th><th></th></tr></thead><tbody>' +
+        r.admins.map(a => {
+          const master = a.role === 'master';
+          return '<tr><td class="ltr"><b>' + esc(a.email) + '</b>' + (a.email === r.me ? ' <span class="chip chip--teal">' + t('أنت', 'You') + '</span>' : '') + '</td>' +
+            '<td>' + (master ? '<span class="chip chip--blue">' + t('المسؤول الرئيسى', 'Master') + '</span>' : '<span class="chip">' + t('مسؤول', 'Admin') + '</span>') + '</td>' +
+            '<td>' + (master ? '<span class="chip chip--ok">' + t('كل شىء', 'Everything') + '</span>' : accessSummary(a.perms, sections)) + '</td>' +
+            '<td>' + (a.locked ? '<span class="chip chip--bad">' + t('موقوف مؤقتاً', 'Locked') + '</span>' : a.setupDone ? '<span class="chip chip--ok">' + t('مفعّل', 'Active') + '</span>' : '<span class="chip chip--warn">' + t('لم يُكمل الإعداد', 'Setup pending') + '</span>') + '</td>' +
+            '<td class="small">' + esc(A.date(a.lastLoginAt, true)) + '</td>' +
+            '<td style="white-space:nowrap">' + (master ? '<span class="small muted">' + t('محمى', 'Protected') + '</span>' :
+              '<button class="btn btn--ghost btn--sm" data-access="' + esc(a.email) + '">' + I.shield + t('الصلاحيات', 'Access') + '</button> ' +
+              '<button class="btn btn--ghost btn--sm" data-reset="' + esc(a.email) + '">' + t('إعادة دعوة', 'Re-invite') + '</button> ' +
+              '<button class="btn btn--ghost btn--bad btn--sm" data-del="' + esc(a.email) + '" title="' + t('حذف', 'Remove') + '">' + I.trash + '</button>') + '</td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<p class="small muted" style="margin-top:10px">' + t('إعادة الدعوة تصنع كلمة مرور مؤقتة جديدة وتلغى تطبيق المصادقة القديم، وتحتفظ بالصلاحيات. «عرض فقط» يعنى أن المسؤول يرى القسم ولا يغير فيه شيئاً.',
+          'Re-inviting makes a new temporary password and clears the old authenticator, keeping the access. "View only" means the admin sees the section but cannot change anything in it.') + '</p>';
+      el.querySelectorAll('[data-access]').forEach(b => {
+        b.onclick = () => {
+          const a = r.admins.find(x => x.email === b.dataset.access);
+          const m = A.modal({
+            title: t('صلاحيات ', 'Access for ') + a.email, wide: true, body: accessGrid(a.perms, sections),
+            actions: [{ label: t('إلغاء', 'Cancel'), kind: 'btn--ghost' }, { label: t('حفظ', 'Save'), run: async box => {
+              const x = await A.api('PUT', 'admins/' + encodeURIComponent(a.email) + '/perms', { perms: readGrid(box, sections) });
+              if (!A.report(x, t('تم حفظ الصلاحيات. تسرى على طلبه التالى.', 'Access saved. It applies from their next action.'))) return false;
+              A.rerender();
+            } }],
+          });
+          wirePresets(m.el, sections);
+        };
+      });
+      el.querySelectorAll('[data-reset]').forEach(b => { b.onclick = () => invite(b.dataset.reset, sections); });
       el.querySelectorAll('[data-del]').forEach(b => {
         b.onclick = async () => {
           if (!(await A.confirm(t('حذف هذا المسؤول؟ لن يستطيع الدخول بعد ذلك.', 'Remove this admin? They will no longer be able to sign in.'), t('حذف', 'Remove'), true))) return;
@@ -80,13 +143,18 @@
       });
     },
   });
-  function invite(email) {
-    A.modal({
-      title: email ? t('إعادة دعوة', 'Re-invite') : t('دعوة مسؤول', 'Invite an admin'),
+  function invite(email, sections) {
+    const fresh = !email;
+    const m = A.modal({
+      title: fresh ? t('دعوة مسؤول', 'Invite an admin') : t('إعادة دعوة', 'Re-invite'), wide: fresh,
       body: A.field(t('البريد الإلكترونى', 'Email'), A.input('email', email, 'type="email" dir="ltr"' + (email ? ' readonly' : ''))) +
+        (fresh ? '<h3 style="font-size:14px;margin:12px 0 8px">' + t('ما الذى يستطيع رؤيته وتعديله؟', 'What can they see and change?') + '</h3>' +
+          accessGrid(Object.fromEntries(sections.map(s => [s, 'view'])), sections) : '') +
         '<p class="small muted">' + t('ستظهر كلمة مرور مؤقتة مرة واحدة فقط. أرسلها له بطريقة آمنة. صالحة ٤٨ ساعة.', 'A temporary password is shown once only. Send it to them safely. It lasts 48 hours.') + '</p>',
       actions: [{ label: t('إلغاء', 'Cancel'), kind: 'btn--ghost' }, { label: t('إنشاء كلمة المرور', 'Create the password'), run: async b => {
-        const r = await A.auth('POST', 'invite', { email: A.formData(b).email });
+        const body = { email: A.formData(b).email };
+        if (fresh) body.perms = readGrid(b, sections);
+        const r = await A.auth('POST', 'invite', body);
         if (!A.report(r)) return false;
         A.modal({
           title: t('كلمة المرور المؤقتة', 'Temporary password'),
@@ -98,6 +166,7 @@
         });
       } }],
     });
+    if (fresh) wirePresets(m.el, sections);
   }
 
   /* =================== activity =================== */

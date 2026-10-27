@@ -244,3 +244,6 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   .icon-btn.menu-btn { display: inline-grid; }
   .main { padding-top: 14px; }
 }
+
+/* the master admin, in the sidebar */
+.role-badge { display: inline-block; margin: 6px 0 2px; font-size: 11px; font-weight: 800; padding: 1px 9px; border-radius: 999px; background: #2bb3a3; color: #0b2a2e; }

@@ -87,6 +87,7 @@ import { mkdir } from 'node:fs/promises';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import QRCode from 'qrcode';
 import { openAdminAuth } from './engine/admin-auth.mjs';
+import { SECTIONS, sectionOf, allowed } from './engine/admin-perms.mjs';
 import { cleanLayout, defaultLayout, pinOrder, publicLayout } from './engine/shop-layout.mjs';
 import { createRequire } from 'node:module';
 import { productPatch, couponPayload, adDescription, adSku, adName, imageSize, shapeProblem, AD_SHAPES,
@@ -3236,13 +3237,26 @@ export async function handle(req, res) {
        with SADKO_ADMIN_SECRET (tools/admin-invite.mjs), which is how the
        FIRST admin exists. The temporary password is in this response only. */
     if (step === 'invite') {
+      /* The operator (SADKO_ADMIN_SECRET), or the MASTER admin. No other
+         admin may invite, so no one can hand out more access than they have. */
       const s = await adminSession(req);
-      const by = s && s.stage === 'full' ? s.email : (bearerIsAdminSecret(req) ? 'operator' : null);
-      if (!by) return json(403, { error: 'forbidden' });
-      const r = await A.invite(b.email, by);
-      if (r.error) return json(400, { error: r.error, message: lang === 'en' ? 'Enter a valid email.' : 'اكتب بريداً صحيحاً.' });
+      const by = bearerIsAdminSecret(req) ? 'operator' : (s && s.stage === 'full' && s.role === 'master' ? s.email : null);
+      if (!by) return json(403, { error: 'forbidden', message: lang === 'en' ? 'Only the master admin can invite.' : 'المسؤول الرئيسى فقط يمكنه الدعوة.' });
+      const r = await A.invite(b.email, by, { perms: b.perms || null });
+      if (r.error) return json(400, { error: r.error, message: r.error === 'master'
+        ? (lang === 'en' ? 'The master account cannot be re-invited from here.' : 'لا يمكن إعادة دعوة الحساب الرئيسى من هنا.')
+        : (lang === 'en' ? 'Enter a valid email.' : 'اكتب بريداً صحيحاً.') });
       try { const c = catalogAdmin(); if (c) await c.log(by, 'admin.invite', r.email, null); } catch (e) {}
       return json(200, { ok: true, email: r.email, tempPassword: r.tempPassword, expiresAt: r.expiresAt });
+    }
+    /* Make an existing admin the MASTER (the one account no one else can
+       remove or restrict). Operator only: tools/admin-invite.mjs --master. */
+    if (step === 'master') {
+      if (!bearerIsAdminSecret(req)) return json(403, { error: 'forbidden' });
+      const r = await A.setMaster(b.email);
+      if (r.error) return json(404, { error: r.error, message: 'No admin with that email. Invite them first.' });
+      try { const c = catalogAdmin(); if (c) await c.log('operator', 'admin.master', String(b.email).toLowerCase(), null); } catch (e) {}
+      return json(200, { ok: true, email: String(b.email).trim().toLowerCase(), role: 'master' });
     }
     if (step === 'login') {
       const r = await A.login(b.email, b.password);
@@ -3286,7 +3300,15 @@ export async function handle(req, res) {
        already, and a form or image cannot send a custom header. */
     if (req.method !== 'GET' && req.method !== 'HEAD' && req.headers['x-sadko-admin'] !== '1')
       return json(403, { error: 'bad-origin' });
-    const me = { email: sess.email, name: sess.email };
+    /* Per-section access (engine/admin-perms.mjs): view to read, edit to
+       change; managing admins is the master's alone. Checked here for every
+       route, so a section hidden in the portal cannot be reached directly. */
+    const section = sectionOf(u.pathname.slice('/api/admin/'.length), req.method);
+    if (!allowed(sess.role, sess.perms, section, req.method !== 'GET' && req.method !== 'HEAD'))
+      return json(403, { error: 'no-access', section, message: lang === 'en'
+        ? 'Your account does not have access to this. Ask the master admin.'
+        : 'حسابك ليس له صلاحية لهذا. اطلب من المسؤول الرئيسى.' });
+    const me = { email: sess.email, name: sess.email, role: sess.role, perms: sess.perms };
     const actor = me.email;
 
     try {
@@ -3295,7 +3317,8 @@ export async function handle(req, res) {
 
       /* who am I */
       if (rest === 'me' && req.method === 'GET')
-        return json(200, { admin: true, email: me.email, ecwid: !!(ecwidApi() && ecwidApi().configured), storeId: ECWID_STORE_ID });
+        return json(200, { admin: true, email: me.email, role: me.role, perms: me.role === 'master' ? null : me.perms,
+          sections: SECTIONS, ecwid: !!(ecwidApi() && ecwidApi().configured), storeId: ECWID_STORE_ID });
 
       /* dashboard overview */
       /* Delivery classes, for the owner to review: how many products fall in
@@ -3332,18 +3355,21 @@ export async function handle(req, res) {
           safe(cadm.leftovers()),
         ]);
         const an = analytics();
+        /* The dashboard is open to every admin, so each part is included only
+           for an admin who may view its section. */
+        const can = s => allowed(me.role, me.perms, s, false);
         return json(200, {
           ecwidConnected: !!(api && api.configured),
-          products: { total: products.length, on: products.filter(p => p.enabled !== false).length,
+          products: can('products') ? { total: products.length, on: products.filter(p => p.enabled !== false).length,
                       off: products.filter(p => p.enabled === false).length,
-                      out: products.filter(p => p.stockTracked && Number(p.quantity) <= 0).length },
-          orders: { total: allOrders ? allOrders.total : null, awaiting: awaiting ? awaiting.total : null,
-                    pending: st ? (await st.pendingPushes()).length : 0, parked: st ? (await st.failedPushes()).length : 0 },
-          coupons: coupons ? { total: coupons.length, active: coupons.filter(c => c.status === 'ACTIVE').length } : null,
-          accounts: await db.adminOverview(),
-          funnel: an ? await an.funnel() : null,
-          leftovers: leftovers ? leftovers.overrides.length + leftovers.custom.length + leftovers.hidden.length + (leftovers.promos ? 1 : 0) : 0,
-          audit: await cadm.audit(10),
+                      out: products.filter(p => p.stockTracked && Number(p.quantity) <= 0).length } : null,
+          orders: can('orders') ? { total: allOrders ? allOrders.total : null, awaiting: awaiting ? awaiting.total : null,
+                    pending: st ? (await st.pendingPushes()).length : 0, parked: st ? (await st.failedPushes()).length : 0 } : null,
+          coupons: can('coupons') && coupons ? { total: coupons.length, active: coupons.filter(c => c.status === 'ACTIVE').length } : null,
+          accounts: can('customers') ? await db.adminOverview() : null,
+          funnel: can('products') && an ? await an.funnel() : null,
+          leftovers: can('products') && leftovers ? leftovers.overrides.length + leftovers.custom.length + leftovers.hidden.length + (leftovers.promos ? 1 : 0) : 0,
+          audit: can('activity') ? await cadm.audit(10) : null,
         });
       }
 
@@ -3733,16 +3759,28 @@ export async function handle(req, res) {
         }
       }
 
-      /* ------- admins ------- */
+      /* ------- admins (the master's alone: see the access check above) -------
+         The master cannot be removed, restricted or re-invited from here
+         (engine/admin-auth.mjs refuses it); only the operator CLI can. */
       if (seg[0] === 'admins') {
         const A = adminAuth();
-        if (seg.length === 1 && req.method === 'GET') return json(200, { me: me.email, admins: await A.list() });
-        if (seg[1] && req.method === 'DELETE') {
-          const who = decodeURIComponent(seg[1]).toLowerCase();
+        const refused = r => json(400, { error: r.error, message: r.error === 'master'
+          ? (lang === 'en' ? 'The master account cannot be changed here.' : 'لا يمكن تعديل الحساب الرئيسى من هنا.')
+          : (lang === 'en' ? 'That admin was not found.' : 'لم يُعثر على هذا المسؤول.') });
+        if (seg.length === 1 && req.method === 'GET') return json(200, { me: me.email, sections: SECTIONS, admins: await A.list() });
+        const who = seg[1] ? decodeURIComponent(seg[1]).toLowerCase() : '';
+        if (who && seg.length === 2 && req.method === 'DELETE') {
           if (who === me.email) return json(400, { error: 'self', message: lang === 'en' ? 'You cannot remove yourself.' : 'لا يمكنك حذف حسابك.' });
-          await A.remove(who);
+          const r = await A.remove(who);
+          if (r.error) return refused(r);
           await cadm.log(actor, 'admin.remove', who, null);
           return json(200, { ok: true });
+        }
+        if (who && seg[2] === 'perms' && req.method === 'PUT') {
+          const r = await A.setPerms(who, ((await readJson(req, 4000)) || {}).perms);
+          if (r.error) return refused(r);
+          await cadm.log(actor, 'admin.perms', who, r.perms);
+          return json(200, { ok: true, perms: r.perms });
         }
       }
 

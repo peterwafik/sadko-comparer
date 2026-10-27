@@ -27,6 +27,7 @@
 import { randomBytes, scryptSync, timingSafeEqual, createHash, createHmac,
          createCipheriv, createDecipheriv } from 'node:crypto';
 import { openDb, storeSpec } from './db.mjs';
+import { FULL, cleanPerms } from './admin-perms.mjs';
 
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 const TEMP_TTL_MS = 48 * 3600_000;
@@ -53,6 +54,14 @@ const MIGRATIONS = [{
     digest TEXT PRIMARY KEY, email TEXT NOT NULL, stage TEXT NOT NULL, expires_at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS admin_sessions_email ON admin_sessions(email);
+  `,
+}, {
+  /* role: 'master' (one account, the owner) or 'admin'. perms_json NULL
+     means full access, so admins who existed before this keep it. */
+  id: 2, name: 'admin roles',
+  sql: `
+  ALTER TABLE admin_users ADD COLUMN role TEXT NOT NULL DEFAULT 'admin';
+  ALTER TABLE admin_users ADD COLUMN perms_json TEXT;
   `,
 }];
 
@@ -129,6 +138,11 @@ function pwMatches(pw, salt, hash) {
   const a = Buffer.from(hashPw(pw, salt), 'hex'), b = Buffer.from(String(hash), 'hex');
   return a.length === b.length && timingSafeEqual(a, b);
 }
+/* NULL perms (an admin from before roles existed) means full access. */
+const permsOf = u => {
+  if (u.perms_json == null) return { ...FULL };
+  try { return cleanPerms(JSON.parse(u.perms_json)); } catch (e) { return {}; }
+};
 const digest = token => createHash('sha256').update(String(token)).digest('hex');
 const normEmail = e => String(e || '').trim().toLowerCase();
 
@@ -155,10 +169,14 @@ export async function openAdminAuth(file, { secret = process.env.SADKO_ADMIN_SEC
   const q = {
     get: db.prepare('SELECT * FROM admin_users WHERE email = ?'),
     all: db.prepare('SELECT * FROM admin_users ORDER BY created_at'),
-    upsert: db.prepare(`INSERT INTO admin_users (email,salt,hash,must_reset,temp_expires,totp_secret,totp_pending,totp_on,last_totp_step,failed,locked_until,created_at,created_by)
-      VALUES (?,?,?,1,?,NULL,NULL,0,0,0,0,?,?)
+    upsert: db.prepare(`INSERT INTO admin_users (email,salt,hash,must_reset,temp_expires,totp_secret,totp_pending,totp_on,last_totp_step,failed,locked_until,created_at,created_by,perms_json)
+      VALUES (?,?,?,1,?,NULL,NULL,0,0,0,0,?,?,?)
       ON CONFLICT(email) DO UPDATE SET salt=excluded.salt, hash=excluded.hash, must_reset=1, temp_expires=excluded.temp_expires,
-        totp_secret=NULL, totp_pending=NULL, totp_on=0, last_totp_step=0, failed=0, locked_until=0`),
+        totp_secret=NULL, totp_pending=NULL, totp_on=0, last_totp_step=0, failed=0, locked_until=0,
+        perms_json=COALESCE(excluded.perms_json, admin_users.perms_json)`),
+    setPerms: db.prepare('UPDATE admin_users SET perms_json = ? WHERE email = ?'),
+    demoteAll: db.prepare("UPDATE admin_users SET role = 'admin' WHERE role = 'master'"),
+    promote: db.prepare("UPDATE admin_users SET role = 'master' WHERE email = ?"),
     del: db.prepare('DELETE FROM admin_users WHERE email = ?'),
     fail: db.prepare('UPDATE admin_users SET failed = ?, locked_until = ? WHERE email = ?'),
     okLogin: db.prepare('UPDATE admin_users SET failed = 0, locked_until = 0 WHERE email = ?'),
@@ -198,12 +216,18 @@ export async function openAdminAuth(file, { secret = process.env.SADKO_ADMIN_SEC
   }
 
   return {
-    async invite(rawEmail, by) {
+    /* by: the inviting admin's email, or 'operator' (the CLI, holding
+       SADKO_ADMIN_SECRET). Only the operator may reset the master: that is
+       the way back in if the owner is ever locked out. */
+    async invite(rawEmail, by, { perms } = {}) {
       const email = normEmail(rawEmail);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'bad-email' };
+      const existing = await q.get.get(email);
+      if (existing && existing.role === 'master' && by !== 'operator') return { error: 'master' };
       const pw = tempPassword();
       const salt = randomBytes(16).toString('hex');
-      await q.upsert.run(email, salt, hashPw(pw, salt), now() + TEMP_TTL_MS, new Date(now()).toISOString(), by || null);
+      await q.upsert.run(email, salt, hashPw(pw, salt), now() + TEMP_TTL_MS, new Date(now()).toISOString(), by || null,
+        perms ? JSON.stringify(cleanPerms(perms)) : null);
       await q.sDelUser.run(email);
       return { email, tempPassword: pw, expiresAt: new Date(now() + TEMP_TTL_MS).toISOString() };
     },
@@ -224,7 +248,10 @@ export async function openAdminAuth(file, { secret = process.env.SADKO_ADMIN_SEC
 
     async session(token) {
       const row = await liveSession(token);
-      return row ? { email: row.email, stage: row.stage } : null;
+      if (!row) return null;
+      const user = await q.get.get(row.email);
+      if (!user) return null;
+      return { email: row.email, stage: row.stage, role: user.role || 'admin', perms: permsOf(user) };
     },
 
     async resetPassword(token, password) {
@@ -281,12 +308,30 @@ export async function openAdminAuth(file, { secret = process.env.SADKO_ADMIN_SEC
       return (await q.all.all()).map(u => ({
         email: u.email, createdAt: u.created_at, createdBy: u.created_by || null,
         lastLoginAt: u.last_login_at || null, setupDone: !u.must_reset && !!u.totp_on,
-        locked: u.locked_until > now(),
+        locked: u.locked_until > now(), role: u.role || 'admin', perms: permsOf(u),
       }));
     },
     async remove(rawEmail) {
       const email = normEmail(rawEmail);
+      const user = await q.get.get(email);
+      if (user && user.role === 'master') return { error: 'master' };
       await db.batch([q.del.bind(email), q.sDelUser.bind(email)]);
+      return { ok: true };
+    },
+    async setPerms(rawEmail, perms) {
+      const email = normEmail(rawEmail);
+      const user = await q.get.get(email);
+      if (!user) return { error: 'not-found' };
+      if (user.role === 'master') return { error: 'master' };
+      await q.setPerms.run(JSON.stringify(cleanPerms(perms)), email);
+      return { ok: true, perms: cleanPerms(perms) };
+    },
+    /* One master at a time. Only the operator CLI calls this. */
+    async setMaster(rawEmail) {
+      const email = normEmail(rawEmail);
+      if (!(await q.get.get(email))) return { error: 'not-found' };
+      await db.batch([q.demoteAll.bind(), q.promote.bind(email)]);
+      return { ok: true };
     },
     count: async () => (await q.all.all()).length,
     _rawRow: email => q.get.get(normEmail(email)),

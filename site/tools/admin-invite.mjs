@@ -51,9 +51,11 @@ if (!res.ok || !body.ok) {
   process.exit(1);
 }
 if (master) {
+  /* No process.exit here: exiting while fetch's sockets are still closing
+     trips a libuv assertion on Windows (src\win\async.c). The script simply
+     ends once the output is written. */
   console.log('\n  ' + body.email + ' is now the master admin.\n');
-  process.exit(0);
-}
+} else {
 console.log('');
 console.log('  Admin:              ' + body.email);
 console.log('  Temporary password: ' + body.tempPassword);
@@ -61,3 +63,4 @@ console.log('  Valid until:        ' + new Date(body.expiresAt).toLocaleString()
 console.log('  Sign in at:         ' + url.replace(/\/$/, '') + '/admin');
 console.log('');
 console.log('  They will set their own password and scan a QR code with an authenticator app.');
+}

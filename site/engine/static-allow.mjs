@@ -18,7 +18,7 @@
    otherwise hand /DATA/ACCOUNTS.DB to a case-insensitive filesystem.
    ========================================================================== */
 
-const PUBLIC_DATA = new Set(['products', 'categories', 'collections', 'finder', 'guides', 'promos']);
+const PUBLIC_DATA = new Set(['products', 'categories', 'collections', 'finder', 'guides', 'promos', 'scenes', 'site']);
 
 // Never served, even from an allowed folder: the extensions a mistake would put there.
 const NEVER = /\.(db|db-wal|db-shm|sqlite|sqlite3|log|bak|env|mjs|cjs|key|pem|bat|sh)$/i;

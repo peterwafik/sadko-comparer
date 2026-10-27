@@ -257,7 +257,10 @@ test('an order staff created is labelled, so it does not read as an error', () =
 test('the grand total is shown only when Ecwid genuinely holds one', () => {
   /* Otherwise the goods subtotal, SAID to be goods only — never a total this
      page assembled from a delivery charge nobody quoted. */
-  assert.match(account, /o\.total != null \? o\.total : o\.subtotal/);
+  /* A site order's grandTotal is the server's (delivery-order.mjs totalsWith),
+     and a coupon's itemsDiscount is the server's too (coupons.mjs). */
+  assert.match(account, /o\.total != null \? o\.total : \(tt\.grandTotal != null \? tt\.grandTotal : null\)/);
+  assert.match(account, /\(o\.subtotal \|\| 0\) - \(tt\.itemsDiscount \|\| 0\)/);
   assert.match(account, /goods only/);
 });
 
@@ -295,28 +298,29 @@ test('the pushed customer payload is built from homes, not invented', () => {
 
 /* ================= status, pushed UP from the admin desk ================== */
 
-test('the admin orders desk tells Ecwid about a status it changed', () => {
-  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,1800}?\n      \}/.exec(src)[0];
-  assert.match(route, /esy\.pushOrderStatus\(ref, b\.status\)/);
+/* The orders desk is Ecwid's own order list now (the admin portal keeps no
+   copy). A status is written TO Ecwid, and the site's copy of a site order is
+   then brought up to date exactly as the webhook would bring it. */
+const DESK = () => {
+  const at = src.indexOf("if (seg[0] === 'store' && seg[1] === 'orders' && seg[2] && seg.length === 3)");
+  assert.ok(at > 0, 'the Ecwid orders desk route exists');
+  return src.slice(at, src.indexOf('/* ------- customers ------- */', at));
+};
+
+test('the admin orders desk writes the status into Ecwid', () => {
+  assert.ok(DESK().includes('await api.updateOrder(id, patch)'));
+  assert.ok(DESK().includes('FULFILMENT_STATUSES.includes(b.fulfillmentStatus)'), 'only Ecwid statuses are sent');
 });
 
-test('a failed status push does NOT fail the request — the local change happened', () => {
-  /* Returning 400 would tell the operator their click did nothing, which is
-     false: setOrderStatus has already committed and written the audit row. */
-  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,1800}?\n      \}/.exec(src)[0];
-  assert.match(route, /catch \(e\) \{ ecwid = \{ ok: false/);
-  assert.match(route, /json\(200, \{ \.\.\.r, ecwid \}\)/,
-    'the outcome is reported to the caller rather than swallowed or thrown');
-  const afterPush = route.slice(route.indexOf('pushOrderStatus'));
-  assert.ok(!/json\(4\d\d/.test(afterPush), 'no 4xx may be returned after the local write');
+test('the site copy of a site order follows, as the webhook would make it', () => {
+  const d = DESK();
+  assert.ok(d.indexOf('applyEcwidOrderEvent({ entityId: id })') > d.indexOf('api.updateOrder(id, patch)'));
 });
 
-test('the two non-failures are not logged as failures', () => {
-  /* not-pushable is `confirmed`, by design; not-in-ecwid is an order still in
-     the push queue, which will carry its status when it is created. Logging
-     either as an error would train the owner to ignore the log. */
-  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,1800}?\n      \}/.exec(src)[0];
-  assert.match(route, /reason !== 'not-pushable' && ecwid\.reason !== 'not-in-ecwid'/);
+test('an Ecwid refusal is reported, and nothing local is changed first', () => {
+  const d = DESK();
+  assert.ok(d.includes('catch (e) { return ecwidFailed(e); }'));
+  assert.ok(!d.includes('db.setOrderStatus'), 'the desk never writes a local status ahead of Ecwid');
 });
 
 /* ==================== guests become customers too ======================== */
@@ -377,8 +381,8 @@ test('reviving a parked order restores its retry budget, not just the delay', ()
    one of their statuses, so the next page load re-reads Ecwid — which by then
    holds the pushed status. */
 
-test('a local status change invalidates that customer\'s cached Ecwid orders', () => {
-  const route = /seg\[0\] === 'orders' && seg\[2\] === 'status'[\s\S]{0,2400}?\n      \}/.exec(src)[0];
+test('a status change invalidates that customer\'s cached Ecwid orders', () => {
+  const route = DESK();
   assert.match(route, /forgetRemoteOrders/,
     'without this the customer sees the OLD status for up to the cache TTL');
 });

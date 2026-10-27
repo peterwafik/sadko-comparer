@@ -201,6 +201,9 @@ export function toSadkoProduct(e) {
     shippingRequired: e.isShippingRequired !== false,
     weight: w != null && w > 0 ? w : null,
     enabled: e.enabled !== false,
+    /* The badge ("عرض", "جديد") is Ecwid's ribbon. It used to be a site-only
+       overlay field; the admin portal now writes the ribbon in Ecwid. */
+    badge: e.ribbon && text(e.ribbon.text) ? text(e.ribbon.text).slice(0, 40) : null,
 
     /* 463 products in the live store are empty shells — no name, no image, no
        category. Flagged here so the sync can keep them out of the storefront
@@ -318,11 +321,24 @@ export function toEcwidOrder(order, user = {}, methods = []) {
   const feeLines = fee == null ? [] : (t.deliveryLines || []).filter(l => l.fee > 0).map(l =>
     `توصيل ${String(titleOf(l.id)).slice(0, 60)} (${BAND_AR[l.cls] || l.cls}): ${l.fee} جنيه`);
 
+  /* A coupon Ecwid applied (engine/coupons.mjs), recorded the way Ecwid's
+     own checkout records one: the coupon, its amount per line, and
+     couponDiscount off the total. t.discount already includes a waived
+     delivery fee for a free-shipping coupon, which is also Ecwid's way. */
+  const cp = order.coupon && order.coupon.ok ? order.coupon : null;
+  const discount = cp ? Math.max(0, Number(t.discount) || 0) : 0;
+  const cpLines = (cp && cp.lines) || {};
+  const couponNotes = !cp ? [] : [
+    `كوبون الخصم: ${cp.code}${cp.name ? ` (${cp.name})` : ''}، خصم ${discount} جنيه`,
+    (cp.freeShipping && fee == null) ? 'الكوبون يشمل توصيل مجانى، ورسوم التوصيل لم تُحسب بعد. يُراجع قبل التأكيد.' : null,
+  ];
+
   const lift = d.hasLift ? 'يوجد مصعد' : 'بدون مصعد';
   const comments = [
     `مرجع الطلب: ${order.ref}`,               // also the idempotency key
     fee == null ? FEES_NOTE_AR : INSTALL_NOTE_AR,
     ...(fee == null ? [] : [`رسوم التوصيل: ${fee} جنيه (${t.methodName})`, ...feeLines]),
+    ...couponNotes,
     d.governorate ? `المحافظة: ${d.governorate}` : null,
     d.floor ? `الطابق: ${d.floor} (${lift})` : lift,
     /* A product-restricted instalment plan. The site cannot verify eligibility
@@ -347,13 +363,16 @@ export function toEcwidOrder(order, user = {}, methods = []) {
       price: Number(i.price),
       quantity: Number(i.qty),
       sku: i.sku || undefined,
+      ...(cp ? { couponApplied: cpLines[String(i.id)] > 0,
+                 ...(cpLines[String(i.id)] > 0 ? { couponAmount: cpLines[String(i.id)] } : {}) } : {}),
     })),
 
     /* Items only. Shipping is deliberately ABSENT, not zero: an explicit 0
        would read as free delivery, which is exactly the claim the customer's
        receipt refuses to make. */
     subtotal,
-    total: fee == null ? subtotal : subtotal + fee,
+    total: (fee == null ? subtotal : subtotal + fee) - discount,
+    ...(cp ? { discountCoupon: cp.raw, couponDiscount: discount } : {}),
     ...(fee == null ? {} : { shippingOption: { shippingMethodName: t.methodName, shippingRate: fee } }),
 
     paymentMethod: method ? method.title : legacy,

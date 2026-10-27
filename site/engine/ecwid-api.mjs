@@ -182,6 +182,50 @@ export function openEcwidApi({ storeId, token, fetchImpl, retries = 3, baseDelay
       };
     },
 
+    /* ---- writes from the admin portal --------------------------------
+       The portal keeps no copy of any of this: it reads Ecwid, writes Ecwid,
+       and the mirror follows (engine/ecwid-sync.mjs). */
+    createProduct: payload => call('/products', { method: 'POST', body: payload }),
+    updateProduct: (id, payload) => call(`/products/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+    deleteProduct: id => call(`/products/${encodeURIComponent(id)}`, { method: 'DELETE', allow404: true }),
+    /* The main image, as raw bytes. Ecwid fetches nothing from us. */
+    async uploadProductImage(id, bytes, mime) {
+      if (!configured) { const e = new Error('ecwid-not-configured'); e.status = 0; throw e; }
+      const res = await doFetch(`${base}/products/${encodeURIComponent(id)}/image`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'content-type': mime }, body: bytes,
+      });
+      const text = await res.text();
+      if (!res.ok) { const e = new Error(`ecwid-${res.status}: ${String(text).slice(0, 300)}`); e.status = res.status; throw e; }
+      return text ? JSON.parse(text) : null;
+    },
+    getCategory: id => call(`/categories/${encodeURIComponent(id)}`, { allow404: true }),
+    createCategory: payload => call('/categories', { method: 'POST', body: payload }),
+
+    /* One page of orders, newest first, for the orders desk. */
+    listOrders: ({ offset = 0, limit = 30, keywords, fulfillmentStatus, paymentStatus } = {}) =>
+      call('/orders' + qs({ offset, limit, keywords, fulfillmentStatus, paymentStatus, sortBy: 'DATE_DESC' })),
+    listCustomers: ({ offset = 0, limit = 30, keyword } = {}) =>
+      call('/customers' + qs({ offset, limit, keyword, sortBy: 'REGISTERED_DATE_DESC' })),
+
+    listCoupons: () => pageAll('/discount_coupons'),
+    createCoupon: payload => call('/discount_coupons', { method: 'POST', body: payload }),
+    updateCoupon: (id, payload) => call(`/discount_coupons/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+    deleteCoupon: id => call(`/discount_coupons/${encodeURIComponent(id)}`, { method: 'DELETE', allow404: true }),
+
+    listPaymentOptions: async () => (await call('/profile/paymentOptions')) || [],
+    updatePaymentOption: (id, payload) => call(`/profile/paymentOptions/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+    listShippingOptions: async () => (await call('/profile/shippingOptions')) || [],
+    updateShippingOption: (id, payload) => call(`/profile/shippingOptions/${encodeURIComponent(id)}`, { method: 'PUT', body: payload }),
+
+    /* One discount coupon by its code, or null. Only used to say WHY the
+       calculator did not apply a code (engine/coupons.mjs whyNotApplied);
+       whether it applies is always the calculator's answer. */
+    couponByCode: async code => {
+      const page = await call('/discount_coupons' + qs({ code, limit: 5 }));
+      const want = String(code || '').toUpperCase();
+      return ((page && page.items) || []).find(c => String(c.code || '').toUpperCase() === want) || null;
+    },
+
     /* ---- customers ---------------------------------------------------
        Ecwid can read, create and update a customer, but it cannot verify one
        password — so these support LINKING, never login. See the note at the

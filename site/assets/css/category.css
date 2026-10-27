@@ -205,3 +205,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
   .sk-addbtn:disabled { background: #331c21; color: #ec8e9e; border-color: #4a2a30; }
   .sk-addbtn.is-soldout:hover { background: #331c21; }
 }
+
+/* The product's Ecwid ribbon, set from the admin portal (storefront.js card()). */
+.card__badge { position: absolute; top: 10px; inset-inline-start: 10px; z-index: 1; background: var(--teal-deep, #2e7e88); color: #fff;
+  font: 800 .74rem/1.5 Cairo, sans-serif; padding: 1px 9px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.15); }

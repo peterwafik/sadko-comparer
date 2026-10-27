@@ -77,13 +77,13 @@ test('the admin delivery-classes route exists behind the admin guard', () => {
   const guard = SRC.indexOf("u.pathname.startsWith('/api/admin/')");
   const i = SRC.indexOf("rest === 'delivery-classes'");
   assert.ok(guard > 0 && i > guard, 'must live inside the admin block');
-  assert.ok(SRC.indexOf('isAdminUser(me)', guard) < i, 'the admin check comes first');
+  assert.ok(SRC.indexOf("sess.stage !== 'full'", guard) < i, 'the admin check comes first');
 });
 
-test('the admin dashboard shows the delivery classes panel', () => {
-  const ADMIN = readFileSync(new URL('../assets/js/admin.js', import.meta.url), 'utf8');
-  assert.match(ADMIN, /api\/admin\/delivery-classes/);
-  assert.match(ADMIN, /id="adm-delivery"/);
+test('the admin portal\'s Delivery fees page shows the size bands', () => {
+  const ADMIN = readFileSync(new URL('../assets/js/admin/pages-store.js', import.meta.url), 'utf8');
+  assert.match(ADMIN, /A\.api\('GET', 'delivery-classes'\)/);
+  assert.match(ADMIN, /cls\.unclassified/);
 });
 
 /* Review finding (Important): a module-level "last good" card kept quoting old

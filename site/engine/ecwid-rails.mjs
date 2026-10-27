@@ -18,7 +18,7 @@
    which the honesty guards in shop-core.test.mjs forbid.
    ========================================================================== */
 
-import { byAdPosition } from './ecwid-ads.mjs';
+import { byAdPosition, parseAdDescription } from './ecwid-ads.mjs';
 
 /* Arabic orthography varies between the two stores: "الأكثر مبيعاً" versus
    "المنتجات الاكثر مبيعاً", أ versus ا, ى versus ي. Normalise before matching
@@ -237,12 +237,13 @@ export function deriveBanners(bannerProducts = [],
       slot = SLOTS.has(slotRaw) ? slotRaw : 'square';
     }
 
+    const msg = parseAdDescription(p.descriptionHtml || p.description);
     out.push({
       id: 'ecwid-' + p.id,
       slot,
       art: ART_FOR_SLOT[slot],
       title,
-      sub: String(p.description || '').trim() || undefined,
+      sub: msg.ar || undefined,
       href: adHref(p, bannerCategoryId, destOf, adFolderIds),
       image,
       /* The DESCRIPTION first, then the name.
@@ -254,7 +255,10 @@ export function deriveBanners(bannerProducts = [],
          would the fallback text if the artwork failed to load. The description
          carries the advert's actual message, so it is the better alt. The name
          stays as a last resort so alt is never empty. */
-      alt: String(p.description || '').trim() || title,
+      alt: msg.ar || title,
+      /* The English message the admin portal writes after an EN: marker.
+         Without one the advert stays off the English pages, as before. */
+      ...(msg.en ? { titleEn: msg.en, subEn: msg.en, altEn: msg.en } : {}),
       source: 'ecwid',
     });
   }

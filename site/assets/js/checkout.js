@@ -92,17 +92,29 @@
     /* QUOTE_SUB: the goods subtotal the server re-priced for that quote — the
        one it will store and push — so the total shown is the total charged. */
     let GOVS = null, QUOTE = null, QUOTE_SUB = null;
+    /* Discount coupons live in Ecwid, and the server asks Ecwid with every
+       quote (engine/coupons.mjs). CODE is what the customer typed; COUPON is
+       Ecwid's verdict on it; TOTALS is the server's figures with the
+       discount taken off, which every row below reads. */
+    let CODE = '', COUPON = null, TOTALS = null;
+    const couponOn = () => !!(CODE && COUPON && COUPON.ok);
+    const discount = () => (couponOn() && TOTALS && TOTALS.discount) || 0;
     function loadGovernorates() {
       return fetch('/api/delivery/governorates').then(r => r.ok ? r.json() : null)
         .then(d => { GOVS = d && d.governorates; }).catch(() => { GOVS = null; });
     }
-    function requestQuote(items, governorate) {
-      if (!governorate) { QUOTE = null; QUOTE_SUB = null; return Promise.resolve(null); }
-      return fetch('/api/delivery/quote', { method: 'POST', headers: { 'content-type': 'application/json' },
-        credentials: 'same-origin', body: JSON.stringify({ governorate, items: items.map(i => ({ id: i.id, qty: i.qty })) }) })
+    function requestQuote(items, governorate, email) {
+      if (!governorate && !CODE) { QUOTE = null; QUOTE_SUB = null; TOTALS = null; COUPON = null; return Promise.resolve(null); }
+      return fetch('/api/delivery/quote?lang=' + (A.EN() ? 'en' : 'ar'), { method: 'POST', headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin', body: JSON.stringify({ governorate, coupon: CODE || undefined, email: email || undefined,
+          items: items.map(i => ({ id: i.id, qty: i.qty })) }) })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { QUOTE = (d && d.quote) || null; QUOTE_SUB = d && d.subtotal != null ? d.subtotal : null; return QUOTE; })
-        .catch(() => { QUOTE = null; QUOTE_SUB = null; return null; });
+        .then(d => {
+          QUOTE = (d && d.quote) || null; QUOTE_SUB = d && d.subtotal != null ? d.subtotal : null;
+          TOTALS = (d && d.totals) || null; COUPON = (d && d.coupon) || null;
+          return QUOTE;
+        })
+        .catch(() => { QUOTE = null; QUOTE_SUB = null; TOTALS = null; COUPON = null; return null; });
     }
 
     Promise.all([Au.me(true), loadPayments(), loadGovernorates()]).then(function (r) { render(r[0]); });
@@ -130,16 +142,20 @@
       wire(user, items);
     }
 
-    /* ---- cart summary, reused by every state ---- */
-    function summary(items) {
+    /* ---- cart summary, reused by every state ----
+       withCoupon: only the real form takes a code; the signed-out and
+       offline states show the cart and nothing to act on. */
+    function summary(items, withCoupon) {
       const subtotal = items.reduce((n, i) => n + (i.price || 0) * i.qty, 0);
       return '<div class="panel"><h2 class="panel__h">' + t('ملخص الطلب', 'Order summary') + '</h2>' +
         '<ul class="specs">' + items.map(i =>
           '<li><span class="k">' + esc(String(i.title).replace(/&nbsp;/g, ' ').slice(0, 60)) +
           (i.qty > 1 ? ' × ' + A.num(i.qty) : '') + '</span><span class="v">' + A.money((i.price || 0) * i.qty) + '</span></li>').join('') +
         '<li><span class="k"><b>' + t('إجمالى الأجهزة', 'Goods subtotal') + '</b></span><span class="v"><b>' + A.money(QUOTE_SUB != null ? QUOTE_SUB : subtotal) + '</b></span></li>' +
+        discountRow() +
         deliveryRows(subtotal) +
         '</ul>' +
+        (withCoupon ? couponBox() : '') +
         '<div class="note note--soft small mt16">' + (QUOTE && QUOTE.quotable
           ? t('رسوم التوصيل محسوبة من أسعار الشحن لمنطقتك وحجم كل جهاز. رسوم التركيب تُؤكَّد معك قبل التنفيذ.',
               'Delivery is calculated from the shipping rates for your area and the size of each appliance. Installation is confirmed with you before fulfilment.')
@@ -160,7 +176,11 @@
       const install = '<li><span class="k">' + t('التركيب', 'Installation') + '</span><span class="v unknown">' + t('تؤكده خدمة العملاء', 'confirmed by customer care') + '</span></li>';
       if (!QUOTE || !QUOTE.quotable) {
         const why = !CHOSEN_GOV ? t('اختر المحافظة لحساب التوصيل', 'choose your governorate') : t('تؤكده خدمة العملاء', 'confirmed by customer care');
-        return '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v unknown">' + why + '</span></li>' + install;
+        /* No grand total without a delivery fee, but a discounted goods
+           figure is still the server's and worth saying. */
+        const after = discount() ? '<li><span class="k"><b>' + t('الأجهزة بعد الخصم', 'Goods after discount') + '</b></span><span class="v"><b>' +
+          A.money(TOTALS.subtotal - (TOTALS.itemsDiscount || 0)) + '</b></span></li>' : '';
+        return after + '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v unknown">' + why + '</span></li>' + install;
       }
       /* A breakdown the customer can read — the per-order charge, then each
          size band and what it adds — rather than Ecwid's full method titles,
@@ -175,7 +195,34 @@
           '</span><span class="v">' + A.money(QUOTE.fee) + '</span></li>' +
         (QUOTE.notes && QUOTE.notes[0] ? '<li><span class="k small muted">' + esc(QUOTE.notes[0]) + '</span><span class="v"></span></li>' : '') +
         install +
-        '<li class="total"><span class="k"><b>' + t('الإجمالى', 'Total') + '</b></span><span class="v"><b>' + A.money((QUOTE_SUB != null ? QUOTE_SUB : subtotal) + QUOTE.fee) + '</b></span></li>';
+        '<li class="total"><span class="k"><b>' + t('الإجمالى', 'Total') + '</b></span><span class="v"><b>' + A.money(
+          TOTALS && TOTALS.grandTotal != null ? TOTALS.grandTotal : (QUOTE_SUB != null ? QUOTE_SUB : subtotal) + QUOTE.fee) + '</b></span></li>';
+    }
+
+    /* The coupon's line, from the server's TOTALS. A free-shipping coupon
+       says so, since its amount is the delivery fee and is 0 until a
+       governorate is chosen. */
+    function discountRow() {
+      if (!couponOn()) return '';
+      const free = COUPON.freeShipping ? ' <small class="muted">' + t('يشمل توصيل مجانى', 'includes free delivery') + '</small>' : '';
+      return '<li class="co-disc"><span class="k">' + t('خصم الكوبون', 'Coupon discount') + ' <b class="ltr">' + esc(COUPON.code) + '</b>' + free +
+        '</span><span class="v">' + (discount() ? '−' + A.money(discount()) : t('بعد اختيار المحافظة', 'once you choose a governorate')) + '</span></li>';
+    }
+
+    /* Typing a code asks the server, which asks Ecwid. Nothing here decides
+       whether a code is good. */
+    function couponBox() {
+      if (couponOn()) {
+        return '<div class="co-coupon mt16"><span class="chip">' + t('تم تطبيق الكوبون', 'Coupon applied') + ' <b class="ltr">' + esc(COUPON.code) + '</b></span> ' +
+          '<button type="button" class="btn btn--ghost btn--sm" data-coupon-remove>' + t('إزالة', 'Remove') + '</button>' +
+          '<div id="coCouponMsg"></div></div>';
+      }
+      const err = CODE && COUPON && !COUPON.ok ? COUPON.message : '';
+      return '<form class="co-coupon mt16" id="coCoupon" novalidate>' +
+        '<label class="field__l" for="coCode">' + t('عندك كود خصم؟', 'Have a coupon code?') + '</label>' +
+        '<div class="co-coupon__row"><input class="input ltr" id="coCode" name="code" maxlength="40" autocomplete="off" spellcheck="false" value="' + esc(CODE) + '">' +
+        '<button class="btn btn--teal btn--sm" type="submit">' + t('تطبيق', 'Apply') + '</button></div>' +
+        '<div id="coCouponMsg">' + (err ? '<div class="note note--warn mt8 small">' + esc(err) + '</div>' : '') + '</div></form>';
     }
 
     function offlineBox(items) {
@@ -258,7 +305,7 @@
             '<p class="muted small mt8">' + t('بتأكيد الطلب تسجّله لدينا، وستتصل بك خدمة العملاء على 19140 لتأكيد المواعيد ورسوم التوصيل والتركيب قبل أى تنفيذ.',
               'Placing the order records it with us; customer care will call you on 19140 to confirm timing and the delivery and installation charges before anything is fulfilled.') + '</p>' +
           '</form></div></div>' +
-        '<div id="coSummary">' + summary(items) + '</div></div>';
+        '<div id="coSummary">' + summary(items, true) + '</div></div>';
     }
     function lbl(name, label, value) {
       return '<label class="field" style="margin:0 0 14px"><span class="field__l">' + esc(label) + '</span>' +
@@ -278,14 +325,15 @@
       try {
         /* An ABSOLUTE path, like skAuth uses. A.P() would make it relative,
            which resolves wrongly from the generated /category/*.html pages. */
-        const res = await fetch('/api/orders/guest?lang=' + (A.EN ? 'en' : 'ar'), {
+        const res = await fetch('/api/orders/guest?lang=' + (A.EN() ? 'en' : 'ar'), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify(payload),
         });
         const d = await res.json().catch(() => ({}));
-        if (!res.ok || !d.ok) return { ok: false, message: d.message || '', error: d.error, quote: d.quote, subtotal: d.subtotal };
+        if (!res.ok || !d.ok) return { ok: false, message: d.message || '', error: d.error, quote: d.quote, subtotal: d.subtotal,
+                                       coupon: d.coupon, totals: d.totals };
         return { ok: true, order: { ref: d.ref, subtotal: d.subtotal, payment: payload.payment,
                                     totals: d.totals, inEcwid: d.inEcwid } };
       } catch (e) {
@@ -301,12 +349,38 @@
          so nothing the customer typed is lost. */
       const box = () => root.querySelector('#coSummary');
       const gov = f.querySelector('select[name=governorate]');
+      /* Ecwid enforces once-per-customer by email, so the quote carries the
+         one the order will be filed under. */
+      const email = () => (user ? user.email : ((f.querySelector('input[name=email]') || {}).value || '').trim());
       const refresh = () => {
         CHOSEN_GOV = gov.value;
-        return requestQuote(items, gov.value).then(() => { if (box()) box().innerHTML = summary(items); });
+        return requestQuote(items, gov.value, email()).then(() => { if (box()) box().innerHTML = summary(items, true); });
       };
       gov.addEventListener('change', refresh);
       if (gov.value) refresh();
+
+      /* The coupon box is inside the summary, which is redrawn on every
+         quote, so its events are caught on the summary container. */
+      box().addEventListener('submit', e => {
+        if (!e.target || e.target.id !== 'coCoupon') return;
+        e.preventDefault();
+        const input = e.target.querySelector('#coCode'), msg = () => root.querySelector('#coCouponMsg');
+        CODE = String(input.value || '').trim().toUpperCase();
+        if (!CODE) { COUPON = null; return refresh(); }
+        const b = e.target.querySelector('button'); b.disabled = true; b.textContent = t('جارى التحقق…', 'Checking…');
+        refresh().then(() => {
+          /* No verdict at all: the request failed, so say so instead of
+             leaving the code looking accepted or rejected. */
+          if (CODE && !COUPON && msg())
+            msg().innerHTML = '<div class="note note--warn mt8 small">' +
+              t('تعذّر التحقق من كود الخصم الآن. حاول مرة أخرى.', 'We could not check the coupon just now. Please try again.') + '</div>';
+        });
+      });
+      box().addEventListener('click', e => {
+        if (!e.target.closest || !e.target.closest('[data-coupon-remove]')) return;
+        CODE = ''; COUPON = null;
+        refresh();
+      });
 
       f.addEventListener('submit', async e => {
         e.preventDefault();
@@ -323,6 +397,8 @@
               note: fd.get('note'),
               quotedFee: QUOTE && QUOTE.quotable ? QUOTE.fee : null,
               quotedSubtotal: QUOTE_SUB,
+              coupon: couponOn() ? CODE : undefined,
+              quotedDiscount: discount(),
             })
           : await placeGuestOrder({
               items: lines,
@@ -333,14 +409,29 @@
               note: fd.get('note'),
               quotedFee: QUOTE && QUOTE.quotable ? QUOTE.fee : null,
               quotedSubtotal: QUOTE_SUB,
+              coupon: couponOn() ? CODE : undefined,
+              quotedDiscount: discount(),
             });
         btn.disabled = false; btn.textContent = t('أكّد الطلب', 'Place the order');
+        /* Ecwid's answer on the coupon changed since it was applied (paused,
+           used up, or a different discount). Show the server's figures and
+           let the customer confirm, as for a changed fee. */
+        if (!r.ok && /^coupon-/.test(r.error || '')) {
+          if (r.error !== 'coupon-unavailable') {
+            COUPON = r.coupon || null;
+            if (!COUPON || !COUPON.ok) CODE = COUPON ? CODE : '';
+            if (r.totals) TOTALS = r.totals;
+          }
+          if (box()) box().innerHTML = summary(items, true);
+          root.querySelector('#coErr').innerHTML = '<div class="note note--warn mt8 small">' + esc(r.message || '') + '</div>';
+          return;
+        }
         /* The server's fee differs from the one shown (a rate changed, or this
            tab is older than the fee). Show the new one and let them confirm. */
         if (!r.ok && r.error === 'delivery-fee-changed') {
           QUOTE = r.quote || null;
           if (r.subtotal != null) QUOTE_SUB = r.subtotal;
-          if (box()) box().innerHTML = summary(items);
+          if (box()) box().innerHTML = summary(items, true);
           root.querySelector('#coErr').innerHTML = '<div class="note note--warn mt8 small">' + esc(r.message) + '</div>';
           return;
         }
@@ -368,6 +459,9 @@
           'Keep this order reference. Customer care will contact you on the number you gave to confirm timing and the delivery and installation charges.') + '</p>' +
         '<ul class="specs mt16" style="text-align:start">' +
           '<li><span class="k">' + t('إجمالى الأجهزة', 'Goods subtotal') + '</span><span class="v">' + A.money(o.subtotal) + '</span></li>' +
+          (o.totals && o.totals.coupon && o.totals.discount > 0
+            ? '<li><span class="k">' + t('خصم الكوبون', 'Coupon discount') + ' <b class="ltr">' + esc(o.totals.coupon.code) + '</b></span><span class="v">−' + A.money(o.totals.discount) + '</span></li>'
+            : '') +
           '<li><span class="k">' + t('طريقة الدفع', 'Payment') + '</span><span class="v">' + esc(payName(o.payment)) + '</span></li>' +
           (o.totals && o.totals.deliveryFee != null
             ? '<li><span class="k">' + t('التوصيل', 'Delivery') + '</span><span class="v">' + A.money(o.totals.deliveryFee) + '</span></li>' +

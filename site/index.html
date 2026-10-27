@@ -10,8 +10,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="assets/js/scrub-engine.js?v=g31" defer></script>
-<script src="assets/js/nav.js?v=g30" defer></script>
+<script src="assets/js/nav.js?v=g31" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
+<script src="assets/js/scenes.js?v=g1" defer></script>
 <script src="assets/js/hotspots.js?v=g45" defer></script>
 <script src="assets/js/guide.js?v=g11" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g14">
@@ -199,6 +200,9 @@ window.addEventListener('DOMContentLoaded', () => {
   /* ---- English mode: overlay the scene copy (labels, titles, hotspot names)
      onto the Arabic-authored config. Language comes from nav.js (skLang). ---- */
   const EN = !!(window.skLang && window.skLang.get() === 'en');
+  /* The built-in English copy, used only when the admin-edited scenes
+     (data/scenes.json, assets/js/scenes.js) could not be loaded. */
+  let applyBuiltInEnglish = () => {};
   if (EN) {
     document.documentElement.lang = 'en';
     document.documentElement.dir = 'ltr';
@@ -216,15 +220,22 @@ window.addEventListener('DOMContentLoaded', () => {
         showcaseLabel: 'Shop all products',
         spots: [] },
     };
-    for (const s of SECTIONS) {
+    applyBuiltInEnglish = () => { for (const s of SECTIONS) {
       const e = L[s.id]; if (!e) continue;
       s.label = e.label; s.eyebrow = e.eyebrow; s.title = e.title;
       if (e.copyY != null) s.copyY = e.copyY;   // English copy sits on the left; some rooms need a different anchor
       if (e.showcaseLabel) s.showcaseLabel = e.showcaseLabel;
       (s.hotspots || []).forEach((h, i) => { if (e.spots[i]) h.label = e.spots[i]; });
       if (s.cta && e.cta) { s.cta.primary.label = e.cta.primary; s.cta.secondary.label = e.cta.secondary; }
-    }
+    } };
   }
+
+  /* The admin's saved scene text and points, laid over the built-in ones.
+     A failed or slow load (over 1.2 s) keeps the built-in scenes. */
+  const loadScenes = window.skScenes ? window.skScenes.load('data/scenes.json', 1200) : Promise.resolve(null);
+  loadScenes.then(data => {
+  if (!(data && window.skScenes.apply(SECTIONS, data, EN))) applyBuiltInEnglish();
+
 
   const api = mountScrollWorld(document.getElementById('world'), {
     nav: false,               // core-pages strap comes from nav.js; rooms live in the dock
@@ -274,6 +285,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   mountGuide(document.getElementById('world'), api, SECTIONS);
   window.__swApi = api;   // exposed for QA tooling (?spots etc.)
+  });
 });
 </script>
 </body>

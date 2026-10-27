@@ -418,9 +418,46 @@
     if (ROOT && document.querySelector('article.card')) enhanceCategoryCards();
     if (ROOT && LANG === 'en') translateCategoryPage();
     ensureFooter();
+    applySiteSettings();
     dropHiddenLinks(document.body);
     new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) dropHiddenLinks(n); })))
       .observe(document.body, { childList: true, subtree: true });
+  }
+
+  /* Site-wide settings the owner edits in the admin portal (Site bar &
+     hotline): the hotline number, an announcement, a maintenance notice.
+     Served at /data/site.json; a failed load changes nothing, so every page
+     still shows 19140 and no bar. The bar sits at the BOTTOM of the screen:
+     the strap is fixed at the top over the home page's scenes. */
+  function applySiteSettings() {
+    fetch((ROOT || '') + 'data/site.json', { credentials: 'same-origin' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(cfg => {
+        if (!cfg) return;
+        const hot = String(cfg.hotline || '').replace(/[^0-9+]/g, '');
+        if (hot && hot !== '19140') {
+          document.querySelectorAll('a[href="tel:19140"]').forEach(a => {
+            a.setAttribute('href', 'tel:' + hot);
+            a.childNodes.forEach(n => { if (n.nodeType === 3) n.textContent = n.textContent.replace('19140', hot); });
+          });
+        }
+        const pick = o => (o && String(LANG === 'en' ? (o.en || '') : (o.ar || '')).trim()) || '';
+        const notes = [];
+        if (cfg.maintenance) notes.push({ kind: 'warn', text: pick(cfg.maintenance) });
+        if (cfg.announcement) notes.push({ kind: 'info', text: pick(cfg.announcement) });
+        notes.filter(n => n.text).forEach(n => {
+          const key = 'sk-bar:' + n.text;
+          try { if (sessionStorage.getItem(key)) return; } catch (e) {}
+          const bar = document.createElement('div');
+          bar.className = 'sk-announce sk-announce--' + n.kind;
+          bar.setAttribute('role', 'status');
+          bar.innerHTML = '<span>' + esc(n.text) + '</span><button type="button" aria-label="' +
+            (LANG === 'en' ? 'Close' : 'إغلاق') + '">×</button>';
+          bar.querySelector('button').onclick = () => { bar.remove(); try { sessionStorage.setItem(key, '1'); } catch (e) {} };
+          document.body.appendChild(bar);
+        });
+      })
+      .catch(() => {});
   }
 
   /* Last line of defence for HIDDEN_PAGES: any stand-alone button or link a
@@ -673,6 +710,11 @@
     if (document.getElementById('sk-nav-css')) return;
     const css = `
     .sw-topbar{display:none!important;}   /* engine's own bar is fully replaced */
+    .sk-announce{position:fixed;left:12px;right:12px;bottom:12px;z-index:80;display:flex;gap:12px;align-items:center;justify-content:space-between;
+      padding:10px 14px;border-radius:12px;font:700 .86rem Cairo,sans-serif;color:#fff;background:#14343a;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+    .sk-announce--warn{background:#9a3412;}
+    .sk-announce + .sk-announce{bottom:64px;}
+    .sk-announce button{background:none;border:0;color:inherit;font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px;}
     .sk-glass{background:rgba(252,251,248,.58);
       -webkit-backdrop-filter:blur(22px) saturate(1.9);backdrop-filter:blur(22px) saturate(1.9);
       border:1px solid rgba(255,255,255,.55);

@@ -1,0 +1,487 @@
+{
+  "_note": "Editable parts of the home page scenes (index.html). Edited from the admin portal (Home scenes). Positions are fractions of the picture: fx/fy desktop, mfx/mfy phone. href is a site page or category page. Structure (videos, timings) stays in index.html.",
+  "scenes": [
+    {
+      "id": "living",
+      "label": {
+        "ar": "غرفة المعيشة",
+        "en": "Living Room"
+      },
+      "eyebrow": {
+        "ar": "بيتك بالكامل من صادكو",
+        "en": "Your whole home from SADKO"
+      },
+      "title": {
+        "ar": "أهلاً بك فى منزل صادكو",
+        "en": "Welcome to the SADKO house"
+      },
+      "hotspots": [
+        {
+          "label": {
+            "ar": "تليفزيونات",
+            "en": "TVs"
+          },
+          "href": "category/38022381.html",
+          "fx": 0.5,
+          "fy": 0.514,
+          "mfx": 0.51,
+          "mfy": 0.49,
+          "at": 0.03,
+          "span": 0.3
+        },
+        {
+          "label": {
+            "ar": "أنظمة صوت وترفيه",
+            "en": "Sound & entertainment"
+          },
+          "href": "category/38022381.html",
+          "fx": 0.413,
+          "fy": 0.606,
+          "mfx": 0.617,
+          "mfy": 0.531,
+          "at": 0.03,
+          "span": 0.3
+        },
+        {
+          "label": {
+            "ar": "تكييفات هواء",
+            "en": "Air conditioners"
+          },
+          "href": "category/38032005.html",
+          "fx": 0.885,
+          "fy": 0.167,
+          "mfx": 0.869,
+          "mfy": 0.388,
+          "at": 0.03,
+          "span": 0.3
+        },
+        {
+          "label": {
+            "ar": "مراوح ومبردات هواء",
+            "en": "Fans & air coolers"
+          },
+          "href": "category/50318054.html",
+          "fx": 0.619,
+          "fy": 0.648,
+          "mfx": 0.687,
+          "mfy": 0.555,
+          "at": 0.03,
+          "span": 0.32,
+          "sfx": 0.619,
+          "sfy": 0.648
+        },
+        {
+          "label": {
+            "ar": "دفايات",
+            "en": "Space heaters"
+          },
+          "href": "category/50318054.html",
+          "fx": 0.773,
+          "fy": 0.815,
+          "mfx": 0.614,
+          "mfy": 0.672,
+          "at": 0.03,
+          "span": 0.32,
+          "sfx": 0.773,
+          "sfy": 0.815
+        },
+        {
+          "label": {
+            "ar": "تنقية وترطيب الهواء",
+            "en": "Air purifiers & humidifiers"
+          },
+          "href": "category/50318054.html",
+          "fx": 0.06,
+          "fy": 0.69,
+          "mfx": 0.163,
+          "mfy": 0.564,
+          "at": 0.03,
+          "span": 0.32,
+          "sfx": 0.06,
+          "sfy": 0.69
+        },
+        {
+          "label": {
+            "ar": "مبردات مياه",
+            "en": "Water dispensers"
+          },
+          "href": "category/102858075.html",
+          "fx": 0.371,
+          "fy": 0.597,
+          "mfx": 0.343,
+          "mfy": 0.531,
+          "at": 0.03,
+          "span": 0.32,
+          "sfx": 0.371,
+          "sfy": 0.597
+        }
+      ]
+    },
+    {
+      "id": "kitchen",
+      "label": {
+        "ar": "المطبخ",
+        "en": "Kitchen"
+      },
+      "eyebrow": {
+        "ar": "قلب المنزل",
+        "en": "The heart of the home"
+      },
+      "title": {
+        "ar": "مطبخ فيه كل شىء… حرفياً",
+        "en": "A kitchen with everything… literally"
+      },
+      "hotspots": [
+        {
+          "label": {
+            "ar": "ميكروييف",
+            "en": "Microwaves"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.098,
+          "fy": 0.638,
+          "mfx": 0.088,
+          "mfy": 0.539,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "خلاطات",
+            "en": "Blenders"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.18,
+          "fy": 0.574,
+          "mfx": 0.146,
+          "mfy": 0.625,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "كاتيل وماكينات قهوة",
+            "en": "Kettles & coffee machines"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.218,
+          "fy": 0.607,
+          "mfx": 0.24,
+          "mfy": 0.523,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "قلايات",
+            "en": "Air fryers"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.333,
+          "fy": 0.551,
+          "mfx": 0.331,
+          "mfy": 0.514,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "أجهزة صغيرة",
+            "en": "Small appliances"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.378,
+          "fy": 0.57,
+          "mfx": 0.381,
+          "mfy": 0.517,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "عجانات",
+            "en": "Dough mixers"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.424,
+          "fy": 0.565,
+          "mfx": 0.426,
+          "mfy": 0.512,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "محضرات طعام",
+            "en": "Food processors"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.494,
+          "fy": 0.546,
+          "mfx": 0.505,
+          "mfy": 0.512,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "عصارات",
+            "en": "Juicers"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.538,
+          "fy": 0.546,
+          "mfx": 0.547,
+          "mfy": 0.509,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "جريل وتوستر",
+            "en": "Grills & toasters"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.594,
+          "fy": 0.57,
+          "mfx": 0.6,
+          "mfy": 0.52,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "غسالات أطباق",
+            "en": "Dishwashers"
+          },
+          "href": "category/38005652.html",
+          "fx": 0.346,
+          "fy": 0.722,
+          "mfx": 0.349,
+          "mfy": 0.54,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "أفران وبوتاجازات",
+            "en": "Ovens & cookers"
+          },
+          "href": "category/38003799.html",
+          "fx": 0.494,
+          "fy": 0.7,
+          "mfx": 0.507,
+          "mfy": 0.536,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "شفاطات",
+            "en": "Hoods"
+          },
+          "href": "category/38003799.html",
+          "fx": 0.497,
+          "fy": 0.398,
+          "mfx": 0.501,
+          "mfy": 0.469,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "ثلاجات",
+            "en": "Refrigerators"
+          },
+          "href": "category/38003882.html",
+          "fx": 0.813,
+          "fy": 0.574,
+          "mfx": 0.817,
+          "mfy": 0.521,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "حلل كهربائية ومفارم",
+            "en": "Electric pots & choppers"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.903,
+          "fy": 0.607,
+          "mfx": 0.87,
+          "mfy": 0.63,
+          "at": 0.92,
+          "span": 0.26
+        },
+        {
+          "label": {
+            "ar": "فريزرات",
+            "en": "Freezers"
+          },
+          "href": "category/38005648.html",
+          "fx": 0.909,
+          "fy": 0.75,
+          "mfx": 0.884,
+          "mfy": 0.56,
+          "at": 0.92,
+          "span": 0.26
+        }
+      ]
+    },
+    {
+      "id": "laundry",
+      "label": {
+        "ar": "غرفة الغسيل",
+        "en": "Laundry Room"
+      },
+      "eyebrow": {
+        "ar": "ركن الغسيل والعناية",
+        "en": "Laundry & care corner"
+      },
+      "title": {
+        "ar": "غسيل وتجفيف ونظافة… وكل ما يلزمها",
+        "en": "Washing, drying, cleaning… and everything with it"
+      },
+      "hotspots": [
+        {
+          "label": {
+            "ar": "غسالات ملابس",
+            "en": "Washing machines"
+          },
+          "href": "category/38005652.html",
+          "fx": 0.655,
+          "fy": 0.699,
+          "mfx": 0.659,
+          "mfy": 0.599,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "مجففات ملابس",
+            "en": "Clothes dryers"
+          },
+          "href": "category/38005652.html",
+          "fx": 0.549,
+          "fy": 0.699,
+          "mfx": 0.7,
+          "mfy": 0.548,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "سخانات غاز",
+            "en": "Gas water heaters"
+          },
+          "href": "category/40507239.html",
+          "fx": 0.76,
+          "fy": 0.269,
+          "mfx": 0.699,
+          "mfy": 0.38,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "سخانات كهرباء",
+            "en": "Electric water heaters"
+          },
+          "href": "category/40507239.html",
+          "fx": 0.836,
+          "fy": 0.167,
+          "mfx": 0.851,
+          "mfy": 0.323,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "مكاوى",
+            "en": "Irons"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.258,
+          "fy": 0.56,
+          "mfx": 0.215,
+          "mfy": 0.529,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "مكاوى بخار وستيمر",
+            "en": "Steam irons & steamers"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.321,
+          "fy": 0.375,
+          "mfx": 0.334,
+          "mfy": 0.432,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "مكانس",
+            "en": "Vacuum cleaners"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.379,
+          "fy": 0.694,
+          "mfx": 0.456,
+          "mfy": 0.573,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "مكانس روبوت وعمودية",
+            "en": "Robot & stick vacuums"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.464,
+          "fy": 0.497,
+          "mfx": 0.41,
+          "mfy": 0.63,
+          "at": 0.5,
+          "span": 0.28
+        },
+        {
+          "label": {
+            "ar": "ماكينات خياطة",
+            "en": "Sewing machines"
+          },
+          "href": "category/112439376.html",
+          "fx": 0.846,
+          "fy": 0.54,
+          "mfx": 0.845,
+          "mfy": 0.518,
+          "at": 0.5,
+          "span": 0.28
+        }
+      ]
+    },
+    {
+      "id": "shop",
+      "label": {
+        "ar": "المتجر",
+        "en": "Shop"
+      },
+      "eyebrow": {
+        "ar": "كل ما رأيته… وأكثر",
+        "en": "Everything you just saw… and more"
+      },
+      "title": {
+        "ar": "ادخل المتجر",
+        "en": "Enter the shop"
+      },
+      "showcaseLabel": {
+        "ar": "تسوّق كل المنتجات",
+        "en": "Shop all products"
+      },
+      "hotspots": []
+    }
+  ]
+}

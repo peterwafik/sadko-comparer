@@ -125,7 +125,10 @@
 
     return '<article class="card" data-id="' + esc(p.id) + '" data-cat="' + esc(p.categoryId) + '"' +
       (out ? ' data-stock="out"' : '') + '>' +
-      '<a class="card__imgwrap" href="' + esc(href) + '">' + img + '</a>' +
+      // The badge is the product's Ecwid ribbon ("عرض", "جديد"), set from the
+      // admin portal. Only what staff wrote is shown; nothing is inferred.
+      '<a class="card__imgwrap" href="' + esc(href) + '">' + img +
+        (p.badge ? '<span class="card__badge">' + esc(String(p.badge).slice(0, 40)) + '</span>' : '') + '</a>' +
       '<div class="card__body">' +
         '<h3 class="card__title">' + esc(title) + '</h3>' +
         '<p class="card__teaser"' + (en ? ' hidden' : '') + '>' + esc(teaser) + '</p>' +

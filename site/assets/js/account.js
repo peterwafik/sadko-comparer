@@ -231,12 +231,8 @@
           (u.providers && u.providers.length ? ' · ' + t('بتدخل بـ ', 'signs in with ') + esc(u.providers.join(', ')) : '') + '</p></div>' +
           '<button class="btn btn--quiet btn--sm" id="logoutBtn">' + t('تسجيل خروج', 'Sign out') + '</button></div>' +
 
-        // Only the owner (email in ADMIN_EMAILS on the server) gets this.
-        (u.isAdmin ? '<a href="admin.html" class="admin-link">' +
-            '<span>' + t('غرفة التحكم', 'Control room') + '</span>' +
-            '<small>' + t('إدارة المنتجات والطلبات والمحتوى', 'Manage products, orders & content') + '</small>' +
-            '<b>' + t('افتح ←', 'Open →') + '</b></a>' : '') +
-
+        /* No control-room link here any more: admins have their own accounts
+           and sign in at admin.html, never through a customer account. */
         homesPanel(u) +
 
         '<div class="grid2 mt16">' +
@@ -535,8 +531,17 @@
           /* The grand total when Ecwid genuinely holds one — which means staff
              entered the delivery charge — and otherwise the goods subtotal,
              labelled as such. Never a total this page assembled itself. */
-          '<td>' + A.money(o.total != null ? o.total : o.subtotal) +
-            (o.total != null ? '' : ' <small class="muted">' + t('(أجهزة فقط)', '(goods only)') + '</small>') + '</td>' +
+          /* A site order keeps the server's figures in totals: the grand
+             total when delivery was quoted, and any coupon taken off. */
+          (function () {
+            const tt = o.totals || {};
+            const total = o.total != null ? o.total : (tt.grandTotal != null ? tt.grandTotal : null);
+            const goods = (o.subtotal || 0) - (tt.itemsDiscount || 0);
+            return '<td>' + A.money(total != null ? total : goods) +
+              (total != null ? '' : ' <small class="muted">' + t('(أجهزة فقط)', '(goods only)') + '</small>') +
+              (tt.coupon && tt.discount > 0 ? '<br><small class="muted">' + t('بعد خصم ', 'after coupon ') + '<span class="ltr">' + esc(tt.coupon.code) + '</span></small>' : '') +
+              '</td>';
+          })() +
           '<td>' + esc(payName(o.payment)) + '</td>' +
           '<td><span class="chip ' + statusChip(o.status) + '">' + esc(statusName(o.status)) + '</span>' +
             /* The tracking number staff entered on the order in Ecwid. Every

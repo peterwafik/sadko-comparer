@@ -26,15 +26,15 @@ test('each entry carries a bilingual label for the admin UI', () => {
   for (const l of labels) assert.match(l, / \/ /, `label "${l}" is not bilingual`);
 });
 
-test('promos is owner-editable', () => {
-  /* Ecwid has no banner entity. Banner ARTWORK can now come from the dedicated
-     Ecwid category, but derived banners carry no English — the store holds no
-     usable translations — so data/promos.json remains the bilingual source and
-     the fallback when that category is empty. It has to be editable. */
-  assert.match(block[1], /promos:\s*\{\s*file:\s*'promos\.json'/);
+test('scenes are owner-editable: the home page text and points exist only on the site', () => {
+  assert.match(block[1], /scenes:\s*\{\s*file:\s*'scenes\.json'/);
 });
 
 /* ---- what must NOT be editable here ---- */
+
+test('adverts are NOT an editable content file: they live in Ecwid ad folders', () => {
+  assert.ok(!/promos/.test(block[1]), 'promos.json must not be editable here; the portal edits the ads in Ecwid');
+});
 
 test('the product catalogue is NOT an editable content file', () => {
   /* Ecwid owns products. Offering a JSON editor for products.json would let
@@ -54,34 +54,25 @@ test('collections.json is NOT an editable content file', () => {
 
 test('the editable set is exactly what we expect, so an addition is deliberate', () => {
   const keys = [...block[1].matchAll(/^\s*(\w+):\s*\{/gm)].map(m => m[1]).sort();
-  assert.deepEqual(keys, ['finder', 'guides', 'promos'],
+  assert.deepEqual(keys, ['finder', 'guides', 'scenes'],
     'adding a content file here is a decision — update this test with it');
 });
 
 /* ---- the server list and the admin UI list must not drift ---- */
 
-const adminJs = readFileSync(path.join(SITE, 'assets', 'js', 'admin.js'), 'utf8');
+const adminJs = readFileSync(path.join(SITE, 'assets', 'js', 'admin', 'pages-site.js'), 'utf8');
 
-test('admin.js offers exactly the content files the server registers', () => {
-  /* A file registered on the server but missing from CONTENT_FILES is simply
-     invisible to the owner — which is how promos was added server-side and
-     still could not be edited. */
+test('every content file the server registers has a page in the portal that edits it', () => {
+  /* A file registered on the server with no page is simply invisible to the
+     owner, which is how promos was once added server-side and could not be
+     edited. guides and finder use the structured editor; scenes has its own. */
   const serverKeys = [...block[1].matchAll(/^\s*(\w+):\s*\{/gm)].map(m => m[1]).sort();
-  const uiBlock = /const CONTENT_FILES = \[([\s\S]*?)\];/.exec(adminJs);
-  assert.ok(uiBlock, 'CONTENT_FILES not found in admin.js');
-  const uiKeys = [...uiBlock[1].matchAll(/name:\s*'([^']+)'/g)].map(m => m[1]).sort();
-  assert.deepEqual(uiKeys, serverKeys,
-    `admin.js offers [${uiKeys}] but the server registers [${serverKeys}]`);
+  const edited = new Set([...adminJs.matchAll(/contentPage\('\w+', '(\w+)'/g)].map(m => m[1]));
+  if (/A\.api\('PUT', 'content\/scenes'/.test(adminJs)) edited.add('scenes');
+  assert.deepEqual([...edited].sort(), serverKeys);
 });
 
-test('every content file has a label key in BOTH languages', () => {
-  /* A missing key renders as the raw key, or as blank, depending on the
-     lookup — either way the owner sees a button with no name. */
-  const uiBlock = /const CONTENT_FILES = \[([\s\S]*?)\];/.exec(adminJs);
-  const keys = [...uiBlock[1].matchAll(/k:\s*'([^']+)'/g)].map(m => m[1]);
-  assert.ok(keys.length, 'no label keys found');
-  for (const k of keys) {
-    const uses = adminJs.split(k + ':').length - 1;
-    assert.ok(uses >= 2, `${k} is defined ${uses} time(s); it needs an Arabic and an English label`);
-  }
+test('no content page is a raw JSON textarea', () => {
+  assert.match(adminJs, /function editor\(value, onChange\)/, 'the structured form editor exists');
+  assert.ok(!/<textarea[^>]*>' \+ esc\(c\.json\)/.test(adminJs));
 });

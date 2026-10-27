@@ -8,7 +8,9 @@ import path from 'node:path';
 
 const SITE = path.join(import.meta.dirname, '..');
 const src = readFileSync(path.join(SITE, 'compare-server.mjs'), 'utf8');
-const adminJs = readFileSync(path.join(SITE, 'assets', 'js', 'admin.js'), 'utf8');
+/* The admin portal's scripts, read as one source. */
+const adminJs = ['core', 'login', 'pages-site', 'pages-store', 'pages-people']
+  .map(f => readFileSync(path.join(SITE, 'assets', 'js', 'admin', f + '.js'), 'utf8')).join('\n');
 const adminBlock = /if \(u\.pathname\.startsWith\('\/api\/admin\/'\)\)[\s\S]*?\n  \}/.exec(src);
 
 test('the admin block is locatable', () => {
@@ -51,9 +53,8 @@ test('the webhook secret is not exposed through admin either', () => {
   assert.ok(!/SADKO_ECWID_WEBHOOK_SECRET/.test(adminBlock[0]));
 });
 
-test('admin.js never asks for or renders a token', () => {
-  assert.ok(!/token/i.test(/renderEcwidPanel[\s\S]{0,2500}/.exec(adminJs)?.[0] || ''),
-    'the Ecwid panel must not mention a token');
+test('the admin portal never asks for or renders an Ecwid token', () => {
+  assert.ok(!/ecwid[_ ]?token|secret_|public_/i.test(adminJs), 'the portal must not mention the Ecwid token');
 });
 
 /* --------------------- Ecwid-owned field protection --------------------- */
@@ -65,46 +66,37 @@ test('ECWID_OWNED_FIELDS is declared and covers what Ecwid owns', () => {
     assert.match(owned, new RegExp("'" + f + "'"), `${f} should be Ecwid-owned`);
 });
 
-test('badge stays site-editable', () => {
-  /* Ecwid has a ribbon field, but this store sets none, so badge is the one
-     product field the local overlay still usefully owns. */
-  const owned = /const ECWID_OWNED_FIELDS = \[([^\]]*)\]/.exec(src)[1];
-  assert.ok(!/'badge'/.test(owned), 'badge must remain editable locally');
+test('the badge is Ecwid\'s ribbon, not a site field', () => {
+  /* The overlay used to own the badge because the store set no ribbons. The
+     portal now writes the ribbon in Ecwid, and the mirror reads it back. */
+  const map = readFileSync(path.join(SITE, 'engine', 'ecwid-map.mjs'), 'utf8');
+  assert.match(map, /badge: e\.ribbon && text\(e\.ribbon\.text\)/);
 });
 
-test('a PATCH touching an Ecwid-owned field is refused with a reason', () => {
-  assert.match(adminBlock[0], /ecwid-owned/);
+test('product edits go to Ecwid, never to a site overlay', () => {
+  const block = adminBlock[0];
+  assert.ok(block.includes('await api.updateProduct(id, patch)'));
+  for (const gone of ['cadm.setOverride', 'cadm.createProduct', 'cadm.hide(', 'cadm.unhide(', 'cadm.revert(', 'cadm.merge('])
+    assert.ok(!src.includes(gone), gone + ' must not be called any more');
 });
 
-test('creating a product is refused while Ecwid is the source', () => {
-  /* A product added locally would vanish on the next sync, so the editor must
-     say so rather than accept it and lose the work. */
-  const post = /seg\[0\] === 'products' && seg\.length === 1 && req\.method === 'POST'[\s\S]{0,700}/.exec(adminBlock[0])[0];
-  assert.match(post, /ecwid-owned|activeSource\(\) === 'ecwid'/);
-});
-
-test('the field guard only applies while Ecwid is actually the source', () => {
-  /* With the flag off, the overlay is the only way to edit anything and must
-     keep working exactly as before. */
-  assert.match(adminBlock[0], /activeSource\(\) === 'ecwid'/);
+test('after an Ecwid write the mirror is refreshed at once, not on the next poll', () => {
+  const fn = /async function refreshProduct\(id\) \{[\s\S]*?\n\}/.exec(src)[0];
+  assert.match(fn, /applyProductEvent\(\{ entityId: id/);
+  assert.match(fn, /invalidate\(\)/);
 });
 
 /* ------------------------------- the panel ------------------------------ */
 
-test('admin.js renders an Ecwid panel and links out to the Ecwid admin', () => {
-  assert.match(adminJs, /renderEcwidPanel/);
-  assert.match(adminJs, /my\.ecwid\.com|shopsettings\.com/, 'no deep link to the Ecwid admin');
+test('the store pages link out to the matching page of the Ecwid admin', () => {
+  assert.match(adminJs, /https:\/\/my\.ecwid\.com\/store\/' \+ STORE_ID \+ '#' \+ hash/);
+  assert.match(adminJs, /ecwidLink\('order:id=' \+ o\.id\)/);
+  assert.match(adminJs, /ecwidLink\('product:id=' \+ p\.id/);
 });
 
-test('the panel has a sync-now control wired to the route', () => {
-  assert.match(adminJs, /adm-ecwid-sync/);
-  assert.match(adminJs, /ecwid\/sync/);
-});
-
-test('the panel labels exist in both languages', () => {
-  for (const k of ['ecwidTitle', 'ecwidSyncNow'])
-    assert.ok(adminJs.split(k + ':').length - 1 >= 2,
-      `${k} needs an Arabic and an English label`);
+test('the dashboard has a sync-now control wired to the route', () => {
+  assert.match(adminJs, /id="syncBtn"/);
+  assert.match(adminJs, /A\.api\('POST', 'ecwid\/sync'/);
 });
 
 /* --------------- what Task 14 deliberately does NOT do ----------------- */

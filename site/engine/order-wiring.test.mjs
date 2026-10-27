@@ -129,7 +129,9 @@ test('no grand total is ever synthesised on the way to Ecwid', () => {
   const fn = /export function toEcwidOrder[\s\S]{0,4000}/.exec(map)[0];
   assert.deepEqual(fn.match(/shippingRate: \w+/g), ['shippingRate: fee'], 'the only shipping rate is the quoted fee');
   assert.match(fn, /const fee = Number\.isFinite\(t\.deliveryFee\)/, 'the fee comes from the stored, server-computed totals');
-  assert.match(fn, /total: fee == null \? subtotal : subtotal \+ fee/, 'without a fee the total is the items subtotal');
+  assert.match(fn, /total: \(fee == null \? subtotal : subtotal \+ fee\) - discount/, 'without a fee the total is the items subtotal');
+  /* The only thing taken off is a coupon Ecwid applied, at the figure stored. */
+  assert.match(fn, /const discount = cp \? Math\.max\(0, Number\(t\.discount\) \|\| 0\) : 0;/);
 });
 
 /* ------------------- scope: the bug tests did not catch ----------------- */
@@ -275,7 +277,7 @@ test('the SIGNED-IN route re-prices before the order is created', () => {
 
 test('the re-priced lines are what actually get stored', () => {
   /* Re-pricing and then storing the posted body would change nothing. */
-  assert.match(src, /db\.createOrder\(me\.id, \{ \.\.\.b, items: priced\.items, deliveryQuote: quote \}\)/);
+  assert.match(src, /db\.createOrder\(me\.id, \{ \.\.\.b, items: priced\.items, deliveryQuote: quote, coupon: cp\.coupon \}\)/);
 });
 
 test('an unreadable catalogue REFUSES the order rather than trusting the browser', () => {

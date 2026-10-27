@@ -33,6 +33,7 @@
 
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
 import { openAccountsDb, importLegacyJson } from './accounts-db.mjs';
+import { applyCoupon } from './coupons.mjs';
 
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 const SESSION_DAYS = 30;
@@ -373,7 +374,7 @@ export async function openAccounts(file) {
     /* ---- orders ---- */
     // Offline payment only. No card data is accepted, stored or transmitted
     // anywhere in this codebase; see PAYMENT_METHODS in compare-server.mjs.
-    async createOrder(userId, { items, payment, delivery, note, totals, deliveryQuote }) {
+    async createOrder(userId, { items, payment, delivery, note, totals, deliveryQuote, coupon }) {
       const u = await store.getUser(userId);
       if (!u) return { error: 'no-user' };
       if (!Array.isArray(items) || !items.length) return { error: 'empty-cart' };
@@ -412,6 +413,8 @@ export async function openAccounts(file) {
           : { subtotal, deliveryFee: null, installFee: null, grandTotal: null, currency: 'EGP',
               note: 'رسوم التوصيل والتركيب بتتأكد من خدمة العملاء قبل التنفيذ.' },
       };
+      /* A coupon Ecwid applied (engine/coupons.mjs); the route checked it. */
+      if (coupon && coupon.ok) { order.totals = applyCoupon(order.totals, coupon); order.coupon = coupon; }
       await store.addOrder(order);
       return { ok: true, order };
     },

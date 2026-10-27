@@ -388,8 +388,11 @@ test('the response says which slots came from where', () => {
 });
 
 test('a missing promos.json degrades to Ecwid-only rather than throwing', () => {
-  const route = /u\.pathname === '\/data\/promos\.json'[\s\S]{0,2600}/.exec(SERVER)[0];
-  assert.match(route, /catch \(e\) \{ local = null; \}/);
+  /* The route's body lives in derivedPromosPayload(), shared with the admin
+     portal's page preview. */
+  const fn = /async function derivedPromosPayload\(\) \{[\s\S]*?\n\}/.exec(SERVER)[0];
+  assert.match(fn, /catch \(e\) \{ local = null; \}/);
+  assert.match(SERVER, /const payload = await derivedPromosPayload\(\);/);
 });
 
 test('the slot map reaches the source as a GETTER, not a captured value', () => {

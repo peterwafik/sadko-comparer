@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
-import { openCatalogAdmin, EDITABLE_FIELDS, UPLOAD_MAX_BYTES } from './catalog-admin.mjs';
+import { openCatalogAdmin, UPLOAD_MAX_BYTES } from './catalog-admin.mjs';
 
 /* :memory: per test: fast, and nothing left on disk. The reopen tests below use
    a real file, which libSQL on Windows may still hold for a moment after close. */
@@ -20,114 +20,47 @@ const BASE = [
   { id: '3', title: 'بوتاجاز', price: 3000, image: 'c.webp', description: 'f', categoryId: 'c1' },
 ];
 
-test('override applies only whitelisted fields and merges onto base', async () => {
+/* The retired product overlay: nothing can write it, the old rows are listed
+   for the owner, and discarding them removes exactly that kind. */
+async function seedLeftovers(db) {
+  await db.raw.prepare("INSERT INTO overrides (id,patch_json,updated_at,updated_by) VALUES ('1','{\"price\":1500}','t','o')").run();
+  await db.raw.prepare("INSERT INTO custom (id,data_json,created_at,created_by) VALUES ('adm-x','{\"title\":\"منتج\",\"price\":9}','t','o')").run();
+  await db.raw.prepare("INSERT INTO hidden (id,at,by) VALUES ('2','t','o')").run();
+  await db.raw.prepare("INSERT INTO content (name,json_text,updated_at,updated_by) VALUES ('promos','{}','t','o')").run();
+}
+
+test('the overlay can no longer be written through the store', async () => {
   const { db, cleanup } = await fresh();
   try {
-    await db.setOverride('1', { price: 1500, title: 'ثلاجة مخفّضة', evil: 'x', id: 'hack' }, 'owner@x');
-    const merged = await db.merge(BASE);
-    const p1 = merged.find(p => p.id === '1');
-    assert.equal(p1.price, 1500);
-    assert.equal(p1.title, 'ثلاجة مخفّضة');
-    assert.equal(p1.image, 'a.webp');           // untouched
-    assert.equal(p1.id, '1');                    // id can never be overridden
-    assert.ok(!('evil' in p1));                  // non-editable key dropped
-    assert.equal(merged.length, 3);
+    for (const m of ['setOverride', 'createProduct', 'updateCustom', 'hide', 'unhide', 'remove', 'revert', 'merge', 'describe'])
+      assert.equal(typeof db[m], 'undefined', m + ' is gone');
   } finally { cleanup(); }
 });
 
-test('price is coerced to a sane integer; garbage is ignored', async () => {
+test('leftovers lists every kind the overlay used to hold', async () => {
   const { db, cleanup } = await fresh();
   try {
-    await db.setOverride('1', { price: '1750.9' }, 'o');
-    assert.equal((await db.merge(BASE)).find(p => p.id === '1').price, 1751);
-    await db.setOverride('2', { price: -5 }, 'o');            // negative rejected
-    assert.equal((await db.merge(BASE)).find(p => p.id === '2').price, 2000);
-    await db.setOverride('2', { price: 'abc' }, 'o');         // NaN rejected
-    assert.equal((await db.merge(BASE)).find(p => p.id === '2').price, 2000);
+    await seedLeftovers(db);
+    const l = await db.leftovers();
+    assert.deepEqual(l.overrides, [{ id: '1', patch: { price: 1500 } }]);
+    assert.deepEqual(l.custom, [{ id: 'adm-x', title: 'منتج', price: 9 }]);
+    assert.deepEqual(l.hidden, ['2']);
+    assert.equal(l.promos, true);
   } finally { cleanup(); }
 });
 
-test('setting a field to null reverts it to the scraped value', async () => {
+test('discard removes one kind, audits it, and refuses an unknown kind', async () => {
   const { db, cleanup } = await fresh();
   try {
-    await db.setOverride('1', { price: 1500 }, 'o');
-    await db.setOverride('1', { price: null }, 'o');
-    assert.equal((await db.merge(BASE)).find(p => p.id === '1').price, 1000);
-    // with no keys left, the override row is gone
-    assert.equal((await db.stats()).overrides, 0);
-  } finally { cleanup(); }
-});
-
-test('revert drops the whole override', async () => {
-  const { db, cleanup } = await fresh();
-  try {
-    await db.setOverride('1', { price: 1500, title: 'x' }, 'o');
-    await db.revert('1', 'o');
-    const p1 = (await db.merge(BASE)).find(p => p.id === '1');
-    assert.equal(p1.price, 1000);
-    assert.equal(p1.title, 'ثلاجة');
-    assert.ok((await db.audit(5)).some(r => r.action === 'product.revert'));
-  } finally { cleanup(); }
-});
-
-test('hide removes from storefront; unhide brings it back', async () => {
-  const { db, cleanup } = await fresh();
-  try {
-    await db.hide('2', 'o');
-    assert.deepEqual((await db.merge(BASE)).map(p => p.id), ['1', '3']);
-    await db.unhide('2', 'o');
-    assert.equal((await db.merge(BASE)).length, 3);
-  } finally { cleanup(); }
-});
-
-test('custom products get an adm- id, appear in the merge, and delete fully', async () => {
-  const { db, cleanup } = await fresh();
-  try {
-    const r = await db.createProduct({ title: 'منتج جديد', price: 999 }, 'o');
-    assert.ok(r.ok);
-    assert.match(r.product.id, /^adm-/);
-    assert.ok(r.product._custom);
-    const merged = await db.merge(BASE);
-    assert.equal(merged.length, 4);
-    assert.ok(merged.some(p => p.id === r.product.id && p.title === 'منتج جديد'));
-    // update it
-    await db.updateCustom(r.product.id, { price: 888 }, 'o');
-    assert.equal((await db.merge(BASE)).find(p => p.id === r.product.id).price, 888);
-    // delete it (custom => gone entirely, including any hidden/override rows)
-    await db.hide(r.product.id, 'o');
-    const del = await db.remove(r.product.id, 'o');
-    assert.equal(del.deleted, 'custom');
-    assert.equal((await db.merge(BASE)).length, 3);
-    assert.deepEqual(await db.stats(), { overrides: 0, custom: 0, hidden: 0 });
-    assert.equal((await db.updateCustom(r.product.id, { price: 1 }, 'o')).error, 'not-found');
-  } finally { cleanup(); }
-});
-
-test('creating a product without a title is rejected', async () => {
-  const { db, cleanup } = await fresh();
-  try { assert.equal((await db.createProduct({ price: 10 }, 'o')).error, 'title-required'); }
-  finally { cleanup(); }
-});
-
-test('remove() on a base product hides it (a re-crawl must not resurrect a deletion as an edit)', async () => {
-  const { db, cleanup } = await fresh();
-  try {
-    const r = await db.remove('1', 'o');
-    assert.equal(r.deleted, 'hidden');
-    assert.ok(!(await db.merge(BASE)).some(p => p.id === '1'));
-  } finally { cleanup(); }
-});
-
-test('describe returns base, override and the merged product for the editor', async () => {
-  const { db, cleanup } = await fresh();
-  try {
-    await db.setOverride('3', { price: 2500 }, 'o');
-    const d = await db.describe(BASE, '3');
-    assert.equal(d.base.price, 3000);
-    assert.equal(d.override.price, 2500);
-    assert.equal(d.product.price, 2500);
-    assert.equal(d.hidden, false);
-    assert.equal(await db.describe(BASE, 'nope'), null);
+    await seedLeftovers(db);
+    await db.discard('hidden', 'owner@x');
+    const l = await db.leftovers();
+    assert.deepEqual(l.hidden, []);
+    assert.equal(l.overrides.length, 1, 'the others are untouched');
+    await db.discard('promos', 'owner@x');
+    assert.equal((await db.leftovers()).promos, false);
+    assert.ok((await db.audit(5)).some(r => r.action === 'leftovers.discard' && r.target === 'hidden'));
+    await assert.rejects(db.discard('users', 'x'), /unknown leftover kind/);
   } finally { cleanup(); }
 });
 
@@ -142,34 +75,16 @@ test('settings round-trip and persist typed values', async () => {
   } finally { cleanup(); }
 });
 
-test('every mutation is written to the audit log', async () => {
-  const { db, cleanup } = await fresh();
-  try {
-    await db.setOverride('1', { price: 1 }, 'owner@x');
-    await db.hide('2', 'owner@x');
-    const log = await db.audit(10);
-    assert.ok(log.length >= 2);
-    assert.ok(log.some(r => r.action === 'product.edit' && r.actor === 'owner@x'));
-    assert.ok(log.some(r => r.action === 'product.hide'));
-  } finally { cleanup(); }
-});
-
-test('EDITABLE_FIELDS never includes id', () => {
-  assert.ok(!EDITABLE_FIELDS.includes('id'));
-});
-
-test('edits survive reopening the database (persistence)', async () => {
+test('settings and content survive reopening the database (persistence)', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'sadko-cadm-p-'));
   const file = path.join(dir, 'catalog-admin.db');
   try {
     const a = await openCatalogAdmin(file);
-    await a.setOverride('1', { price: 1234 }, 'o');
-    const cust = (await a.createProduct({ title: 'x' }, 'o')).product.id;
+    await a.setSetting('site.hotline', '19141', 'o');
     await a.setContent('guides', '{"a":1}', 'o');
     a.close();
     const b = await openCatalogAdmin(file);           // migrations do not re-run
-    assert.equal((await b.merge(BASE)).find(p => p.id === '1').price, 1234);
-    assert.ok((await b.merge(BASE)).some(p => p.id === cust));
+    assert.equal(await b.getSetting('site.hotline'), '19141');
     assert.equal(await b.getContent('guides'), '{"a":1}');
     b.close();
   } finally { rmQuiet(dir); }

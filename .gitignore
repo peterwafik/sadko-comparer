@@ -76,3 +76,7 @@ site/public/
 
 # VM backup (customer data + server secrets)
 backups/
+
+# admin accounts (hashed passwords, encrypted authenticator keys) — never commit
+site/data/admin-auth.db
+site/data/admin-auth.db-*

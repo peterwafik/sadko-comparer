@@ -44,7 +44,7 @@
    ========================================================================== */
 
 import http from 'node:http';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { createReadStream, existsSync, statSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -58,7 +58,7 @@ import { discoverProductUrls, tavilyEnabled } from './engine/tavily.mjs';
 import { createVerifyOffer } from './engine/verify.mjs';
 import { openAccounts, ORDER_STATUSES } from './engine/accounts.mjs';
 import { verifyIdToken, enabledProviders, authMode } from './engine/oidc.mjs';
-import { openCatalogAdmin, EDITABLE_FIELDS } from './engine/catalog-admin.mjs';
+import { openCatalogAdmin } from './engine/catalog-admin.mjs';
 import { openAnalytics, EVENT_TYPES, FUNNEL_STAGES } from './engine/analytics.mjs';
 /* Ecwid — design: docs/superpowers/specs/2026-09-15-ecwid-integration-design.md
    plus revision 2 (2026-09-21). Everything is behind SADKO_ECWID; with the flag
@@ -76,14 +76,19 @@ import { mergeOrders } from './engine/ecwid-customers.mjs';
 import { validateGuestOrder, guestUserOf, guestCustomerOf } from './engine/guest-orders.mjs';
 import { repriceLines } from './engine/order-pricing.mjs';
 import { resolveCategory, repointCategoryPage, retargetCategoryPage } from './engine/category-alias.mjs';
-import { adFoldersFromEnv, adCounts, adIssues, mergePromos } from './engine/ecwid-ads.mjs';
+import { adFoldersFromEnv, adCounts, adIssues, mergePromos, AD_SLOTS, isAd, adPositionOf, adDestination, parseAdDescription } from './engine/ecwid-ads.mjs';
 import { toLocalStatus } from './engine/ecwid-map.mjs';
 import { isPublicPath } from './engine/static-allow.mjs';
 import { quoteFor, feeMismatch, subtotalMismatch, totalsWith } from './engine/delivery-order.mjs';
+import { normalizeCode, toEcwidCalcOrder, couponFromCalc, whyNotApplied, applyCoupon, couponMismatch } from './engine/coupons.mjs';
 import { GOVERNORATES } from './engine/shipping-regions.mjs';
 import { phoneMatches, publicStatus } from './engine/order-track.mjs';
 import { mkdir } from 'node:fs/promises';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import QRCode from 'qrcode';
+import { openAdminAuth } from './engine/admin-auth.mjs';
+import { productPatch, couponPayload, adDescription, adSku, adName, imageSize, shapeProblem, AD_SHAPES,
+         paymentPatch, adPagePreview, cleanDestination, htmlToText } from './engine/admin-ecwid.mjs';
 const randBytesHex = n => randomBytes(n).toString('hex');
 
 /* JSON data files the owner may edit from the control room. Whitelisted so the
@@ -116,11 +121,10 @@ async function notFoundPage(req, res, p) {
 const ADMIN_CONTENT = {
   guides: { file: 'guides.json', label: 'دليلك للاختيار / Buying guides' },
   finder: { file: 'finder.json', label: 'مساعد الاختيار / Finder questions' },
-  /* Banner artwork can come from the dedicated Ecwid category, but derived
-     banners carry no English — the store holds no usable translations — so
-     this file stays the bilingual source and the fallback when that category
-     is empty. See engine/ecwid-rails.mjs deriveBanners(). */
-  promos: { file: 'promos.json', label: 'لافتات الإعلانات / Advertisement banners' },
+  /* The home page's scenes: text and clickable points (index.html reads
+     /data/scenes.json over its built-in defaults). Adverts are NOT here any
+     more: they live in Ecwid ad folders and the portal edits them there. */
+  scenes: { file: 'scenes.json', label: 'مشاهد الصفحة الرئيسية / Home scenes' },
 };
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -1749,6 +1753,8 @@ const ECWID_TOKEN = process.env.SADKO_ECWID_TOKEN || '';
    engine/ecwid-ads.mjs for why the folders are addressed by ID and not by
    name (a disabled Ecwid category has no readable name). */
 const ECWID_AD_FOLDERS = adFoldersFromEnv(process.env);
+/* What the environment alone says, so the portal knows which folders it may set up. */
+const ENV_AD_FOLDERS = adFoldersFromEnv(process.env);
 
 /* How often the mirror asks Ecwid what changed.
 
@@ -1789,12 +1795,17 @@ export function ready() {
         return false;
       }
     };
-    [ECWID_STORE, ACCOUNTS, CATALOG_ADMIN, ANALYTICS] = await Promise.all([
+    [ECWID_STORE, ACCOUNTS, CATALOG_ADMIN, ANALYTICS, ADMIN_AUTH] = await Promise.all([
       ECWID_ON ? open('ecwid', () => openEcwidStore(path.join(ROOT, 'data', 'ecwid.db'))) : false,
       open('accounts', () => openAccounts(path.join(ROOT, 'data', 'accounts.json'))),
       open('catalog-admin', () => openCatalogAdmin(path.join(ROOT, 'data', 'catalog-admin.db'))),
       open('analytics', () => openAnalytics(path.join(ROOT, 'data', 'analytics.db'))),
+      /* Needs SADKO_ADMIN_SECRET; without it the control room stays shut
+         (and /healthz names why) while the shop runs normally. */
+      open('admin-auth', () => openAdminAuth(path.join(ROOT, 'data', 'admin-auth.db'))),
     ]);
+    /* Ad folders set up from the admin portal (the env still wins). */
+    await loadAdFolderSettings();
   })();
   return READY.then(() => ecwidSource().refresh && ecwidSource().refresh());
 }
@@ -1846,18 +1857,63 @@ function accounts() { return ACCOUNTS || false; }
 const SESSION_COOKIE = 'sadko_session';
 
 /* ---- admin (the owner's control room) ------------------------------------
-   Who is an admin is decided ONLY by the ADMIN_EMAILS env var — a comma list
-   set on the server, never in the database and never editable from the browser.
-   An account gains admin power solely by signing in with a listed email, so a
-   compromised web layer cannot mint an admin. */
-const ADMIN_EMAILS = new Set(
-  String(process.env.ADMIN_EMAILS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-);
-const isAdminEmail = email => ADMIN_EMAILS.has(String(email || '').trim().toLowerCase());
-const isAdminUser  = user => !!(user && isAdminEmail(user.email));
+   Admins have their OWN accounts (engine/admin-auth.mjs): invited by email,
+   a temporary password, a forced reset, then an authenticator app. A customer
+   account can no longer be an admin, so a stolen customer password is not a
+   stolen control room. The old ADMIN_EMAILS list is gone on purpose. */
+const ADMIN_COOKIE = 'sadko_admin';
+let ADMIN_AUTH = null;
+function adminAuth() { return ADMIN_AUTH || false; }
+function setAdminCookie(res, req, token, stage) {
+  const bits = [`${ADMIN_COOKIE}=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Strict',
+                `Max-Age=${stage === 'full' ? 8 * 3600 : 15 * 60}`];
+  if (isSecure(req)) bits.push('Secure');
+  res.setHeader('Set-Cookie', bits.join('; '));
+}
+function clearAdminCookie(res, req) {
+  const bits = [`${ADMIN_COOKIE}=`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=0'];
+  if (isSecure(req)) bits.push('Secure');
+  res.setHeader('Set-Cookie', bits.join('; '));
+}
+/* The signed-in admin, at any stage, or null. */
+async function adminSession(req) {
+  const a = adminAuth();
+  if (!a) return null;
+  try { return await a.session(readCookie(req, ADMIN_COOKIE)); } catch (e) { return null; }
+}
+/* The CLI's bearer secret, compared in constant time. */
+function bearerIsAdminSecret(req) {
+  const want = String(process.env.SADKO_ADMIN_SECRET || '');
+  const got = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (want.length < 24 || got.length !== want.length) return false;
+  return timingSafeEqual(Buffer.from(got), Buffer.from(want));
+}
 
 let CATALOG_ADMIN = null;
 function catalogAdmin() { return CATALOG_ADMIN || false; }
+
+/* Site settings the admin portal edits, with their defaults. Three keys in
+   the catalog-admin settings table; anything malformed reads as the default. */
+const SITE_DEFAULTS = { hotline: '19140', announcement: { on: false, ar: '', en: '' }, maintenance: { on: false, ar: '', en: '' } };
+async function siteConfig() {
+  let s = {};
+  try { const c = catalogAdmin(); s = c ? await c.settings() : {}; } catch (e) { s = {}; }
+  const note = v => (v && typeof v === 'object')
+    ? { on: !!v.on, ar: String(v.ar || '').slice(0, 300), en: String(v.en || '').slice(0, 300) }
+    : { on: false, ar: '', en: '' };
+  const hot = String(s['site.hotline'] || '').replace(/[^0-9+]/g, '').slice(0, 20);
+  return { hotline: hot || SITE_DEFAULTS.hotline, announcement: note(s['site.announcement']), maintenance: note(s['site.maintenance']) };
+}
+
+/* What the admin portal edits (site settings, scenes, guides, finder): the
+   browser always revalidates, so a change is never held in a visitor's
+   cache; only Vercel's CDN keeps a copy, for a minute. A stale-while-
+   revalidate in the ordinary header applied to browsers too, and kept a
+   switched-off announcement on screen for five minutes. */
+function setEditableCache(res) {
+  res.setHeader('cache-control', 'no-cache');
+  res.setHeader('vercel-cdn-cache-control', 'public, s-maxage=60, stale-while-revalidate=300');
+}
 
 /* An ADMIN_CONTENT file as the site should serve it: the owner's saved edit
    if there is one, otherwise the file shipped with the site. */
@@ -1892,12 +1948,12 @@ async function seedCatalog() {
 /* The catalogue the storefront builds on: the Ecwid mirror when it has rows,
    otherwise the seed. One call site, so nothing can read the wrong source. */
 async function baseCatalog() { return ecwidSource().catalogBase(); }
-// The storefront catalogue as customers see it = base ⊕ owner's overlay.
-async function mergedCatalog() {
-  const base = await baseCatalog();
-  const adm = catalogAdmin();
-  return adm ? await adm.merge(base) : base;
-}
+/* The storefront catalogue as customers see it. This used to fold a site-only
+   overlay (edited prices, hidden products, hand-added items) over the base;
+   that duplicated what Ecwid holds, so the admin portal now edits Ecwid and
+   the catalogue is served exactly as Ecwid has it. Old overlay rows are
+   listed for the owner to discard (GET /api/admin/leftovers). */
+async function mergedCatalog() { return baseCatalog(); }
 
 /* ---- production hardening -------------------------------------------------
    Small, dependency-free versions of the things a public server needs. */
@@ -2354,6 +2410,73 @@ const feeChanged = (lang, quote, subtotal, sentFee) => {
   return { error: 'delivery-fee-changed', quote, subtotal, message };
 };
 
+/* A discount coupon, asked of Ecwid (engine/coupons.mjs). The lines must be
+   re-priced already. Returns the coupon, or { ok: false, reason } where
+   'unavailable' means Ecwid could not be asked: an order is then refused
+   rather than granted a discount nobody checked. */
+async function couponFor(items, rawCode, email, subtotal) {
+  const code = normalizeCode(rawCode);
+  if (!code) return { ok: false, reason: 'unknown' };
+  const api = ecwidApi();
+  if (!api || !api.configured) return { ok: false, reason: 'unavailable' };
+  let calc;
+  try { calc = (await api.calculateOrder(toEcwidCalcOrder(items, code, email))).raw; }
+  catch (e) { console.warn('[coupon] calculate failed:', e && e.message); return { ok: false, reason: 'unavailable' }; }
+  const c = couponFromCalc(calc);
+  if (c.ok) return c;
+  let rec = null;
+  try { rec = await api.couponByCode(code); } catch (e) {}
+  return { ok: false, reason: whyNotApplied(rec, subtotal), minSubtotal: (rec && Number(rec.totalLimit)) || null };
+}
+
+const COUPON_MSG = {
+  unknown: ['كود الخصم غير صحيح.', 'That coupon code is not valid.'],
+  inactive: ['كود الخصم غير مفعّل حالياً.', 'That coupon is not active right now.'],
+  expired: ['انتهت صلاحية كود الخصم.', 'That coupon has expired.'],
+  'used-up': ['كود الخصم استُخدم بالكامل.', 'That coupon has already been used up.'],
+  'not-these-items': ['كود الخصم لا ينطبق على الأجهزة فى سلتك.', 'That coupon does not apply to the items in your cart.'],
+  'not-applicable': ['كود الخصم لا ينطبق على هذا الطلب.', 'That coupon cannot be applied to this order.'],
+  unavailable: ['تعذّر التحقق من كود الخصم الآن. حاول مرة أخرى، أو احذفه وأكمل الطلب.',
+                'We could not check the coupon just now. Try again, or remove it to continue.'],
+};
+function couponMessage(lang, c) {
+  if (c.reason === 'min-subtotal' && c.minSubtotal)
+    return lang === 'en' ? `That coupon needs an order of at least EGP ${c.minSubtotal.toLocaleString('en-US')}.`
+                         : `كود الخصم يحتاج طلباً بقيمة ${c.minSubtotal.toLocaleString('en-US')} جنيه على الأقل.`;
+  const m = COUPON_MSG[c.reason] || COUPON_MSG['not-applicable'];
+  return lang === 'en' ? m[1] : m[0];
+}
+/* What the browser is told: never Ecwid's raw record. */
+function publicCoupon(c, lang) {
+  if (!c) return null;
+  if (!c.ok) return { ok: false, reason: c.reason, message: couponMessage(lang, c) };
+  return { ok: true, code: c.code, name: c.name, freeShipping: c.freeShipping };
+}
+
+/* The coupon on an order, for BOTH order routes. No code → { coupon: null }.
+   A code that no longer applies, or a discount other than the one the
+   customer saw, is a 409 the customer reviews, like a changed delivery fee. */
+const discountChanged = lang => (lang === 'en' ? 'The discount has changed. Please review and confirm.'
+                                               : 'تغيّر الخصم. راجع الطلب وأكّده.');
+async function orderCoupon({ lang, code, items, email, totals, quotedDiscount }) {
+  if (!String(code || '').trim()) {
+    return couponMismatch(0, quotedDiscount)
+      ? { response: { status: 409, body: { error: 'coupon-changed', coupon: null, totals, message: discountChanged(lang) } } }
+      : { coupon: null };
+  }
+  const c = await couponFor(items, code, email, totals.subtotal);
+  /* 409 even when Ecwid could not be asked: skAuth reads any 503 as "the
+     whole account service is down" and would switch checkout off. */
+  if (!c.ok) return { response: { status: 409,
+    body: { error: c.reason === 'unavailable' ? 'coupon-unavailable' : 'coupon-invalid',
+            coupon: publicCoupon(c, lang), totals, message: couponMessage(lang, c) } } };
+  const applied = applyCoupon(totals, c);
+  if (couponMismatch(applied.discount, quotedDiscount))
+    return { response: { status: 409, body: { error: 'coupon-changed', coupon: publicCoupon(c, lang),
+                                              totals: applied, message: discountChanged(lang) } } };
+  return { coupon: c };
+}
+
 /* A public endpoint that creates orders is a spam channel into the owner's
    Ecwid store unless it is bounded. In memory deliberately: it resets on
    restart, which is the right trade for something that must never become
@@ -2524,6 +2647,166 @@ export async function maintenance({ full = true } = {}) {
 
 /* The whole site API as one request handler. The local server below listens
    with it; on Vercel, api/index.mjs exports it as the function. */
+
+/* ---- admin portal helpers (the routes are under /api/admin/) ------------- */
+
+/* Ecwid's own order statuses, offered as they are: staff know these words
+   from the Ecwid panel and the portal must not invent a third vocabulary. */
+const FULFILMENT_STATUSES = ['AWAITING_PROCESSING', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED',
+                             'READY_FOR_PICKUP', 'WILL_NOT_DELIVER', 'RETURNED'];
+const PAYMENT_STATUSES = ['AWAITING_PAYMENT', 'PAID', 'CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED', 'INCOMPLETE'];
+
+/* An Ecwid order as the orders desk shows it. */
+function adminOrder(o, full = false) {
+  const p = o.shippingPerson || o.billingPerson || {};
+  const ref = o.externalOrderId || (/(SDK-[A-Z0-9]{6})/.exec(String(o.orderComments || '')) || [])[1] || null;
+  const out = {
+    id: String(o.id), number: o.orderNumber || o.id, ref, createdAt: o.createDate || null,
+    name: p.name || '', email: o.email || '', phone: p.phone || '',
+    total: o.total ?? null, subtotal: o.subtotal ?? null, couponDiscount: o.couponDiscount || 0,
+    coupon: o.discountCoupon ? o.discountCoupon.code : null,
+    fulfillmentStatus: o.fulfillmentStatus || null, paymentStatus: o.paymentStatus || null,
+    paymentMethod: o.paymentMethod || '', tracking: o.trackingNumber || '',
+    items: (o.items || []).length,
+  };
+  if (!full) return out;
+  return { ...out,
+    lines: (o.items || []).map(i => ({ productId: i.productId ? String(i.productId) : null, name: i.name, qty: i.quantity, price: i.price,
+                                       image: i.imageUrl || i.smallThumbnailUrl || '' })),
+    address: [p.street, p.city, p.stateOrProvinceName].filter(Boolean).join('، '),
+    shipping: o.shippingOption ? { name: o.shippingOption.shippingMethodName, rate: o.shippingOption.shippingRate } : null,
+    comments: o.orderComments || '', adminNotes: o.privateAdminNotes || '' };
+}
+
+/* Is this mirrored product one of the ads rather than something for sale? */
+function isAdProduct(p) {
+  let map = {};
+  try { map = ecwidSync().adFolderState(ecwidSource().storedAdFolders()).map; } catch (e) {}
+  return isAd(p, map, ECWID_BANNER_CATEGORY);
+}
+
+/* After a write to Ecwid: fetch that product into the mirror now and drop
+   the storefront's cache, so the change is on the next page load rather
+   than the next poll. */
+async function refreshProduct(id) {
+  try { await ecwidSync().applyProductEvent({ entityId: id, eventType: 'product.updated' }); } catch (e) {}
+  try { ecwidSource().invalidate(); } catch (e) {}
+}
+async function afterAdChange(id) {
+  try { await ecwidSync().syncAdFolders(); } catch (e) {}
+  if (id) await refreshProduct(id); else { try { ecwidSource().invalidate(); } catch (e) {} }
+}
+
+/* A data: URL from the browser → bytes. 3 MB, because Vercel refuses request
+   bodies over 4.5 MB and base64 adds a third. */
+function decodeImage(dataUrl) {
+  const m = /^data:(image\/(png|jpe?g|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!m) return null;
+  const buf = Buffer.from(m[3], 'base64');
+  if (!buf.length || buf.length > 3_000_000) return null;
+  return { buf, mime: m[1] === 'image/jpg' ? 'image/jpeg' : m[1] };
+}
+
+/* One ad folder's contents, read from Ecwid, in position order. */
+async function adsInFolder(api, slot) {
+  const ids = await api.listCategoryProductIds(ECWID_AD_FOLDERS[slot]);
+  const items = (await Promise.all(ids.map(id => api.getProduct(id).catch(() => null)))).filter(Boolean);
+  const parseDest = sku => {
+    const raw = String(sku || '').split(/[#~]/)[0].trim().toLowerCase();
+    let m = /^product:(\d+)$/.exec(raw); if (m) return { kind: 'product', value: m[1] };
+    m = /^cat:(\d+)$/.exec(raw); if (m) return { kind: 'cat', value: m[1] };
+    const page = raw.replace(/\.html$/, '').replace(/\d+$/, '');
+    return adDestination(raw) && /^[a-z]+$/.test(page) ? { kind: 'page', value: page } : null;
+  };
+  return items.map(p => ({
+    id: String(p.id), slot, name: p.name || '', position: adPositionOf(p.name),
+    image: p.imageUrl || p.hdThumbnailUrl || '', enabled: p.enabled !== false,
+    dest: parseDest(p.sku), href: adDestination(p.sku), msg: parseAdDescription(p.description),
+  })).sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
+}
+
+/* The ad folders: the environment wins (it is the operator's setting); a
+   slot the environment leaves unset can be set up from the portal, whose
+   folder id is kept in the site settings. Mutated in place, because the
+   Ecwid sync holds a reference to ECWID_AD_FOLDERS. */
+async function loadAdFolderSettings() {
+  const c = catalogAdmin();
+  if (!c) return;
+  let saved = {};
+  try { saved = (await c.getSetting('ads.folders', {})) || {}; } catch (e) { saved = {}; }
+  for (const s of AD_SLOTS)
+    if (!ENV_AD_FOLDERS[s] && /^\d+$/.test(String(saved[s] || ''))) ECWID_AD_FOLDERS[s] = String(saved[s]);
+}
+
+/* The adverts as /data/promos.json serves them when Ecwid supplies any:
+   Ecwid's ad folders, with the bundled file filling the slots Ecwid leaves
+   empty. null means "serve the bundled file as it is". Also used by the
+   admin portal's page preview, so the preview is what the shop shows. */
+async function derivedPromosPayload() {
+    try {
+      /* The banner category is passed so a banner's own category is never
+         offered as its destination. */
+      const derived = deriveBanners(await ecwidSource().banners(), {
+        bannerCategoryId: ECWID_BANNER_CATEGORY,
+        /* The folder wins over the SKU, so moving an ad between folders
+           changes its slot even if its SKU still says otherwise. */
+        slotOf: p => ecwidSource().adSlotOf(p),
+        /* And where it points, which a category alone cannot express: two
+           of the three square tiles this replaces go to contact.html and
+           delivery.html. */
+        destOf: p => ecwidSource().adDestinationOf(p),
+        /* The ad folders are containers, never destinations: an advert with
+           no destination of its own must not fall back to "the page for the
+           disabled folder it lives in". */
+        adFolderIds: Object.values(ECWID_AD_FOLDERS),
+      });
+      if (derived.length) {
+        /* The local file is the fallback PER SLOT. A read failure leaves it
+           null, which mergePromos treats as "no local entries" rather than
+           throwing — so a missing promos.json degrades to Ecwid-only
+           instead of to no banners. */
+        let local = null;
+        try {
+          /* The file shipped with the site only. Adverts are managed in
+             Ecwid from the admin portal; there is no site-stored copy. */
+          local = JSON.parse(await readFile(path.join(ROOT, 'data', 'promos.json'), 'utf8')).promos;
+        } catch (e) { local = null; }
+        const merged = mergePromos(derived, local);
+        const promos = merged.promos;
+        return ({
+          note: 'Derived from Ecwid category ' + ECWID_BANNER_CATEGORY + '. Each entry is a ' +
+                'BANNER, not a product: image = artwork, name = headline, description = ' +
+                'subtitle. The SLOT is the ad folder the entry sits in ' +
+                '(SADKO_ECWID_ADS_HERO / _WIDE / _SQUARE), falling back to a banner- SKU. ' +
+                'Slots with no Ecwid ads keep their promos.json entries (see slotsFromLocal). ' +
+                'The CLICK-THROUGH is the ordinary category the ' +
+                'banner entry is also assigned to (its page on THIS site), or the shop when ' +
+                'it has none, never the Ecwid product URL, which would send the shopper to ' +
+                'another storefront. These entries are ' +
+                'excluded from the catalogue, search and rails. No English fields: Ecwid ' +
+                'holds no usable translations, and copying Arabic into an English field ' +
+                'would be worse than omitting it.',
+          source: merged.fromLocal.length ? 'ecwid+local' : 'ecwid',
+          /* Which slots each source supplied, so "my hero banner is still
+             the old one" has an answer in the payload rather than needing a
+             guess. */
+          slotsFromEcwid: merged.fromEcwid,
+          slotsFromLocal: merged.fromLocal,
+          adFolders: ECWID_AD_FOLDERS,
+          derivedAt: new Date().toISOString(),
+          promos,
+        });
+      }
+    } catch (e) { /* fall through to the static file */ }
+    return null;
+}
+async function servedPromos() {
+  const d = await derivedPromosPayload();
+  if (d) return d;
+  try { return { source: 'local', promos: JSON.parse(await readFile(path.join(ROOT, 'data', 'promos.json'), 'utf8')).promos || [] }; }
+  catch (e) { return { source: 'local', promos: [] }; }
+}
+
 export async function handle(req, res) {
   await ready();
   const u = new URL(req.url, 'http://x');
@@ -2728,6 +3011,13 @@ export async function handle(req, res) {
       return json(409, feeChanged(lang, quote, priced.subtotal, body.quotedFee));
     order.totals = totalsWith(priced.subtotal, quote);
 
+    /* The coupon, checked again by Ecwid against the email the order is
+       filed under, so once-per-customer holds for a guest too. */
+    const cp = await orderCoupon({ lang, code: body.coupon, items: order.items, email: order.email,
+                                   totals: order.totals, quotedDiscount: body.quotedDiscount });
+    if (cp.response) return json(cp.response.status, cp.response.body);
+    if (cp.coupon) { order.totals = applyCoupon(order.totals, cp.coupon); order.coupon = cp.coupon; }
+
     const st = ecwidStore(), esy = ecwidSync();
     if (!st || !esy)
       return json(503, { error: 'unavailable', message: lang === 'en'
@@ -2849,26 +3139,115 @@ export async function handle(req, res) {
     return;
   }
 
+  /* ---- admin sign-in (engine/admin-auth.mjs) ----------------------------
+     Public, rate-limited, and every answer to a wrong email or password is
+     the same. The session moves reset → enroll → full, or totp → full, and
+     the cookie is replaced at each step. */
+  if (u.pathname.startsWith('/api/admin-auth/')) {
+    const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+    const A = adminAuth();
+    if (!A) return json(503, { error: 'admin-off', message: lang === 'en'
+      ? 'The admin portal is not configured on this server.' : 'بوابة الإدارة غير مفعّلة على هذا الخادم.' });
+    const step = u.pathname.slice('/api/admin-auth/'.length);
+    const tok = readCookie(req, ADMIN_COOKIE);
+    const M = {
+      'bad-credentials': ['البريد أو كلمة المرور غير صحيحة.', 'Wrong email or password.'],
+      locked: ['تم إيقاف الحساب مؤقتاً بعد محاولات خاطئة. حاول بعد ١٥ دقيقة.', 'Too many wrong attempts. Try again in 15 minutes.'],
+      expired: ['انتهت صلاحية كلمة المرور المؤقتة. اطلب دعوة جديدة.', 'The temporary password has expired. Ask for a new invite.'],
+      'bad-code': ['الكود غير صحيح. اكتب الكود الحالى من التطبيق.', 'That code is not right. Enter the current code from the app.'],
+      'no-session': ['انتهت الجلسة. سجّل الدخول من جديد.', 'Your session ended. Please sign in again.'],
+      'wrong-stage': ['انتهت الجلسة. سجّل الدخول من جديد.', 'Your session ended. Please sign in again.'],
+      'too-short': ['كلمة المرور لازم تكون ١٢ حرفاً على الأقل.', 'The password must be at least 12 characters.'],
+      'too-long': ['كلمة المرور طويلة جداً.', 'That password is too long.'],
+      'contains-email': ['لا تستخدم بريدك داخل كلمة المرور.', 'Do not use your email name in the password.'],
+      'too-common': ['كلمة المرور سهلة التخمين. اختر كلمة أخرى.', 'That password is too easy to guess. Choose another.'],
+      'too-simple': ['استخدم أحرفاً متنوعة أكثر.', 'Use a wider mix of characters.'],
+      'same-as-temporary': ['اختر كلمة مرور جديدة غير المؤقتة.', 'Choose a new password, not the temporary one.'],
+    };
+    const fail = (status, r) => {
+      const key = r.error === 'weak-password' ? r.reason : r.error;
+      const m = M[key] || M['no-session'];
+      if (r.error === 'no-session' || r.error === 'wrong-stage') clearAdminCookie(res, req);
+      return json(status, { error: r.error, reason: r.reason || null, message: lang === 'en' ? m[1] : m[0] });
+    };
+    const moved = r => { setAdminCookie(res, req, r.token, r.stage); return json(200, { ok: true, stage: r.stage, email: r.email }); };
+
+    if (step === 'me' && req.method === 'GET') {
+      const s = await adminSession(req);
+      return json(200, s ? { email: s.email, stage: s.stage } : { stage: null });
+    }
+    if (step === 'logout' && req.method === 'POST') {
+      await A.logout(tok); clearAdminCookie(res, req);
+      return json(200, { ok: true });
+    }
+    if (req.method !== 'POST') return json(404, { error: 'not-found' });
+    if (rateLimited('adm:' + clientIp(req))) return json(429, { error: 'too-many', message: lang === 'en' ? 'Too many requests. Wait a minute.' : 'طلبات كثيرة. انتظر دقيقة.' });
+    let b; try { b = await readJson(req, 4000); } catch (e) { return json(400, { error: 'bad-request' }); }
+
+    /* Invite (or reset) an admin. Either a signed-in admin, or the operator
+       with SADKO_ADMIN_SECRET (tools/admin-invite.mjs), which is how the
+       FIRST admin exists. The temporary password is in this response only. */
+    if (step === 'invite') {
+      const s = await adminSession(req);
+      const by = s && s.stage === 'full' ? s.email : (bearerIsAdminSecret(req) ? 'operator' : null);
+      if (!by) return json(403, { error: 'forbidden' });
+      const r = await A.invite(b.email, by);
+      if (r.error) return json(400, { error: r.error, message: lang === 'en' ? 'Enter a valid email.' : 'اكتب بريداً صحيحاً.' });
+      try { const c = catalogAdmin(); if (c) await c.log(by, 'admin.invite', r.email, null); } catch (e) {}
+      return json(200, { ok: true, email: r.email, tempPassword: r.tempPassword, expiresAt: r.expiresAt });
+    }
+    if (step === 'login') {
+      const r = await A.login(b.email, b.password);
+      return r.error ? fail(r.error === 'locked' ? 423 : 401, r) : moved(r);
+    }
+    if (step === 'reset') {
+      const r = await A.resetPassword(tok, b.password);
+      return r.error ? fail(r.error === 'weak-password' ? 400 : 401, r) : moved(r);
+    }
+    if (step === 'enroll/start') {
+      const r = await A.startEnroll(tok);
+      if (r.error) return fail(401, r);
+      const qr = await QRCode.toString(r.otpauth, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+      /* The key is shown as well, in groups of four, for an app that cannot scan. */
+      return json(200, { ok: true, qr: 'data:image/svg+xml;base64,' + Buffer.from(qr).toString('base64'),
+                         key: r.secret.replace(/(.{4})/g, '$1 ').trim() });
+    }
+    if (step === 'enroll/confirm') {
+      const r = await A.confirmEnroll(tok, b.code);
+      return r.error ? fail(r.error === 'bad-code' ? 400 : 401, r) : moved(r);
+    }
+    if (step === 'totp') {
+      const r = await A.verifyTotp(tok, b.code);
+      return r.error ? fail(r.error === 'bad-code' ? 400 : r.error === 'locked' ? 423 : 401, r) : moved(r);
+    }
+    return json(404, { error: 'not-found' });
+  }
+
   if (u.pathname.startsWith('/api/admin/')) {
     const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
     const db = accounts();
     const cadm = catalogAdmin();
     if (!db || !cadm) return json(503, { error: 'unavailable' });
 
-    const me = await currentUser(req);
-    if (!me) return json(401, { error: 'no-user', message: lang === 'en' ? 'Sign in first.' : 'سجّل دخولك الأول.' });
-    if (!isAdminUser(me)) return json(403, { error: 'not-admin', message: lang === 'en'
-      ? 'This account is not an administrator.' : 'هذا الحساب ليس من المسؤولين.' });
+    /* A FULL admin session, and nothing else. A session still in setup (new
+       password or authenticator not done) opens none of these routes. */
+    const sess = await adminSession(req);
+    if (!sess || sess.stage !== 'full') return json(401, { error: 'no-admin', stage: sess ? sess.stage : null,
+      message: lang === 'en' ? 'Sign in to the admin portal first.' : 'سجّل دخولك لبوابة الإدارة أولاً.' });
+    /* Belt and braces against cross-site writes: the cookie is SameSite=Strict
+       already, and a form or image cannot send a custom header. */
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.headers['x-sadko-admin'] !== '1')
+      return json(403, { error: 'bad-origin' });
+    const me = { email: sess.email, name: sess.email };
     const actor = me.email;
 
     try {
       const rest = u.pathname.slice('/api/admin/'.length);   // e.g. "products", "products/adm-x"
       const seg = rest.split('/').filter(Boolean);
 
-      /* who am I / can I */
+      /* who am I */
       if (rest === 'me' && req.method === 'GET')
-        return json(200, { admin: true, email: me.email, name: me.name,
-          editableFields: EDITABLE_FIELDS, orderStatuses: ORDER_STATUSES });
+        return json(200, { admin: true, email: me.email, ecwid: !!(ecwidApi() && ecwidApi().configured), storeId: ECWID_STORE_ID });
 
       /* dashboard overview */
       /* Delivery classes, for the owner to review: how many products fall in
@@ -2895,117 +3274,462 @@ export async function handle(req, res) {
       }
 
       if (rest === 'overview' && req.method === 'GET') {
-        const base = await baseCatalog();
-        const cat = await cadm.stats();
+        const api = ecwidApi(), st = ecwidStore();
+        const safe = p => p.then(v => v, () => null);
+        const products = st ? (await st.allProducts()).filter(p => !isAdProduct(p)) : [];
+        const [allOrders, awaiting, coupons, leftovers] = await Promise.all([
+          api && api.configured ? safe(api.listOrders({ limit: 1 })) : null,
+          api && api.configured ? safe(api.listOrders({ limit: 1, fulfillmentStatus: 'AWAITING_PROCESSING' })) : null,
+          api && api.configured ? safe(api.listCoupons()) : null,
+          safe(cadm.leftovers()),
+        ]);
         const an = analytics();
         return json(200, {
+          ecwidConnected: !!(api && api.configured),
+          products: { total: products.length, on: products.filter(p => p.enabled !== false).length,
+                      off: products.filter(p => p.enabled === false).length,
+                      out: products.filter(p => p.stockTracked && Number(p.quantity) <= 0).length },
+          orders: { total: allOrders ? allOrders.total : null, awaiting: awaiting ? awaiting.total : null,
+                    pending: st ? (await st.pendingPushes()).length : 0, parked: st ? (await st.failedPushes()).length : 0 },
+          coupons: coupons ? { total: coupons.length, active: coupons.filter(c => c.status === 'ACTIVE').length } : null,
           accounts: await db.adminOverview(),
-          catalog: { base: base.length, live: (await mergedCatalog()).length,
-                     edited: cat.overrides, custom: cat.custom, hidden: cat.hidden },
           funnel: an ? await an.funnel() : null,
-          abandonments: an ? (await an.stats()).abandonments : 0,
-          providers: enabledProviders().map(p => p.id),
-          audit: await cadm.audit(12),
+          leftovers: leftovers ? leftovers.overrides.length + leftovers.custom.length + leftovers.hidden.length + (leftovers.promos ? 1 : 0) : 0,
+          audit: await cadm.audit(10),
         });
       }
+
+      /* ======== the store, straight from Ecwid ========================
+         Nothing below keeps a copy: reads come from Ecwid (or the mirror,
+         which is Ecwid's cache), writes go to Ecwid, and the mirror is told
+         to catch up at once rather than on the next poll. */
+      const needEcwid = () => {
+        const api = ecwidApi();
+        return api && api.configured ? api : null;
+      };
+      const ecwidDown = () => json(503, { error: 'ecwid-off', message: lang === 'en'
+        ? 'Ecwid is not connected on this server.' : 'إكويد غير متصل على هذا الخادم.' });
+      const ecwidFailed = e => json(502, { error: 'ecwid-error', message: (lang === 'en'
+        ? 'Ecwid refused the change: ' : 'رفض إكويد التعديل: ') + String((e && e.message) || e).slice(0, 200) });
+      const FORM_MSG = {
+        'bad-title': ['اكتب اسم المنتج.', 'Enter the product name.'],
+        'bad-price': ['السعر غير صحيح.', 'That price is not valid.'],
+        'was-below-price': ['السعر قبل الخصم لازم يكون أعلى من السعر الحالى.', 'The was-price must be higher than the price.'],
+        'bad-quantity': ['الكمية لازم تكون رقماً صحيحاً.', 'Stock must be a whole number.'],
+        'bad-category': ['اختر القسم.', 'Choose a category.'],
+        'bad-code': ['الكود من ٣ إلى ٤٠ حرفاً أو رقماً، بدون مسافات.', 'Codes are 3 to 40 letters or digits, no spaces.'],
+        'bad-type': ['نوع الخصم غير معروف.', 'Unknown discount type.'],
+        'bad-discount': ['قيمة الخصم غير صحيحة (النسبة حتى ١٠٠٪).', 'The discount is not valid (percent up to 100).'],
+        'bad-min': ['الحد الأدنى للطلب غير صحيح.', 'The minimum order is not valid.'],
+        'bad-dates': ['تاريخ النهاية قبل تاريخ البداية.', 'The end date is before the start date.'],
+        'bad-destination': ['اختر وجهة الإعلان.', 'Choose where the ad links to.'],
+        'bad-image': ['أرسل صورة PNG أو JPG أو WebP أقل من ٣ ميجا.', 'Send a PNG, JPG or WebP image under 3 MB.'],
+        'wrong-shape': ['شكل الصورة لا يناسب هذا المكان.', 'The picture is the wrong shape for this place.'],
+        'too-small': ['الصورة صغيرة جداً لهذا المكان.', 'The picture is too small for this place.'],
+        'no-folder': ['جهّز مجلدات الإعلانات أولاً.', 'Set up the ad folders first.'],
+      };
+      const formErr = (code, extra) => json(400, { error: code, ...(extra || {}),
+        message: (FORM_MSG[code] || [code, code])[lang === 'en' ? 1 : 0] });
 
       /* ------- products ------- */
-      if (seg[0] === 'products' && seg.length === 1 && req.method === 'GET') {
-        const base = await baseCatalog();
-        const [ov, hidden, custom] = await Promise.all([cadm.overridesMap(), cadm.hiddenSet(), cadm.customList()]);
+      if (seg[0] === 'store' && seg[1] === 'products' && seg.length === 2 && req.method === 'GET') {
+        const st = ecwidStore();
+        if (!st) return ecwidDown();
         const q = (u.searchParams.get('q') || '').trim().toLowerCase();
         const cat = (u.searchParams.get('cat') || '').trim();
-        const view = u.searchParams.get('view') || 'all';   // all | edited | hidden | custom
+        const view = u.searchParams.get('view') || 'all';
         const page = Math.max(1, +u.searchParams.get('page') || 1);
-        const per = Math.min(100, Math.max(10, +u.searchParams.get('per') || 40));
-
-        // build the admin list: base (with override applied + flags) then custom
-        let rows = base.map(p => {
-          const id = String(p.id);
-          const patch = ov[id];
-          const merged = patch ? Object.assign({}, p, patch) : p;
-          return { ...merged, id, _edited: !!patch, _hidden: hidden.has(id), _custom: false };
-        });
-        rows = rows.concat(custom.map(c => ({ ...c, id: String(c.id), _edited: false, _hidden: hidden.has(String(c.id)), _custom: true })));
-
-        if (view === 'edited') rows = rows.filter(r => r._edited);
-        else if (view === 'hidden') rows = rows.filter(r => r._hidden);
-        else if (view === 'custom') rows = rows.filter(r => r._custom);
-        if (cat) rows = rows.filter(r => String(r.categoryId) === cat);
-        if (q) rows = rows.filter(r => (String(r.title) + ' ' + String(r.id)).toLowerCase().includes(q));
-
-        const total = rows.length;
+        const per = Math.min(100, Math.max(10, +u.searchParams.get('per') || 30));
+        let rows = (await st.allProducts()).filter(p => !isAdProduct(p));
+        if (view === 'on') rows = rows.filter(p => p.enabled !== false);
+        else if (view === 'off') rows = rows.filter(p => p.enabled === false);
+        else if (view === 'out') rows = rows.filter(p => p.stockTracked && Number(p.quantity) <= 0);
+        else if (view === 'badge') rows = rows.filter(p => p.badge);
+        else if (view === 'sale') rows = rows.filter(p => p.compareToPrice);
+        if (cat) rows = rows.filter(p => String(p.categoryId) === cat || (p.categoryIds || []).map(String).includes(cat));
+        if (q) rows = rows.filter(p => (String(p.title) + ' ' + p.id + ' ' + (p.sku || '')).toLowerCase().includes(q));
         const an = analytics();
         const stat = an ? await an.productStatsMap() : {};
-        const slice = rows.slice((page - 1) * per, page * per).map(r => {
-          const s = stat[String(r.id)] || {};
-          return {
-            id: r.id, title: r.title, price: r.price, image: r.image, categoryId: r.categoryId,
-            _edited: r._edited, _hidden: r._hidden, _custom: r._custom,
-            // funnel interest at a glance: unique people per stage
-            stats: { views: s.view || 0, saves: s.save || 0, carts: s.add_to_cart || 0, purchases: s.purchase || 0 },
-          };
-        });
-        return json(200, { total, page, per, pages: Math.ceil(total / per), products: slice });
+        const total = rows.length;
+        return json(200, { total, page, per, pages: Math.max(1, Math.ceil(total / per)),
+          products: rows.slice((page - 1) * per, page * per).map(p => ({
+            id: p.id, title: p.title, price: p.price, compareToPrice: p.compareToPrice, image: p.image,
+            categoryId: p.categoryId, enabled: p.enabled !== false, badge: p.badge || null, sku: p.sku || '',
+            stockTracked: !!p.stockTracked, quantity: p.quantity ?? null, inStock: p.inStock !== false,
+            stats: stat[String(p.id)] ? { views: stat[p.id].view || 0, carts: stat[p.id].add_to_cart || 0, purchases: stat[p.id].purchase || 0 } : null,
+          })) });
       }
-
-      if (seg[0] === 'products' && seg.length === 1 && req.method === 'POST') {
-        /* A product added here would vanish on the next sync, because the
-           mirror is what gets served. Refusing beats losing the work. */
-        if (ecwidSource().activeSource() === 'ecwid') return json(409, {
-          error: 'ecwid-owned',
-          message: lang === 'en'
-            ? 'Add products in Ecwid. The catalogue syncs from there, so a product added here would disappear on the next sync.'
-            : 'أضف المنتجات في إكويد. الكتالوج يُزامن من هناك، وأي منتج يُضاف هنا سيختفي مع المزامنة التالية.',
-        });
-        const b = await readJson(req, 80000);
-        const r = await cadm.createProduct(b, actor);
-        if (r.error) return json(400, { error: r.error, message: r.error === 'title-required'
-          ? (lang === 'en' ? 'A product needs a title.' : 'المنتج لازم يكون له اسم.') : r.error });
-        return json(200, r);
-      }
-
-      if (seg[0] === 'products' && seg[1] && seg.length === 2) {
-        const id = decodeURIComponent(seg[1]);
+      if (seg[0] === 'store' && seg[1] === 'products' && seg[2] && seg.length === 3) {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const id = decodeURIComponent(seg[2]);
         if (req.method === 'GET') {
-          const base = await baseCatalog();
-          const d = await cadm.describe(base, id);
-          if (!d) return json(404, { error: 'not-found' });
-          return json(200, d);
+          let p; try { p = await api.getProduct(id); } catch (e) { return ecwidFailed(e); }
+          if (!p) return json(404, { error: 'not-found' });
+          return json(200, { product: {
+            id: String(p.id), title: p.name || '', price: p.price ?? null,
+            compareToPrice: p.compareToPrice > 0 ? p.compareToPrice : null,
+            description: p.description || '', enabled: p.enabled !== false,
+            badge: (p.ribbon && p.ribbon.text) || '', quantity: p.unlimited ? null : (p.quantity ?? null),
+            categoryId: p.defaultCategoryId ? String(p.defaultCategoryId) : String((p.categoryIds || [])[0] || ''),
+            image: p.imageUrl || p.hdThumbnailUrl || '', sku: p.sku || '', ecwidUrl: p.url || '',
+          } });
         }
-        if (req.method === 'PATCH' || req.method === 'PUT') {
+        if (req.method === 'PATCH') {
           const b = await readJson(req, 80000);
-          /* Ecwid owns these fields while it is the source. Naming the offending
-             fields matters: "read-only" with no explanation is how someone ends
-             up editing the same price twice and believing the site is broken. */
-          if (ecwidSource().activeSource() === 'ecwid') {
-            const touched = Object.keys(b || {}).filter(k => ECWID_OWNED_FIELDS.includes(k));
-            if (touched.length) return json(409, {
-              error: 'ecwid-owned',
-              fields: touched,
-              message: lang === 'en'
-                ? `Edit these in Ecwid, not here: ${touched.join(', ')}. The catalogue syncs from Ecwid, so a local change would be overwritten.`
-                : `عدّل هذه الحقول في إكويد لا هنا: ${touched.join('، ')}. الكتالوج يُزامن من إكويد، وأي تعديل محلي سيُستبدل.`,
-            });
-          }
-          const isCustom = id.startsWith('adm-');
-          if (isCustom) { const r = await cadm.updateCustom(id, b, actor); if (r.error) return json(404, { error: r.error }); return json(200, r); }
-          const merged = await cadm.setOverride(id, b, actor);
-          return json(200, { ok: true, override: merged });
+          const patch = productPatch(b || {});
+          if (patch.error) return formErr(patch.error);
+          if (!Object.keys(patch).length) return json(200, { ok: true });
+          try { await api.updateProduct(id, patch); } catch (e) { return ecwidFailed(e); }
+          await refreshProduct(id);
+          await cadm.log(actor, 'ecwid.product.edit', id, Object.keys(patch));
+          return json(200, { ok: true });
         }
-        if (req.method === 'DELETE') {
-          const r = await cadm.remove(id, actor);
-          return json(200, { ok: true, ...r });
+      }
+      if (seg[0] === 'store' && seg[1] === 'products' && seg[2] && seg[3] === 'image' && req.method === 'POST') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const id = decodeURIComponent(seg[2]);
+        const img = decodeImage((await readJson(req, 6_000_000)).data);
+        if (!img) return formErr('bad-image');
+        try { await api.uploadProductImage(id, img.buf, img.mime); } catch (e) { return ecwidFailed(e); }
+        await refreshProduct(id);
+        await cadm.log(actor, 'ecwid.product.image', id, { bytes: img.buf.length });
+        return json(200, { ok: true });
+      }
+
+      /* ------- leftovers of the retired product overlay ------- */
+      if (rest === 'leftovers' && req.method === 'GET') {
+        const l = await cadm.leftovers();
+        const st = ecwidStore();
+        const titles = new Map(st ? (await st.allProducts()).map(p => [String(p.id), p.title]) : []);
+        return json(200, { ...l,
+          overrides: l.overrides.map(o => ({ ...o, title: titles.get(o.id) || null })),
+          hidden: l.hidden.map(id => ({ id, title: titles.get(id) || null })) });
+      }
+      if (rest === 'leftovers/discard' && req.method === 'POST') {
+        const b = await readJson(req, 2000);
+        try { await cadm.discard(String(b.kind || ''), actor); } catch (e) { return json(400, { error: 'bad-kind' }); }
+        return json(200, { ok: true });
+      }
+
+      /* ------- orders ------- */
+      if (seg[0] === 'store' && seg[1] === 'orders' && seg.length === 2 && req.method === 'GET') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const page = Math.max(1, +u.searchParams.get('page') || 1), per = 25;
+        const status = u.searchParams.get('status') || '';
+        let r;
+        try {
+          r = await api.listOrders({ offset: (page - 1) * per, limit: per, keywords: (u.searchParams.get('q') || '').trim() || undefined,
+                                     fulfillmentStatus: FULFILMENT_STATUSES.includes(status) ? status : undefined });
+        } catch (e) { return ecwidFailed(e); }
+        const st = ecwidStore();
+        /* What has not reached Ecwid yet only exists here, so it is shown
+           separately: someone has to ring those customers. */
+        const local = async row => {
+          const o = (db ? await db.orderByRefAny(row.ref) : null) || (st ? await st.getGuestOrder(row.ref) : null);
+          return { ref: row.ref, attempts: row.attempts, lastError: row.last_error || null, nextAttemptAt: row.next_attempt_at || null,
+                   name: o && o.delivery ? o.delivery.name : null, phone: o && o.delivery ? o.delivery.phone : null,
+                   total: o ? (o.totals && o.totals.grandTotal != null ? o.totals.grandTotal : o.subtotal) : null, createdAt: o ? o.createdAt : null };
+        };
+        return json(200, {
+          total: (r && r.total) || 0, page, pages: Math.max(1, Math.ceil(((r && r.total) || 0) / per)),
+          orders: ((r && r.items) || []).map(adminOrder),
+          statuses: { fulfillment: FULFILMENT_STATUSES, payment: PAYMENT_STATUSES },
+          queue: st ? { pending: await Promise.all((await st.pendingPushes()).map(local)),
+                        parked: await Promise.all((await st.failedPushes()).map(local)) } : { pending: [], parked: [] },
+        });
+      }
+      if (seg[0] === 'store' && seg[1] === 'orders' && seg[2] && seg.length === 3) {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const id = decodeURIComponent(seg[2]);
+        if (req.method === 'GET') {
+          let o; try { o = await api.getOrder(id); } catch (e) { return ecwidFailed(e); }
+          return o ? json(200, { order: adminOrder(o, true) }) : json(404, { error: 'not-found' });
+        }
+        if (req.method === 'PATCH') {
+          const b = await readJson(req, 8000);
+          const patch = {};
+          if (FULFILMENT_STATUSES.includes(b.fulfillmentStatus)) patch.fulfillmentStatus = b.fulfillmentStatus;
+          if (PAYMENT_STATUSES.includes(b.paymentStatus)) patch.paymentStatus = b.paymentStatus;
+          if ('trackingNumber' in b) patch.trackingNumber = String(b.trackingNumber || '').trim().slice(0, 80);
+          if ('privateAdminNotes' in b) patch.privateAdminNotes = String(b.privateAdminNotes || '').slice(0, 4000);
+          if (!Object.keys(patch).length) return json(200, { ok: true });
+          try { await api.updateOrder(id, patch); } catch (e) { return ecwidFailed(e); }
+          /* The customer's own order page reads the site's copy of a site
+             order, so it is brought up to date now, as the webhook would. */
+          try { await applyEcwidOrderEvent({ entityId: id }); } catch (e) {}
+          let o = null; try { o = await api.getOrder(id); } catch (e) {}
+          if (o && o.externalOrderId) await forgetRemoteOrders(o.externalOrderId);
+          await cadm.log(actor, 'ecwid.order.edit', id, patch);
+          return json(200, { ok: true, order: o ? adminOrder(o, true) : null });
         }
       }
 
-      // per-product actions: hide / show / revert
-      if (seg[0] === 'products' && seg[2] && req.method === 'POST') {
-        const id = decodeURIComponent(seg[1]);
-        const action = seg[2];
-        if (action === 'hide')   { await cadm.hide(id, actor);   return json(200, { ok: true, hidden: true }); }
-        if (action === 'show')   { await cadm.unhide(id, actor); return json(200, { ok: true, hidden: false }); }
-        if (action === 'revert') { await cadm.revert(id, actor); return json(200, { ok: true, reverted: true }); }
+      /* ------- customers ------- */
+      if (seg[0] === 'store' && seg[1] === 'customers' && seg.length === 2 && req.method === 'GET') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const page = Math.max(1, +u.searchParams.get('page') || 1), per = 30;
+        let r;
+        try { r = await api.listCustomers({ offset: (page - 1) * per, limit: per, keyword: (u.searchParams.get('q') || '').trim() || undefined }); }
+        catch (e) { return ecwidFailed(e); }
+        const logins = new Set((await db.listUsersAdmin()).map(x => String(x.email || '').toLowerCase()));
+        return json(200, { total: (r && r.total) || 0, page, pages: Math.max(1, Math.ceil(((r && r.total) || 0) / per)),
+          customers: ((r && r.items) || []).map(c => ({
+            id: String(c.id), name: c.name || (c.billingPerson && c.billingPerson.name) || '', email: c.email || '',
+            phone: (c.billingPerson && c.billingPerson.phone) || ((c.shippingAddresses || [])[0] || {}).phone || '',
+            orders: c.totalOrderCount ?? c.salesCount ?? null, since: c.registered || c.createDate || null,
+            websiteLogin: logins.has(String(c.email || '').toLowerCase()),
+          })) });
+      }
+
+      /* ------- coupons ------- */
+      if (seg[0] === 'store' && seg[1] === 'coupons') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        const shape = c => ({ id: String(c.id), name: c.name || '', code: c.code, type: c.discountType, discount: c.discount,
+          status: c.status, from: c.launchDate || null, to: c.expirationDate || null, minSubtotal: c.totalLimit || null,
+          usesLimit: c.usesLimit, used: c.orderCount || 0 });
+        if (seg.length === 2 && req.method === 'GET') {
+          try { return json(200, { coupons: (await api.listCoupons()).map(shape) }); } catch (e) { return ecwidFailed(e); }
+        }
+        if (seg.length === 2 && req.method === 'POST') {
+          const p = couponPayload(await readJson(req, 8000));
+          if (p.error) return formErr(p.error);
+          try { const r = await api.createCoupon(p); await cadm.log(actor, 'ecwid.coupon.create', p.code, null); return json(200, { ok: true, id: r && r.id }); }
+          catch (e) { return ecwidFailed(e); }
+        }
+        const id = seg[2] && decodeURIComponent(seg[2]);
+        if (id && req.method === 'PUT') {
+          const b = await readJson(req, 8000);
+          /* Pause / resume on its own, or the whole form. */
+          const p = Object.keys(b || {}).length === 1 && b.status ? { status: b.status === 'PAUSED' ? 'PAUSED' : 'ACTIVE' } : couponPayload(b);
+          if (p.error) return formErr(p.error);
+          try { await api.updateCoupon(id, p); } catch (e) { return ecwidFailed(e); }
+          await cadm.log(actor, 'ecwid.coupon.edit', id, p.status ? { status: p.status } : null);
+          return json(200, { ok: true });
+        }
+        if (id && req.method === 'DELETE') {
+          try { await api.deleteCoupon(id); } catch (e) { return ecwidFailed(e); }
+          await cadm.log(actor, 'ecwid.coupon.delete', id, null);
+          return json(200, { ok: true });
+        }
+      }
+
+      /* ------- payment methods ------- */
+      if (seg[0] === 'store' && seg[1] === 'payments') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        if (seg.length === 2 && req.method === 'GET') {
+          let list; try { list = await api.listPaymentOptions(); } catch (e) { return ecwidFailed(e); }
+          return json(200, { methods: list.map(m => ({
+            id: String(m.id), title: m.checkoutTitle || m.paymentProcessorTitle || '', enabled: m.enabled !== false,
+            instructions: htmlToText(m.instructionsForCustomer && m.instructionsForCustomer.instructions),
+            kind: m.paymentProcessorTitle || m.appClientId || '',
+            /* Ecwid's default name for a method nobody named: the site hides it. */
+            placeholder: /custom payment method name/i.test(m.checkoutTitle || ''),
+          })) });
+        }
+        if (seg[2] && req.method === 'PATCH') {
+          const p = paymentPatch(await readJson(req, 8000));
+          try { await api.updatePaymentOption(decodeURIComponent(seg[2]), p); } catch (e) { return ecwidFailed(e); }
+          try { await ecwidSync().syncSettings(); ecwidSource().invalidate(); } catch (e) {}
+          await cadm.log(actor, 'ecwid.payment.edit', seg[2], p);
+          return json(200, { ok: true });
+        }
+      }
+
+      /* ------- delivery methods ------- */
+      if (seg[0] === 'store' && seg[1] === 'delivery') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        if (seg.length === 2 && req.method === 'GET') {
+          let list; try { list = await api.listShippingOptions(); } catch (e) { return ecwidFailed(e); }
+          return json(200, { methods: list.map(m => {
+            const flat = m.flatRate && m.flatRate.rate != null ? m.flatRate.rate : null;
+            const table = m.ratesTable && Array.isArray(m.ratesTable.rates) ? m.ratesTable.rates.length : 0;
+            return { id: String(m.id), title: m.title || '', enabled: m.enabled !== false,
+                     how: flat != null ? 'flat' : table ? 'table' : (m.ratesCalculationType || m.fulfilmentType || ''),
+                     flat, tableRows: table, zone: (m.destinationZone && m.destinationZone.name) || null,
+                     minSubtotal: m.minimumOrderSubtotal || null, days: m.deliveryTimeDays || null };
+          }) });
+        }
+        if (seg[2] && req.method === 'PATCH') {
+          const b = await readJson(req, 2000);
+          try { await api.updateShippingOption(decodeURIComponent(seg[2]), { enabled: !!b.enabled }); } catch (e) { return ecwidFailed(e); }
+          try { await ecwidSync().syncSettings(); ecwidSource().invalidate(); } catch (e) {}
+          await cadm.log(actor, 'ecwid.delivery.toggle', seg[2], { enabled: !!b.enabled });
+          return json(200, { ok: true });
+        }
+      }
+
+      /* ------- ads (Ecwid ad folders) ------- */
+      if (seg[0] === 'ads') {
+        const api = needEcwid(); if (!api) return ecwidDown();
+        if (AD_SLOTS.some(s => !ECWID_AD_FOLDERS[s])) await loadAdFolderSettings();
+        const st = ecwidStore();
+        const slotOfAd = async id => {
+          for (const s of AD_SLOTS) {
+            if (!ECWID_AD_FOLDERS[s]) continue;
+            if ((await api.listCategoryProductIds(ECWID_AD_FOLDERS[s])).includes(String(id))) return s;
+          }
+          return null;
+        };
+        if (seg.length === 1 && req.method === 'GET') {
+          const slots = {};
+          try {
+            for (const s of AD_SLOTS) slots[s] = ECWID_AD_FOLDERS[s] ? await adsInFolder(api, s) : null;
+          } catch (e) { return ecwidFailed(e); }
+          const cats = st ? (await st.allCategories()).map(c => ({ id: String(c.id), name: c.name || '', parentId: c.parentId ? String(c.parentId) : null })) : [];
+          return json(200, {
+            folders: Object.fromEntries(AD_SLOTS.map(s => [s, ECWID_AD_FOLDERS[s] ? { id: ECWID_AD_FOLDERS[s], from: ENV_AD_FOLDERS[s] ? 'env' : 'portal' } : null])),
+            slots, shapes: AD_SHAPES, categories: cats,
+            pages: ['shop', 'contact', 'delivery', 'finder', 'guides', 'care', 'plan', 'about', 'showrooms', 'warranty', 'values', 'index'],
+          });
+        }
+        if (rest === 'ads/setup' && req.method === 'POST') {
+          const saved = (await cadm.getSetting('ads.folders', {})) || {};
+          const NAMES = { hero: 'إعلانات · البانر الرئيسى', wide: 'إعلانات · عريض', square: 'إعلانات · مربع' };
+          try {
+            for (const s of AD_SLOTS) {
+              if (ECWID_AD_FOLDERS[s]) continue;
+              const r = await api.createCategory({ name: NAMES[s], enabled: false });
+              if (r && r.id) { saved[s] = String(r.id); ECWID_AD_FOLDERS[s] = String(r.id); }
+            }
+          } catch (e) { return ecwidFailed(e); }
+          await cadm.setSetting('ads.folders', saved, actor);
+          try { await ecwidSync().syncAdFolders(); ecwidSource().invalidate(); } catch (e) {}
+          return json(200, { ok: true, folders: ECWID_AD_FOLDERS });
+        }
+        if (rest === 'ads/preview' && req.method === 'GET') {
+          const payload = await servedPromos();
+          const promos = (payload && payload.promos) || [];
+          const cat = String(u.searchParams.get('cat') || '');
+          const cats = st ? await st.allCategories() : [];
+          const fam = {};
+          if (cat) { fam[cat] = true; let grew = true; while (grew) { grew = false; for (const c of cats) if (c.parentId && fam[String(c.parentId)] && !fam[String(c.id)]) { fam[String(c.id)] = true; grew = true; } } }
+          const byId = new Map((st ? await st.allProducts() : []).map(p => [String(p.id), p]));
+          const slim = p => ({ id: p.id, slot: p.slot, art: p.art, image: p.image, href: p.href, title: p.title, source: p.source || 'local' });
+          const asSlot = p => p.slot === 'hero' ? 'hero' : (p.art === 'wide' || p.slot === 'wide') ? 'wide' : 'square';
+          return json(200, {
+            source: payload ? payload.source : 'local',
+            shop: { hero: promos.filter(p => asSlot(p) === 'hero').map(slim), wide: promos.filter(p => asSlot(p) === 'wide').map(slim),
+                    square: promos.filter(p => asSlot(p) === 'square').map(slim) },
+            category: cat ? adPagePreview(promos.map(p => ({ ...p, slot: asSlot(p) })), cat, fam,
+              id => (byId.get(String(id)) || {}).categoryId || null).map(slim) : [],
+          });
+        }
+        if (seg.length === 1 && req.method === 'POST') {
+          const b = await readJson(req, 6_000_000);
+          const slot = AD_SLOTS.includes(b.slot) ? b.slot : null;
+          if (!slot || !ECWID_AD_FOLDERS[slot]) return formErr('no-folder');
+          const dest = cleanDestination(b.dest || {});
+          if (!dest) return formErr('bad-destination');
+          const img = decodeImage(b.image);
+          if (!img) return formErr('bad-image');
+          const shape = shapeProblem(slot, imageSize(img.buf));
+          if (shape) return formErr(shape, { want: AD_SHAPES[slot].label });
+          let created;
+          try {
+            const n = (await api.listCategoryProductIds(ECWID_AD_FOLDERS[slot])).length + 1;
+            created = await api.createProduct({ name: adName(slot, n), sku: adSku(dest), price: 0,
+              /* Disabled, like every advert: so it never shows in Ecwid's own
+                 storefront. banners() deliberately does not require enabled. */
+              enabled: false,
+              categoryIds: [Number(ECWID_AD_FOLDERS[slot])], description: adDescription(b.ar, b.en) });
+            await api.uploadProductImage(created.id, img.buf, img.mime);
+          } catch (e) { return ecwidFailed(e); }
+          await afterAdChange(created.id);
+          await cadm.log(actor, 'ecwid.ad.create', String(created.id), { slot, dest });
+          return json(200, { ok: true, id: String(created.id) });
+        }
+        const adId = seg[1] && decodeURIComponent(seg[1]);
+        if (adId && seg.length === 2 && req.method === 'PATCH') {
+          const b = await readJson(req, 6_000_000);
+          const patch = {};
+          if (b.dest) { const d = cleanDestination(b.dest); if (!d) return formErr('bad-destination'); patch.sku = adSku(d); }
+          if ('ar' in b || 'en' in b) patch.description = adDescription(b.ar, b.en);
+          const img = b.image ? decodeImage(b.image) : null;
+          if (b.image && !img) return formErr('bad-image');
+          try {
+            if (img) {
+              const slot = await slotOfAd(adId);
+              const shape = shapeProblem(slot, imageSize(img.buf));
+              if (shape) return formErr(shape, { want: AD_SHAPES[slot].label });
+            }
+            if (Object.keys(patch).length) await api.updateProduct(adId, patch);
+            if (img) await api.uploadProductImage(adId, img.buf, img.mime);
+          } catch (e) { return ecwidFailed(e); }
+          await afterAdChange(adId);
+          await cadm.log(actor, 'ecwid.ad.edit', adId, Object.keys(patch).concat(img ? ['image'] : []));
+          return json(200, { ok: true });
+        }
+        if (adId && seg[2] === 'move' && req.method === 'POST') {
+          const dir = (await readJson(req, 200)).dir === -1 ? -1 : 1;
+          try {
+            const slot = await slotOfAd(adId);
+            if (!slot) return json(404, { error: 'not-found' });
+            const list = await adsInFolder(api, slot);
+            const i = list.findIndex(a => a.id === String(adId)), j = i + dir;
+            if (i < 0 || j < 0 || j >= list.length) return json(200, { ok: true });
+            [list[i], list[j]] = [list[j], list[i]];
+            /* The number in the name IS the position; renumber the slot. */
+            for (let k = 0; k < list.length; k++)
+              if (list[k].name !== adName(slot, k + 1)) await api.updateProduct(list[k].id, { name: adName(slot, k + 1) });
+          } catch (e) { return ecwidFailed(e); }
+          await afterAdChange(adId);
+          await cadm.log(actor, 'ecwid.ad.move', adId, { dir });
+          return json(200, { ok: true });
+        }
+        if (adId && seg.length === 2 && req.method === 'DELETE') {
+          try { await api.deleteProduct(adId); } catch (e) { return ecwidFailed(e); }
+          try { if (st) await st.deleteProduct(adId); } catch (e) {}
+          await afterAdChange(null);
+          await cadm.log(actor, 'ecwid.ad.delete', adId, null);
+          return json(200, { ok: true });
+        }
+      }
+
+      /* ------- admins ------- */
+      if (seg[0] === 'admins') {
+        const A = adminAuth();
+        if (seg.length === 1 && req.method === 'GET') return json(200, { me: me.email, admins: await A.list() });
+        if (seg[1] && req.method === 'DELETE') {
+          const who = decodeURIComponent(seg[1]).toLowerCase();
+          if (who === me.email) return json(400, { error: 'self', message: lang === 'en' ? 'You cannot remove yourself.' : 'لا يمكنك حذف حسابك.' });
+          await A.remove(who);
+          await cadm.log(actor, 'admin.remove', who, null);
+          return json(200, { ok: true });
+        }
+      }
+
+      /* ------- where a home-page point may link -------
+         The 30 built category pages (named from their own data-cat-name),
+         the live Ecwid categories (as a filtered shop link) and the site's
+         pages. assets/js/scenes.js accepts exactly these shapes. */
+      if (rest === 'site/link-targets' && req.method === 'GET') {
+        const built = [];
+        try {
+          for (const f of (await readdir(path.join(ROOT, 'category'))).filter(f => /^\d+\.html$/.test(f))) {
+            const html = await readFile(path.join(ROOT, 'category', f), 'utf8');
+            built.push({ href: 'category/' + f, name: (/data-cat-name="([^"]*)"/.exec(html) || [])[1] || f });
+          }
+        } catch (e) {}
+        const st = ecwidStore();
+        const live = st ? (await st.allCategories()).map(c => ({ href: 'shop.html?cat=' + c.id, name: c.name || String(c.id) })) : [];
+        return json(200, { built: built.sort((a, b) => a.name.localeCompare(b.name, 'ar')), live,
+          pages: ['shop', 'finder', 'guides', 'care', 'plan', 'delivery', 'contact', 'about', 'showrooms', 'warranty', 'values']
+            .map(p => ({ href: p + '.html', name: p })) });
+      }
+
+      /* ------- site settings (hotline, announcement, maintenance) ------- */
+      if (rest === 'site/settings' && req.method === 'GET') return json(200, { settings: await siteConfig() });
+      if (rest === 'site/settings' && req.method === 'PUT') {
+        const b = (await readJson(req, 20000)) || {};
+        const note = v => ({ on: !!(v && v.on), ar: String((v && v.ar) || '').trim().slice(0, 300), en: String((v && v.en) || '').trim().slice(0, 300) });
+        if ('hotline' in b) {
+          const h = String(b.hotline || '').replace(/[^0-9+]/g, '');
+          if (h && !/^\+?\d{3,15}$/.test(h)) return json(400, { error: 'bad-hotline', message: lang === 'en' ? 'Enter digits only.' : 'اكتب أرقاماً فقط.' });
+          await cadm.setSetting('site.hotline', h || SITE_DEFAULTS.hotline, actor);
+        }
+        if ('announcement' in b) await cadm.setSetting('site.announcement', note(b.announcement), actor);
+        if ('maintenance' in b) await cadm.setSetting('site.maintenance', note(b.maintenance), actor);
+        return json(200, { ok: true, settings: await siteConfig() });
       }
 
       /* ------- image upload (base64 data URL -> file under assets/img/uploads) ------- */
@@ -3029,43 +3753,6 @@ export async function handle(req, res) {
         return json(200, { ok: true, url: 'data/uploads/' + name });
       }
 
-      /* ------- orders desk ------- */
-      if (rest === 'orders' && req.method === 'GET')
-        return json(200, { orders: await db.allOrders(), statuses: ORDER_STATUSES });
-      if (seg[0] === 'orders' && seg[2] === 'status' && req.method === 'POST') {
-        const b = await readJson(req);
-        const ref = decodeURIComponent(seg[1]);
-        const r = await db.setOrderStatus(ref, b.status);
-        if (r.error) return json(400, { error: r.error });
-        await cadm.log(actor, 'order.status', ref, { status: b.status });
-        /* AND tell Ecwid. Without this the desk wrote the status here and the
-           control panel stayed stale — staff working in one place could not see
-           what staff in the other had done.
-
-           Reported, never fatal: the status IS changed locally by this point, so
-           failing the request would tell the operator their click did nothing,
-           which would be false. `ecwid` says what became of the push instead,
-           and the admin panel can surface it. */
-        let ecwid = null;
-        const esy = ecwidSync();
-        if (esy) {
-          try { ecwid = await esy.pushOrderStatus(ref, b.status); }
-          catch (e) { ecwid = { ok: false, reason: 'error', message: String((e && e.message) || e) }; }
-          if (ecwid && !ecwid.ok && ecwid.reason !== 'not-pushable' && ecwid.reason !== 'not-in-ecwid') {
-            console.warn(`[ecwid] status push failed for ${ref}: ${ecwid.reason}`);
-          }
-        }
-        /* Her own page reads a 60s cache of what Ecwid holds, and mergeOrders
-           prefers that remote status — so without this she would see the OLD
-           status for up to a minute after staff changed it. */
-        await forgetRemoteOrders(ref);
-        return json(200, { ...r, ecwid });
-      }
-
-      /* ------- customers ------- */
-      if (rest === 'customers' && req.method === 'GET')
-        return json(200, { customers: await db.listUsersAdmin() });
-
       /* ------- content / config JSON files (guides, finder …) ------- */
       if (seg[0] === 'content' && seg[1] && seg.length === 2) {
         const name = seg[1].replace(/[^a-z0-9_-]/gi, '');
@@ -3084,23 +3771,13 @@ export async function handle(req, res) {
         }
       }
 
-      /* ------- site settings ------- */
-      if (rest === 'settings' && req.method === 'GET')
-        return json(200, { settings: await cadm.settings() });
-      if (rest === 'settings' && req.method === 'PUT') {
-        const b = await readJson(req, 200000);
-        const patch = (b && typeof b.settings === 'object') ? b.settings : {};
-        for (const [k, v] of Object.entries(patch)) await cadm.setSetting(k, v, actor);
-        return json(200, { ok: true, settings: await cadm.settings() });
-      }
-
       /* ------- funnel analytics ------- */
       if (rest === 'analytics' && req.method === 'GET') {
         const an = analytics();
         if (!an) return json(200, { available: false });
         const base = await baseCatalog();
         // One overlay read for every title, instead of one describe() per row.
-        const merged = await cadm.merge(base);
+        const merged = base;
         const titles = new Map(merged.map(p => [String(p.id), p.title]));
         const titleOf = id => titles.get(String(id)) || null;
         const decorate = rows => rows.map(r => ({ id: r.id, people: r.people, title: titleOf(r.id) }));
@@ -3357,7 +4034,7 @@ export async function handle(req, res) {
       if (u.pathname === '/api/auth/me' && req.method === 'GET') {
         const me = await currentUser(req);
         // tell the account page whether to surface the "control room" link
-        return json(200, { user: me ? Object.assign({}, me, { isAdmin: isAdminUser(me) }) : null });
+        return json(200, { user: me ? me : null });
       }
 
       /* Which social buttons this deployment can actually show. With no
@@ -3565,7 +4242,12 @@ export async function handle(req, res) {
         if (feeMismatch(quote, b.quotedFee) || subtotalMismatch(priced.subtotal, b.quotedSubtotal))
           return json(409, feeChanged(lang, quote, priced.subtotal, b.quotedFee));
 
-        const r = await db.createOrder(me.id, { ...b, items: priced.items, deliveryQuote: quote });
+        /* The coupon, checked by Ecwid against the account's own email. */
+        const cp = await orderCoupon({ lang, code: b.coupon, items: priced.items, email: me.email,
+                                       totals: totalsWith(priced.subtotal, quote), quotedDiscount: b.quotedDiscount });
+        if (cp.response) return json(cp.response.status, cp.response.body);
+
+        const r = await db.createOrder(me.id, { ...b, items: priced.items, deliveryQuote: quote, coupon: cp.coupon });
         if (r.error) return json(400, authErr(r.error, lang));
         // Close the funnel: record a purchase event per line item, server-side so
         // it is authoritative (the browser cannot fabricate a purchase).
@@ -3641,7 +4323,18 @@ export async function handle(req, res) {
     await ecwidFresh();
     const priced = await repriceOrder(b && b.items);
     if (!priced.ok) return json(200, { subtotal: null, quote: { quotable: false, reason: priced.error } });
-    return json(200, { subtotal: priced.subtotal, quote: await deliveryFor(priced.items, String((b && b.governorate) || '')) });
+    const quote = await deliveryFor(priced.items, String((b && b.governorate) || ''));
+    /* With a coupon, Ecwid is asked here too, so the discount checkout shows
+       is the one the order route will apply. totals is the server's figure
+       for every row; the page does not add them up. */
+    const lang = u.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+    let totals = totalsWith(priced.subtotal, quote), coupon = null;
+    if (b && String(b.coupon || '').trim()) {
+      const c = await couponFor(priced.items, b.coupon, b.email, priced.subtotal);
+      coupon = publicCoupon(c, lang);
+      if (c.ok) totals = applyCoupon(totals, c);
+    }
+    return json(200, { subtotal: priced.subtotal, quote, totals, coupon });
   }
 
   if (u.pathname === '/api/shipping-methods' && (req.method === 'GET' || req.method === 'HEAD')) {
@@ -3738,65 +4431,21 @@ export async function handle(req, res) {
     /* Pick up an advert the owner changed moments ago, rather than making
        them wait for the next poll. */
     await ecwidFresh();
+    /* Ad folders set up from the portal on ANOTHER instance: their ids are in
+       the settings, not yet in this instance's memory. One read while any
+       slot is still unknown; none once all three are. */
+    if (AD_SLOTS.some(s => !ECWID_AD_FOLDERS[s])) await loadAdFolderSettings();
     /* Either source is enough to run. Gating on the legacy banner category
        alone meant a store using only ad folders never reached this at all. */
     if (ecwidSource().activeSource() === 'ecwid' &&
         (ECWID_BANNER_CATEGORY || Object.keys(ECWID_AD_FOLDERS).length)) {
-      try {
-        /* The banner category is passed so a banner's own category is never
-           offered as its destination. */
-        const derived = deriveBanners(await ecwidSource().banners(), {
-          bannerCategoryId: ECWID_BANNER_CATEGORY,
-          /* The folder wins over the SKU, so moving an ad between folders
-             changes its slot even if its SKU still says otherwise. */
-          slotOf: p => ecwidSource().adSlotOf(p),
-          /* And where it points, which a category alone cannot express: two
-             of the three square tiles this replaces go to contact.html and
-             delivery.html. */
-          destOf: p => ecwidSource().adDestinationOf(p),
-          /* The ad folders are containers, never destinations: an advert with
-             no destination of its own must not fall back to "the page for the
-             disabled folder it lives in". */
-          adFolderIds: Object.values(ECWID_AD_FOLDERS),
-        });
-        if (derived.length) {
-          /* The local file is the fallback PER SLOT. A read failure leaves it
-             null, which mergePromos treats as "no local entries" rather than
-             throwing — so a missing promos.json degrades to Ecwid-only
-             instead of to no banners. */
-          let local = null;
-          try {
-            local = JSON.parse(await contentText('promos')).promos;
-          } catch (e) { local = null; }
-          const merged = mergePromos(derived, local);
-          const promos = merged.promos;
-          res.setHeader('content-type', 'application/json; charset=utf-8');
-          res.setHeader('cache-control', 'no-cache');
-          return res.end(JSON.stringify({
-            note: 'Derived from Ecwid category ' + ECWID_BANNER_CATEGORY + '. Each entry is a ' +
-                  'BANNER, not a product: image = artwork, name = headline, description = ' +
-                  'subtitle. The SLOT is the ad folder the entry sits in ' +
-                  '(SADKO_ECWID_ADS_HERO / _WIDE / _SQUARE), falling back to a banner- SKU. ' +
-                  'Slots with no Ecwid ads keep their promos.json entries (see slotsFromLocal). ' +
-                  'The CLICK-THROUGH is the ordinary category the ' +
-                  'banner entry is also assigned to (its page on THIS site), or the shop when ' +
-                  'it has none, never the Ecwid product URL, which would send the shopper to ' +
-                  'another storefront. These entries are ' +
-                  'excluded from the catalogue, search and rails. No English fields: Ecwid ' +
-                  'holds no usable translations, and copying Arabic into an English field ' +
-                  'would be worse than omitting it.',
-            source: merged.fromLocal.length ? 'ecwid+local' : 'ecwid',
-            /* Which slots each source supplied, so "my hero banner is still
-               the old one" has an answer in the payload rather than needing a
-               guess. */
-            slotsFromEcwid: merged.fromEcwid,
-            slotsFromLocal: merged.fromLocal,
-            adFolders: ECWID_AD_FOLDERS,
-            derivedAt: new Date().toISOString(),
-            promos,
-          }));
-        }
-      } catch (e) { /* fall through to the static file */ }
+      const payload = await derivedPromosPayload();
+      if (payload) {
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.setHeader('cache-control', 'no-cache');
+        return res.end(JSON.stringify(payload));
+      }
+
     }
   }
 
@@ -3889,14 +4538,27 @@ export async function handle(req, res) {
     } catch (e) { /* fall through to the static handler, which will 404 */ }
   }
 
-  /* The owner's editorial JSON (guides, finder, promos): an edit made in the
+    /* Site-wide settings for every page (nav.js applySiteSettings): hotline,
+     announcement, maintenance notice. Only what is switched on is sent. */
+  if (u.pathname === '/data/site.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const c = await siteConfig();
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    setEditableCache(res);
+    return res.end(req.method === 'HEAD' ? undefined : JSON.stringify({
+      hotline: c.hotline,
+      announcement: c.announcement.on ? { ar: c.announcement.ar, en: c.announcement.en } : null,
+      maintenance: c.maintenance.on ? { ar: c.maintenance.ar, en: c.maintenance.en } : null,
+    }));
+  }
+
+  /* The owner's editorial JSON (guides, finder, scenes): an edit made in the
      control room is stored in the database and wins over the bundled file. */
   {
     const cm = /^\/data\/([a-z]+)\.json$/.exec(u.pathname);
     if (cm && ADMIN_CONTENT[cm[1]] && (req.method === 'GET' || req.method === 'HEAD')) {
       const txt = await contentText(cm[1]);
       res.setHeader('content-type', 'application/json; charset=utf-8');
-      res.setHeader('cache-control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+      setEditableCache(res);
       return res.end(req.method === 'HEAD' ? undefined : txt);
     }
   }
@@ -3916,6 +4578,9 @@ export async function handle(req, res) {
   }
 
   let p; try { p = decodeURIComponent(u.pathname); } catch { p = ''; }
+  // The portal lives at /admin, as in vercel.json; /admin/ would break its relative paths.
+  if (p === '/admin/') { res.statusCode = 308; res.setHeader('location', '/admin'); return res.end(); }
+  if (p === '/admin') p = '/admin.html';
   if (p === '/') p = '/index.html';
   // Allow-list: this used to serve every file under site/, customer database
   // included (/data/accounts.db). See engine/static-allow.mjs.

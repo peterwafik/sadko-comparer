@@ -288,7 +288,11 @@ export function adDestination(sku) {
      "#" is safe to claim: it cannot appear in any destination this
      allow-list accepts, and it is the one character a URL would treat as a
      fragment anyway. */
-  const raw = String(sku == null ? '' : sku).split('#')[0].trim().toLowerCase();
+  /* "~" works as well, and is what the admin portal writes: measured on
+     2026-10-27, Ecwid's API silently DROPS "#" from a SKU ("contact#0319f4d"
+     was stored as "contact0319f4d", which reads as no destination at all),
+     while "~" is kept as typed. */
+  const raw = String(sku == null ? '' : sku).split(/[#~]/)[0].trim().toLowerCase();
   if (!raw) return null;
 
   /* A slot marker is not a destination — it is the legacy way of saying which
@@ -395,4 +399,24 @@ export function liveDestination(dest, world = {}) {
   }
   /* A site page ships with the site; there is nothing to look up. */
   return dest;
+}
+
+/* ============================================================================
+   The advert's MESSAGE, in two languages, from its Ecwid description.
+
+   Ecwid holds no usable English for this store, so the admin portal writes
+   the English message on its own line, marked "EN:" (engine/admin-ecwid.mjs
+   adDescription). The mirror keeps descriptions flattened to one line, so the
+   marker is looked for anywhere, not only at a line start. Older adverts with
+   Arabic only read as { ar, en: '' }, and stay hidden on the English pages as
+   before rather than showing Arabic there.
+   ========================================================================== */
+export function parseAdDescription(html) {
+  const plain = String(html || '')
+    .replace(/<br\s*\/?>|<\/p>|<\/div>/gi, '\n').replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  const m = /(^|\s)EN\s*:\s*/i.exec(plain);
+  const tidy = s => s.replace(/\s+/g, ' ').trim();
+  if (!m) return { ar: tidy(plain), en: '' };
+  return { ar: tidy(plain.slice(0, m.index)), en: tidy(plain.slice(m.index + m[0].length)) };
 }

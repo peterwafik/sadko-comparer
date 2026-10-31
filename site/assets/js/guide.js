@@ -56,7 +56,8 @@ function mountGuide(container, api, sections) {
   const dockBtns = sections.map((s, i) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'gd-dock__btn';
+    // The shop hand-off gets its own colour so the eye finds it in the bar.
+    b.className = s.href ? 'gd-dock__btn gd-dock__btn--shop' : 'gd-dock__btn';
     b.innerHTML = `<em>${i + 1}</em><span>${escg(s.label || '')}</span>`;
     b.title = G.dockTitle(s.label);
     b.setAttribute('aria-label', G.dockBtnAria(s.label));
@@ -411,6 +412,19 @@ function injectGuideCSS() {
   .gd-dock__btn.is-active em{background:rgba(255,255,255,.25);color:#fff;}
   .gd-dock.is-showcase .gd-dock__btn.is-active{background:var(--sadko-amber,#fe9800);color:#241a05;}
   .gd-dock.is-showcase .gd-dock__btn.is-active em{background:rgba(255,255,255,.55);color:#241a05;}
+  /* The shop button is a link out, not a room, and it is the one we want
+     tapped. Teal and amber already mean "you are here", so it gets its own
+     warm orange-red with a soft breathing glow that reads at a glance. */
+  .gd-dock__btn--shop,.gd-dock__btn--shop.is-active,.gd-dock.is-showcase .gd-dock__btn--shop.is-active{
+    background:linear-gradient(135deg,#ff8a1f,#e8432e);color:#fff;
+    animation:gd-shop-glow 2.4s ease-in-out infinite;}
+  .gd-dock__btn--shop em,.gd-dock__btn--shop.is-active em,.gd-dock.is-showcase .gd-dock__btn--shop.is-active em{
+    background:rgba(255,255,255,.3);color:#fff;}
+  .gd-dock__btn--shop:hover,.gd-dock__btn--shop:focus-visible{
+    background:linear-gradient(135deg,#ff9a3a,#d93a25);transform:translateY(-1px);}
+  @keyframes gd-shop-glow{0%,100%{box-shadow:0 4px 12px rgba(232,67,46,.35);}
+    50%{box-shadow:0 4px 20px rgba(232,67,46,.7),0 0 0 3px rgba(255,138,31,.2);}}
+  @media (prefers-reduced-motion:reduce){.gd-dock__btn--shop{animation:none;box-shadow:0 4px 14px rgba(232,67,46,.45);}}
 
   /* ---- help (؟) button ---- */
   .gd-help{position:fixed;right:clamp(14px,2.4vw,30px);bottom:calc(18px + env(safe-area-inset-bottom));z-index:55;

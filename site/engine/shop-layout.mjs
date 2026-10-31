@@ -11,8 +11,10 @@
    Pure: validation and ordering only.
    ========================================================================== */
 
-export const SECTION_KEYS = ['brands', 'offers', 'adWide', 'categories', 'featured', 'adGrid', 'bestSellers'];
-/* Sections with a heading the admin may rename. The two ad blocks have none. */
+export const SECTION_KEYS = ['brands', 'offers', 'adWide', 'categories', 'featured', 'bestSellers'];
+/* Sections with a heading the admin may rename. The ad block has none.
+   The square ad tiles (adGrid) were removed at the owner's request; a saved
+   layout that still names them is cleaned of the key by cleanLayout(). */
 const TITLED = ['brands', 'offers', 'categories', 'featured', 'bestSellers'];
 const RAILS = ['offers', 'featured', 'bestSellers'];
 const PINNABLE = ['offers', 'bestSellers'];

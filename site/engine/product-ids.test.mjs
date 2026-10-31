@@ -180,12 +180,21 @@ test('a weight is shown only when one was actually entered', () => {
 
 /* ------------------------ instalments and payment ----------------------- */
 
-test('the payment and instalment plans come from Ecwid, not a hardcoded list', () => {
-  /* Appliances here are bought on instalments more often than outright, and
-     the plans were visible only at the end of checkout — after the shopper
-     had already decided. */
-  assert.match(src, /api\/payment-methods/);
-  assert.match(renderBody, /payPanel\(/);
+test('the product page no longer shows the distracting guidance panels', () => {
+  /* The owner asked for these off the product page: they distracted from the
+     product. Household size and space live in the finder, payment and
+     instalments in checkout. The functions stay (below), only unrendered. */
+  for (const fn of ['payPanel', 'suitability', 'spaceCheck', 'goodToKnow', 'energyPanel']) {
+    assert.ok(!new RegExp('\\b' + fn + '\\s*\\(').test(renderBody), 'render() shows ' + fn + ' again');
+  }
+  assert.ok(!/api\/payment-methods/.test(src), 'the product page still fetches the payment methods it no longer shows');
+  assert.match(renderBody, /specsPanel\(p, s\)/, 'the specifications section must stay');
+});
+
+test('the specifications show only the rows that have a value', () => {
+  assert.match(specsBody, /rows\.filter\(r => r\[1\] != null/);
+  assert.ok(!/not stated|غير متوفر/.test(specsBody), 'an empty row is labelled "not stated" again');
+  assert.ok(!/'؟'/.test(specsBody), 'a "?" placeholder can reach the dimensions row again');
 });
 
 test('a restricted plan names the brand it is restricted to', () => {
@@ -228,12 +237,10 @@ test('the description is no longer folded shut', () => {
 
 /* -------------------------- the loads fail soft ------------------------- */
 
-test('the detail and payment reads both fail soft — neither can blank the page', () => {
+test('the detail read fails soft — it cannot blank the page', () => {
   const mount = functionBody(src, 'mountProduct');
   const detail = functionBody(mount, 'detail');
-  const pays = functionBody(mount, 'pays');
   assert.match(detail, /\.catch\(\(\) => null\)/);
-  assert.match(pays, /\.catch\(\(\) => \[\]\)/);
 });
 
 test('a product still renders from the list entry when there is no detail endpoint', () => {

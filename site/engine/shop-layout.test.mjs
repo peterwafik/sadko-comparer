@@ -5,7 +5,7 @@ import { SECTION_KEYS, defaultLayout, cleanLayout, pinOrder, publicLayout } from
 
 test('the default layout is today\'s shop page, in today\'s order', () => {
   const d = defaultLayout();
-  assert.deepEqual(d.sections.map(s => s.key), ['brands', 'offers', 'adWide', 'categories', 'featured', 'adGrid', 'bestSellers']);
+  assert.deepEqual(d.sections.map(s => s.key), ['brands', 'offers', 'adWide', 'categories', 'featured', 'bestSellers']);
   assert.ok(d.sections.every(s => s.on));
   assert.deepEqual(d.limits, { offers: 8, featured: 8, bestSellers: 8 });
   assert.equal(d.brands.mode, 'auto');
@@ -87,7 +87,7 @@ test('every section the layout can name has a builder, and the hub follows the l
 
 test('the default still interleaves: every ad block sits between two rails', () => {
   const keys = defaultLayout().sections.map(s => s.key);
-  for (const ad of ['adWide', 'adGrid']) {
+  for (const ad of ['adWide']) {
     const i = keys.indexOf(ad);
     assert.ok(i > 0 && i < keys.length - 1, ad + ' is at an end');
     assert.ok(!/^ad/.test(keys[i - 1]) && !/^ad/.test(keys[i + 1]), ad + ' is next to another ad');
@@ -98,4 +98,10 @@ test('the rails take their size and title from the layout', () => {
   const rail = SHOP.slice(SHOP.indexOf('function collectionRail('), SHOP.indexOf('function collectionRail(') + 900);
   assert.match(rail, /\.slice\(0, railLimit\(key\)\)/);
   assert.match(rail, /sectionTitle\(key, col\.titleAr, col\.titleEn\)/);
+});
+
+test('a saved layout that still names the removed square ad tiles is cleaned of them', () => {
+  const L = cleanLayout({ sections: [{ key: 'brands', on: true }, { key: 'adGrid', on: true }, { key: 'offers', on: true }] });
+  assert.ok(!L.sections.some(s => s.key === 'adGrid'), 'adGrid survived cleaning');
+  assert.ok(!SECTION_KEYS.includes('adGrid'));
 });

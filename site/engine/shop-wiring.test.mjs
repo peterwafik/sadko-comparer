@@ -322,7 +322,9 @@ test('the hub interleaves ad slots between the rails', () => {
   assert.equal(rails.length, 3, 'expected three curated rails, found ' + rails.length);
   const deals = [];
   for (let i = hub.indexOf('deal('); i !== -1; i = hub.indexOf('deal(', i + 1)) deals.push(i);
-  assert.ok(deals.length >= 2, 'expected at least two interleaved ad slots, found ' + deals.length);
+  // One interleaved ad: the wide strip. The square tiles after the picks were removed.
+  assert.equal(deals.length, 1, 'expected exactly one interleaved ad slot, found ' + deals.length);
+  assert.ok(!/deal(4, 'grid')/.test(hub), 'the square ad tiles are back on the hub');
   // The property that matters is INTERLEAVING: every ad sits strictly between two
   // rails, so none can be stacked at the top or dumped at the end.
   for (const at of deals) {
@@ -335,14 +337,24 @@ test('the hub interleaves ad slots between the rails', () => {
   }
 });
 
-// The requested running order: the ad first (above the breadcrumb), then
-// brand -> offers -> category -> picks -> best sellers.
-test('the hub renders the hero ad above the breadcrumb', () => {
+// The requested running order: the ad first, then the section jump bar (which
+// replaced the hub's breadcrumb), then brand -> offers -> category -> picks ->
+// best sellers.
+test('the hub renders the hero ad above the section jump bar, with no breadcrumb', () => {
   const hub = functionBody(src, 'renderHub');
   const hero = hub.indexOf('U.adHero(');
-  const crumb = hub.indexOf('U.breadcrumb(');
-  assert.ok(hero > 0 && crumb > 0, 'hub is missing the hero or the breadcrumb');
-  assert.ok(hero < crumb, 'the hero ad must render above the breadcrumb');
+  const bar = hub.indexOf('sectionJumpBar(jumps)');
+  assert.ok(hero > 0 && bar > 0, 'hub is missing the hero or the section jump bar');
+  assert.ok(hero < bar, 'the hero ad must render above the section jump bar');
+  assert.equal(hub.indexOf('U.breadcrumb('), -1, 'the hub should no longer render a breadcrumb');
+});
+
+test('jump targets wrap only the titled sections, and the jumps are wired', () => {
+  const hub = functionBody(src, 'renderHub');
+  assert.match(hub, /'<section class="shop-sec" id="sec-' \+ s\.key/);
+  assert.match(hub, /wireSectionJumps\(root\)/);
+  assert.match(hub, /wireBrandAutoSlide\(root\)/);
+  assert.match(functionBody(src, 'sectionJumpBar'), /href="#sec-/);
 });
 
 test('the hub follows the requested section order', () => {

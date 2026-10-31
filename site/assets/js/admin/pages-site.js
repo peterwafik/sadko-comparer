@@ -272,7 +272,9 @@
       const catName = id => ((r.categories || []).find(c => c.id === String(id)) || {}).name || id;
       const destText = d => !d ? t('بدون رابط', 'No link') : d.kind === 'page' ? t('صفحة: ', 'Page: ') + t(...(PAGE_NAMES[d.value] || [d.value, d.value]))
         : d.kind === 'cat' ? t('قسم: ', 'Category: ') + catName(d.value) : t('منتج رقم ', 'Product #') + d.value;
-      const missing = Object.keys(r.folders).filter(s => !r.folders[s]);
+      // The square tiles are no longer shown anywhere on the site (the shop's ad
+      // grid was removed), so their folder is neither listed nor required.
+      const missing = Object.keys(r.folders).filter(s => s !== 'square' && !r.folders[s]);
       const st = { tab: ctx.query.get('tab') || 'shop', cat: ctx.query.get('cat') || '' };
 
       async function paint() {
@@ -291,7 +293,7 @@
 
       async function shopTab(body) {
         const pv = await A.api('GET', 'ads/preview');
-        body.innerHTML = ['hero', 'wide', 'square'].map(slot => {
+        body.innerHTML = ['hero', 'wide'].map(slot => {
           const list = r.slots[slot];
           const builtIn = (pv.shop && pv.shop[slot] || []).filter(a => a.source !== 'ecwid');
           return '<div class="card"><h2><span class="lft">' + esc(t(...SLOT_NAMES[slot])) + ' <span class="chip">' + esc(r.shapes[slot].label) + '</span></span>' +
@@ -421,7 +423,7 @@
   const SECTION_NAMES = {
     brands: ['تسوّق حسب الماركة', 'Shop by brand'], offers: ['عروض صادكو', 'SADKO offers'], adWide: ['إعلان عريض', 'Wide ad'],
     categories: ['تسوّق حسب الفئة', 'Shop by category'], featured: ['مختارات صادكو (خصومات حقيقية)', 'SADKO picks (real discounts)'],
-    adGrid: ['مربعات إعلانات', 'Ad tiles'], bestSellers: ['الأكثر مبيعاً', 'Best sellers'],
+    bestSellers: ['الأكثر مبيعاً', 'Best sellers'],
   };
   const TITLED = ['brands', 'offers', 'categories', 'featured', 'bestSellers'];
   const LIMITED = ['offers', 'featured', 'bestSellers'];

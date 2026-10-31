@@ -293,9 +293,145 @@
   }
 
   // Today's running order, and the order a missing or broken layout falls back
-  // to: brand, offers, an ad, category, picks, ads, best sellers. Every ad sits
-  // between two rails, so a shopper meets one each screenful.
-  var HUB_SECTIONS = ['brands', 'offers', 'adWide', 'categories', 'featured', 'adGrid', 'bestSellers'];
+  // to: brand, offers, an ad, category, picks, best sellers. The one ad sits
+  // between two rails. (The square ad tiles after the picks were removed.)
+  var HUB_SECTIONS = ['brands', 'offers', 'adWide', 'categories', 'featured', 'bestSellers'];
+
+  // ---- section jump bar (hub only) --------------------------------------
+  // One link per titled section, in page order. A plain #anchor so it still
+  // works without JS; wireSectionJumps() turns it into a smooth scroll and keeps
+  // the hash out of the URL (a hash change fires popstate, and popstate
+  // re-renders the whole shop).
+  function sectionJumpBar(jumps) {
+    if (!jumps.length) return '';
+    return '<nav class="secjump" aria-label="' + U.esc(t('أقسام المتجر', 'Shop sections')) + '">' +
+      jumps.map(function (j) {
+        return '<a class="secjump__link" href="#sec-' + j.key + '" data-jump="' + j.key + '">' + U.esc(j.title) + '</a>';
+      }).join('') + '</nav>';
+  }
+  function wireSectionJumps(root) {
+    var bar = root.querySelector('.secjump');
+    if (!bar) return;
+    bar.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('[data-jump]');
+      if (!a) return;
+      var target = document.getElementById('sec-' + a.getAttribute('data-jump'));
+      if (!target) return;
+      e.preventDefault();
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // .shop-sec carries scroll-margin-top, which clears the sticky header.
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      bar.querySelectorAll('.secjump__link').forEach(function (l) { l.classList.toggle('is-active', l === a); });
+    });
+  }
+
+  // ---- phone brand strip: slow self-scroll that wraps around --------------
+  // On a phone the brand row is one sideways strip showing three marks. Left
+  // alone it drifts slowly on its own; once the last brand has gone by it comes
+  // round to the first again with no jump, because the tiles are rendered twice
+  // and the scroll position is folded back by one set's width. A touch pauses
+  // it (the shopper is swiping), and it picks up again a few seconds later.
+  // Desktop keeps the wrapping grid and never sees the copies.
+  var brandSlideStop = null;
+  function wireBrandAutoSlide(root) {
+    if (brandSlideStop) { brandSlideStop(); brandSlideStop = null; }
+    var strip = root.querySelector('.btiles');
+    if (!strip || !window.matchMedia) return;
+    var phone = window.matchMedia('(max-width: 640px)');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var SPEED = 22;          // px per second: slow enough to read each name
+    var RESUME_MS = 3000;    // quiet time after a touch before it moves again
+    var raf = 0, last = 0, pos = 0, setW = 0, pausedUntil = 0, held = false, visible = true;
+    var clones = [];
+    var rtl = function () { return getComputedStyle(strip).direction === 'rtl'; };
+
+    function measure() {
+      // One set's width = where the first copy starts minus where the first original starts.
+      if (!clones.length) return 0;
+      var a = strip.children[0].getBoundingClientRect();
+      var b = clones[0].getBoundingClientRect();
+      return Math.abs(b.left - a.left);
+    }
+    function start() {
+      if (clones.length || !phone.matches) return;
+      if (strip.scrollWidth <= strip.clientWidth + 2) return;   // fits: nothing to slide
+      [].slice.call(strip.children).forEach(function (n) {
+        var c = n.cloneNode(true);
+        c.setAttribute('aria-hidden', 'true');
+        c.setAttribute('tabindex', '-1');
+        c.classList.add('btile--clone');
+        strip.appendChild(c);
+        clones.push(c);
+      });
+      strip.classList.add('btiles--auto');
+      setW = measure();
+      pos = Math.abs(strip.scrollLeft);
+      last = 0;
+      raf = requestAnimationFrame(step);
+    }
+    function teardown() {
+      cancelAnimationFrame(raf); raf = 0;
+      clones.forEach(function (c) { c.remove(); });
+      clones = [];
+      strip.classList.remove('btiles--auto');
+    }
+    function step(now) {
+      if (!strip.isConnected) { stop(); return; }
+      raf = requestAnimationFrame(step);
+      var dt = last ? Math.min(now - last, 100) : 0;
+      last = now;
+      if (held || !visible || now < pausedUntil || !setW) return;
+      pos += SPEED * dt / 1000;
+      if (pos >= setW) pos -= setW;
+      strip.scrollLeft = rtl() ? -pos : pos;
+    }
+    function hold() { held = true; }
+    function release() {
+      held = false;
+      pausedUntil = performance.now() + RESUME_MS;
+      // Carry on from wherever the swipe left it, folded into the first set.
+      setTimeout(function () {
+        pos = Math.abs(strip.scrollLeft);
+        if (setW && pos >= setW) { pos -= setW; strip.scrollLeft = rtl() ? -pos : pos; }
+      }, RESUME_MS - 50);
+    }
+    function onMedia() { if (phone.matches) start(); else teardown(); }
+    function onResize() { if (clones.length) setW = measure(); }
+
+    // Writing scrollLeft every frame cancels any smooth scroll in flight
+    // elsewhere on the page (Chrome drops it), which killed the section jump
+    // glide and the rail arrows. So the drift steps aside: briefly after any
+    // click (that is what starts those glides) and while anything other than
+    // the strip itself is scrolling.
+    function yieldFor(ms) { pausedUntil = Math.max(pausedUntil, performance.now() + ms); }
+    function onAnyClick() { yieldFor(1200); }
+    function onAnyScroll(e) { if (e.target !== strip) yieldFor(400); }
+    document.addEventListener('click', onAnyClick, true);
+    document.addEventListener('scroll', onAnyScroll, { capture: true, passive: true });
+    strip.addEventListener('touchstart', hold, { passive: true });
+    strip.addEventListener('touchend', release, { passive: true });
+    strip.addEventListener('touchcancel', release, { passive: true });
+    strip.addEventListener('pointerdown', hold);
+    strip.addEventListener('pointerup', release);
+    if (phone.addEventListener) phone.addEventListener('change', onMedia);
+    window.addEventListener('resize', onResize);
+    var io = window.IntersectionObserver ? new IntersectionObserver(function (es) {
+      visible = es[0].isIntersecting;
+    }) : null;
+    if (io) io.observe(strip);
+
+    function stop() {
+      teardown();
+      if (phone.removeEventListener) phone.removeEventListener('change', onMedia);
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('click', onAnyClick, true);
+      document.removeEventListener('scroll', onAnyScroll, { capture: true });
+      if (io) io.disconnect();
+    }
+    brandSlideStop = stop;
+    start();
+  }
 
   function renderHub(root, products, promos) {
     var L = layout();
@@ -347,23 +483,47 @@
           '<div class="ctiles">' + cats.map(U.categoryTile).join('') + '</div>' : '';
       },
       featured: function () { return collectionRail(products, 'featured'); },
-      adGrid: function () { return deal(4, 'grid'); },
       bestSellers: function () { return collectionRail(products, 'bestSellers'); }
     };
     var order = L && L.sections ? L.sections : HUB_SECTIONS.map(function (k) { return { key: k, on: true }; });
 
+    // The titled sections get a jump link in the bar under the hero ad. Ads
+    // carry no title and are not destinations, so they render bare.
+    var col = function (k) { return (CACHE && CACHE.collections && CACHE.collections[k]) || {}; };
+    var JUMP_TITLES = {
+      brands: function () { return sectionTitle('brands', 'تسوّق حسب الماركة', 'Shop by brand'); },
+      offers: function () { return sectionTitle('offers', col('offers').titleAr, col('offers').titleEn); },
+      categories: function () { return sectionTitle('categories', 'تسوّق حسب الفئة', 'Shop by category'); },
+      featured: function () { return sectionTitle('featured', col('featured').titleAr, col('featured').titleEn); },
+      bestSellers: function () { return sectionTitle('bestSellers', col('bestSellers').titleAr, col('bestSellers').titleEn); }
+    };
+    var jumps = [];
+    var body = order.filter(function (s) { return s && s.on !== false && BLOCKS[s.key]; })
+      .map(function (s) {
+        var html = BLOCKS[s.key]();
+        if (!html || !JUMP_TITLES[s.key]) return html;
+        var title = JUMP_TITLES[s.key]();
+        if (!title) return html;
+        jumps.push({ key: s.key, title: title });
+        return '<section class="shop-sec" id="sec-' + s.key + '">' + html + '</section>';
+      }).join('');
+
     root.innerHTML =
-      // The hero ad sits ABOVE the breadcrumb — it is the first thing on the page.
+      // The hero ad sits ABOVE the section bar — it is the first thing on the page.
       U.adHero(ads.hero) +
-      U.breadcrumb([{ label: t('البيت', 'Home'), href: P('index.html') }, { label: t('المتجر', 'Shop') }]) +
+      // The section bar takes the breadcrumb's place on the hub: on the shop's
+      // front page "Home > Shop" said nothing, while a row of the sections below
+      // lets a shopper go straight to the one they came for.
+      sectionJumpBar(jumps) +
       U.advancedSearch({ q: '', sort: 'default' }, advData(root, products)) +
-      order.filter(function (s) { return s && s.on !== false && BLOCKS[s.key]; })
-        .map(function (s) { return BLOCKS[s.key](); }).join('');
+      body;
     // "Shop by price" is deliberately NOT on the hub. It is a filter, and the hub
     // is for browsing; the price facet is already in the rail on every category
     // page and on the browse view, which is where someone narrowing by price is.
     U.afterGrid(root);
     wireAdStrap(root);
+    wireSectionJumps(root);
+    wireBrandAutoSlide(root);
     wireAdvanced(root, null);
     // The hub holds no filter state, so a search from here starts a clean browse.
     wireSearch(root, function (q) {

@@ -69,11 +69,10 @@
        resolves to null when the Ecwid flag is off or the server is static, and
        the page then renders from the list entry exactly as it did before.
 
-       pays() is the Ecwid payment and instalment methods. Appliances here are
-       bought on instalments far more often than outright, and the plans were
-       visible only at the very end of checkout — after the shopper had already
-       decided. They belong on the page where the decision is made. */
-    Promise.all([A.byId(id), A.products(), detail(id), pays()]).then(([p, all, extra, methods]) => {
+       pays() (the Ecwid payment and instalment methods) is no longer read
+       here: the payment panel was taken off the product page, and checkout
+       shows the same methods where the shopper actually picks one. */
+    Promise.all([A.byId(id), A.products(), detail(id)]).then(([p, all, extra]) => {
       if (!p) { root.innerHTML = A.empty(t('هذا المنتج غير موجود.', 'That product was not found.'), t('تصفّح المتجر', 'Browse the shop'), A.P('shop.html')); return; }
       /* The detail is the same mapped record, freshly read, so it wins on
          every field it carries — a price or a stock flag that changed in Ecwid
@@ -82,7 +81,7 @@
       const prod = extra ? Object.assign({}, p, extra) : p;
       const spec = S.of(prod);
       const peers = all.filter(x => String(x.categoryId) === String(prod.categoryId) && String(x.id) !== String(prod.id));
-      render(prod, spec, peers, methods);
+      render(prod, spec, peers);
     });
 
     /* Both reads fail SOFT. A product page that renders without its rich
@@ -93,15 +92,9 @@
         .then(d => (d && d.product) || null)
         .catch(() => null);
     }
-    function pays() {
-      return fetch(A.P('api/payment-methods'))
-        .then(r => (r.ok ? r.json() : null))
-        .then(d => (d && Array.isArray(d.methods) ? d.methods : []))
-        .catch(() => []);
-    }
 
     /* ================= render ================= */
-    function render(p, s, peers, methods) {
+    function render(p, s, peers) {
       const U = window.skShopUI;
       // EN shoppers arrive here from a translated shop/category card — route the
       // title through the same rule-based translator so the PDP title, tab
@@ -125,11 +118,12 @@
           '<div class="pdp__media">' + gallery(p, dispTitle) + '</div>' +
           '<div class="pdp__buy">' + head(p, s, dispTitle) + '</div>' +
         '</div>' +
-        '<div class="grid2 mt24">' +
-          '<div>' + suitability(p, s) + spaceCheck(p, s) + '</div>' +
-          '<div>' + goodToKnow(p, s, peers) + energyPanel(p, s, peers) + '</div>' +
-        '</div>' +
-        payPanel(methods) +
+        /* "Who is it for?", "Will it fit?", "Good to know", "Running cost" and
+           the payment/instalment panel are deliberately NOT on the product
+           page: they distracted from the product itself. Household size and
+           space live in the finder (finder.html), payment and instalments in
+           checkout. The panel functions below are kept, unused, so any of
+           them can be brought back with one line. */
         specsPanel(p, s) +
         '<div class="grid2 mt16"><div>' + reviewsPanel(p) + '</div><div>' + qaPanel(p) + '</div></div>' +
         '<div id="guidesBox"></div>' +
@@ -453,7 +447,14 @@
       const rows = [
         [t('الماركة', 'Brand'), s.brand ? t(s.brand.ar, s.brand.en) : null],
         [t('السعة', 'Capacity'), s.headline ? A.num(s.headline.v) + ' ' + t(s.headline.u, s.headline.uEn) : null],
-        [t('الأبعاد (ع × ع × ا)', 'Dimensions (W × D × H)'), (d.w || d.d || d.h) ? [d.w, d.d, d.h].map(x => x || '؟').join(' × ') + ' ' + t('سم', 'cm') : null],
+        // All three known: the usual W × D × H. Only some known: just those,
+        // each named, so no "?" placeholder ever reaches the table.
+        (d.w && d.d && d.h)
+          ? [t('الأبعاد (ع × ع × ا)', 'Dimensions (W × D × H)'), [d.w, d.d, d.h].join(' × ') + ' ' + t('سم', 'cm')]
+          : [t('الأبعاد', 'Dimensions'), (d.w || d.d || d.h)
+              ? [[t('العرض', 'W'), d.w], [t('العمق', 'D'), d.d], [t('الارتفاع', 'H'), d.h]]
+                  .filter(x => x[1]).map(x => x[0] + ' ' + x[1]).join(' · ') + ' ' + t('سم', 'cm')
+              : null],
         [t('كفاءة الطاقة', 'Energy class'), s.energy.cls || null],
         [t('انفرتر', 'Inverter'), s.energy.inverter ? t('نعم', 'Yes') : null],
         [t('اللون', 'Finish'), s.color ? t(s.color.ar, s.color.key) : null],
@@ -470,11 +471,14 @@
       const facts = skuLine(p) +
         (p.weight ? '<li><span class="k">' + t('الوزن', 'Weight') + '</span><span class="v">' +
           A.num(p.weight) + ' ' + t('كجم', 'kg') + '</span></li>' : '');
+      /* Only the rows that actually have a value are shown. A field the
+         product data does not state is left out entirely rather than listed
+         as a blank placeholder, so the table is never a column of blanks. */
+      const filled = rows.filter(r => r[1] != null && String(r[1]).trim() !== '');
+      const list = filled.map(r => '<li><span class="k">' + esc(r[0]) + '</span><span class="v">' +
+        esc(r[1]) + '</span></li>').join('') + facts;
       return '<div class="panel mt16"><h2 class="panel__h">' + t('المواصفات', 'Specifications') + '</h2>' +
-        '<p class="panel__sub">' + t('مقروءة آلياً من وصف المنتج، وما لا يُذكر نصفه بـ«غير متوفر» بدلاً من تخمينه.',
-          'Read automatically from the product description. Anything missing is shown as "not stated" rather than guessed.') + '</p>' +
-        '<ul class="specs">' + rows.map(r => '<li><span class="k">' + esc(r[0]) + '</span><span class="v' + (r[1] ? '' : ' unknown') + '">' +
-          esc(r[1] == null ? t('غير متوفر', 'not stated') : r[1]) + '</span></li>').join('') + facts + '</ul>' +
+        (list ? '<ul class="specs">' + list + '</ul>' : '') +
         /* Ecwid's own copy, with the structure it was written in.
 
            It used to be flattened to one paragraph by the mapper's stripHtml,

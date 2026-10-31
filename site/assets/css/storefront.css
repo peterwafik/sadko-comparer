@@ -21,6 +21,37 @@
    points backward against the reading direction. */
 html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 
+/* ---------- 1b. section jump bar (shop hub) ----------
+   Takes the breadcrumb's place under the hero ad: one pill per section below,
+   side by side. Tapping one scrolls to that section (shop.js wireSectionJumps).
+   Every link must be visible at once, with no sideways scrolling. Desktop has
+   the room for full-size type; on phones the type shrinks, the links share the
+   row, and a long title breaks onto a second line inside its pill instead of
+   pushing others off screen. The pills wear the site's teal on every screen. */
+.secjump { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+  margin: 0 0 var(--sk-gutter); }
+.secjump__link { flex: 0 1 auto; min-width: 0; text-align: center; text-decoration: none;
+  font: 800 1rem/1.25 'Cairo', sans-serif; color: #fff;
+  padding: 9px 22px; border-radius: 999px; background: var(--accent);
+  border: 1px solid var(--accent);
+  transition: background .2s, color .2s, border-color .2s, transform .15s; }
+.secjump__link:hover, .secjump__link:focus-visible {
+  background: var(--ink); border-color: var(--ink); color: #fff; transform: translateY(-1px); }
+/* the one just tapped: brand amber, so it reads as "you jumped here" */
+.secjump__link.is-active { background: var(--amber); border-color: var(--amber); color: #241a05; }
+/* tablets: still one row, type between the phone and desktop sizes */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .secjump { gap: 6px; }
+  .secjump__link { font-size: clamp(11px, 1.45vw, 16px); padding: 7px clamp(10px, 1.5vw, 22px); }
+}
+@media (max-width: 640px) {
+  .secjump { flex-wrap: nowrap; gap: 4px; }
+  .secjump__link { flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+    font-size: clamp(8.5px, 2.5vw, 11px); font-weight: 700; padding: 4px 4px; border-radius: 12px; }
+}
+/* clears the sticky top bar when a jump lands on a section */
+.shop-sec { scroll-margin-top: 90px; }
+
 /* ---------- 2. advertising ----------
    Real SADKO campaign artwork (data/promos.json). The message is inside the image,
    so these are picture frames, not text panels: no overlay, no scrim, nothing that
@@ -161,6 +192,9 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 /* ...except as the first thing in its column, where a top margin would push the
    whole page down away from the header. */
 .rail:first-child { margin-top: 0; }
+/* A hub rail wrapped in its jump-target <section> is that section's first child
+   but not the column's: keep its gap (it collapses through the bare section). */
+.shop-sec > .rail:first-child { margin-top: var(--sk-section); }
 .rail__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sk-gap-sm); margin: 0 0 var(--sk-gap-sm); flex-wrap: wrap; }
 /* Same size/weight as .shop-h2 — a rail is a section like any other, and two
    heading scales on one page is what made the order look unsettled. */
@@ -472,7 +506,12 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   .btiles::-webkit-scrollbar { height: 0; width: 0; }
   .btile { scroll-snap-align: start; }
   .btile__mark { width: 74px; height: 74px; }
+  /* While the strip drifts on its own (shop.js wireBrandAutoSlide), snapping
+     would yank every sub-pixel step back to a tile edge, so it is switched off. */
+  .btiles--auto { scroll-snap-type: none; }
 }
+/* the loop's second copy of the tiles exists only for the phone strip */
+@media (min-width: 641px) { .btile--clone { display: none; } }
 
 
 /* ============================================================================

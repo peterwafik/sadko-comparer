@@ -729,7 +729,8 @@ const NAV_JS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../as
 // A wrapping grid only ever fit two brand marks across a 360-400px phone, so a
 // dozen brands cost six rows of scrolling before the first product appeared.
 test('on phones the brand row is one swipeable strip of three', () => {
-  const i = CSS.indexOf('@media (max-width: 640px)');
+  // The brand strip's own 640px block (the section jump bar has an earlier one).
+  const i = CSS.search(/@media \(max-width: 640px\) \{\s*\.btiles \{/);
   assert.ok(i > CSS.indexOf('@media (max-width: 480px)'),
     'the phone brand block must come AFTER the 480px block or that one wins');
   const phone = CSS.slice(i);

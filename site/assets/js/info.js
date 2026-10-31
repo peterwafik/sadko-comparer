@@ -474,7 +474,7 @@
           blocks: [
             ul([
               ['إذا أنشأت حساباً: يُخزَّن الاسم والبريد الإلكترونى ورقم الهاتف وعنوان التوصيل على خادم صادكو نفسه لتتمكن من تسجيل الدخول وتقديم طلب.', 'If you create an account: your name, e-mail, phone and delivery address are stored on SADKO’s own server so you can sign in and place an order.'],
-              ['أما خطط التجهيز والمنتجات المحفوظة وأجهزتك والسلة والتقييمات والأسئلة التى تكتبها فكلها فى متصفحك أنت، على جهازك، ولا تُرفع إلى أى مكان. وإذا عرّفتنا بمكانك دون إنشاء حساب، فإنه يُحفظ على جهازك أيضاً، وينتقل معك بمجرد إنشاء الحساب.', 'Shopping plans, saved products, your appliances, the cart, and the reviews and questions you write all live in your own browser on your device and are not uploaded anywhere. If you describe a place without creating an account, that also stays on your device, and moves across with you when you do create one.'],
+              [(!(window.skFeature && !window.skFeature.on('plan')) ? 'أما خطط التجهيز والمنتجات المحفوظة' : 'أما المنتجات المحفوظة') + ' وأجهزتك والسلة والتقييمات والأسئلة التى تكتبها فكلها فى متصفحك أنت، على جهازك، ولا تُرفع إلى أى مكان. وإذا عرّفتنا بمكانك دون إنشاء حساب، فإنه يُحفظ على جهازك أيضاً، وينتقل معك بمجرد إنشاء الحساب.', (!(window.skFeature && !window.skFeature.on('plan')) ? 'Shopping plans, saved products' : 'Saved products') + ', your appliances, the cart, and the reviews and questions you write all live in your own browser on your device and are not uploaded anywhere. If you describe a place without creating an account, that also stays on your device, and moves across with you when you do create one.'],
               needs('compare', ['تجلب مقارنة الأسعار صفحات منتجات عامة من متاجر مدعومة، فهو بحث عن منتج، لا عنك أنت.', 'Price comparison fetches public product pages from supported stores: a search about a product, not about you.']),
               ['لا توجد أى بيانات بطاقات على هذا الموقع البتة: لا رقم بطاقة، ولا رمز CVV، ولا صفحة دفع.', 'No card details anywhere on this site at all: no card number, no CVV, no payment page.'],
               ['إذا سجّلت الدخول بحساب جوجل: نتلقى منهم اسمك وبريدك الإلكترونى فقط، ولا نرى كلمة مرور جوجل ولا نصل إلى أى شىء آخر فى حسابك.', 'If you sign in with Google: we receive only your name and e-mail. We never see your Google password and cannot reach anything else in your account.'],
@@ -515,7 +515,7 @@
               [
                 [['sadko-cart-v1', 'sadko-cart-v1'], ['سلة التسوق: المنتجات التى أضفتها والكميات.', 'The shopping cart: the products you added and their quantities.']],
                 [['sadko-saved-v1', 'sadko-saved-v1'], ['المنتجات المحفوظة والسعر وقت الحفظ لنعرض لك التغيّر.', 'Saved products and the price at the time you saved them, so we can show the change.']],
-                [['sadko-plans-v1', 'sadko-plans-v1'], ['خطط التجهيز: الأجهزة والميزانية والملاحظات.', 'Shopping plans: appliances, budget and notes.']],
+                needs('plan', [['sadko-plans-v1', 'sadko-plans-v1'], ['خطط التجهيز: الأجهزة والميزانية والملاحظات.', 'Shopping plans: appliances, budget and notes.']]),
                 needs('appliances', [['sadko-owned-v1', 'sadko-owned-v1'], ['أجهزتك المسجَّلة: الطراز، والرقم التسلسلى، وتاريخ الشراء، ومدة الضمان.', 'Your recorded appliances: model, serial, purchase date and warranty length.']]),
                 [['sadko-profile-v1', 'sadko-profile-v1'], ['إجابات ملف المنزل إن أجبت عنها دون حساب.', 'Home-profile answers if you filled them in without an account.']],
                 [['sadko-qa-v1 / sadko-reviews-v1', 'sadko-qa-v1 / sadko-reviews-v1'], ['الأسئلة والتقييمات التى تكتبها، تُحفظ محلياً ولا تُنشر لأحد.', 'The questions and reviews you write, kept locally and not published to anyone.']],
@@ -569,7 +569,7 @@
           h: ['كيف تمحو بياناتك', 'How to delete your data'],
           blocks: [
             ol([
-              ['العناصر المحلية (السلة، والمحفوظات، والخطط، وأجهزتك، والتقييمات): امسح بيانات الموقع من إعدادات المتصفح: Clear site data لنطاق هذا الموقع. وهذا يمحوها فوراً وبالكامل.', 'Local items (cart, saved products, plans, appliances, reviews): clear site data for this site’s domain from your browser settings. That removes them immediately and completely.'],
+              ['العناصر المحلية (السلة، والمحفوظات، ' + (!(window.skFeature && !window.skFeature.on('plan')) ? 'والخطط، ' : '') + 'وأجهزتك، والتقييمات): امسح بيانات الموقع من إعدادات المتصفح: Clear site data لنطاق هذا الموقع. وهذا يمحوها فوراً وبالكامل.', 'Local items (cart, saved products, ' + (!(window.skFeature && !window.skFeature.on('plan')) ? 'plans, ' : '') + 'appliances, reviews): clear site data for this site’s domain from your browser settings. That removes them immediately and completely.'],
               ['ولكل صفحة تحتوى بيانات محفوظة زر مسح خاص بها أيضاً (احذف الخطة، أزل الجهاز، أفرغ السلة).', 'Each page that holds saved data also has its own delete control (delete the plan, remove the appliance, empty the cart).'],
               ['الحساب على الخادم (إن كنت قد أنشأت واحداً): اطلب حذفه من خدمة العملاء على ' + TEL + ' أو ' + MAIL + '، مع ذكر البريد الإلكترونى المسجَّل به.', 'The server account (if you created one): ask customer care to delete it on ' + TEL + ' or ' + MAIL + ', quoting the registered e-mail.'],
             ]),
@@ -588,8 +588,8 @@
           id: 'use',
           h: ['استخدام الموقع', 'Using this site'],
           blocks: [
-            p('هذا الموقع نسخة معاد تصميمها (Rebrand Preview) لصادكو جروب، تعرض كتالوج منتجات وأدوات تساعدك على الاختيار: ترشيحات، ' + (window.skFeature && !window.skFeature.on('compare') ? '' : 'ومقارنة أسعار، ') + 'وأدلة شراء، وخطط تجهيز. واستخدامك للموقع يعنى موافقتك على الإرشادات المكتوبة هنا.',
-              'This site is a rebrand preview for SADKO Group. It presents a product catalogue and tools that help you choose: recommendations, ' + (window.skFeature && !window.skFeature.on('compare') ? '' : 'price comparison, ') + 'buying guides and shopping plans. Using the site means you accept the guidance set out here.'),
+            p('هذا الموقع نسخة معاد تصميمها (Rebrand Preview) لصادكو جروب، تعرض كتالوج منتجات وأدوات تساعدك على الاختيار: ترشيحات، ' + (window.skFeature && !window.skFeature.on('compare') ? '' : 'ومقارنة أسعار، ') + (!(window.skFeature && !window.skFeature.on('guides')) ? 'وأدلة شراء، ' : '') + (!(window.skFeature && !window.skFeature.on('plan')) ? 'وخطط تجهيز' : '') + '. واستخدامك للموقع يعنى موافقتك على الإرشادات المكتوبة هنا.',
+              'This site is a rebrand preview for SADKO Group. It presents a product catalogue and tools that help you choose: recommendations, ' + (window.skFeature && !window.skFeature.on('compare') ? '' : 'price comparison, ') + [!(window.skFeature && !window.skFeature.on('guides')) ? 'buying guides' : '', !(window.skFeature && !window.skFeature.on('plan')) ? 'shopping plans' : ''].filter(Boolean).join(' and ') + '. Using the site means you accept the guidance set out here.'),
             ul([
               ['استخدم الموقع للأغراض الشخصية والمشروعة فقط.', 'Use the site for personal, lawful purposes only.'],
               ['لا تحاول سحب الكتالوج آلياً، أو إثقال الخادم بطلبات كثيرة، أو تعطيل الخدمة.', 'Do not scrape the catalogue automatically, overload the server with requests, or disrupt the service.'],
@@ -641,13 +641,14 @@
         }),
         {
           id: 'advice',
-          h: ['الترشيحات والأدلة إرشادية', 'Recommendations and guides are guidance'],
+          h: !(window.skFeature && !window.skFeature.on('guides')) ? ['الترشيحات والأدلة إرشادية', 'Recommendations and guides are guidance'] : ['الترشيحات إرشادية', 'Recommendations are guidance'],
           blocks: [
             p('ترشّح أداة «ساعدنى أختار» بناءً على إجاباتك وعلى بيانات الكتالوج، وتذكر لك سبب كل ترشيح. وهو رأى استرشادى يساعدك على تضييق الاختيارات، لا استشارة هندسية ولا كهربائية ولا تقديراً رسمياً لاحتياجك.',
               'The guided finder recommends based on your answers and the catalogue data, and writes out the reason for each suggestion. That is guidance to narrow your options, not engineering or electrical advice, and not a formal assessment of your needs.'),
             ul([
-              ['أرقام المساحات والسعات فى الأدلة قواعد تقريبية شائعة، والرقم الملزم هو الوارد فى دليل الطراز.', 'The area and capacity figures in the guides are common rules of thumb; the binding number is in the model’s manual.'],
-              ['أعمال الغاز والكهرباء والتركيب يجب أن يقوم بها فنى مؤهل، والأدلة تدلك على ما تسأل عنه، لا على أن تؤديه بنفسك.', 'Gas, electrical and installation work must be done by a qualified technician. The guides tell you what to ask about, not how to do it yourself.'],
+              needs('guides', ['أرقام المساحات والسعات فى الأدلة قواعد تقريبية شائعة، والرقم الملزم هو الوارد فى دليل الطراز.', 'The area and capacity figures in the guides are common rules of thumb; the binding number is in the model’s manual.']),
+              [!(window.skFeature && !window.skFeature.on('guides')) ? 'أعمال الغاز والكهرباء والتركيب يجب أن يقوم بها فنى مؤهل، والأدلة تدلك على ما تسأل عنه، لا على أن تؤديه بنفسك.' : 'أعمال الغاز والكهرباء والتركيب يجب أن يقوم بها فنى مؤهل.',
+                !(window.skFeature && !window.skFeature.on('guides')) ? 'Gas, electrical and installation work must be done by a qualified technician. The guides tell you what to ask about, not how to do it yourself.' : 'Gas, electrical and installation work must be done by a qualified technician.'],
             ]),
             links([['ساعدنى أختار', 'Help me choose', 'finder.html'], ['دليلك للاختيار', 'Buying guides', 'guides.html']]),
           ],
@@ -673,7 +674,7 @@
           h: ['الملكية الفكرية', 'Intellectual property'],
           blocks: [
             ul([
-              ['تصميم الموقع ونصوصه وأدلته من إنتاج صادكو جروب، ولا يُسمح بإعادة نشرها تجارياً دون إذن.', 'The site’s design, its text and its guides are produced by SADKO Group and may not be republished commercially without permission.'],
+              [(!(window.skFeature && !window.skFeature.on('guides')) ? 'تصميم الموقع ونصوصه وأدلته' : 'تصميم الموقع ونصوصه') + ' من إنتاج صادكو جروب، ولا يُسمح بإعادة نشرها تجارياً دون إذن.', (!(window.skFeature && !window.skFeature.on('guides')) ? 'The site’s design, its text and its guides are' : 'The site’s design and its text are') + ' produced by SADKO Group and may not be republished commercially without permission.'],
               ['أسماء العلامات التجارية وشعاراتها ملك أصحابها، وذكرها هنا للتعريف بالمنتجات فقط.', 'Brand names and logos belong to their owners and are used here only to identify products.'],
               ['صور وأوصاف المنتجات مصدرها صفحات المنتجات نفسها وحقوقها لأصحابها.', 'Product images and descriptions come from the product pages themselves and their rights belong to their owners.'],
               ['وإذا رأيت محتوى منشوراً هنا بالخطأ أو مخالفاً لحقك، فاتصل بنا على ' + MAIL + ' وسنصححه.', 'If you believe content here is published in error or infringes your rights, contact us on ' + MAIL + ' and we will fix it.'],

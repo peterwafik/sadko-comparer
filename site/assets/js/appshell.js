@@ -128,8 +128,7 @@
     if (!el) return;
     const L = [
       { h: t('صادكو', 'SADKO'), items: [
-        [t('عن صادكو', 'About SADKO'), P('about.html')],
-        [t('قيمنا', 'Our Values'), P('values.html')],
+        [t('من نحن', 'About us'), P('about.html')],
         [t('تواصل معنا', 'Contact us'), P('contact.html')],
         [t('المعارض', 'Showrooms'), P('showrooms.html')],
         [t('حسابى', 'My account'), P('account.html')],
@@ -158,15 +157,14 @@
       L.map(c => '<div><h4>' + esc(c.h) + '</h4><ul>' +
         c.items.map(i => '<li><a href="' + i[1] + '">' + esc(i[0]) + '</a></li>').join('') +
         '</ul></div>').join('') +
-      '<div><h4>' + t('اتصل بنا', 'Talk to us') + '</h4><ul>' +
+      '<div class="foot__contact"><h4>' + t('اتصل بنا', 'Talk to us') + '</h4><ul>' +
         '<li><a href="tel:19140" dir="ltr">19140</a></li>' +
         '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li>' +
-      '</ul>' +
+      '</ul>' + (window.skSocial ? window.skSocial() : '') +
       '<p style="margin:14px 0 0;font-size:.82rem;opacity:.8;line-height:1.8">' +
         t('مجموعة صادكو، من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group, since 1986, sole distributor of Kiriazi.') + '</p></div>' +
       '</div><p class="foot__legal">' +
-      t('الأسعار والمواصفات المعروضة مأخوذة من صفحات المنتجات وقت آخر تحديث، وقد تتغير، يُرجى التأكد قبل الشراء.' + (!(window.skFeature && !window.skFeature.on('compare')) ? ' وتغطى مقارنة الأسعار متاجر مدعومة محددة، لا كل المتاجر فى مصر.' : '') + ' أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض: فإذا اشتريت من متجر آخر غير صادكو، فالضمان والخدمة يخصانه هو لا صادكو.',
-        'Prices and specifications shown are taken from product pages at the time of the last update and may change, so please confirm before buying.' + (!(window.skFeature && !window.skFeature.on('compare')) ? ' Price comparison covers a specific list of supported stores, not every store in Egypt.' : '') + ' Warranty, installation and returns are provided by the seller named on each offer: if you buy from a store other than SADKO, that seller, not SADKO, provides the warranty and service.') +
+      (window.skLegal ? esc(window.skLegal()) : '') +
       '<br>© ' + t('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }
 

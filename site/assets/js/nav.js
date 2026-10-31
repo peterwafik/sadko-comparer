@@ -30,8 +30,10 @@
      run, and "My appliances" is not part of the first release. Their files stay
      in the repo; listing a page here takes it out of every menu, footer, button
      and sentence that points at it, and sends a direct visit to the home page.
-     Empty this list to bring them back. Page scripts ask skFeature.on('compare'). */
-  const HIDDEN_PAGES = ['compare', 'appliances'];
+     Empty this list to bring them back. Page scripts ask skFeature.on('compare').
+     'plan' (Shopping plans) and 'guides' (Buying guides) were switched off on
+     2026-10-31 at the owner's request, everywhere including the admin portal. */
+  const HIDDEN_PAGES = ['compare', 'appliances', 'plan', 'guides'];
   // "compare.html?q=x", "../compare.html" and Vercel's clean "/compare" all name the same page
   const pageOf = href => String(href || '').replace(/\\/g, '/').split(/[?#]/)[0].split('/').pop().replace(/\.html?$/, '');
   window.skFeature = {
@@ -39,6 +41,32 @@
     on: name => !HIDDEN_PAGES.includes(name),
   };
   if (window.skFeature.hidden(location.pathname)) { location.replace(P('index.html')); return; }
+  /* pages merged into another one: the old address still works and lands on
+     the right section (Our values became part of About us on 2026-10-31) */
+  const MOVED_PAGES = { values: 'about.html#values' };
+  if (MOVED_PAGES[pageOf(location.pathname)]) { location.replace(P(MOVED_PAGES[pageOf(location.pathname)])); return; }
+  /* ---- social links (footer, every page) ---- */
+  const SOCIAL = [
+    ['Instagram', 'https://www.instagram.com/sadkogroup/', '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>'],
+    ['Facebook', 'https://www.facebook.com/SADKOGROUP', '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13.6 21v-7.7h2.6l.4-3h-3V8.4c0-.9.3-1.5 1.5-1.5h1.6V4.2c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H7.9v3h2.6V21h3.1z"/></svg>'],
+    ['YouTube', 'https://www.youtube.com/channel/UC8mVvjTFjOxbpju5vFig-Zg', '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2 27 27 0 0 0 2 12a27 27 0 0 0 .4 4.8 2.6 2.6 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8A27 27 0 0 0 22 12a27 27 0 0 0-.4-4.8zM10 15V9l5.2 3L10 15z"/></svg>'],
+  ];
+  /* The footer's small print. The old wording explained third-party sellers,
+     which only exist while the price comparer is on; with it switched off the
+     footer speaks for SADKO alone. The seller sentence returns with the comparer. */
+  window.skLegal = () => {
+    const ar = LANG !== 'en';
+    let txt = ar
+      ? 'نحدّث الأسعار والعروض والتوافر باستمرار، وقد تتغير دون إشعار مسبق. صور المنتجات للتوضيح، والمواصفات وفق بيانات الشركة المصنّعة. ولأى استفسار، فريق خدمة العملاء فى انتظارك على 19140.'
+      : 'Prices, offers and availability are updated regularly and may change without prior notice. Product images are for illustration, and specifications follow the manufacturer’s data. For any question, our customer care team is ready to help on 19140.';
+    if (window.skFeature && window.skFeature.on('compare')) txt += ar
+      ? ' وتغطى مقارنة الأسعار متاجر مدعومة محددة، ويقدّم الضمان والتركيب والاسترجاع البائع المذكور فى كل عرض.'
+      : ' Price comparison covers a specific list of supported stores; warranty, installation and returns come from the seller named on each offer.';
+    return txt;
+  };
+  window.skSocial = () => '<div class="foot__social">' + SOCIAL.map(s =>
+    '<a href="' + s[1] + '" target="_blank" rel="noopener" aria-label="' + s[0] + '" title="' + s[0] + '">' + s[2] + '</a>').join('') + '</div>';
+
   const shown = href => !window.skFeature.hidden(href);
 
   /* ---- clean addresses: no page path ends in ".html" ----
@@ -79,6 +107,7 @@
       savedAria: 'المنتجات المحفوظة', acctAria: 'حسابى', details: 'التفاصيل والمقاس',
       more: 'المزيد', appliances: 'أجهزتى', account: 'حسابى', saved: 'المحفوظات', cart: 'السلة',
       grpBefore: 'قبل الشراء', grpAfter: 'بعد الشراء', menu: 'القائمة', close: 'إغلاق',
+      contact: 'تواصل معنا', search: 'بحث', searchPh: 'ابحث عن منتج، ماركة، قسم أو موديل…', searchAll: 'كل النتائج فى المتجر', searchNone: 'لا توجد نتائج مطابقة، جرّب كلمة أخرى.', searchCats: 'أقسام', searchBrands: 'ماركات', searchItems: 'منتجات', searchLoading: 'جارٍ التحميل…', searchHint: 'اكتب حرفين على الأقل', outStock: 'غير متوفر',
       pagesAria: 'صفحات الموقع', add: 'أضف للسلة', added: '✓ أُضيف', maxQty: 'وصلت للحد المتاح', soldOut: 'غير متوفر حالياً', langBtn: 'EN', langTitle: 'Switch to English' },
     en: { home: 'Home', shop: 'Shop', all: 'All products', allPrefix: 'All ', compare: 'Compare Prices',
       orders: 'Orders', showrooms: 'Showrooms', call: 'Call 19140', cartAria: 'Shopping cart',
@@ -86,6 +115,7 @@
       savedAria: 'Saved products', acctAria: 'My account', details: 'Details & size',
       more: 'More', appliances: 'My appliances', account: 'My account', saved: 'Saved', cart: 'Cart',
       grpBefore: 'Plan your purchase', grpAfter: 'After buying', menu: 'Menu', close: 'Close',
+      contact: 'Contact us', search: 'Search', searchPh: 'Search products, brands, categories or models…', searchAll: 'All results in the shop', searchNone: 'No matching items. Try another word.', searchCats: 'Categories', searchBrands: 'Brands', searchItems: 'Products', searchLoading: 'Loading…', searchHint: 'Type at least two letters', outStock: 'Out of stock',
       pagesAria: 'Site pages', add: 'Add to cart', added: '✓ Added', maxQty: 'Max available in cart', soldOut: 'Out of stock', langBtn: 'ع', langTitle: 'التبديل إلى العربية' },
   }[LANG];
   const CAT_EN = {
@@ -199,6 +229,208 @@
   /* ================= header ================= */
   function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
+
+  /* ---- site-wide search (the lens in the strap) ----
+     A popup over a blurred page: type, and every product whose words START with
+     what you typed is listed as you type ("ثلا" finds every ثلاجة, "kw" finds the
+     KWD water coolers), with matching categories and brands above them. Clicking
+     the backdrop, the × or pressing Esc closes it.
+
+     It searches the WHOLE catalogue the shop sells (data/products.json, the live
+     Ecwid mirror on the server), not a sample, and uses shop-core's Arabic
+     normaliser, so "ثلاجه"/"ثلاجة", "اسود"/"أسود" and "١٠"/"10" are the same.
+     Model numbers, SKUs and brands count as words too. Anything the prefix pass
+     misses but the shop's own search would find (synonyms such as "fridge" for
+     ثلاجة, words in the description) is added below the prefix hits, so the
+     popup never shows less than the shop search would. Nothing is fetched until
+     the popup is first opened. */
+  const SEARCH = { el: null, data: null, loading: null, timer: 0, items: [], active: -1 };
+  function searchData() {
+    if (SEARCH.loading) return SEARCH.loading;
+    const deps = [loadOnce('assets/js/shop-core.js')];
+    if (LANG === 'en' && !window.skCatalogI18n) deps.push(loadOnce('assets/js/catalog-i18n.js'));
+    const prods = (window.skApp && window.skApp.products)
+      ? window.skApp.products()
+      : fetch(P('data/products.json')).then(r => r.json()).then(d => d.products || []).catch(() => []);
+    const cats = fetch(P('data/categories.json')).then(r => (r.ok ? r.json() : null))
+      .then(d => (d && d.categories) || []).catch(() => []);
+    SEARCH.loading = Promise.all([prods, cats].concat(deps)).then(([products, categories]) => {
+      const C = window.skShopCore;
+      const T = LANG === 'en' && window.skCatalogI18n ? window.skCatalogI18n : null;
+      const tr = T ? (s => { try { return T.translateTitle(s); } catch (e) { return s; } }) : null;
+      const wordsOf = s => C.norm(s).split(/[^0-9a-z؀-ۿ]+/).filter(Boolean);
+      // One index entry per product, built once: every word that can be typed.
+      const index = products.filter(p => p && p.title && p.enabled !== false).map(p => {
+        const shown = tr ? tr(p.title) : p.title;
+        const parts = [p.title, shown, p.brand, p.sku];
+        const words = [];
+        parts.forEach(x => { if (x) wordsOf(x).forEach(w => { if (words.indexOf(w) < 0) words.push(w); }); });
+        // "kwd-a3.1" should be reachable as "kwda3" too, so codes are also kept glued
+        if (p.sku) { const glued = C.norm(p.sku).replace(/[^0-9a-z]/g, ''); if (glued && words.indexOf(glued) < 0) words.push(glued); }
+        // A title's FIRST word is usually what the product is ("ثلاجة …", "مروحة …"),
+        // so a query matching it outranks one that only matches a later word
+        // ("ثلا" → ثلاجة before a fan described as "ثلاثة فى واحد").
+        return { p, shown, words, firsts: [wordsOf(p.title)[0] || '', wordsOf(shown)[0] || ''], hay: words.join(' ') };
+      });
+      const brandMap = {};
+      products.forEach(p => { if (p && p.brand) { const k = C.norm(p.brand); (brandMap[k] = brandMap[k] || { name: p.brand, count: 0 }).count++; } });
+      const catList = categories.filter(c => c && c.name && (c.count == null || c.count > 0)).map(c => {
+        const en = c.nameEn || (window.skCatEn && window.skCatEn[c.name]) || '';
+        return { id: c.id, name: LANG === 'en' && en ? en : c.name, alt: LANG === 'en' ? c.name : en, count: c.count };
+      });
+      SEARCH.data = { C, tr, index, catList, brands: Object.keys(brandMap).map(k => ({ key: brandMap[k].name, name: brandMap[k].name, count: brandMap[k].count })) };
+      return SEARCH.data;
+    });
+    return SEARCH.loading;
+  }
+
+  function searchRank(q) {
+    const D = SEARCH.data, C = D.C;
+    const tokens = C.norm(q).split(/[^0-9a-z؀-ۿ]+/).filter(Boolean);
+    if (!tokens.length) return [];
+    // The shop's own synonym table, prefix-aware: "شاش" also means تليفزيون (the
+    // catalogue titles TVs that way), "fridg" means ثلاجة. A synonym counts a
+    // little less than what was literally typed, never more.
+    const aliases = tokens.map(t => (C.queryAliases ? C.queryAliases(t) : []));
+    const starts = (w, t) => w.indexOf(t) === 0;
+    const out = [];
+    D.index.forEach(e => {
+      let score = 0, firstBonus = 0;
+      for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        let s = 0;
+        for (let j = 0; j < e.words.length; j++) {
+          if (e.words[j] === t) { s = 4; break; }
+          if (starts(e.words[j], t)) s = Math.max(s, 3);
+        }
+        if (!s && t.length >= 3 && e.hay.indexOf(t) >= 0) s = 1;     // inside a word ("فروست" in "نوفروست")
+        let viaAlias = false;
+        if (s < 3 && aliases[i].length && e.words.some(w => aliases[i].some(a => starts(w, a)))) { s = Math.max(s, 2.5); viaAlias = true; }
+        if (!s) { score = 0; break; }
+        score += s;
+        if (i === 0) {
+          // the title itself starts with what was typed (or its synonym)
+          if (e.firsts.some(f => f && starts(f, t))) firstBonus = 3;
+          else if (viaAlias && e.firsts.some(f => f && aliases[0].some(a => starts(f, a)))) firstBonus = 2.5;
+        }
+      }
+      if (score) out.push({ e, score: score + firstBonus });
+    });
+    // What the shop search finds that the prefix pass did not (synonyms,
+    // descriptions, one-letter typos) follows, ranked below every prefix hit.
+    if (C.matchesQuery) {
+      const seen = new Set(out.map(r => r.e));
+      D.index.forEach(e => {
+        if (seen.has(e)) return;
+        try { if (C.matchesQuery(e.p, q, D.tr, null)) out.push({ e, score: 0.5 }); } catch (err) {}
+      });
+    }
+    out.sort((a, b) => (b.score - a.score) ||
+      ((a.e.p.inStock === false) - (b.e.p.inStock === false)) ||
+      (a.e.shown.length - b.e.shown.length));
+    return out.map(r => r.e);
+  }
+
+  function searchPaint(q) {
+    const box = SEARCH.el.querySelector('.sk-search__res');
+    const raw = q.trim();
+    SEARCH.items = []; SEARCH.active = -1;
+    if (raw.length < 2) { box.innerHTML = raw ? '<p class="sk-search__msg">' + esc(N.searchHint) + '</p>' : ''; return; }
+    if (!SEARCH.data) { box.innerHTML = '<p class="sk-search__msg">' + esc(N.searchLoading) + '</p>'; return; }
+    const D = SEARCH.data;
+    const places = D.C.suggest(raw, { cats: D.catList, brands: D.brands, products: [] }, { limit: 6 });
+    const hits = searchRank(raw);
+    const money = n => (n == null || isNaN(n)) ? '' : (LANG === 'en'
+      ? Math.round(n).toLocaleString('en-EG') + ' EGP' : Math.round(n).toLocaleString('ar-EG') + ' جنيه');
+    const shopQ = P('shop.html?q=') + encodeURIComponent(raw);
+    let html = '';
+    if (places.length) {
+      html += '<div class="sk-search__chips">' + places.map(it => {
+        const href = it.kind === 'cat' ? P('shop.html?cat=') + encodeURIComponent(it.id) : P('shop.html?brand=') + encodeURIComponent(it.key);
+        SEARCH.items.push(href);
+        return '<a class="sk-search__chip sk-search__opt" href="' + href + '"><em>' + esc(it.kind === 'cat' ? N.searchCats : N.searchBrands) + '</em>' + esc(it.label) +
+          (it.count ? ' <b>' + (LANG === 'en' ? it.count : Number(it.count).toLocaleString('ar-EG')) + '</b>' : '') + '</a>';
+      }).join('') + '</div>';
+    }
+    if (hits.length) {
+      const LIMIT = 40;
+      html += '<h5 class="sk-search__h">' + esc(N.searchItems) + ' (' + (LANG === 'en' ? hits.length : hits.length.toLocaleString('ar-EG')) + ')</h5><ul class="sk-search__list">' +
+        hits.slice(0, LIMIT).map(e => {
+          const p = e.p, href = P('product.html?id=') + encodeURIComponent(p.id);
+          SEARCH.items.push(href);
+          return '<li><a class="sk-search__item sk-search__opt" href="' + href + '">' +
+            (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" width="52" height="52">' : '<span class="sk-search__noimg"></span>') +
+            '<span class="sk-search__txt"><span class="sk-search__name">' + esc(String(e.shown).replace(/&nbsp;/g, ' ')) + '</span>' +
+            '<span class="sk-search__meta">' + esc(money(p.price)) + (p.inStock === false ? ' · <i>' + esc(N.outStock) + '</i>' : '') + '</span></span></a></li>';
+        }).join('') + '</ul>';
+      SEARCH.items.push(shopQ);
+      html += '<a class="sk-search__all sk-search__opt" href="' + shopQ + '">' + esc(N.searchAll) + ' →</a>';
+    } else if (!places.length) {
+      html += '<p class="sk-search__msg">' + esc(N.searchNone) + '</p>';
+    }
+    box.innerHTML = html;
+    box.scrollTop = 0;
+  }
+
+  function searchMove(d) {
+    const opts = SEARCH.el.querySelectorAll('.sk-search__opt');
+    if (!opts.length) return;
+    SEARCH.active = (SEARCH.active + d + opts.length + 1) % (opts.length + 1) - 1;   // -1 = back in the box
+    opts.forEach((o, i) => o.classList.toggle('is-active', i === SEARCH.active));
+    if (SEARCH.active >= 0) opts[SEARCH.active].scrollIntoView({ block: 'nearest' });
+  }
+
+  function openSearch() {
+    if (!SEARCH.el) {
+      const el = document.createElement('div');
+      el.className = 'sk-search' + (LANG === 'en' ? ' sk-nav--en' : '');
+      el.setAttribute('role', 'dialog');
+      el.setAttribute('aria-modal', 'true');
+      el.setAttribute('aria-label', N.search);
+      el.innerHTML =
+        '<button type="button" class="sk-search__x" aria-label="' + esc(N.close) + '">&times;</button>' +
+        '<div class="sk-search__box">' +
+          '<form class="sk-search__form" role="search" action="' + P('shop.html') + '">' +
+            '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="11" cy="11" r="6.6"/><path d="m20.5 20.5-4.8-4.8"/></svg>' +
+            '<input type="search" name="q" autocomplete="off" spellcheck="false" placeholder="' + esc(N.searchPh) + '" aria-label="' + esc(N.search) + '">' +
+          '</form>' +
+          '<div class="sk-search__res" aria-live="polite"></div>' +
+        '</div>';
+      document.body.appendChild(el);
+      SEARCH.el = el;
+      const input = el.querySelector('input');
+      // clicking anywhere outside the panel (the blurred page) closes it
+      el.addEventListener('mousedown', e => { if (!e.target.closest('.sk-search__box') || e.target.closest('.sk-search__x')) e.preventDefault(); });
+      el.addEventListener('click', e => { if (!e.target.closest('.sk-search__box') || e.target.closest('.sk-search__x')) closeSearch(); });
+      input.addEventListener('input', () => {
+        clearTimeout(SEARCH.timer);
+        SEARCH.timer = setTimeout(() => searchPaint(input.value), 80);
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); searchMove(1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); searchMove(-1); }
+      });
+      el.querySelector('form').addEventListener('submit', e => {
+        e.preventDefault();
+        const opts = el.querySelectorAll('.sk-search__opt');
+        if (SEARCH.active >= 0 && opts[SEARCH.active]) { location.href = opts[SEARCH.active].href; return; }
+        const v = input.value.trim();
+        if (v) location.href = P('shop.html?q=') + encodeURIComponent(v);
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && el.classList.contains('is-open')) closeSearch(); });
+    }
+    const el = SEARCH.el, input = el.querySelector('input');
+    el.classList.add('is-open');
+    document.documentElement.classList.add('sk-lock');
+    setTimeout(() => input.focus(), 30);
+    searchData().then(() => { if (el.classList.contains('is-open')) searchPaint(input.value); });
+  }
+  function closeSearch() {
+    if (!SEARCH.el) return;
+    SEARCH.el.classList.remove('is-open');
+    document.documentElement.classList.remove('sk-lock');
+  }
+
   function mount() {
     injectCSS();
     const overlay = !!document.getElementById('world');
@@ -221,16 +453,14 @@
       here === 'appliances.html' ? 'care' :
       ROOT ? 'shop' : '';
 
-    // The links that used to crowd the strap are split: a short primary row on
-    // desktop (home · shop · finder · compare · More▾), with everything else in
-    // a two-column "More" panel. The same groups drive the mobile drawer.
+    // The strap (2026-10-31): Home · Shop▾ · Help me choose · Contact us▾ · search.
+    // "Contact us" opens Orders, Showrooms and Customer care. The same order
+    // drives the mobile drawer.
     const A = (k, label, href, cls) =>
       `<a class="sk-link${cls ? ' ' + cls : ''}${active === k ? ' is-active' : ''}" href="${P(href)}">${esc(label)}</a>`;
-    const MORE = [
-      { t: N.grpBefore, items: [['plan', N.plan, 'plan.html'], ['guides', N.guides, 'guides.html']] },
-      { t: N.grpAfter,  items: [['orders', N.orders, 'orders.html'], ['appliances', N.appliances, 'appliances.html'],
-                                ['showrooms', N.showrooms, 'showrooms.html'], ['care', N.care, 'care.html']] },
-    ].map(g => ({ t: g.t, items: g.items.filter(it => shown(it[2])) }));
+    const CONTACT = [['orders', N.orders, 'orders.html'], ['showrooms', N.showrooms, 'showrooms.html'], ['care', N.care, 'care.html']]
+      .filter(it => shown(it[2]));
+    const contactActive = CONTACT.some(it => it[0] === active);
     const shopMenuInner =
       `<a class="sk-menu__all" href="${P('shop.html')}">${N.all}</a>` +
       SHOP_TREE.map((t, i) =>
@@ -251,6 +481,7 @@
     const iconSaved = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
     const iconCart = `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.5 12h10.2l2.2-8.5H6.2"/></svg>`;
 
+    const iconSearch = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.6"/><path d="m20.5 20.5-4.8-4.8"/></svg>`;
     const header = document.createElement('header');
     header.className = 'sk-nav' + (overlay ? ' sk-nav--overlay' : ' sk-nav--solid') + (LANG === 'en' ? ' sk-nav--en' : '');
     header.innerHTML =
@@ -281,14 +512,17 @@
           ? A('compare', N.compare, 'compare.html', 'sk-link--cta') + A('finder', N.finder, 'finder.html')
           : A('finder', N.finder, 'finder.html', 'sk-link--cta')) +
         `<div class="sk-more">` +
-          `<button type="button" class="sk-link sk-more__btn" aria-haspopup="true" aria-expanded="false">${N.more} <i class="sk-caret"></i></button>` +
+          `<button type="button" class="sk-link sk-more__btn${contactActive ? ' is-active' : ''}" aria-haspopup="true" aria-expanded="false">${N.contact} <i class="sk-caret"></i></button>` +
           `<div class="sk-morepanel sk-glass" role="menu">` +
-            MORE.map(g => `<div class="sk-morecol"><h4>${esc(g.t)}</h4>` +
-              g.items.map(it => `<a class="sk-morelink${active === it[0] ? ' is-active' : ''}" href="${P(it[2])}">${esc(it[1])}</a>`).join('') +
-              `</div>`).join('') +
+            `<div class="sk-morecol">` +
+              CONTACT.map(it => `<a class="sk-morelink${active === it[0] ? ' is-active' : ''}" href="${P(it[2])}">${esc(it[1])}</a>`).join('') +
+            `</div>` +
           `</div>` +
         `</div>` +
+        `<button type="button" class="sk-link sk-searchbtn" data-sk-search aria-label="${N.search}" title="${N.search}">${iconSearch}</button>` +
       `</nav>` +
+      // phones: the strap is hidden behind the burger, so the lens sits in the bar itself
+      `<button type="button" class="sk-msearch sk-glass" data-sk-search aria-label="${N.search}" title="${N.search}">${iconSearch}</button>` +
       `<span class="sk-nav__side">` +
         `<button type="button" class="sk-lang sk-glass" title="${N.langTitle}" aria-label="${N.langTitle}">${N.langBtn}</button>` +
         `<a class="sk-hotline" href="tel:19140" dir="ltr">${N.call}</a>` +
@@ -338,8 +572,8 @@
         (shown('compare.html')
           ? dLink('compare', N.compare, 'compare.html', 'sk-dlink--cta') + dLink('finder', N.finder, 'finder.html')
           : dLink('finder', N.finder, 'finder.html', 'sk-dlink--cta')) +
-        MORE.map(g => `<div class="sk-dgroup"><h4>${esc(g.t)}</h4>` +
-          g.items.map(it => dLink(it[0], it[1], it[2])).join('') + `</div>`).join('') +
+        `<div class="sk-dgroup"><h4>${esc(N.contact)}</h4>` +
+          CONTACT.map(it => dLink(it[0], it[1], it[2])).join('') + `</div>` +
       `</nav>` +
       `<div class="sk-drawer__foot">` +
         `<button type="button" class="sk-dlang">${LANG === 'en' ? 'العربية' : 'English'} · ${N.langBtn}</button>` +
@@ -391,6 +625,9 @@
     makePop(moreBox, moreBox.querySelector('.sk-more__btn'));
     document.addEventListener('click', e => { if (!pops.some(p => p.container.contains(e.target))) pops.forEach(p => p.set(false)); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') pops.forEach(p => p.set(false)); });
+    document.querySelectorAll('[data-sk-search]').forEach(b => b.addEventListener('click', e => {
+      e.stopPropagation(); pops.forEach(p => p.set(false)); if (drawerOpen) setDrawer(false); openSearch();
+    }));
 
     /* category accordion — used inside both the desktop shop menu and the drawer */
     function wireAccordion(scope) {
@@ -551,7 +788,7 @@
     const tt = (ar, en) => (LANG === 'en' ? en : ar);
     const groups = [
       { h: tt('صادكو', 'SADKO'), items: [
-        [tt('عن صادكو', 'About SADKO'), 'about.html'], [tt('قيمنا', 'Our Values'), 'values.html'],
+        [tt('من نحن', 'About us'), 'about.html'],
         [tt('تواصل معنا', 'Contact us'), 'contact.html'],
         [tt('المعارض', 'Showrooms'), 'showrooms.html'], [tt('حسابى', 'My account'), 'account.html'] ] },
       { h: tt('قبل الشراء', 'Before you buy'), items: [
@@ -572,13 +809,13 @@
       '<div class="foot__inner"><div class="foot__cols">' +
       groups.map(c => '<div><h4>' + esc(c.h) + '</h4><ul>' +
         c.items.map(i => '<li><a href="' + P(i[1]) + '">' + esc(i[0]) + '</a></li>').join('') + '</ul></div>').join('') +
-      '<div><h4>' + tt('اتصل بنا', 'Talk to us') + '</h4><ul>' +
+      '<div class="foot__contact"><h4>' + tt('اتصل بنا', 'Talk to us') + '</h4><ul>' +
         '<li><a href="tel:19140" dir="ltr">19140</a></li>' +
         '<li><a href="mailto:csupport@sadko-group.com" dir="ltr">csupport@sadko-group.com</a></li></ul>' +
+        window.skSocial() +
         '<p class="foot__tag">' + tt('مجموعة صادكو، من 1986، والموزّع الوحيد لكريازى.', 'SADKO Group, since 1986, sole distributor of Kiriazi.') + '</p></div>' +
       '</div><p class="foot__legal">' +
-        tt('الأسعار والمواصفات مأخوذة من صفحات المنتجات وقت آخر تحديث وقد تتغير، يُرجى التأكد قبل الشراء.' + (!(window.skFeature && !window.skFeature.on('compare')) ? ' وتغطى مقارنة الأسعار متاجر مدعومة محددة.' : '') + ' أما الضمان والتركيب والاسترجاع فيقدمها البائع المذكور فى العرض.',
-           'Prices and specifications are taken from product pages at the last update and may change, so please confirm before buying.' + (!(window.skFeature && !window.skFeature.on('compare')) ? ' Price comparison covers a specific list of supported stores.' : '') + ' Warranty, installation and returns are provided by the seller named on each offer.') +
+        esc(window.skLegal()) +
         '<br>© ' + tt('صادكو جروب', 'SADKO Group') + ' 2026</p></div>';
   }
 
@@ -737,7 +974,7 @@
     const css = `
     .sw-topbar{display:none!important;}   /* engine's own bar is fully replaced */
     .sk-announce{position:fixed;left:12px;right:12px;bottom:12px;z-index:80;display:flex;gap:12px;align-items:center;justify-content:space-between;
-      padding:10px 14px;border-radius:12px;font:700 .86rem Cairo,sans-serif;color:#fff;background:#14343a;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+      padding:10px 14px;border-radius:12px;font:700 .86rem Cairo,sans-serif;color:#14343a;background:#75A693;box-shadow:0 10px 30px rgba(0,0,0,.25);}
     .sk-announce--warn{background:#9a3412;}
     .sk-announce + .sk-announce{bottom:64px;}
     .sk-announce button{background:none;border:0;color:inherit;font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px;}
@@ -763,8 +1000,8 @@
     .sk-link{font:700 .88rem 'Cairo',sans-serif;color:#28464b;text-decoration:none;border:0;
       background:transparent;cursor:pointer;padding:8px 15px;border-radius:999px;
       display:inline-flex;align-items:center;gap:6px;transition:color .2s,background .2s;}
-    .sk-link:hover{color:#14343a;background:rgba(46,126,136,.13);}
-    .sk-link.is-active{color:#fff;background:#2e7e88;box-shadow:0 4px 14px rgba(46,126,136,.4);}
+    .sk-link:hover{color:#14343a;background:rgba(117,166,147,.13);}
+    .sk-link.is-active{color:#fff;background:#75A693;box-shadow:0 4px 14px rgba(117,166,147,.4);}
     .sk-caret{width:7px;height:7px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;
       transform:rotate(-45deg) translateY(-2px);transition:transform .22s;flex:0 0 auto;}
     .sk-shop{position:relative;}
@@ -776,36 +1013,38 @@
       overscroll-behavior:contain;}
     .sk-shop.is-open .sk-menu{opacity:1;visibility:visible;transform:translate(50%,0);}
     .sk-menu__all{display:block;text-align:center;font:800 .88rem 'Cairo',sans-serif;color:#fff;
-      text-decoration:none;background:#2e7e88;border-radius:13px;padding:10px 14px;margin-bottom:6px;
-      box-shadow:0 5px 16px rgba(46,126,136,.35);}
-    .sk-menu__all:hover{background:#1f5b63;}
+      text-decoration:none;background:#75A693;border-radius:13px;padding:10px 14px;margin-bottom:6px;
+      box-shadow:0 5px 16px rgba(117,166,147,.35);}
+    .sk-menu__all:hover{background:#63937F;}
     .sk-menu__row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;
       font:700 .85rem 'Cairo',sans-serif;color:#28464b;text-decoration:none;text-align:right;
       background:transparent;border:0;cursor:pointer;padding:10px 12px;border-radius:12px;
       transition:background .18s,color .18s;}
-    .sk-menu__row:hover{background:rgba(46,126,136,.12);color:#14343a;}
+    .sk-menu__row:hover{background:rgba(117,166,147,.12);color:#14343a;}
     .sk-menu__row .sk-caret{transform:rotate(45deg);}                 /* points down (rtl) */
-    .sk-menu__item.is-open .sk-menu__row{background:rgba(46,126,136,.1);color:#14343a;}
+    .sk-menu__item.is-open .sk-menu__row{background:rgba(117,166,147,.1);color:#14343a;}
     .sk-menu__item.is-open .sk-menu__row .sk-caret{transform:rotate(135deg);}
     .sk-menu__kids{max-height:0;overflow:hidden;transition:max-height .28s ease;}
     .sk-menu__item.is-open .sk-menu__kids{max-height:340px;}
     .sk-menu__kids a{display:block;font:600 .8rem 'Cairo',sans-serif;color:#4c6468;text-decoration:none;
-      padding:7px 12px;margin-right:14px;border-right:2px solid rgba(46,126,136,.22);border-radius:0 10px 10px 0;}
-    .sk-menu__kids a:hover{background:rgba(46,126,136,.1);color:#14343a;}
+      padding:7px 12px;margin-right:14px;border-right:2px solid rgba(117,166,147,.22);border-radius:0 10px 10px 0;}
+    .sk-menu__kids a:hover{background:rgba(117,166,147,.1);color:#14343a;}
     /* ---- desktop "More" split dropdown (two columns side by side) ---- */
     .sk-more{position:relative;}
     .sk-morepanel{position:absolute;top:calc(100% + 12px);right:50%;transform:translate(50%,-8px);
       display:flex;gap:8px;padding:14px;border-radius:20px;
       opacity:0;visibility:hidden;transition:opacity .22s,transform .22s,visibility .22s;z-index:80;}
     .sk-more.is-open .sk-morepanel{opacity:1;visibility:visible;transform:translate(50%,0);}
+    /* opaque enough to read over the shop's busy banners */
+    .sk-morepanel{background:rgba(249,247,243,.96);}
     .sk-morecol{min-width:158px;display:flex;flex-direction:column;gap:2px;}
-    .sk-morecol+.sk-morecol{border-inline-start:1px solid rgba(46,126,136,.16);padding-inline-start:8px;}
+    .sk-morecol+.sk-morecol{border-inline-start:1px solid rgba(117,166,147,.16);padding-inline-start:8px;}
     .sk-morecol h4{margin:2px 10px 6px;font:800 .68rem 'Cairo',sans-serif;letter-spacing:.05em;
       text-transform:uppercase;color:#8a9aa0;}
     .sk-morelink{display:block;font:700 .85rem 'Cairo',sans-serif;color:#28464b;text-decoration:none;
       padding:9px 12px;border-radius:12px;white-space:nowrap;transition:background .16s,color .16s;}
-    .sk-morelink:hover{background:rgba(46,126,136,.12);color:#14343a;}
-    .sk-morelink.is-active{background:#2e7e88;color:#fff;}
+    .sk-morelink:hover{background:rgba(117,166,147,.12);color:#14343a;}
+    .sk-morelink.is-active{background:#75A693;color:#fff;}
     .sk-nav__side{display:flex;align-items:center;gap:10px;}
     .sk-hotline{font:800 .86rem 'Cairo',sans-serif;color:#241a05;text-decoration:none;background:#fe9800;
       padding:9px 17px;border-radius:999px;white-space:nowrap;box-shadow:0 6px 16px rgba(254,152,0,.35);
@@ -832,12 +1071,12 @@
     .sk-drawer__logo img{height:46px;width:auto;display:block;}
     .sk-drawer__x{font-size:1.9rem;line-height:1;background:none;border:0;color:#28464b;cursor:pointer;
       width:42px;height:42px;border-radius:50%;display:grid;place-items:center;}
-    .sk-drawer__x:hover{background:rgba(46,126,136,.12);}
+    .sk-drawer__x:hover{background:rgba(117,166,147,.12);}
     .sk-drawer__icons{display:flex;gap:8px;padding:4px 16px 12px;flex:0 0 auto;}
     .sk-diconbtn{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;
       padding:11px 4px;border-radius:15px;text-decoration:none;color:#28464b;font:700 .72rem 'Cairo',sans-serif;
       background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.5);}
-    .sk-diconbtn.is-active{background:#2e7e88;color:#fff;border-color:#2e7e88;}
+    .sk-diconbtn.is-active{background:#75A693;color:#fff;border-color:#75A693;}
     .sk-diconbtn svg{width:22px;height:22px;}
     .sk-diconbtn .sk-saved__badge,.sk-diconbtn .sk-cart__badge{top:6px;left:10px;}
     .sk-drawer__nav{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding:6px 12px;
@@ -845,8 +1084,8 @@
     .sk-dlink{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
       font:700 .96rem 'Cairo',sans-serif;color:#28464b;text-decoration:none;text-align:start;
       padding:13px 14px;border-radius:13px;background:none;border:0;cursor:pointer;}
-    .sk-dlink:hover{background:rgba(46,126,136,.1);}
-    .sk-dlink.is-active{background:#2e7e88;color:#fff;}
+    .sk-dlink:hover{background:rgba(117,166,147,.1);}
+    .sk-dlink.is-active{background:#75A693;color:#fff;}
     .sk-dlink--cta{background:#fdecd0;color:#8a5b12;}
     .sk-dgroup h4{margin:12px 14px 4px;font:800 .72rem 'Cairo',sans-serif;letter-spacing:.04em;
       text-transform:uppercase;color:#8a9aa0;}
@@ -856,35 +1095,41 @@
     .sk-dacc.is-open .sk-dacc__body{max-height:62vh;overflow-y:auto;}
     .sk-dmenu{padding:2px 4px 6px;}
     .sk-drawer__foot{flex:0 0 auto;display:flex;gap:10px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));
-      border-top:1px solid rgba(46,126,136,.18);}
+      border-top:1px solid rgba(117,166,147,.18);}
     .sk-dlang{flex:0 0 auto;font:800 .82rem 'Cairo',sans-serif;color:#28464b;cursor:pointer;
-      background:rgba(255,255,255,.55);border:1px solid rgba(46,126,136,.28);border-radius:999px;padding:11px 16px;}
+      background:rgba(255,255,255,.55);border:1px solid rgba(117,166,147,.28);border-radius:999px;padding:11px 16px;}
     .sk-dcall{flex:1;text-align:center;font:800 .92rem 'Cairo',sans-serif;color:#241a05;text-decoration:none;
       background:#fe9800;border-radius:999px;padding:12px;box-shadow:0 6px 16px rgba(254,152,0,.35);}
     html.sk-lock{overflow:hidden;}
     /* ---- shared company footer (legacy + home pages) ---- */
-    .sk-foot{background:#14343a;color:#cfe3e6;direction:rtl;font-family:'Cairo','Segoe UI',system-ui,sans-serif;}
+    .sk-foot{background:#75A693;color:#14343a;direction:rtl;font-family:'Cairo','Segoe UI',system-ui,sans-serif;}
     .sk-nav--en~.sk-foot,html[dir=ltr] .sk-foot{direction:ltr;}
     .sk-foot .foot__inner{max-width:1240px;margin:0 auto;padding:40px clamp(16px,4vw,48px);}
     .sk-foot .foot__cols{display:grid;gap:26px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));text-align:start;}
-    .sk-foot h4{margin:0 0 10px;font-size:.95rem;color:#fff;}
+    .sk-foot h4{margin:0 0 10px;font-size:.95rem;color:#14343a;}
     .sk-foot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
-    .sk-foot a{color:#7ebec5;text-decoration:none;font-weight:700;font-size:.86rem;}
-    .sk-foot a:hover{color:#a9d6db;text-decoration:underline;}
+    .sk-foot a{color:#14343a;text-decoration:none;font-weight:700;font-size:.86rem;}
+    .sk-foot a:hover{color:#0b2226;text-decoration:underline;}
     .sk-foot .foot__tag{margin:14px 0 0;font-size:.82rem;opacity:.8;line-height:1.8;}
+    .foot__contact{text-align:center;}
+    .foot__contact ul{justify-items:center;}
+    .foot__social{display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap;}
+    .foot__social a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;
+      background:rgba(255,255,255,.5);color:#14343a;border:1px solid rgba(20,52,58,.16);transition:background .18s,color .18s,transform .15s;}
+    .foot__social a:hover{background:#fff;color:#14343a;transform:translateY(-1px);}
     .sk-foot .foot__legal{max-width:1240px;margin:22px auto 0;padding:18px clamp(16px,4vw,48px) 6px;
-      border-top:1px solid rgba(255,255,255,.14);font-size:.78rem;opacity:.72;line-height:1.9;}
+      border-top:1px solid rgba(20,52,58,.18);font-size:.78rem;opacity:.8;line-height:1.9;}
     /* on the 3D home the footer sits at the very bottom of the scroll, above the fixed scene */
     .sk-foot--home{position:relative;z-index:32;}
     @media (max-width:560px){ .sk-foot .foot__cols{grid-template-columns:repeat(2,1fr);gap:20px;} }
     .sk-cart{position:relative;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
       color:#28464b;transition:color .2s,background .2s;}
-    .sk-cart:hover,.sk-cart.is-active{color:#fff;background:#2e7e88;}
+    .sk-cart:hover,.sk-cart.is-active{color:#fff;background:#75A693;}
     .sk-cart__badge{position:absolute;top:-5px;left:-5px;min-width:19px;height:19px;border-radius:999px;
       background:#fe9800;color:#241a05;font:800 .68rem/19px 'Cairo',sans-serif;text-align:center;
       padding:0 4px;font-style:normal;box-shadow:0 2px 8px rgba(0,0,0,.25);}
     .sk-saved__badge{position:absolute;top:-5px;left:-5px;min-width:19px;height:19px;border-radius:999px;
-      background:#2e7e88;color:#fff;font:800 .68rem/19px 'Cairo',sans-serif;text-align:center;
+      background:#75A693;color:#fff;font:800 .68rem/19px 'Cairo',sans-serif;text-align:center;
       padding:0 4px;font-style:normal;box-shadow:0 2px 8px rgba(0,0,0,.25);}
     html[dir=ltr] .sk-saved__badge{left:auto;right:-5px;}
     .sk-acct__dot{position:absolute;top:-2px;left:-2px;width:11px;height:11px;border-radius:50%;
@@ -895,24 +1140,66 @@
     .sk-link--cta:hover,.sk-link--cta.is-active{background:#fe9800;color:#241a05;}
     .sk-lang{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;cursor:pointer;
       font:800 .82rem 'Cairo',sans-serif;color:#28464b;transition:color .2s,background .2s;padding:0;}
-    .sk-lang:hover{color:#fff;background:#2e7e88;}
+    .sk-lang:hover{color:#fff;background:#75A693;}
     /* English strap: flip to LTR and mirror the accordion indent */
     .sk-nav--en{direction:ltr;}
     .sk-nav--en .sk-menu__row{text-align:left;}
     .sk-nav--en .sk-menu__kids a{margin-right:0;margin-left:14px;border-right:0;
-      border-left:2px solid rgba(46,126,136,.22);border-radius:10px 0 0 10px;}
-    .sk-addbtn{font:700 .78rem 'Cairo',sans-serif;color:#fff;background:#2e7e88;border:0;cursor:pointer;
+      border-left:2px solid rgba(117,166,147,.22);border-radius:10px 0 0 10px;}
+    .sk-addbtn{font:700 .78rem 'Cairo',sans-serif;color:#fff;background:#75A693;border:0;cursor:pointer;
       padding:8px 14px;border-radius:999px;transition:background .2s,transform .15s;}
-    .sk-addbtn:hover{background:#1f5b63;transform:translateY(-1px);}
+    .sk-addbtn:hover{background:#63937F;transform:translateY(-1px);}
     .sk-addbtn.is-done{background:#1d7a3f;}
-    .sk-detbtn{font:700 .78rem 'Cairo',sans-serif;color:#2e7e88;background:#eaf3f4;text-decoration:none;
-      border:1px solid rgba(46,126,136,.28);padding:7px 13px;border-radius:999px;transition:.18s;}
-    .sk-detbtn:hover{background:#2e7e88;color:#fff;}
+    .sk-detbtn{font:700 .78rem 'Cairo',sans-serif;color:#4A7666;background:#eef5f2;text-decoration:none;
+      border:1px solid rgba(117,166,147,.28);padding:7px 13px;border-radius:999px;transition:.18s;}
+    .sk-detbtn:hover{background:#75A693;color:#fff;}
     /* .sk-fcta (the guided-finder call-out) now lives with the rest of the shop's
        visual layer, in assets/css/storefront.css — the file that owns every other
        block in that column and the spacing tokens they all step through. */
     /* keep page content clear of the sticky glass bar on sub-pages */
     .sk-nav--solid+*{margin-top:6px;}
+    /* ---- search: lens in the strap + full-screen popup over a blurred page ---- */
+    .sk-searchbtn{padding:8px 12px;}
+    .sk-searchbtn svg{display:block;}
+    .sk-msearch{display:none;}
+    .sk-search{position:fixed;inset:0;z-index:200;display:flex;justify-content:center;align-items:flex-start;
+      padding:clamp(64px,11vh,120px) 14px 24px;background:rgba(16,40,45,.38);
+      -webkit-backdrop-filter:blur(12px) saturate(1.1);backdrop-filter:blur(12px) saturate(1.1);
+      opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s;direction:rtl;}
+    .sk-search.sk-nav--en{direction:ltr;}
+    .sk-search.is-open{opacity:1;visibility:visible;}
+    .sk-search__x{position:absolute;top:18px;inset-inline-end:20px;width:46px;height:46px;border-radius:50%;
+      border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.85);color:#14343a;font:400 30px/1 sans-serif;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.18);}
+    .sk-search__x:hover{background:#fff;}
+    .sk-search__box{width:min(720px,100%);max-height:100%;display:flex;flex-direction:column;
+      background:rgba(249,247,243,.97);border-radius:24px;box-shadow:0 24px 70px rgba(10,30,34,.35);overflow:hidden;
+      transform:translateY(-10px);transition:transform .22s;}
+    .sk-search.is-open .sk-search__box{transform:none;}
+    .sk-search__form{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid rgba(117,166,147,.15);color:#4A7666;}
+    .sk-search__form input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 1.05rem 'Cairo',sans-serif;color:#14343a;padding:6px 0;}
+    .sk-search__form input::-webkit-search-cancel-button{display:none;}
+    .sk-search__res{overflow:auto;overscroll-behavior:contain;padding:6px 10px 12px;}
+    .sk-search__res:empty{display:none;}
+    .sk-search__msg{margin:14px 10px;font:600 .9rem 'Cairo',sans-serif;color:#6a7d81;}
+    .sk-search__chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 6px 4px;}
+    .sk-search__chip{display:inline-flex;align-items:center;gap:6px;font:700 .82rem 'Cairo',sans-serif;color:#36584B;
+      text-decoration:none;background:rgba(117,166,147,.1);border-radius:999px;padding:6px 12px;}
+    .sk-search__chip em{font-style:normal;font-weight:600;font-size:.7rem;color:#6a7d81;}
+    .sk-search__chip b{font-weight:600;color:#6a7d81;font-size:.72rem;}
+    .sk-search__h{margin:12px 8px 4px;font:800 .7rem 'Cairo',sans-serif;letter-spacing:.04em;color:#8a9aa0;}
+    .sk-search__list{list-style:none;margin:0;padding:0;}
+    .sk-search__item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:14px;text-decoration:none;color:#14343a;}
+    .sk-search__item img,.sk-search__noimg{width:52px;height:52px;flex:0 0 52px;border-radius:10px;object-fit:contain;background:#fff;}
+    .sk-search__txt{display:flex;flex-direction:column;min-width:0;}
+    .sk-search__name{font:700 .88rem/1.45 'Cairo',sans-serif;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+    .sk-search__meta{font:700 .8rem 'Cairo',sans-serif;color:#4A7666;}
+    .sk-search__meta i{font-style:normal;color:#b0563c;}
+    .sk-search__all{display:block;text-align:center;margin:8px 6px 2px;padding:11px;border-radius:14px;
+      font:800 .88rem 'Cairo',sans-serif;color:#fff;background:#75A693;text-decoration:none;}
+    .sk-search__item:hover,.sk-search__item.is-active{background:rgba(117,166,147,.12);}
+    .sk-search__chip:hover,.sk-search__chip.is-active{background:rgba(117,166,147,.22);}
+    .sk-search__all:hover,.sk-search__all.is-active{background:#63937F;}
     /* Mid width: the desktop pill still fits (only 5 items now), but its own
        menus need to escape the pill's overflow, so pin them to the viewport. */
     @media (max-width:1180px){
@@ -935,6 +1222,11 @@
       .sk-nav__logo{margin:0;}
       .sk-nav__logo img{height:46px;}
       .sk-nav__links,.sk-nav__side{display:none;}
+      .sk-msearch{display:flex;align-items:center;justify-content:center;position:absolute;right:clamp(10px,3vw,18px);
+        top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:14px;cursor:pointer;color:#28464b;
+        border:1px solid rgba(255,255,255,.55);padding:0;}
+      .sk-search{padding-top:72px;}
+      .sk-search__x{top:12px;width:42px;height:42px;}
     }
     /* the home page has no sticky spacer (fixed overlay), so no top margin there */
     @media (max-width:1080px){ .sk-nav--overlay+*{margin-top:0;} }

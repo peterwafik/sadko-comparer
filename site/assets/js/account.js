@@ -56,8 +56,8 @@
     function offline() {
       return '<div class="panel"><h2 class="panel__h">' + t('الحسابات غير متاحة حالياً', 'Accounts are unavailable right now') + '</h2>' +
         '<div class="note note--warn">' + esc(Au.offlineMsg()) + '</div>' +
-        '<p class="muted small mt16">' + t('وبقية الموقع تعمل: ' + (!(window.skFeature && !window.skFeature.on('compare')) ? 'المقارنة، و' : '') + 'ساعدنى أختار، والخطط، والمحفوظات. ويمكنك أيضاً أن تعرّفنا بمنزلك دون حساب، وسيُحفظ على جهازك.',
-          'The rest of the site still works: ' + (!(window.skFeature && !window.skFeature.on('compare')) ? 'comparison, ' : '') + 'the finder, plans and saved products. You can even describe your home without an account. It is kept on your device.') + '</div>' +
+        '<p class="muted small mt16">' + t('وبقية الموقع تعمل: ' + (!(window.skFeature && !window.skFeature.on('compare')) ? 'المقارنة، و' : '') + 'ساعدنى أختار، ' + (!(window.skFeature && !window.skFeature.on('plan')) ? 'والخطط، ' : '') + 'والمحفوظات. ويمكنك أيضاً أن تعرّفنا بمنزلك دون حساب، وسيُحفظ على جهازك.',
+          'The rest of the site still works: ' + (!(window.skFeature && !window.skFeature.on('compare')) ? 'comparison, ' : '') + 'the finder, ' + (!(window.skFeature && !window.skFeature.on('plan')) ? 'plans and ' : '') + 'saved products. You can even describe your home without an account. It is kept on your device.') + '</div>' +
         '<div class="chips mt16"><a class="btn btn--teal" href="' + A.P('finder.html') + '">' + t('ساعدنى أختار', 'Help me choose') + '</a>' +
         '<a class="btn btn--ghost" href="tel:19140">' + t('اطلب هاتفياً 19140', 'Order by phone 19140') + '</a></div></div>' +
         homesPanel(null);

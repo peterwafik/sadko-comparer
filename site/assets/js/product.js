@@ -210,7 +210,7 @@
           (s.energy.cls ? '<span class="chip chip--ok">' + t('كفاءة طاقة ', 'Energy class ') + esc(s.energy.cls) + '</span>' : '') +
           (s.energy.inverter ? '<span class="chip chip--ok">' + t('انفرتر', 'Inverter') + '</span>' : '') +
         '</div>' +
-        '<p class="pdp__price" style="font:900 1.8rem Cairo,sans-serif;color:var(--accent);margin:16px 0 4px">' + A.money(p.price) +
+        '<p class="pdp__price" style="font:900 1.8rem Cairo,sans-serif;color:var(--accent-ink);margin:16px 0 4px">' + A.money(p.price) +
           (hasWas ? ' <s class="pdp__was" style="font-size:.62em;font-weight:600;color:var(--muted)">' + A.money(was) + '</s>' +
                     ' <em class="pdp__off">-' + offPct + '%</em>' : '') +
         '</p>' +
@@ -566,6 +566,7 @@
     function guides(p) {
       const box = root.querySelector('#guidesBox');
       if (!box || !window.skGuides || !window.skGuides.forCategory) return;
+      if (window.skFeature && !window.skFeature.on('guides')) return;   // Buying guides switched off (nav.js)
       Promise.resolve(window.skGuides.forCategory(String(p.categoryId))).then(list => {
         if (!list || !list.length) return;
         box.innerHTML = '<div class="panel mt16"><h2 class="panel__h">' + t('اقرأ أيضاً قبل الشراء', 'Read this before you buy') + '</h2>' +

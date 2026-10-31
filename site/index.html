@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g31" defer></script>
-<script src="assets/js/nav.js?v=g32" defer></script>
+<script src="assets/js/scrub-engine.js?v=g32" defer></script>
+<script src="assets/js/nav.js?v=g39" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
 <script src="assets/js/scenes.js?v=g2" defer></script>
-<script src="assets/js/hotspots.js?v=g45" defer></script>
-<script src="assets/js/guide.js?v=g12" defer></script>
-<link rel="stylesheet" href="assets/css/site.css?v=g14">
+<script src="assets/js/hotspots.js?v=g47" defer></script>
+<script src="assets/js/guide.js?v=g16" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=g17">
 </head>
 <body>
 <div id="world"></div>
@@ -64,15 +64,17 @@ window.addEventListener('DOMContentLoaded', () => {
   const SECTIONS = [
     {
       id: 'living', label: 'غرفة المعيشة',
-      // ?v=2: the file was re-cut from leg_1.mp4 at 0.46s (this room's showcase
-      // frame, the one the marker coords below were measured on). It used to be
-      // the clip's OPENING frame — a wider shot — so while the 12MB flight
-      // downloaded, the poster on screen was not the frame the markers belong to
-      // and several of them sat off their appliances until the video arrived.
-      still: 'assets/img/still_1.jpg?v=2',
-      stillMobile: 'assets/img/m_living.jpg?v=2',   // bespoke portrait scene for phones
-      clip: 'assets/vid/leg_1.mp4', clipMobile: 'assets/vid/leg_1-m.mp4',
-      accent: '#2e7e88',
+      // v5 (2026-10-31): the owner's Egyptian-styled living room images, as
+      // supplied. New file names, never new contents under old names: the engine
+      // keeps downloaded clips in Cache Storage by URL, so returning visitors would
+      // replay the old room. leg_1v5 holds on the room, then walks toward the
+      // dining table and ends face-on to it with the kitchen doorway behind (the
+      // shared keyframe leg_2v5 starts on). still_1v5.jpg is leg_1v5 at 0.46s,
+      // this room's showcase frame, the one the marker coords below belong to.
+      still: 'assets/img/still_1v5.jpg',
+      stillMobile: 'assets/img/m_living_v5.jpg',   // 9:21 portrait scene for phones
+      clip: 'assets/vid/leg_1v5.mp4', clipMobile: 'assets/vid/leg_1v5-m.mp4',
+      accent: '#75A693',
       scroll: 1.9, linger: 0.5,
       copyY: 0.46,      // mid-height: clears the top-right AC and the bottom heaters
       mCopyX: 0.50, mCopyY: 0.20,   // phone: standardized top-centre position (same in every room)
@@ -85,7 +87,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // clicked before it looked right.
       openShowcase: true,
       // fx/fy = desktop 16:9 frame; mfx/mfy = the portrait m_living.jpg (same appliances)
-      hotspots: [       // coords measured on the settle frame (sc_living @0.46s)
+      hotspots: [       // coords measured on the settle frame (leg_1v5 @0.46s)
         // Every marker anchors at 0.03 — the section progress that IS that frame,
         // and the frame this page opens on. They used to be spread over 0.06/0.12/
         // 0.20 as if each appliance were framed at a different moment of the flight,
@@ -94,20 +96,23 @@ window.addEventListener('DOMContentLoaded', () => {
         // cooler drifts off by 2.4s. Anchoring them together is what makes the room
         // read correctly on its own, without depending on showcase mode being on —
         // so a reload, a language switch or a Back all still show the full room.
-        { fx: 0.500, fy: 0.514, at: 0.03, span: 0.30, mfx: 0.510, mfy: 0.490, label: 'تليفزيونات', href: TVS },
-        { fx: 0.413, fy: 0.606, at: 0.03, span: 0.30, mfx: 0.617, mfy: 0.531, label: 'أنظمة صوت وترفيه', href: TVS },
-        { fx: 0.885, fy: 0.167, at: 0.03, span: 0.30, mfx: 0.869, mfy: 0.388, label: 'تكييفات هواء', href: AC },
-        { fx: 0.619, fy: 0.648, at: 0.03, span: 0.32, sfx: 0.619, sfy: 0.648, mfx: 0.687, mfy: 0.555, label: 'مراوح ومبردات هواء', href: CLIMATE },
-        { fx: 0.773, fy: 0.815, at: 0.03, span: 0.32, sfx: 0.773, sfy: 0.815, mfx: 0.614, mfy: 0.672, label: 'دفايات', href: CLIMATE },
-        { fx: 0.060, fy: 0.690, at: 0.03, span: 0.32, sfx: 0.060, sfy: 0.690, mfx: 0.163, mfy: 0.564, label: 'تنقية وترطيب الهواء', href: CLIMATE },
-        { fx: 0.371, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.371, sfy: 0.597, mfx: 0.343, mfy: 0.531, label: 'مبردات مياه', href: WATER_DISP },
+        { fx: 0.508, fy: 0.493, at: 0.03, span: 0.30, mfx: 0.562, mfy: 0.495, label: 'تليفزيونات', href: TVS },
+        { fx: 0.605, fy: 0.618, at: 0.03, span: 0.30, mfx: 0.707, mfy: 0.546, label: 'أنظمة صوت وترفيه', href: TVS },
+        { fx: 0.887, fy: 0.174, at: 0.03, span: 0.30, mfx: 0.924, mfy: 0.354, label: 'تكييفات هواء', href: AC },
+        { fx: 0.645, fy: 0.667, at: 0.03, span: 0.32, sfx: 0.645, sfy: 0.667, mfx: 0.754, mfy: 0.566, label: 'مراوح ومبردات هواء', href: CLIMATE },
+        { fx: 0.789, fy: 0.861, at: 0.03, span: 0.32, sfx: 0.789, sfy: 0.861, mfx: 0.762, mfy: 0.702, label: 'دفايات', href: CLIMATE },
+        { fx: 0.040, fy: 0.680, at: 0.03, span: 0.32, sfx: 0.040, sfy: 0.680, mfx: 0.067, mfy: 0.609, label: 'تنقية وترطيب الهواء', href: CLIMATE },
+        { fx: 0.367, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.367, sfy: 0.597, mfx: 0.367, mfy: 0.520, label: 'مبردات مياه', href: WATER_DISP },
       ],
     },
     {
       id: 'kitchen', label: 'المطبخ',
       still: 'assets/img/still_2.jpg',
       stillMobile: 'assets/img/m_kitchen.jpg?v=2',
-      clip: 'assets/vid/leg_2.mp4', clipMobile: 'assets/vid/leg_2-m.mp4',
+      // leg_2v5 = a walk from the dining table through the kitchen doorway (frames
+      // 0-101, crossfaded) + leg_2.mp4 from frame 96 on, unchanged. Same 193
+      // frames, so this room's showcase frame, still and markers are untouched.
+      clip: 'assets/vid/leg_2v5.mp4', clipMobile: 'assets/vid/leg_2v5-m.mp4',
       accent: '#c97b12',
       scroll: 2.1, linger: 0.5,
       copyY: 0.24,      // top: every marker (fridges right, counter left) sits lower-half
@@ -269,7 +274,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // has — the last section is the shop hand-off, which holds the laundry
     // scene and dissolves out on purpose.
     connectorsMobile: [
-      'assets/vid/m_conn1.mp4',   // living -> kitchen
+      'assets/vid/m_conn1v5.mp4', // living (v5) -> dining table -> kitchen doorway -> kitchen
       'assets/vid/m_conn2.mp4',   // kitchen -> laundry
       null,                       // laundry -> shop: the deliberate fade-out
     ],

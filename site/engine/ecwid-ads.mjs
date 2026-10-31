@@ -267,7 +267,7 @@ export function mergePromos(ecwidPromos = [], localPromos = []) {
    filesystem: this is a list of things it makes sense to advertise, and a
    glob would happily offer admin.html. */
 const SITE_PAGES = new Set([
-  'index', 'shop', 'finder', 'compare', 'guides', 'care', 'plan', 'delivery',
+  'index', 'shop', 'finder', 'compare', 'care', 'delivery',   // guides/plan: hidden pages (2026-10-31)
   'contact', 'about', 'showrooms', 'warranty', 'values', 'appliances', 'saved',
 ]);
 

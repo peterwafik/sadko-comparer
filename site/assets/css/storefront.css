@@ -12,7 +12,7 @@
 /* ---------- 1. breadcrumb ---------- */
 .scrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   font-size: .85rem; font-weight: 700; color: var(--ink-soft); margin: 0 0 var(--sk-gutter); }
-.scrumb a { color: var(--accent); text-decoration: none; }
+.scrumb a { color:var(--accent-ink); text-decoration: none; }
 .scrumb a:hover { text-decoration: underline; }
 .scrumb span { color: var(--ink); font-weight: 800; }
 .scrumb i { font-style: normal; color: var(--ink-soft); }
@@ -31,12 +31,12 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .secjump { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
   margin: 0 0 var(--sk-gutter); }
 .secjump__link { flex: 0 1 auto; min-width: 0; text-align: center; text-decoration: none;
-  font: 800 1rem/1.25 'Cairo', sans-serif; color: #fff;
+  font: 800 1rem/1.25 'Cairo', sans-serif; color:#fff;
   padding: 9px 22px; border-radius: 999px; background: var(--accent);
   border: 1px solid var(--accent);
   transition: background .2s, color .2s, border-color .2s, transform .15s; }
 .secjump__link:hover, .secjump__link:focus-visible {
-  background: var(--ink); border-color: var(--ink); color: #fff; transform: translateY(-1px); }
+  background: var(--accent); border-color: var(--accent); color: #fff; transform: translateY(-1px); }
 /* the one just tapped: brand amber, so it reads as "you jumped here" */
 .secjump__link.is-active { background: var(--amber); border-color: var(--amber); color: #241a05; }
 /* tablets: still one row, type between the phone and desktop sizes */
@@ -150,7 +150,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .btile:hover .btile__mark { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 .btile__logo { width: 100%; height: 100%; object-fit: contain; padding: 12px; }
 /* The wordmark only shows when there is no logo image to show. */
-.btile__word { display: none; font: 900 .82rem 'Cairo', sans-serif; color: var(--accent);
+.btile__word { display: none; font: 900 .82rem 'Cairo', sans-serif; color:var(--accent-ink);
   padding: 0 8px; line-height: 1.2; overflow-wrap: anywhere; }
 .btile__mark--nologo { background: color-mix(in srgb, var(--accent) 8%, #fff); }
 .btile__mark--nologo .btile__word { display: block; }
@@ -175,10 +175,10 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 
 /* ---------- 4. price bands ---------- */
 .bands { display: flex; flex-wrap: wrap; gap: var(--sk-gap-xs); }
-.band { text-decoration: none; font: 700 .84rem 'Cairo', sans-serif; color: var(--accent);
+.band { text-decoration: none; font: 700 .84rem 'Cairo', sans-serif; color:var(--accent-ink);
   background: color-mix(in srgb, var(--accent) 9%, #fff); border: 1.5px solid color-mix(in srgb, var(--accent) 26%, transparent);
   border-radius: 999px; padding: 7px 15px; transition: .15s; }
-.band:hover { background: var(--accent); color: #fff; }
+.band:hover { background: var(--accent); color:#fff; }
 
 /* ---------- 5. rails ---------- */
 /* The shop hub's convention is that the block ABOVE owns the gap, so a rail only
@@ -199,7 +199,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 /* Same size/weight as .shop-h2 — a rail is a section like any other, and two
    heading scales on one page is what made the order look unsettled. */
 .rail__title { margin: 0; font: 900 1.3rem 'Cairo', sans-serif; }
-.rail__more { text-decoration: none; font: 800 .85rem 'Cairo', sans-serif; color: var(--accent); white-space: nowrap; }
+.rail__more { text-decoration: none; font: 800 .85rem 'Cairo', sans-serif; color:var(--accent-ink); white-space: nowrap; }
 .rail__more:hover { text-decoration: underline; }
 /* The strip still scrolls — by wheel, trackpad, touch and keyboard — but the
    native scrollbar is gone: a grey OS bar under every rail was the one piece of
@@ -258,7 +258,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .facet__row input { accent-color: var(--accent); flex: 0 0 auto; }
 .facet__row span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .facet__row b { flex: 0 0 auto; font: 800 .72rem 'Cairo', sans-serif; color: var(--ink-soft); }
-.facet__band { text-decoration: none; font: 700 .82rem 'Cairo', sans-serif; color: var(--accent);
+.facet__band { text-decoration: none; font: 700 .82rem 'Cairo', sans-serif; color:var(--accent-ink);
   background: color-mix(in srgb, var(--accent) 8%, #fff); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
   border-radius: 10px; padding: 6px 10px; display: block; }
 .facet__band:hover { background: color-mix(in srgb, var(--accent) 16%, #fff); }
@@ -298,12 +298,12 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .sgt__kind { flex: 0 0 auto; font: 800 .68rem 'Cairo', sans-serif; letter-spacing: .02em;
   padding: 3px 8px; border-radius: 999px; white-space: nowrap;
   background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-soft); }
-.sgt__kind--cat { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.sgt__kind--cat { background: color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent-ink); }
 .sgt__kind--brand { background: color-mix(in srgb, var(--amber) 22%, transparent); color: #8a5b12; }
 .sgt__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The matched run is what the shopper just typed — the rest of the label is the
    part they have yet to type, so the emphasis goes on the match, not the tail. */
-.sgt__label b { color: var(--accent); font-weight: 900; }
+.sgt__label b { color:var(--accent-ink); font-weight: 900; }
 .sgt__n { flex: 0 0 auto; font: 800 .72rem 'Cairo', sans-serif; font-style: normal; color: var(--ink-soft); }
 /* The advanced-search panel clips its own children; the popup has to escape it. */
 .asearch, .asearch .ssearch { overflow: visible; }
@@ -323,7 +323,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   padding: var(--sk-gap-md) clamp(16px, 4vw, 26px);
   padding-inline-end: clamp(40px, 5vw, 52px);   /* room for the × */
   border-radius: 18px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  background: linear-gradient(120deg, #eaf3f4, #fdf3e2); }
+  background: linear-gradient(120deg, #eef5f2, #fdf3e2); }
 .sk-fcta b { display: block; font-size: 1.02rem; color: var(--ink); }
 .sk-fcta p { margin: 5px 0 0; font-size: .86rem; color: var(--ink-soft); line-height: 1.65; max-width: 62ch; }
 .sk-fcta__btn { flex: 0 0 auto; font: 800 .88rem 'Cairo', sans-serif; color: #241a05; background: var(--amber);
@@ -346,7 +346,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .asearch .ssearch { flex: 1 1 100%; width: 100%; }
 .asearch .ssearch__input { flex: 1 1 auto; }
 .asearch__more { margin-top: var(--sk-gap-xs); }
-.asearch__toggle { cursor: pointer; font: 800 .84rem 'Cairo', sans-serif; color: var(--accent);
+.asearch__toggle { cursor: pointer; font: 800 .84rem 'Cairo', sans-serif; color:var(--accent-ink);
   list-style: none; display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 2px; user-select: none; }
 .asearch__toggle::-webkit-details-marker { display: none; }
@@ -370,7 +370,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .ssearch__input::placeholder { color: var(--ink-soft); }
 .ssearch__input:focus { outline: none; border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
-.ssearch__btn { flex: 0 0 auto; cursor: pointer; font: 800 .84rem 'Cairo', sans-serif; color: #fff;
+.ssearch__btn { flex: 0 0 auto; cursor: pointer; font: 800 .84rem 'Cairo', sans-serif; color:#fff;
   background: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 9px 18px; }
 .ssearch__btn:hover { background: color-mix(in srgb, var(--accent) 82%, var(--ink));
   border-color: color-mix(in srgb, var(--accent) 82%, var(--ink)); }
@@ -384,7 +384,7 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
   border-radius: 999px; font: 800 .86rem 'Cairo', sans-serif; text-decoration: none; color: var(--ink);
   background: #fff; border: 1.5px solid var(--line); }
 .pager__pg:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-.pager__pg[aria-current] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pager__pg[aria-current] { background: var(--accent); color:#fff; border-color: var(--accent); }
 .pager__pgs { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
 .pager__step { min-height: 38px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center;
   border-radius: 999px; font: 800 .86rem 'Cairo', sans-serif; text-decoration: none; color: var(--ink);

@@ -3653,7 +3653,7 @@ export async function handle(req, res) {
           return json(200, {
             folders: Object.fromEntries(AD_SLOTS.map(s => [s, ECWID_AD_FOLDERS[s] ? { id: ECWID_AD_FOLDERS[s], from: ENV_AD_FOLDERS[s] ? 'env' : 'portal' } : null])),
             slots, shapes: AD_SHAPES, categories: cats,
-            pages: ['shop', 'contact', 'delivery', 'finder', 'guides', 'care', 'plan', 'about', 'showrooms', 'warranty', 'values', 'index'],
+            pages: ['shop', 'contact', 'delivery', 'finder', 'care', 'about', 'showrooms', 'warranty', 'index'],
           });
         }
         if (rest === 'ads/setup' && req.method === 'POST') {
@@ -3904,7 +3904,7 @@ export async function handle(req, res) {
         const st = ecwidStore();
         const live = st ? (await st.allCategories()).map(c => ({ href: 'shop?cat=' + c.id, name: c.name || String(c.id) })) : [];
         return json(200, { built: built.sort((a, b) => a.name.localeCompare(b.name, 'ar')), live,
-          pages: ['shop', 'finder', 'guides', 'care', 'plan', 'delivery', 'contact', 'about', 'showrooms', 'warranty', 'values']
+          pages: ['shop', 'finder', 'care', 'delivery', 'contact', 'about', 'showrooms', 'warranty']
             .map(p => ({ href: p, name: p })) });
       }
 

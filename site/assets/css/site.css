@@ -1,13 +1,13 @@
 /* ============================================================================
    SADKO rebrand theme — sits UNLAYERED so it beats the engine's @layer sw.
    Palette derived from extraction/site-graph.json designTokens:
-   brand teal #7ebec5 (deepened for contrast), amber accent #fe9800,
+   brand teal #75A693 (deepened for contrast), amber accent #fe9800,
    Cairo (Arabic) + Open Sans. RTL-first.
    ========================================================================== */
 
 :root, .sw-root {
-  --sadko-teal:      #7ebec5;
-  --sadko-teal-deep: #2e7e88;
+  --sadko-teal:      #75A693;
+  --sadko-teal-deep: #75A693; --sadko-teal-text: #4A7666;
   --sadko-teal-ink:  #14343a;
   --sadko-amber:     #fe9800;
   --sadko-bg:        #f7f5f1;
@@ -129,7 +129,7 @@ html[dir=rtl] .sw-route__dot.is-active .sw-route__label { transform: translateY(
 .sadko-hotline {
   direction: ltr;
   font: 800 1rem/1 var(--sw-font-display);
-  color: var(--sadko-teal-deep);
+  color:var(--sadko-teal-text);
   text-decoration: none;
   border: 2px solid color-mix(in srgb, var(--sadko-teal-deep) 35%, transparent);
   border-radius: 999px; padding: 8px 16px;

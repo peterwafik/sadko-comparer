@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=a7">
+<link rel="stylesheet" href="assets/css/app.css?v=a11">
 <style>
 /* contact page — layout only, built on the app.css tokens */
 .ct-sec { margin-top: clamp(24px,4vw,40px); }
@@ -23,7 +23,7 @@
   box-shadow: var(--shadow); transition: transform .15s, border-color .15s; }
 .lane:hover { transform: translateY(-2px); border-color: var(--accent); }
 .lane .k { font: 800 .78rem 'Cairo', sans-serif; color: var(--ink-soft); letter-spacing: .03em; }
-.lane b { font-size: clamp(1.1rem,2.6vw,1.35rem); font-weight: 900; color: var(--accent);
+.lane b { font-size: clamp(1.1rem,2.6vw,1.35rem); font-weight: 900; color:var(--accent-ink);
   overflow-wrap: anywhere; line-height: 1.4; }
 .lane .d { font-size: .84rem; font-weight: 600; color: var(--ink-soft); line-height: 1.75; }
 
@@ -36,7 +36,7 @@
 .rt:hover { transform: translateY(-2px); border-color: var(--accent); }
 .rt h3 { margin: 0 0 6px; font-size: .98rem; font-weight: 900; line-height: 1.45; }
 .rt p { margin: 0; font-size: .85rem; font-weight: 600; line-height: 1.8; color: var(--ink-soft); }
-.rt .go { display: inline-block; margin-top: 9px; font: 800 .8rem 'Cairo', sans-serif; color: var(--accent); }
+.rt .go { display: inline-block; margin-top: 9px; font: 800 .8rem 'Cairo', sans-serif; color:var(--accent-ink); }
 
 /* branches */
 .brs { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px;
@@ -46,7 +46,7 @@
 .br address { display: block; font-style: normal; font-size: .86rem; font-weight: 600;
   color: var(--ink-soft); line-height: 1.8; margin-bottom: 12px; overflow-wrap: anywhere; }
 .br .tels { display: flex; flex-wrap: wrap; gap: 7px; }
-.br .tels a { font: 700 .8rem 'Cairo', sans-serif; color: #fff; background: var(--accent);
+.br .tels a { font: 700 .8rem 'Cairo', sans-serif; color:#fff; background: var(--accent);
   text-decoration: none; border-radius: 999px; padding: 7px 13px; direction: ltr; unicode-bidi: isolate; }
 .br .tels a:hover { filter: brightness(1.08); }
 
@@ -71,8 +71,8 @@
 
 <footer data-footer></footer>
 
-<script src="assets/js/nav.js?v=g32" defer></script>
-<script src="assets/js/appshell.js?v=a12" defer></script>
+<script src="assets/js/nav.js?v=g39" defer></script>
+<script src="assets/js/appshell.js?v=a14" defer></script>
 <script src="assets/js/contact.js?v=a7" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {

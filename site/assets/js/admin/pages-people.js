@@ -102,7 +102,9 @@
       const r = await A.api('GET', 'admins');
       if (ctx.stale()) return;
       if (!r.ok) { el.innerHTML = '<div class="note note--bad">' + esc(r.message || '') + '</div>'; return; }
-      const sections = r.sections;
+      // 'guides' is hidden with the Buying guides page (nav.js HIDDEN_PAGES); the
+      // server still knows the section, so restoring the page needs no migration.
+      const sections = (r.sections || []).filter(s => s !== 'guides');
       add.onclick = () => invite('', sections);
       el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + t('البريد', 'Email') + '</th><th>' + t('الدور', 'Role') + '</th><th>' +
         t('الصلاحيات', 'Access') + '</th><th>' + t('الحالة', 'Status') + '</th><th>' + t('آخر دخول', 'Last sign-in') + '</th><th></th></tr></thead><tbody>' +

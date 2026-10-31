@@ -73,15 +73,8 @@ function mountGuide(container, api, sections) {
   });
   container.appendChild(dock);
 
-  /* ---------------- help (؟) button ---------------- */
-  const help = document.createElement('button');
-  help.type = 'button';
-  help.className = 'gd-help';
-  help.textContent = G.helpMark;
-  help.title = G.helpTitle;
-  help.setAttribute('aria-label', G.helpAria);
-  help.addEventListener('click', () => openTour());
-  container.appendChild(help);
+  /* The floating "؟" help button was removed on 2026-10-31 at the owner's
+     request (desktop and mobile). The first-visit walkthrough still runs once. */
 
   /* ---- active-room highlight, synced to the engine's scroll frame ---- */
   const hsLayer = container.querySelector('.hs-layer');
@@ -173,11 +166,11 @@ function mountGuide(container, api, sections) {
         : (strapCollapsed() ? 'كل الأقسام داخل هذا الزر' : 'اطلب فى أى وقت'),
       body: () => EN
         ? (strapCollapsed()
-          ? 'This button opens the menu: the full shop, orders, showrooms and the cart, with the 19140 hotline at the foot of it. Tap that to call us directly. Need this walkthrough again? Hit the “?” button.'
-          : 'The 19140 hotline is always up top. Tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart. Need this walkthrough again? Hit the “?” button.')
+          ? 'This button opens the menu: the full shop, orders, showrooms and the cart, with the 19140 hotline at the foot of it. Tap that to call us directly.'
+          : 'The 19140 hotline is always up top. Tap it to call us directly. From the top strap you can open the full shop, orders, showrooms and the cart.')
         : (strapCollapsed()
-          ? 'يفتح لك هذا الزر القائمة: المتجر الكامل والطلبات والمعارض والسلة، والخط الساخن 19140 فى أسفلها. اضغط عليه للاتصال بنا مباشرة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'
-          : 'الخط الساخن 19140 موجود فى الأعلى دائمًا. اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة. وإذا احتجت هذا الشرح مرة أخرى، اضغط على علامة «؟».'),
+          ? 'يفتح لك هذا الزر القائمة: المتجر الكامل والطلبات والمعارض والسلة، والخط الساخن 19140 فى أسفلها. اضغط عليه للاتصال بنا مباشرة.'
+          : 'الخط الساخن 19140 موجود فى الأعلى دائمًا. اضغط عليه للاتصال بنا مباشرة. ومن الشريط العلوى يمكنك فتح المتجر الكامل والطلبات والمعارض والسلة.'),
     },
   ];
 
@@ -335,6 +328,7 @@ function mountGuide(container, api, sections) {
 
   function renderStep() {
     if (!tour) return;
+    const pad = 10, vw = window.innerWidth, vh = window.innerHeight;   // same as placeRing's
     const st = STEPS[stepIdx];
     const target = st.sel();
     const r = target && targetRect(target);
@@ -406,10 +400,10 @@ function injectGuideCSS() {
     transition:background .22s,color .22s,transform .18s,box-shadow .22s;}
   .gd-dock__btn em{font-style:normal;direction:ltr;display:grid;place-items:center;width:20px;height:20px;flex:0 0 auto;
     font-size:.72rem;font-weight:800;border-radius:50%;background:rgba(20,52,58,.1);color:#14343a;}
-  .gd-dock__btn:hover,.gd-dock__btn:focus-visible{background:rgba(46,126,136,.13);transform:translateY(-1px);}
-  .gd-dock__btn.is-active{background:var(--sw-accent,#2e7e88);color:#fff;
-    box-shadow:0 4px 14px color-mix(in srgb,var(--sw-accent,#2e7e88) 45%,transparent);}
-  .gd-dock__btn.is-active em{background:rgba(255,255,255,.25);color:#fff;}
+  .gd-dock__btn:hover,.gd-dock__btn:focus-visible{background:rgba(117,166,147,.13);transform:translateY(-1px);}
+  .gd-dock__btn.is-active{background:var(--sw-accent,#75A693);color:#fff;
+    box-shadow:0 4px 14px color-mix(in srgb,var(--sw-accent,#75A693) 45%,transparent);}
+  .gd-dock__btn.is-active em{background:rgba(255,255,255,.5);color:#14343a;}
   .gd-dock.is-showcase .gd-dock__btn.is-active{background:var(--sadko-amber,#fe9800);color:#241a05;}
   .gd-dock.is-showcase .gd-dock__btn.is-active em{background:rgba(255,255,255,.55);color:#241a05;}
   /* The shop button is a link out, not a room, and it is the one we want
@@ -435,7 +429,7 @@ function injectGuideCSS() {
     font:800 1.15rem/1 var(--sw-font-display,inherit);
     box-shadow:0 12px 34px rgba(18,42,47,.18), inset 0 1px 0 rgba(255,255,255,.6);
     transition:transform .18s,background .22s,color .22s;}
-  .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#2e7e88);color:#fff;}
+  .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#75A693);color:#fff;}
 
   /* ---- make room for the dock in the existing chrome ---- */
   .sw-hint{bottom:calc(var(--gd-lift) + 68px + env(safe-area-inset-bottom));}
@@ -483,7 +477,7 @@ function injectGuideCSS() {
     box-shadow:0 24px 60px rgba(7,22,26,.45);font-family:var(--sw-font-display,inherit);
     transition:left .45s cubic-bezier(.22,.8,.24,1),top .45s cubic-bezier(.22,.8,.24,1);}
   .gd-tour__step{display:inline-block;direction:ltr;font:800 .72rem/1 ui-monospace,Menlo,monospace;color:#fff;
-    background:var(--sw-accent,#2e7e88);border-radius:999px;padding:5px 10px;}
+    background:var(--sw-accent,#75A693);border-radius:999px;padding:5px 10px;}
   .gd-tour__card h3{margin:10px 0 6px;font-size:1.15rem;font-weight:800;line-height:1.35;}
   .gd-tour__card p{margin:0;font-size:.9rem;line-height:1.7;color:#3f5457;}
   /* nowrap on the controls, wrap on the row: the last step's button reads

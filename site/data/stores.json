@@ -8,7 +8,7 @@
    "type": "mega",
    "t": 1,
    "platform": "local",
-   "lastOk": 1793103001624,
+   "lastOk": 1793459514785,
    "failN": 0
   },
   {
@@ -19,7 +19,7 @@
    "t": 1,
    "platform": "gql",
    "gqlHost": "2b.com.eg",
-   "lastOk": 1793103002722,
+   "lastOk": 1793460415718,
    "failN": 0,
    "lastFail": 1788015188572
   },
@@ -41,7 +41,7 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "lastOk": 1793103001904,
+   "lastOk": 1793459515265,
    "failN": 0,
    "lastFail": 1793008231539
   },
@@ -52,8 +52,8 @@
    "type": "mega",
    "t": 1,
    "platform": "gql",
-   "failN": 28,
-   "lastFail": 1793102110604
+   "failN": 29,
+   "lastFail": 1793459523726
   },
   {
    "domain": "jumia.com.eg",
@@ -73,9 +73,9 @@
    "type": "mega",
    "t": 1,
    "platform": "noon",
-   "lastOk": 1793103011905,
-   "failN": 2,
-   "lastFail": 1793457848827
+   "lastOk": 1793460424329,
+   "failN": 0,
+   "lastFail": 1793460423728
   },
   {
    "domain": "btech.com",
@@ -85,7 +85,7 @@
    "t": 1,
    "platform": "btech",
    "needsHeadless": true,
-   "lastOk": 1793103907719,
+   "lastOk": 1793460421014,
    "failN": 0,
    "lastFail": 1788677712506
   },
@@ -97,7 +97,7 @@
    "t": 1,
    "platform": "amazon",
    "needsHeadless": true,
-   "lastOk": 1793457843119,
+   "lastOk": 1793459517566,
    "failN": 0,
    "lastFail": 1788526332254
   },
@@ -194,7 +194,7 @@
    "type": "mega",
    "t": 2,
    "platform": "jsonld:/search?q=",
-   "lastOk": 1793103004967,
+   "lastOk": 1793459518294,
    "failN": 0,
    "lastFail": 1793044269381
   },
@@ -328,7 +328,7 @@
    "platform": "jsonld:/search/?q=",
    "failN": 0,
    "lastFail": 1793045170952,
-   "lastOk": 1793103007316
+   "lastOk": 1793459522920
   },
   {
    "domain": "ehabcenter.com",
@@ -348,8 +348,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 26,
-   "lastFail": 1793043405427
+   "failN": 27,
+   "lastFail": 1793460453485
   },
   {
    "domain": "makka.store",
@@ -463,7 +463,7 @@
    "platform": "woo",
    "failN": 0,
    "lastFail": 1790105271175,
-   "lastOk": 1793103011760
+   "lastOk": 1793459527971
   },
   {
    "domain": "azmyco.com",
@@ -503,9 +503,9 @@
    "type": "local",
    "t": 3,
    "platform": "woo",
-   "failN": 0,
-   "lastFail": 1793102119611,
-   "lastOk": 1793103009205
+   "failN": 1,
+   "lastFail": 1793460432744,
+   "lastOk": 1793459525344
   },
   {
    "domain": "moreshopping.com",
@@ -527,7 +527,7 @@
    "platform": "woo",
    "failN": 0,
    "lastFail": 1793090456923,
-   "lastOk": 1793103010337
+   "lastOk": 1793459525897
   },
   {
    "domain": "mahgoub.com",
@@ -536,8 +536,8 @@
    "type": "local",
    "t": 3,
    "platform": "auto",
-   "failN": 29,
-   "lastFail": 1793090496884
+   "failN": 30,
+   "lastFail": 1793460460411
   },
   {
    "domain": "elwaha.com.eg",
@@ -638,8 +638,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/?s=",
-   "failN": 21,
-   "lastFail": 1793044291422
+   "failN": 22,
+   "lastFail": 1793460459526
   },
   {
    "domain": "kareemstores.com",
@@ -648,8 +648,8 @@
    "type": "local",
    "t": 3,
    "platform": "jsonld:/products?q=",
-   "failN": 33,
-   "lastFail": 1793091375887
+   "failN": 34,
+   "lastFail": 1793459558775
   },
   {
    "domain": "shams-stores.com",
@@ -910,8 +910,8 @@
    "t": 4,
    "platform": "jsonld:/?s=",
    "addedBy": "discovery",
-   "lastOk": 1793091342804,
-   "failN": 3,
+   "lastOk": 1793459528002,
+   "failN": 0,
    "lastFail": 1793103921783
   },
   {
@@ -988,8 +988,8 @@
    "platform": "jsonld:/en/catalogsearch/result/?q=",
    "addedBy": "tavily",
    "lastOk": 1788423452462,
-   "failN": 17,
-   "lastFail": 1793091351631
+   "failN": 18,
+   "lastFail": 1793459537108
   },
   {
    "domain": "shop.halan.com",
@@ -1009,7 +1009,7 @@
    "t": 4,
    "platform": "shopify",
    "addedBy": "tavily",
-   "lastOk": 1793103012914,
+   "lastOk": 1793459528800,
    "failN": 0,
    "lastFail": 1793044279852
   },
@@ -1020,7 +1020,7 @@
    "t": 4,
    "platform": "shopify",
    "addedBy": "discovery",
-   "lastOk": 1793103914398,
+   "lastOk": 1793460430533,
    "failN": 0
   },
   {

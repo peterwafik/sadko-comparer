@@ -454,7 +454,7 @@
       const appliancesHref = user ? A.P('appliances.html') : A.P('account.html?next=appliances.html');
       root.innerHTML = '<div class="panel" style="max-width:680px;margin:0 auto;text-align:center">' +
         '<h2 class="panel__h" style="justify-content:center">' + t('تم تسجيل طلبك', 'Your order is recorded') + '</h2>' +
-        '<p style="font:900 1.6rem Cairo,sans-serif;color:var(--accent);margin:14px 0" class="ltr">' + esc(o.ref) + '</p>' +
+        '<p style="font:900 1.6rem Cairo,sans-serif;color:var(--accent-ink);margin:14px 0" class="ltr">' + esc(o.ref) + '</p>' +
         '<p class="muted">' + t('احتفظ برقم الطلب هذا. وستتواصل معك خدمة العملاء على الرقم الذى سجّلته لتأكيد المواعيد ورسوم التوصيل والتركيب.',
           'Keep this order reference. Customer care will contact you on the number you gave to confirm timing and the delivery and installation charges.') + '</p>' +
         '<ul class="specs mt16" style="text-align:start">' +

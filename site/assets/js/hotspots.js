@@ -792,15 +792,15 @@ function injectHotspotCSS() {
   .hs-coach{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,16px);
     z-index:60;display:flex;align-items:center;gap:12px;direction:rtl;max-width:min(92vw,560px);
     background:color-mix(in srgb,#10282c 88%,transparent);backdrop-filter:blur(10px);
-    border:1px solid color-mix(in srgb,var(--sw-accent,#2e7e88) 45%,transparent);
+    border:1px solid color-mix(in srgb,var(--sw-accent,#75A693) 45%,transparent);
     border-radius:16px;padding:13px 16px;opacity:0;transition:opacity .35s ease, transform .35s ease;}
   .hs-coach.is-in{opacity:1;transform:translate(-50%,0);}
   .hs-coach p{margin:0;color:#fff;font-size:.88rem;line-height:1.55;font-family:var(--sw-font-display);}
   .hs-coach b{color:#ffd03f;font-weight:800;}
   .hs-coach__dot{position:relative;width:14px;height:14px;border-radius:50%;flex:0 0 auto;
-    background:var(--sw-accent,#2e7e88);border:2px solid rgba(255,255,255,.9);}
+    background:var(--sw-accent,#75A693);border:2px solid rgba(255,255,255,.9);}
   .hs-coach__dot::after{content:"";position:absolute;inset:-6px;border-radius:50%;
-    border:2px solid color-mix(in srgb,var(--sw-accent,#2e7e88) 75%,transparent);animation:hs-pulse 2s ease-out infinite;}
+    border:2px solid color-mix(in srgb,var(--sw-accent,#75A693) 75%,transparent);animation:hs-pulse 2s ease-out infinite;}
   .hs-coach__x{flex:0 0 auto;background:none;border:0;color:#fff;opacity:.7;font-size:1.3rem;cursor:pointer;padding:2px 6px;}
   .hs-coach__x:hover{opacity:1;}
   /* On phones the copy panel owns the bottom — dock the coach under the nav. */

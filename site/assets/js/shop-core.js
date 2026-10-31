@@ -209,6 +209,11 @@
         if (b) id.push(norm(b.ar), norm(b.en), norm(b.key));
       } catch (e) {}
     }
+    // The live (Ecwid) catalogue carries a brand and a SKU on every product.
+    // Both are things shoppers type ("kiriazi", "KWD A 3.1"), so they are part
+    // of a product's identity even when the title spells them differently.
+    if (p.brand) id.push(norm(p.brand));
+    if (p.sku) id.push(norm(p.sku));
     var identity = id.join('  ');
     return { identity: identity, full: identity + '  ' + norm(p.description) };
   }
@@ -680,5 +685,5 @@
     });
   }
 
-  return { SORTS: SORTS, catIdsOf: catIdsOf, inCategory: inCategory, catFamily: catFamily, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate, suggest: suggest, editDistance: editDistance, fuzzyHit: fuzzyHit };
+  return { SORTS: SORTS, catIdsOf: catIdsOf, inCategory: inCategory, catFamily: catFamily, parseState: parseState, stateToSearch: stateToSearch, isBrowse: isBrowse, PRICE_BANDS: PRICE_BANDS, liveCategories: liveCategories, brandsOf: brandsOf, filter: filter, matchesQuery: matchesQuery, parseQuery: parseQuery, norm: norm, localizePromos: localizePromos, bandCounts: bandCounts, sortList: sortList, paginate: paginate, suggest: suggest, queryAliases: queryAliases, editDistance: editDistance, fuzzyHit: fuzzyHit };
 });

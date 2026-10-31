@@ -1011,7 +1011,9 @@ function injectCSS() {
   .sw-copy{position:absolute;left:clamp(18px,5vw,64px);top:50%;transform:translateY(-50%);width:min(42vw,460px);opacity:0;will-change:opacity,transform;}
   @media (min-width:861px){ html[dir=rtl] .sw-copy{left:auto;right:clamp(18px,5vw,64px);} }
   .sw-copy__num{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;letter-spacing:.12em;color:var(--sw-ink-soft);}
-  .sw-copy__eyebrow{display:block;margin-top:18px;font-family:var(--sw-font-display);font-weight:700;font-size:.8rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sw-accent);}
+  .sw-copy__eyebrow{display:block;margin-top:18px;font-family:var(--sw-font-display);font-weight:800;font-size:clamp(1rem,1.25vw,1.22rem);line-height:1.35;letter-spacing:.06em;text-transform:uppercase;color:color-mix(in srgb,var(--sw-accent) 55%,#14343a);}
+  /* Arabic letters join: any letter-spacing pulls the word apart, so none in RTL */
+  [dir=rtl] .sw-copy__eyebrow{letter-spacing:0;}
   .sw-copy__title{font-family:var(--sw-font-display);font-weight:700;color:var(--sw-ink);font-size:clamp(2rem,4.4vw,3.5rem);line-height:1.03;margin:12px 0 0;letter-spacing:-.01em;text-shadow:0 2px 20px color-mix(in srgb,var(--sw-bg) 70%,transparent);}
   .sw-copy__body{margin-top:18px;font-size:clamp(1rem,1.25vw,1.14rem);line-height:1.55;color:color-mix(in srgb,var(--sw-ink) 78%,var(--sw-ink-soft));max-width:40ch;text-shadow:0 1px 12px color-mix(in srgb,var(--sw-bg) 90%,transparent);}
   .sw-copy__tags{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 0;padding:0;}
@@ -1062,7 +1064,7 @@ function injectCSS() {
     .sw-copy{width:min(74vw,340px);max-width:none;}
     /* Compact, top-centred header card: tighten the gap under the 01/04 line so
        the three lines sit close together instead of spanning a tall block. */
-    .sw-copy__eyebrow{margin-top:3px;}
+    .sw-copy__eyebrow{margin-top:3px;font-size:clamp(.98rem,4vw,1.12rem);}
     .sw-copy__title{margin-top:2px;font-size:clamp(1.5rem,5.8vw,2.1rem);line-height:1.12;}
     .sw-copy__body{max-width:none;font-size:clamp(.98rem,3.6vw,1.1rem);} .sw-scene__video,.sw-scene__still{object-position:center 46%;}
     .sw-hint{bottom:calc(20px + env(safe-area-inset-bottom));}

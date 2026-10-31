@@ -9,55 +9,55 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/category.css?v=c6">
+<link rel="stylesheet" href="assets/css/category.css?v=c10">
 <style>
-:root{--accent:#2e7e88;}
-.search-card{background:#fff;border-radius:20px;padding:22px;border:1px solid rgba(46,126,136,.12);
+:root{--accent:#75A693;--accent-ink:#4A7666;--on-accent: #fff;}
+.search-card{background:#fff;border-radius:20px;padding:22px;border:1px solid rgba(117,166,147,.12);
   box-shadow:0 12px 34px rgba(20,52,58,.09);margin-bottom:22px;}
 .search-row{display:flex;flex-wrap:wrap;gap:10px;}
 .search-row input[type=search]{flex:1 1 300px;font:700 1rem 'Cairo',sans-serif;padding:14px 18px;
-  border-radius:14px;border:2px solid rgba(46,126,136,.25);outline:none;}
-.search-row input[type=search]:focus{border-color:#2e7e88;}
+  border-radius:14px;border:2px solid rgba(117,166,147,.25);outline:none;}
+.search-row input[type=search]:focus{border-color:#75A693;}
 .go{font:800 1rem 'Cairo',sans-serif;color:#241a05;background:#fe9800;border:0;border-radius:14px;
   padding:14px 30px;cursor:pointer;box-shadow:0 6px 18px rgba(254,152,0,.35);}
 .go:hover{transform:translateY(-1px);}
 .filters{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:14px;align-items:center;}
 .filters label{font:700 .82rem 'Cairo',sans-serif;color:#3f5457;display:inline-flex;align-items:center;gap:6px;}
 .filters input[type=number]{width:110px;font:700 .85rem 'Cairo',sans-serif;padding:8px 10px;
-  border-radius:10px;border:1.5px solid rgba(46,126,136,.25);}
+  border-radius:10px;border:1.5px solid rgba(117,166,147,.25);}
 .filters .hint{font:600 .74rem 'Cairo',sans-serif;color:#8a979a;}
 .interp{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:14px;padding-top:14px;
-  border-top:1.5px dashed rgba(46,126,136,.18);}
+  border-top:1.5px dashed rgba(117,166,147,.18);}
 .interp__label{font:700 .82rem 'Cairo',sans-serif;color:#3f5457;flex:0 0 auto;}
 .interp.interp--ask .interp__label{color:#8a5b12;}
 .interp__cat{font:700 .82rem 'Cairo',sans-serif;color:#14343a;background:#f2f6f6;
-  border:1.5px solid rgba(46,126,136,.25);border-radius:999px;padding:6px 12px;cursor:pointer;}
+  border:1.5px solid rgba(117,166,147,.25);border-radius:999px;padding:6px 12px;cursor:pointer;}
 .interp.interp--ask .interp__cat{border-color:#c97b12;background:#fff3dd;}
 .interp__chips{display:flex;flex-wrap:wrap;gap:8px;}
 .interp__chip{display:inline-flex;align-items:center;gap:6px;font:700 .78rem 'Cairo',sans-serif;
-  color:#2e7e88;background:rgba(46,126,136,.1);border:1.5px solid rgba(46,126,136,.25);
+  color:#4A7666;background:rgba(117,166,147,.1);border:1.5px solid rgba(117,166,147,.25);
   border-radius:999px;padding:5px 6px 5px 12px;}
 html[dir=ltr] .interp__chip{padding:5px 12px 5px 6px;}
 .interp__chip button{all:unset;cursor:pointer;width:18px;height:18px;border-radius:50%;
-  display:grid;place-items:center;background:rgba(46,126,136,.18);color:#2e7e88;font-size:.7rem;line-height:1;}
-.interp__chip button:hover{background:#2e7e88;color:#fff;}
+  display:grid;place-items:center;background:rgba(117,166,147,.18);color:#4A7666;font-size:.7rem;line-height:1;}
+.interp__chip button:hover{background:#75A693;color:#fff;}
 @media (max-width:520px){ .interp{gap:6px 8px;} .interp__label{flex:1 1 100%;} }
 .modebar{border-radius:14px;padding:12px 16px;font:600 .82rem 'Cairo',sans-serif;line-height:1.7;margin-bottom:18px;}
 .modebar.live{background:#e7f5ee;color:#14532d;border:1px solid #bbe3cd;}
 .modebar.demo{background:#fdf6ea;color:#6b5636;border:1px solid rgba(201,123,18,.3);}
-.summary{display:none;background:linear-gradient(135deg,#2e7e88,#1f5b63);color:#fff;border-radius:18px;
+.summary{display:none;background:linear-gradient(135deg,#75A693,#63937F);color:#fff;border-radius:18px;
   padding:18px 22px;margin-bottom:18px;font-family:'Cairo',sans-serif;}
 .summary b{font-size:1.5rem;} .summary .save{color:#ffd03f;font-weight:800;}
 .offer{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;
   background:#fff;border-radius:16px;padding:14px 18px;margin-bottom:10px;
-  border:1.5px solid rgba(46,126,136,.12);box-shadow:0 6px 20px rgba(20,52,58,.06);}
+  border:1.5px solid rgba(117,166,147,.12);box-shadow:0 6px 20px rgba(20,52,58,.06);}
 .offer.best{border-color:#fe9800;background:#fffdf6;box-shadow:0 10px 30px rgba(254,152,0,.18);}
 .offer .fav{width:40px;height:40px;border-radius:10px;background:#f2f6f6;display:grid;place-items:center;overflow:hidden;}
 .offer .fav img{width:24px;height:24px;}
 .offer h3{margin:0 0 3px;font-size:.86rem;color:#14343a;line-height:1.5;}
 .offer .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:700 .74rem 'Cairo',sans-serif;color:#5b6b6e;}
 .badge{border-radius:999px;padding:3px 10px;font:800 .68rem 'Cairo',sans-serif;}
-.badge.mega{background:rgba(46,126,136,.12);color:#2e7e88;}
+.badge.mega{background:rgba(117,166,147,.12);color:#4A7666;}
 .badge.local{background:#eef;color:#4c4c9c;}
 .badge.official{background:#fdeacc;color:#8a5b12;}
 .badge.crown{background:#fe9800;color:#241a05;}
@@ -66,17 +66,17 @@ html[dir=ltr] .interp__chip{padding:5px 12px 5px 6px;}
 .offer .fresh{font:600 .68rem 'Cairo',sans-serif;color:#9aa7a9;}
 .offer .was{display:block;font:600 .72rem 'Cairo',sans-serif;color:#9aa7a9;text-decoration:line-through;direction:ltr;}
 .offer .buy{text-align:left;}
-.offer .price{display:block;font:800 1.15rem 'Cairo',sans-serif;color:#2e7e88;direction:ltr;white-space:nowrap;}
+.offer .price{display:block;font:800 1.15rem 'Cairo',sans-serif;color:#4A7666;direction:ltr;white-space:nowrap;}
 .offer.best .price{color:#c97b12;font-size:1.3rem;}
 .offer .btn{display:inline-block;margin-top:6px;font:800 .78rem 'Cairo',sans-serif;color:#fff;
-  background:#2e7e88;text-decoration:none;border-radius:999px;padding:8px 16px;}
+  background:#75A693;text-decoration:none;border-radius:999px;padding:8px 16px;}
 .offer.best .btn{background:#fe9800;color:#241a05;}
-.offer.sadko{border-color:#2e7e88;background:linear-gradient(180deg,#f2fbfb,#fff);}
-.badge.sadko{background:#2e7e88;color:#fff;}
+.offer.sadko{border-color:#75A693;background:linear-gradient(180deg,#f2fbfb,#fff);}
+.badge.sadko{background:#75A693;color:#fff;}
 .concierge-btn{background:#14343a!important;color:#fff!important;margin-inline-start:6px;}
-.concierge-btn:hover{background:#2e7e88!important;}
+.concierge-btn:hover{background:#75A693!important;}
 /* SADKO concierge edge card */
-.concierge{background:linear-gradient(135deg,#14343a,#1f5b63);color:#fff;border-radius:18px;
+.concierge{background:linear-gradient(135deg,#14343a,#63937F);color:#fff;border-radius:18px;
   padding:20px 22px;margin-bottom:18px;font-family:'Cairo',sans-serif;box-shadow:0 12px 34px rgba(20,52,58,.2);}
 .cc-head{display:flex;align-items:center;gap:8px;font-size:1.1rem;margin-bottom:6px;}
 .cc-shield{font-size:1.4rem;}
@@ -88,11 +88,11 @@ html[dir=ltr] .interp__chip{padding:5px 12px 5px 6px;}
   text-decoration:none;border-radius:999px;padding:12px 24px;}
 .cc-cta:hover{transform:translateY(-1px);}
 .linksgrid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-.linksgrid a{font:700 .78rem 'Cairo',sans-serif;color:#2e7e88;text-decoration:none;background:#fff;
-  border:1.5px solid rgba(46,126,136,.25);border-radius:999px;padding:8px 16px;}
-.linksgrid a:hover{background:#2e7e88;color:#fff;}
+.linksgrid a{font:700 .78rem 'Cairo',sans-serif;color:#4A7666;text-decoration:none;background:#fff;
+  border:1.5px solid rgba(117,166,147,.25);border-radius:999px;padding:8px 16px;}
+.linksgrid a:hover{background:#75A693;color:#fff;}
 .loading{display:none;text-align:center;padding:40px;font:700 .95rem 'Cairo',sans-serif;color:#5b6b6e;}
-.spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(46,126,136,.2);border-top-color:#2e7e88;
+.spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(117,166,147,.2);border-top-color:#75A693;
   margin:0 auto 14px;animation:sp 1s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* English (LTR) mode */
@@ -147,9 +147,9 @@ html[dir=ltr] .offer .buy{text-align:right;}
     <p style="font:600 .78rem 'Cairo',sans-serif;color:#5b6b6e;margin:0 0 12px" data-i18n="addBody">اكتب النطاق وسنكتشف منصته تلقائياً ونضيفه إلى سجل المحرك، وسيُفحص فى كل مقارنة من الآن فصاعداً. (كما يكتشف المحرك متاجر جديدة من تلقاء نفسه مع كل بحث)</p>
     <div class="search-row">
       <input type="search" id="storeDomain" data-i18n-ph="addPh" placeholder="مثال: newstore.com.eg" style="flex:1 1 220px">
-      <button class="go" id="addStore" data-i18n="addBtn" style="background:#2e7e88;color:#fff">سجّل المتجر</button>
+      <button class="go" id="addStore" data-i18n="addBtn" style="background:#75A693;color:#14343a">سجّل المتجر</button>
     </div>
-    <p id="addMsg" style="font:700 .78rem 'Cairo',sans-serif;color:#2e7e88;margin:8px 0 0"></p>
+    <p id="addMsg" style="font:700 .78rem 'Cairo',sans-serif;color:#75A693;margin:8px 0 0"></p>
   </div>
 </main>
 
@@ -161,7 +161,7 @@ html[dir=ltr] .offer .buy{text-align:right;}
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g32" defer></script>
+<script src="assets/js/nav.js?v=g39" defer></script>
 <script src="assets/js/compare.js?v=g12" defer></script>
 </body>
 </html>

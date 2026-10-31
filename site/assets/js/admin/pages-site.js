@@ -86,8 +86,8 @@
      clip, the room's showcase progress (`at`), its `linger`, and the phone
      still. engine/scenes.test.mjs checks these against index.html. */
   const MEDIA = {
-    living: { clip: 'assets/vid/leg_1.mp4', at: 0.03, linger: 0.5, still: 'assets/img/still_1.jpg?v=2', phone: 'assets/img/m_living.jpg?v=2' },
-    kitchen: { clip: 'assets/vid/leg_2.mp4', at: 0.92, linger: 0.5, still: 'assets/img/still_2.jpg', phone: 'assets/img/m_kitchen.jpg?v=2' },
+    living: { clip: 'assets/vid/leg_1v5.mp4', at: 0.03, linger: 0.5, still: 'assets/img/still_1v5.jpg', phone: 'assets/img/m_living_v5.jpg' },
+    kitchen: { clip: 'assets/vid/leg_2v5.mp4', at: 0.92, linger: 0.5, still: 'assets/img/still_2.jpg', phone: 'assets/img/m_kitchen.jpg?v=2' },
     laundry: { clip: 'assets/vid/leg_3.mp4', at: 0.50, linger: 0.45, still: 'assets/img/still_3.jpg', phone: 'assets/img/m_laundry.jpg?v=2' },
     shop: { clip: 'assets/vid/leg_4.mp4', at: 0.22, linger: 0, clipEnd: 0.22, still: 'assets/img/still_shop.jpg', phone: 'assets/img/m_laundry.jpg?v=2', textOnly: true },
   };
@@ -778,7 +778,10 @@
       },
     });
   }
-  contentPage('guides', 'guides', 'book', ['دليلك للاختيار', 'Buying guides'], ['المقالات التى تساعد العميل على الاختيار.', 'The articles that help customers choose.']);
+  /* The Buying guides editor is switched off with the page itself (nav.js
+     HIDDEN_PAGES, 2026-10-31). The content and its API stay; restore this line
+     to bring the editor back:
+  contentPage('guides', 'guides', 'book', ['دليلك للاختيار', 'Buying guides'], ['المقالات التى تساعد العميل على الاختيار.', 'The articles that help customers choose.']); */
   contentPage('finder', 'finder', 'quiz', ['أسئلة مساعد الاختيار', 'Finder questions'], ['الأسئلة التى يجيب عنها العميل ليصل إلى الجهاز المناسب.', 'The questions customers answer to reach the right appliance.']);
 
   /* =================== site bar & hotline =================== */

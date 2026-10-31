@@ -61,8 +61,8 @@
         links: [['أجهزتى والضمان', 'My appliances & warranty', 'appliances.html'], ['الضمان والاسترجاع', 'Warranty & returns', 'warranty.html']] },
 
       { id: 'usage', ar: 'استخدام الجهاز', en: 'Using the appliance',
-        aAr: 'معظم المشكلات التى تصلنا (تبريد ضعيف، غسالة لا تُصرّف، صوت مرتفع) سببها ضبط أو تنظيف بسيط لا عطل. راجع دليل الجهاز أولاً، ثم جرّب الخطوات السريعة الواردة فى أدلة الاستخدام، فإن بقيت المشكلة، فاملأ الطلب أدناه.',
-        aEn: 'Most of what reaches us (weak cooling, a washer that will not drain, loud noise) turns out to be a setting or a clean, not a fault. Check the manual first, then the quick steps in our guides, and if it persists, fill in the request below.',
+        aAr: 'معظم المشكلات التى تصلنا (تبريد ضعيف، غسالة لا تُصرّف، صوت مرتفع) سببها ضبط أو تنظيف بسيط لا عطل. راجع دليل الجهاز أولاً' + (!(window.skFeature && !window.skFeature.on('guides')) ? '، ثم جرّب الخطوات السريعة الواردة فى أدلة الاستخدام' : '') + '، فإن بقيت المشكلة، فاملأ الطلب أدناه.',
+        aEn: 'Most of what reaches us (weak cooling, a washer that will not drain, loud noise) turns out to be a setting or a clean, not a fault. Check the manual first' + (!(window.skFeature && !window.skFeature.on('guides')) ? ', then the quick steps in our guides' : '') + ', and if it persists, fill in the request below.',
         links: [['أدلة الاستخدام', 'Guides', 'guides.html']] },
 
       { id: 'maint', ar: 'الصيانة', en: 'Maintenance',

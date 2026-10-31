@@ -101,8 +101,9 @@ export function adDescription(ar, en) {
   return [str(ar, 300) ? `<p>${esc(str(ar, 300))}</p>` : '', str(en, 300) ? `<p>EN: ${esc(str(en, 300))}</p>` : ''].join('');
 }
 
-const PAGES = new Set(['index', 'shop', 'finder', 'guides', 'care', 'plan', 'delivery', 'contact', 'about',
-                       'showrooms', 'warranty', 'values']);
+// 'guides' and 'plan' left this list with their pages (nav.js HIDDEN_PAGES, 2026-10-31).
+const PAGES = new Set(['index', 'shop', 'finder', 'care', 'delivery', 'contact', 'about',
+                       'showrooms', 'warranty']);   // 'values' merged into about (2026-10-31)
 export function cleanDestination(d = {}) {
   const v = String(d.value || '').trim();
   let sku = null;

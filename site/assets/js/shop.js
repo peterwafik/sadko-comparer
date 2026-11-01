@@ -108,7 +108,7 @@
       try { console.warn('[sadko] promo "' + (x && x.id) + '" has no titleEn — hidden in English.'); } catch (e) {}
     });
     if (!list || !Array.isArray(list)) return list;
-    /* promos.json stores SITE-ROOT-relative paths ("assets/img/promos/x.jpg",
+    /* promos.json stores SITE-ROOT-relative paths ("assets/img/highlights/x.jpg",
        "shop.html?all=1"), which is correct for shop.html and wrong by one level
        for the 30 pages under /category/ — there they resolve to
        /category/assets/… and 404 into an empty banner frame. Nothing caught this
@@ -730,8 +730,8 @@
 
   function wireAdStrap(root) {
     stopAdStrap();
-    var strap = root.querySelector('#adStrap');
-    var slides = strap ? [].slice.call(strap.querySelectorAll('.adhero__slide')) : [];
+    var strap = root.querySelector('#heroStrap');
+    var slides = strap ? [].slice.call(strap.querySelectorAll('.shero__slide')) : [];
     // No strap on this render (a category page), or a single ad that never
     // rotates: drop the document-level listener too, or it keeps a detached strap
     // alive and goes on stopping a timer it can never restart.
@@ -741,7 +741,7 @@
       return;
     }
     syncBleed();
-    var dots = [].slice.call(strap.querySelectorAll('.adhero__dot'));
+    var dots = [].slice.call(strap.querySelectorAll('.shero__dot'));
     var at = 0;
 
     function show(next) {
@@ -1110,7 +1110,7 @@
     // One retry after a short pause: a single failed request (a 429, a cold
     // instance timing out) used to leave the whole shop without adverts.
     var getPromos = function () {
-      return fetch(P('data/promos.json')).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+      return fetch(P('data/highlights.json')).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
     };
     var promos = getPromos().catch(function () {
       return new Promise(function (ok) { setTimeout(ok, 1200); }).then(getPromos);

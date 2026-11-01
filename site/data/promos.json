@@ -1,11 +1,11 @@
 {
-  "note": "REAL SADKO campaign artwork, downloaded from the company's own live homepage (https://sadko-group.com/) on 2026-09-05 and stored under assets/img/promos/. The banner text is baked into the images in Arabic; `title`/`sub` transcribe what each image says so screen readers and the English side have an equivalent. Do not add a 'was' price, discount %, rating or stock claim here: the catalogue carries no discount data, and these banners make none.",
+  "note": "REAL SADKO campaign artwork, downloaded from the company's own live homepage (https://sadko-group.com/) on 2026-09-05 and stored under assets/img/highlights/. The banner text is baked into the images in Arabic; `title`/`sub` transcribe what each image says so screen readers and the English side have an equivalent. Do not add a 'was' price, discount %, rating or stock claim here: the catalogue carries no discount data, and these banners make none.",
   "captured": "2026-09-05",
   "source": "https://sadko-group.com/",
   "placement": "hero = the rotating banner at the top of shop.html; slot = the ad blocks interleaved between the shop's sections. Slots are dealt out in the order below: the first goes in the wide single-banner block, the rest fill the square ad row, so a wide banner should come first.",
   "art": "The SHAPE of the artwork, and the only thing that decides whether a promo may fill the wide banner frame: 'wide' = 1600x608, 'square' = 900x900. The frame is 1600/608 and object-fit:cover, so a square tile put in it loses two thirds of its own printed Arabic message, which is how the 285x155 hotline strip lost its phone number. Measure the file; do not guess.",
-  "cats": "OPTIONAL category targeting, as an array of categoryId strings. A promo carrying `cats` is shown at the top of those categories' pages and nowhere else; a promo with NO `cats` is brand-wide (instalments, delivery, best sellers) and is honest on any page, so it fills the top of a category that has no campaign of its own. Where `cats` is absent the category is still inferred from the promo's own href (`shop.html?cat=NNN` names one directly, and `product.html?id=NNN` resolves through the catalogue to that product's category), so a promo for one product already advertises itself in the right aisle. TO GIVE A CATEGORY ITS OWN BANNER: add 1600x608 artwork under assets/img/promos/, list it here with \"art\":\"wide\" and \"cats\":[\"<categoryId>\"]. Category ids are the file names in site/category/.",
-  "notIncluded": "assets/img/promos/tile-hotline.jpg (the 19140 strip) was downloaded but is not listed: it is 285x155, so the square ad tile cropped the number to '9140'. The hotline already appears in the header and the footer. Kept in the folder in case a square version is produced.",
+  "cats": "OPTIONAL category targeting, as an array of categoryId strings. A promo carrying `cats` is shown at the top of those categories' pages and nowhere else; a promo with NO `cats` is brand-wide (instalments, delivery, best sellers) and is honest on any page, so it fills the top of a category that has no campaign of its own. Where `cats` is absent the category is still inferred from the promo's own href (`shop.html?cat=NNN` names one directly, and `product.html?id=NNN` resolves through the catalogue to that product's category), so a promo for one product already advertises itself in the right aisle. TO GIVE A CATEGORY ITS OWN BANNER: add 1600x608 artwork under assets/img/highlights/, list it here with \"art\":\"wide\" and \"cats\":[\"<categoryId>\"]. Category ids are the file names in site/category/.",
+  "notIncluded": "assets/img/highlights/tile-hotline.jpg (the 19140 strip) was downloaded but is not listed: it is 285x155, so the square ad tile cropped the number to '9140'. The hotline already appears in the header and the footer. Kept in the folder in case a square version is produced.",
   "promos": [
     {
       "id": "bestsellers", "slot": "hero", "accent": "teal",
@@ -13,7 +13,7 @@
       "titleEn": "Discover SADKO's best sellers",
       "cta": "تسوّق الآن", "ctaEn": "Shop now",
       "href": "shop.html?all=1",
-      "image": "assets/img/promos/hero-bestseller.jpg",
+      "image": "assets/img/highlights/hero-bestseller.jpg",
       "art": "wide",
       "alt": "لافتة صادكو: تعرف على المنتجات الأكثر مبيعاً",
       "altEn": "SADKO banner: discover the best-selling products"
@@ -25,7 +25,7 @@
       "sub": "لعملاء كارت مشتريات البنك الأهلى",
       "subEn": "For National Bank of Egypt purchase-card holders",
       "href": "contact.html",
-      "image": "assets/img/promos/hero-feb.jpg",
+      "image": "assets/img/highlights/hero-feb.jpg",
       "art": "wide",
       "alt": "عرض صادكو: تقسيط ٦ شهور بدون فوائد لعملاء كارت مشتريات البنك الأهلى",
       "altEn": "SADKO offer: 6 months interest-free instalments for NBE purchase-card holders"
@@ -36,7 +36,7 @@
       "titleEn": "Summer with SADKO",
       "cta": "تسوّق التكييفات", "ctaEn": "Shop air conditioners",
       "href": "shop.html?cat=38032005",
-      "image": "assets/img/promos/hero-summer.jpg",
+      "image": "assets/img/highlights/hero-summer.jpg",
       "art": "wide",
       "alt": "لافتة صادكو الصيفية",
       "altEn": "SADKO summer banner"
@@ -47,7 +47,7 @@
       "title": "صادكو بالتقسيط", "titleEn": "SADKO in instalments",
       "sub": "٦ شهور بدون فوائد", "subEn": "6 months, interest-free",
       "href": "contact.html",
-      "image": "assets/img/promos/tile-kk.jpg",
+      "image": "assets/img/highlights/tile-kk.jpg",
       "art": "square",
       "alt": "صادكو بالتقسيط: ٦ شهور بدون فوائد",
       "altEn": "SADKO in instalments: 6 months interest-free"
@@ -57,7 +57,7 @@
       "title": "مهما كان مكانك هانوصل لك",
       "titleEn": "Wherever you are, we deliver",
       "href": "delivery.html",
-      "image": "assets/img/promos/tile-delivery.jpg",
+      "image": "assets/img/highlights/tile-delivery.jpg",
       "art": "square",
       "alt": "توصيل صادكو: مهما كان مكانك هانوصل لك",
       "altEn": "SADKO delivery: wherever you are, we deliver"
@@ -69,7 +69,7 @@
       "sub": "جديد: بمقبض جانبي", "subEn": "New: side handle",
       "cta": "شوف المنتج", "ctaEn": "See the product",
       "href": "product.html?id=837495061",
-      "image": "assets/img/promos/tile-preee.jpg",
+      "image": "assets/img/highlights/tile-preee.jpg",
       "art": "square",
       "alt": "ثلاجة كريازى سوليتير إليجنت ٣٧٠ لتر، جديد",
       "altEn": "Kiriazi Solitaire Elegant 370L refrigerator, new"

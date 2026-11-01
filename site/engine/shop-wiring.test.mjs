@@ -183,17 +183,17 @@ test('the ad timer is module-scoped and cleared before a new one is started', ()
 
 // Renaming the renderer's classes without renaming the wiring's selectors leaves a
 // carousel that renders perfectly and never moves — which is exactly what happened
-// when adStrap became adHero. Pin the two halves against each other.
+// when heroStrap became adHero. Pin the two halves against each other.
 test('the carousel wiring queries the classes the renderer actually emits', () => {
   const uiSrc = readFileSync(new URL('../assets/js/storefront.js', import.meta.url), 'utf8');
   const wire = functionBody(src, 'wireAdStrap');
-  for (const cls of ['adhero__slide', 'adhero__dot']) {
+  for (const cls of ['shero__slide', 'shero__dot']) {
     assert.ok(uiSrc.includes(cls), 'storefront.js no longer emits .' + cls);
     assert.ok(wire.includes('.' + cls), 'wireAdStrap does not query .' + cls);
   }
   // the id is the handle between them
-  assert.ok(uiSrc.includes('id="adStrap"'), 'the hero no longer carries id="adStrap"');
-  assert.ok(wire.includes("'#adStrap'"), 'wireAdStrap no longer looks up #adStrap');
+  assert.ok(uiSrc.includes('id="heroStrap"'), 'the hero no longer carries id="heroStrap"');
+  assert.ok(wire.includes("'#heroStrap'"), 'wireAdStrap no longer looks up #heroStrap');
 });
 
 test('the strap advances on a 5 second dwell', () => {

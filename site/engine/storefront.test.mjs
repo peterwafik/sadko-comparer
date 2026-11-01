@@ -55,11 +55,11 @@ test('the banner arrows are pinned the same way as the rail arrows', () => {
   // The ad hero is a second carousel with its own controls; it kept the old
   // direction-sensitive treatment (inset-inline + an LTR scaleX flip) after the
   // rails were converted, which put `›` on the left of every banner.
-  assert.match(CSS, /\.adhero__nav--prev \{ left:/, 'the previous-banner arrow is not pinned with `left`');
-  assert.match(CSS, /\.adhero__nav--next \{ right:/, 'the next-banner arrow is not pinned with `right`');
-  assert.ok(!/\.adhero__nav--(prev|next) \{ inset-inline/.test(CSS),
+  assert.match(CSS, /\.shero__nav--prev \{ left:/, 'the previous-banner arrow is not pinned with `left`');
+  assert.match(CSS, /\.shero__nav--next \{ right:/, 'the next-banner arrow is not pinned with `right`');
+  assert.ok(!/\.shero__nav--(prev|next) \{ inset-inline/.test(CSS),
     'a banner arrow is pinned with a logical property — it will swap sides in Arabic');
-  assert.ok(!/html\[dir="?ltr"?\] \.adhero__nav i/.test(CSS),
+  assert.ok(!/html\[dir="?ltr"?\] \.shero__nav i/.test(CSS),
     'the banner glyphs are still mirrored in LTR — that swaps the two arrows');
 });
 
@@ -67,7 +67,7 @@ test('neither carousel lets the bidi algorithm mirror its arrow glyphs', () => {
   // U+2039/U+203A are Bidi_Mirrored: inside an RTL paragraph the engine draws `‹`
   // as `›` by itself, so pinning the buttons physically is not enough — the glyph
   // has to sit in its own LTR run or Arabic shows both arrows pointing inward.
-  for (const sel of ['.rail__nav i', '.adhero__nav i']) {
+  for (const sel of ['.rail__nav i', '.shero__nav i']) {
     const rule = CSS.slice(CSS.indexOf(sel + ' {'), CSS.indexOf(sel + ' {') + 160);
     assert.match(rule, /direction: ltr/, sel + ' does not force an LTR run');
     assert.match(rule, /unicode-bidi: isolate/, sel + ' does not isolate its bidi run');
@@ -919,7 +919,7 @@ test('every generated category page keeps the load-bearing stylesheet order', ()
    ================================================================== */
 
 test('advert artwork FILLS its frame rather than cropping to it', () => {
-  for (const sel of ['.adhero__slide img', '.adslot__ad img']) {
+  for (const sel of ['.shero__slide img', '.sband__ad img']) {
     /* Sliced by indexOf rather than a built regex — the same idiom the arrow
        tests above use, and it needs no selector escaping. */
     const at = CSS.indexOf(sel + ' {');
@@ -934,9 +934,9 @@ test('an advert frame still pins an aspect ratio, so a row stays even', () => {
   /* Without it, three uploads of different shapes would make a ragged row —
      which is why the ratio is fixed per layout and the IMAGE stretches to it
      rather than the frame growing to the image. */
-  assert.match(CSS, /\.adslot--grid \.adslot__ad \{ aspect-ratio: 1 \/ 1; \}/);
-  assert.match(CSS, /\.adslot--solo \.adslot__ad \{ aspect-ratio: 1600 \/ 608; \}/);
-  assert.match(CSS, /\.adhero \{[^}]*aspect-ratio: 1600 \/ 608/);
+  assert.match(CSS, /\.sband--grid \.sband__ad \{ aspect-ratio: 1 \/ 1; \}/);
+  assert.match(CSS, /\.sband--solo \.sband__ad \{ aspect-ratio: 1600 \/ 608; \}/);
+  assert.match(CSS, /\.shero \{[^}]*aspect-ratio: 1600 \/ 608/);
 });
 
 test('the recommended upload ratios are written where the rule is', () => {

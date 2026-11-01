@@ -4650,7 +4650,12 @@ export async function handle(req, res) {
      because a derived banner carries no English at all. That is what makes a
      staged rollout possible: take over the squares, leave hero and wide alone,
      come back for them later. */
-  if (u.pathname === '/data/promos.json' && (req.method === 'GET' || req.method === 'HEAD')) {
+  /* /data/highlights.json is the same feed under a name ad-blocker filter
+     lists do not match: blockers hide or block "promos"/"adslot"-style names,
+     and shoppers running one lost every banner on the shop page. The shop
+     reads highlights.json; promos.json keeps working for anything else. */
+  const promoFeed = u.pathname === '/data/promos.json' || u.pathname === '/data/highlights.json';
+  if (promoFeed && (req.method === 'GET' || req.method === 'HEAD')) {
     /* Pick up an advert the owner changed moments ago, rather than making
        them wait for the next poll. */
     await ecwidFresh();
@@ -4669,6 +4674,16 @@ export async function handle(req, res) {
         return res.end(JSON.stringify(payload));
       }
 
+    }
+    /* No Ecwid adverts: the bundled file. promos.json falls through to the
+       ordinary static route below; the alias has no file of its own. */
+    if (u.pathname === '/data/highlights.json') {
+      try {
+        const txt = await readFile(path.join(ROOT, 'data', 'promos.json'), 'utf8');
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        setCatalogCache(res);
+        return res.end(req.method === 'HEAD' ? undefined : txt);
+      } catch (e) { /* fall through to 404 */ }
     }
   }
 

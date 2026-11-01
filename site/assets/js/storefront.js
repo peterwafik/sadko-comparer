@@ -474,22 +474,22 @@
     if (!items.length) return '';
     var en = isEN();
     var many = items.length > 1;
-    var dots = many ? '<div class="adhero__dots" role="tablist" aria-label="' +
+    var dots = many ? '<div class="shero__dots" role="tablist" aria-label="' +
       esc(en ? 'Choose a banner' : 'اختر لافتة') + '">' + items.map(function (x, i) {
-        return '<button type="button" class="adhero__dot' + (i === 0 ? ' is-on' : '') + '"' +
+        return '<button type="button" class="shero__dot' + (i === 0 ? ' is-on' : '') + '"' +
           ' role="tab" data-go="' + i + '" aria-selected="' + (i === 0 ? 'true' : 'false') + '"' +
           ' aria-label="' + esc((en ? 'Banner ' : 'لافتة ') + (i + 1)) + '"></button>';
       }).join('') + '</div>' : '';
     var arrows = many
-      ? '<button type="button" class="adhero__nav adhero__nav--prev" data-step="-1" aria-label="' +
+      ? '<button type="button" class="shero__nav shero__nav--prev" data-step="-1" aria-label="' +
           esc(en ? 'Previous banner' : 'اللافتة السابقة') + '"><i aria-hidden="true">‹</i></button>' +
-        '<button type="button" class="adhero__nav adhero__nav--next" data-step="1" aria-label="' +
+        '<button type="button" class="shero__nav shero__nav--next" data-step="1" aria-label="' +
           esc(en ? 'Next banner' : 'اللافتة التالية') + '"><i aria-hidden="true">›</i></button>'
       : '';
-    return '<section class="adhero" id="adStrap" aria-roledescription="carousel" aria-label="' +
+    return '<section class="shero" id="heroStrap" aria-roledescription="carousel" aria-label="' +
         esc(en ? 'Offers' : 'عروض') + '">' +
-      '<div class="adhero__slides">' + items.map(function (x, i) {
-        return '<a class="adhero__slide' + (i === 0 ? ' is-on' : '') + '" href="' + esc(x.href || '#') + '"' +
+      '<div class="shero__slides">' + items.map(function (x, i) {
+        return '<a class="shero__slide' + (i === 0 ? ' is-on' : '') + '" href="' + esc(x.href || '#') + '"' +
           ' role="group" aria-roledescription="slide" aria-label="' + esc(adAlt(x)) + '"' +
           (i === 0 ? '' : ' aria-hidden="true" tabindex="-1"') + '>' +
           '<img src="' + esc(x.image) + '" alt="' + esc(adAlt(x)) + '"' +
@@ -510,9 +510,9 @@
     var items = (promos || []).filter(function (x) { return x && x.image; });
     if (!items.length) return '';
     var kind = (layout === 'solo' || layout === 'grid') ? layout : 'duo';
-    var cls = 'adslot adslot--' + kind;
+    var cls = 'sband sband--' + kind;
     return '<div class="' + cls + '">' +
-      items.map(function (x) { return adFigure(x, 'adslot__ad'); }).join('') +
+      items.map(function (x) { return adFigure(x, 'sband__ad'); }).join('') +
     '</div>';
   }
 

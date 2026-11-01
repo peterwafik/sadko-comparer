@@ -640,7 +640,7 @@
     return { items: list.slice((pg - 1) * per, pg * per), page: pg, pages: pages, total: total };
   }
 
-  // Bilingual promo copy (data/promos.json). Extracted out of shop.js so it is
+  // Bilingual promo copy (data/highlights.json). Extracted out of shop.js so it is
   // testable, and made HONEST: in English mode a field is taken ONLY from its *En
   // key. The old `x.titleEn || x.title` silently rendered Arabic to an English
   // shopper for any promo the owner had not fully translated. Now:

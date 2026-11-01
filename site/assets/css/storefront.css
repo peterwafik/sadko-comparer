@@ -53,76 +53,76 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 .shop-sec { scroll-margin-top: 90px; }
 
 /* ---------- 2. advertising ----------
-   Real SADKO campaign artwork (data/promos.json). The message is inside the image,
+   Real SADKO campaign artwork (data/highlights.json). The message is inside the image,
    so these are picture frames, not text panels: no overlay, no scrim, nothing that
    could sit on top of the Arabic type already printed in the artwork.
 
    Contained, never full-bleed. The rest of the shop is capped at the page width,
    and an ad that breaks that line reads as a takeover rather than as part of the
    page — which is exactly the note that sent the previous full-width strap back. */
-.adhero { position: relative; margin: 0 0 var(--sk-section);
+.shero { position: relative; margin: 0 0 var(--sk-section);
   border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
   background: color-mix(in srgb, var(--accent) 7%, #fff);
   aspect-ratio: 1600 / 608; }
-.adhero__slides { position: absolute; inset: 0; }
-.adhero__slide { position: absolute; inset: 0; opacity: 0; visibility: hidden;
+.shero__slides { position: absolute; inset: 0; }
+.shero__slide { position: absolute; inset: 0; opacity: 0; visibility: hidden;
   transition: opacity .5s ease; }
-.adhero__slide.is-on { opacity: 1; visibility: visible; }
+.shero__slide.is-on { opacity: 1; visibility: visible; }
 /* fill, not cover: advert artwork carries its own headline and logo, so
    cropping the edges removes part of the message. The whole image is shown,
    stretched to the frame. Upload hero artwork at 1600x608 (or any 2.63:1) and
    there is no distortion at all. */
-.adhero__slide img { width: 100%; height: 100%; object-fit: fill; display: block; }
-.adhero__nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+.shero__slide img { width: 100%; height: 100%; object-fit: fill; display: block; }
+.shero__nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
   width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
   border: 0; background: color-mix(in srgb, #fff 82%, transparent); color: var(--ink);
   font-size: 1.4rem; line-height: 1; display: grid; place-items: center; transition: background .18s; }
-.adhero__nav:hover { background: #fff; }
+.shero__nav:hover { background: #fff; }
 /* PHYSICAL left/right, not inset-inline: the banner arrows stay put when the page
    flips to LTR, matching the rail arrows. `‹` is always the button on the left and
    `›` always the one on the right, in Arabic and English alike. */
-.adhero__nav--prev { left: 12px; }
-.adhero__nav--next { right: 12px; }
+.shero__nav--prev { left: 12px; }
+.shero__nav--next { right: 12px; }
 /* And the glyphs are never mirrored. Two separate things would mirror them: an
    author transform, and the bidi algorithm — U+2039/U+203A are Bidi_Mirrored, so in
    an RTL paragraph the engine draws `‹` as `›` on its own. Isolating the glyph in an
    LTR run is what keeps the left button pointing left in Arabic. */
-.adhero__nav i { display: block; transform: none; direction: ltr; unicode-bidi: isolate; }
-.adhero__dots { position: absolute; inset-inline: 0; bottom: 12px; z-index: 3;
+.shero__nav i { display: block; transform: none; direction: ltr; unicode-bidi: isolate; }
+.shero__dots { position: absolute; inset-inline: 0; bottom: 12px; z-index: 3;
   display: flex; justify-content: center; gap: var(--sk-gap-xs); }
-.adhero__dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; cursor: pointer;
+.shero__dot { width: 9px; height: 9px; padding: 0; border-radius: 50%; cursor: pointer;
   border: 0; background: color-mix(in srgb, #fff 62%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent);
   transition: background .18s, width .18s; }
-.adhero__dot.is-on { background: var(--amber); width: 22px; border-radius: 999px; }
+.shero__dot.is-on { background: var(--amber); width: 22px; border-radius: 999px; }
 
 /* Interleaved ad blocks, dealt out between the sections so a new one appears every
    screen or so on the way down. 'duo' is a pair, 'solo' one wide banner. */
-.adslot { display: grid; gap: var(--sk-grid-gap); margin: 0 0 var(--sk-section); }
+.sband { display: grid; gap: var(--sk-grid-gap); margin: 0 0 var(--sk-section); }
 /* The paired artwork is SQUARE, so at half of a 1352px container each ad came out
    660px tall and dominated the page more than the products did. Cap the column and
    centre the row: the ads stay a comfortable size and the block reads as an insert
    between sections rather than a takeover. */
-.adslot--duo { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 420px));
+.sband--duo { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 420px));
   justify-content: center; }
-.adslot--solo { grid-template-columns: 1fr; }
+.sband--solo { grid-template-columns: 1fr; }
 /* One full-width row of the square artwork — the same shape btech uses for its
    collection tiles, and the only way four square images read as one deliberate
    block instead of two oversized panels. */
-.adslot--grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
-.adslot__ad { display: block; border-radius: var(--radius); overflow: hidden;
+.sband--grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.sband__ad { display: block; border-radius: var(--radius); overflow: hidden;
   box-shadow: var(--shadow); background: color-mix(in srgb, var(--accent) 7%, #fff);
   transition: transform .18s, box-shadow .18s; }
-.adslot__ad:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-/* fill, not cover — see .adhero__slide img. Square tiles want 1:1 artwork
+.sband__ad:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+/* fill, not cover — see .shero__slide img. Square tiles want 1:1 artwork
    (1000x1000 is plenty); the solo wide tile wants 1600x608. Artwork at those
    ratios fills its frame exactly and is not stretched. */
-.adslot__ad img { display: block; width: 100%; height: 100%; object-fit: fill; }
+.sband__ad img { display: block; width: 100%; height: 100%; object-fit: fill; }
 /* The pair is square artwork; the solo banner is wide. Fixing the ratio per layout
    keeps a row even when the two images have different intrinsic sizes. */
-.adslot--duo .adslot__ad,
-.adslot--grid .adslot__ad { aspect-ratio: 1 / 1; }
-.adslot--solo .adslot__ad { aspect-ratio: 1600 / 608; }
+.sband--duo .sband__ad,
+.sband--grid .sband__ad { aspect-ratio: 1 / 1; }
+.sband--solo .sband__ad { aspect-ratio: 1600 / 608; }
 
 /* ---------- 3. category / brand tiles ---------- */
 .ctiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -483,9 +483,9 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
 @media (max-width: 480px) {
   .rail__track { grid-auto-columns: minmax(160px, 78vw); }
   /* A pair of square ads side by side is unreadable on a phone; stack them. */
-  .adslot--duo { grid-template-columns: 1fr; }
+  .sband--duo { grid-template-columns: 1fr; }
   /* four square ads across is unreadable on a phone; two is the floor. */
-  .adslot--grid { grid-template-columns: repeat(2, 1fr); }
+  .sband--grid { grid-template-columns: repeat(2, 1fr); }
   .ctiles { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 

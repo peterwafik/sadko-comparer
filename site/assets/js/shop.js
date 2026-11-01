@@ -1107,8 +1107,14 @@
     // top of every category page empty. It is a small file, it is requested once
     // per load, and a failure still resolves to null — which renders no banner
     // rather than breaking the page.
-    var promos = fetch(P('data/promos.json'))
-      .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    // One retry after a short pause: a single failed request (a 429, a cold
+    // instance timing out) used to leave the whole shop without adverts.
+    var getPromos = function () {
+      return fetch(P('data/promos.json')).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    };
+    var promos = getPromos().catch(function () {
+      return new Promise(function (ok) { setTimeout(ok, 1200); }).then(getPromos);
+    }).catch(function () { return null; });
     // Which brands actually have a logo file. Asking for every brand's logo and
     // letting the missing ones 404 into the wordmark fallback worked, but cost one
     // failed request per brand on every load — 12 of them with nothing shipped yet.

@@ -2900,7 +2900,14 @@ export async function handle(req, res) {
     });
   }
 
-  if (rateLimited(clientIp(req))) {
+  /* The public read-only feeds (/data/products.json, promos, categories,
+     scenes ...) are not counted. They are cached by the CDN, every page load
+     asks for several of them, and a 429 on one made the shop silently drop
+     its adverts: a shopper (or anyone behind the same office or mobile
+     carrier IP) browsing a few pages quickly lost the ads, the rails or the
+     catalogue for a minute. Writes, logins and the admin keep their limits. */
+  const publicFeed = (req.method === 'GET' || req.method === 'HEAD') && /^\/data\/[a-z]+\.json$/.test(u.pathname);
+  if (!publicFeed && rateLimited(clientIp(req))) {
     res.statusCode = 429;
     res.setHeader('retry-after', '60');
     return json(429, { error: 'rate-limited', message: 'طلبات كثيرة جداً. انتظر دقيقة. / Too many requests. Please wait a minute.' });

@@ -110,7 +110,7 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 <script src="../assets/js/prefs.js?v=a8" defer></script>
 <script src="../assets/js/shop-core.js?v=s4" defer></script>
 <script src="../assets/js/storefront.js?v=s9" defer></script>
-<script src="../assets/js/shop.js?v=s9" defer></script>
+<script src="../assets/js/shop.js?v=s10" defer></script>
 </body>
 </html>
 `;

@@ -84,6 +84,9 @@ window.addEventListener('DOMContentLoaded', () => {
       // pass over still_1v6, registered back onto it (0 px residual in every
       // tile) and LUT-matched to its colour, at 3840x2160. Phone keeps the plain
       // v6 still and m_conn1v6 (the owner preferred it to the sharpened v7).
+      // leg_1v8 / leg_2v8: the graded v6 clips through Topaz Video 4K (faithful:
+      // same drawings, crisper; 204/193 frames kept), delivered at 2560x1440,
+      // lite at 1920x1080 (was 1280x720), -m 1280x720, -m-lite 854x480.
       still: 'assets/img/still_1v8.jpg',
       // Keep the 4K still ON TOP of the clip while the clip shows its frame:
       // leg_1v7 frames 0-13 (0-0.54s) are the held showcase frame (rmse ~2 vs
@@ -92,7 +95,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // lite) video frame instead of the 4K image.
       stillHold: 0.52,
       stillMobile: 'assets/img/m_living_v6.jpg',   // 9:21 portrait scene for phones
-      clip: 'assets/vid/leg_1v7.mp4', clipMobile: 'assets/vid/leg_1v7-m.mp4',
+      clip: 'assets/vid/leg_1v8.mp4', clipMobile: 'assets/vid/leg_1v8-m.mp4',
       accent: '#75A693',
       scroll: 1.9, linger: 0.5,
       copyY: 0.46,      // mid-height: clears the top-right AC and the bottom heaters
@@ -116,12 +119,12 @@ window.addEventListener('DOMContentLoaded', () => {
         // read correctly on its own, without depending on showcase mode being on —
         // so a reload, a language switch or a Back all still show the full room.
         { fx: 0.508, fy: 0.493, at: 0.03, span: 0.30, mfx: 0.562, mfy: 0.495, label: 'تليفزيونات', href: TVS },
-        { fx: 0.605, fy: 0.618, at: 0.03, span: 0.30, mfx: 0.707, mfy: 0.546, label: 'أنظمة صوت وترفيه', href: TVS },
-        { fx: 0.887, fy: 0.174, at: 0.03, span: 0.30, mfx: 0.924, mfy: 0.354, label: 'تكييفات هواء', href: AC },
-        { fx: 0.645, fy: 0.667, at: 0.03, span: 0.32, sfx: 0.645, sfy: 0.667, mfx: 0.754, mfy: 0.566, label: 'مراوح ومبردات هواء', href: CLIMATE },
+        { fx: 0.605, fy: 0.618, at: 0.03, span: 0.30, mfx: 0.706, mfy: 0.543, label: 'أنظمة صوت وترفيه', href: TVS },
+        { fx: 0.887, fy: 0.174, at: 0.03, span: 0.30, mfx: 0.900, mfy: 0.354, label: 'تكييفات هواء', href: AC },
+        { fx: 0.645, fy: 0.667, at: 0.03, span: 0.32, sfx: 0.645, sfy: 0.667, mfx: 0.758, mfy: 0.585, label: 'مراوح ومبردات هواء', href: CLIMATE },
         { fx: 0.789, fy: 0.861, at: 0.03, span: 0.32, sfx: 0.789, sfy: 0.861, mfx: 0.762, mfy: 0.702, label: 'دفايات', href: CLIMATE },
-        { fx: 0.040, fy: 0.680, at: 0.03, span: 0.32, sfx: 0.040, sfy: 0.680, mfx: 0.067, mfy: 0.609, label: 'تنقية وترطيب الهواء', href: CLIMATE },
-        { fx: 0.367, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.367, sfy: 0.597, mfx: 0.367, mfy: 0.520, label: 'مبردات مياه', href: WATER_DISP },
+        { fx: 0.040, fy: 0.680, at: 0.03, span: 0.32, sfx: 0.040, sfy: 0.680, mfx: 0.095, mfy: 0.620, label: 'تنقية وترطيب الهواء', href: CLIMATE },
+        { fx: 0.367, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.367, sfy: 0.597, mfx: 0.366, mfy: 0.540, label: 'مبردات مياه', href: WATER_DISP },
       ],
     },
     {
@@ -131,7 +134,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // leg_2v5 = a walk from the dining table through the kitchen doorway (frames
       // 0-101, crossfaded) + leg_2.mp4 from frame 96 on, unchanged. Same 193
       // frames, so this room's showcase frame, still and markers are untouched.
-      clip: 'assets/vid/leg_2v7.mp4', clipMobile: 'assets/vid/leg_2v7-m.mp4',
+      clip: 'assets/vid/leg_2v8.mp4', clipMobile: 'assets/vid/leg_2v8-m.mp4',
       accent: '#c97b12',
       scroll: 2.1, linger: 0.5,
       copyY: 0.24,      // top: every marker (fridges right, counter left) sits lower-half

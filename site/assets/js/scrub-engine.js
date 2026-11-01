@@ -85,7 +85,7 @@ function mountScrollWorld(container, config) {
   // ---- build the interleaved segment chain: dive0, conn0, dive1, … diveN-1 ----
   const SEGMENTS = [];
   SECTIONS.forEach((s, i) => {
-    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, stillM: s.stillMobile, accent: s.accent,
+    const dive = { kind: 'dive', si: i, clip: s.clip, clipM: s.clipMobile, still: s.still, stillM: s.stillMobile, stillHold: s.stillHold || 0, accent: s.accent,
                    w: s.scroll || DIVE_W, linger: s.linger || 0,
                    // `clipEnd` plays only the FIRST part of a leg: the section's whole
                    // scroll maps onto clip time 0..clipEnd instead of 0..1. Used to stop
@@ -856,11 +856,33 @@ function mountScrollWorld(container, config) {
     ticking = false;
   }
 
+  /* `stillHold` (seconds): the clip's opening stretch that IS the still's frame
+     (a held frame). While the clip sits inside it, the still is shown ON TOP of
+     the video instead of hidden under it, so a resting room is the full-quality
+     image (it can be 4K) rather than a frame of a 1080p, or on a first visit
+     720p "lite", clip. It fades out over the next ~0.06s, just before the camera
+     starts to move, so the hand-off is invisible. Both timings are checked: the
+     still stays only while the frame on screen AND the frame being scrolled to
+     are inside the hold. The still is drawn at scale(1) like the video, so the
+     layout (and every marker) is identical either way. */
+  function holdStill(s) {
+    const portrait = portraitMQ.matches && s.stillM;
+    if (portrait || !s.img || !s.img.complete || !s.img.naturalWidth) { if (s.held) { s.img.style.opacity = ''; s.img.style.zIndex = ''; s.held = false; } return; }
+    const dur = s.video.duration || 1;
+    const t = Math.max(s.video.currentTime || 0, clamp(s.cur, 0, 1) * dur, clamp(s.target, 0, 1) * dur);
+    const op = 1 - smooth(clamp((t - s.stillHold) / 0.06, 0, 1));
+    s.img.style.transform = 'none';
+    s.img.style.zIndex = '2';
+    s.img.style.opacity = op.toFixed(3);
+    s.held = true;
+  }
+
   function raf() {
     const eps = isMobile() ? 0.02 : 0.008;   // coarser seek step on phones = fewer decodes
     for (let i = 0; i < NSEG; i++) {
       const s = SEGMENTS[i];
       if (s.dead || !s.hasClip || !s.ready || !s.video) continue;
+      if (s.stillHold) holdStill(s);
       // Never queue a seek while the decoder is still resolving the last one.
       // On phones a fast flick would otherwise pile up seeks and freeze the clip;
       // cur keeps lerping, so we snap to the latest target the moment it's free.

@@ -1,9 +1,9 @@
 /* SADKO rebrand — category page styles (RTL, Cairo) */
 * { box-sizing: border-box; }
 :root {
-  --teal: #75A693; --teal-deep: #75A693; --ink: #14343a;
+  --teal: #68D1D4; --teal-deep: #68D1D4; --ink: #14343a;
   --amber: #fe9800; --bg: #f7f5f1; --card: #fff;
-  --accent: var(--teal-deep); --accent-ink: #4A7666; --on-accent: #fff;
+  --accent: var(--teal-deep); --accent-ink: #2A7779; --on-accent: #14343a;
 
   /* One spacing scale for the whole storefront. Gaps and paddings were previously
      picked ad hoc per component (8/9/10/14/16/18/24px), which is why the rhythm
@@ -52,7 +52,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
   background: color-mix(in srgb, var(--accent) 10%, #fff);
   border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent);
   padding: 8px 18px; border-radius: 999px; transition: .2s; }
-.chip:hover { background: var(--accent); color:#fff; }
+.chip:hover { background: var(--accent); color:#14343a; }
 
 /* ---------- grid ---------- */
 .wrap { padding: clamp(18px, 3vw, 36px) clamp(16px, 4vw, 48px) 72px; max-width: 1440px; margin: 0 auto; }
@@ -155,7 +155,7 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
 .empty .card__buy { display: inline-block; margin-top: 12px; }
 
 /* ---------- footer ---------- */
-.foot { background: #75A693; color: #14343a; }
+.foot { background: #68D1D4; color: #14343a; }
 .foot__inner { max-width: 1440px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 48px); text-align: center; }
 .foot__logo { height: 56px; margin-bottom: 14px; }
 .foot p { margin: 6px 0; font-size: .92rem; }
@@ -207,5 +207,5 @@ html, body { margin: 0; background: var(--bg); color: var(--ink);
 }
 
 /* The product's Ecwid ribbon, set from the admin portal (storefront.js card()). */
-.card__badge { position: absolute; top: 10px; inset-inline-start: 10px; z-index: 1; background: var(--teal-deep, #75A693); color: #fff;
+.card__badge { position: absolute; top: 10px; inset-inline-start: 10px; z-index: 1; background: var(--teal-deep, #68D1D4); color:#14343a;
   font: 800 .74rem/1.5 Cairo, sans-serif; padding: 1px 9px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.15); }

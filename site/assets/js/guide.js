@@ -400,9 +400,9 @@ function injectGuideCSS() {
     transition:background .22s,color .22s,transform .18s,box-shadow .22s;}
   .gd-dock__btn em{font-style:normal;direction:ltr;display:grid;place-items:center;width:20px;height:20px;flex:0 0 auto;
     font-size:.72rem;font-weight:800;border-radius:50%;background:rgba(20,52,58,.1);color:#14343a;}
-  .gd-dock__btn:hover,.gd-dock__btn:focus-visible{background:rgba(117,166,147,.13);transform:translateY(-1px);}
-  .gd-dock__btn.is-active{background:var(--sw-accent,#75A693);color:#fff;
-    box-shadow:0 4px 14px color-mix(in srgb,var(--sw-accent,#75A693) 45%,transparent);}
+  .gd-dock__btn:hover,.gd-dock__btn:focus-visible{background:rgba(104,209,212,.13);transform:translateY(-1px);}
+  .gd-dock__btn.is-active{background:var(--sw-accent,#68D1D4);color:var(--sw-on-accent,#14343a);
+    box-shadow:0 4px 14px color-mix(in srgb,var(--sw-accent,#68D1D4) 45%,transparent);}
   .gd-dock__btn.is-active em{background:rgba(255,255,255,.5);color:#14343a;}
   .gd-dock.is-showcase .gd-dock__btn.is-active{background:var(--sadko-amber,#fe9800);color:#241a05;}
   .gd-dock.is-showcase .gd-dock__btn.is-active em{background:rgba(255,255,255,.55);color:#241a05;}
@@ -429,7 +429,7 @@ function injectGuideCSS() {
     font:800 1.15rem/1 var(--sw-font-display,inherit);
     box-shadow:0 12px 34px rgba(18,42,47,.18), inset 0 1px 0 rgba(255,255,255,.6);
     transition:transform .18s,background .22s,color .22s;}
-  .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#75A693);color:#fff;}
+  .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#68D1D4);color:var(--sw-on-accent,#14343a);}
 
   /* ---- make room for the dock in the existing chrome ---- */
   .sw-hint{bottom:calc(var(--gd-lift) + 68px + env(safe-area-inset-bottom));}
@@ -476,8 +476,8 @@ function injectGuideCSS() {
     background:#fff;color:var(--sw-ink,#14343a);border-radius:18px;padding:18px 20px 16px;
     box-shadow:0 24px 60px rgba(7,22,26,.45);font-family:var(--sw-font-display,inherit);
     transition:left .45s cubic-bezier(.22,.8,.24,1),top .45s cubic-bezier(.22,.8,.24,1);}
-  .gd-tour__step{display:inline-block;direction:ltr;font:800 .72rem/1 ui-monospace,Menlo,monospace;color:#fff;
-    background:var(--sw-accent,#75A693);border-radius:999px;padding:5px 10px;}
+  .gd-tour__step{display:inline-block;direction:ltr;font:800 .72rem/1 ui-monospace,Menlo,monospace;color:#14343a;
+    background:var(--sw-accent,#68D1D4);border-radius:999px;padding:5px 10px;}
   .gd-tour__card h3{margin:10px 0 6px;font-size:1.15rem;font-weight:800;line-height:1.35;}
   .gd-tour__card p{margin:0;font-size:.9rem;line-height:1.7;color:#3f5457;}
   /* nowrap on the controls, wrap on the row: the last step's button reads

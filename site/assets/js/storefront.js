@@ -43,10 +43,15 @@
     return typeof window !== 'undefined' && !!(window.skLang && window.skLang.get() === 'en');
   }
 
+  /* One formatter per language, reused: toLocaleString() builds a new
+     Intl.NumberFormat on every call, and the shop prices hundreds of cards. */
+  var FMT = {};
   function money(n) {
     var v = Number(n);
     if (!isFinite(v)) return '';
-    return isEN() ? v.toLocaleString('en-EG') : v.toLocaleString('ar-EG');
+    var loc = isEN() ? 'en-EG' : 'ar-EG';
+    if (!FMT[loc]) { try { FMT[loc] = new Intl.NumberFormat(loc); } catch (e) { return v.toLocaleString(loc); } }
+    return FMT[loc].format(v);
   }
 
   // MUST keep every class nav.js/prefs.js query.
@@ -239,6 +244,15 @@
   function wireRails(rootEl) {
     if (typeof document === 'undefined') return;
     var scope = rootEl && rootEl.querySelectorAll ? rootEl : document;
+    /* First measurement of every rail, batched: all reads, then all writes, in
+       one frame. Measuring each rail right after the previous one toggled its
+       classes forced a full page layout per rail (profiled: ~1 s of the shop's
+       load on a throttled phone). */
+    var railBatch = [];
+    requestAnimationFrame(function () {
+      var vals = railBatch.map(function (r) { return r.read(); });
+      railBatch.forEach(function (r, i) { r.write(vals[i]); });
+    });
     [].slice.call(scope.querySelectorAll('.rail__slider')).forEach(function (slider) {
       if (slider.__skRail) return;      // afterGrid re-runs on every render
       slider.__skRail = true;
@@ -282,15 +296,17 @@
         return c ? c.getBoundingClientRect().width + gap : Math.round(track.clientWidth * 0.8);
       };
 
-      function sync() {
-        var m = max();
+      // Read and write split, so the first pass over ALL rails can read every
+      // rail's layout before any of them writes (see railBatch below).
+      function read() { return { m: max(), p: pos() }; }
+      function write(v) {
         // Nothing to scroll (a short rail): hide the arrows rather than show two
         // dead controls.
-        slider.classList.toggle('rail__slider--static', m < 4);
-        var p = pos();
-        slider.querySelector('.rail__nav--l').disabled = p <= 1;
-        slider.querySelector('.rail__nav--r').disabled = p >= m - 1;
+        slider.classList.toggle('rail__slider--static', v.m < 4);
+        slider.querySelector('.rail__nav--l').disabled = v.p <= 1;
+        slider.querySelector('.rail__nav--r').disabled = v.p >= v.m - 1;
       }
+      function sync() { write(read()); }
 
       slider.addEventListener('click', function (ev) {
         var b = ev.target.closest('[data-rail]');
@@ -299,7 +315,7 @@
       });
       track.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync);
-      sync();
+      railBatch.push({ read: read, write: write });
       // Cards arrive from an async catalogue fetch, so the first measurement can
       // predate them; re-measure once they have landed.
       setTimeout(sync, 400);

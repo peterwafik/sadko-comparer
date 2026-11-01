@@ -78,14 +78,21 @@
      never matched the list's "كريازى", so Kiriazi showed as an unknown brand
      with no logo. Both sides are folded before comparing. */
   const foldAr = s => String(s).replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[أإآ]/g, 'ا');
+  /* Compiled once. brandOf used to build every keyword's RegExp on every call,
+     i.e. ~40 patterns for each of the ~990 products the shop derives on load
+     (profiled at ~0.3 s of a throttled phone's load). Same patterns, same
+     order, so the same brand wins. */
+  const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let BRAND_RES = null;
+  const brandRes = () => BRAND_RES || (BRAND_RES = BRANDS.map(([en, ar, keys]) => ({
+    en, ar,
+    res: keys.map(k => (/[a-z]/i.test(k) ? new RegExp('(^|[^a-z])' + escRe(k) + '([^a-z]|$)', 'i')
+                                          : new RegExp(escRe(foldAr(k))))),
+  })));
   function brandOf(hay) {
     const H = foldAr(hay);
-    for (const [en, ar, keys] of BRANDS) {
-      for (const k of keys) {
-        const re = /[a-z]/i.test(k) ? new RegExp('(^|[^a-z])' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)', 'i')
-                                    : new RegExp(foldAr(k).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        if (re.test(H)) return { en, ar };
-      }
+    for (const b of brandRes()) {
+      for (const re of b.res) if (re.test(H)) return { en: b.en, ar: b.ar };
     }
     return undefined;
   }

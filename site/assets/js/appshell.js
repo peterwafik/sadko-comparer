@@ -80,10 +80,20 @@
     return null;
   }
   let ecwidCatsLoaded = null;
+  /* ONE request for data/categories.json per page, shared: shop.js and the
+     nav search used to fetch it again each. Resolves to the raw list. */
+  let _cats = null;
+  function categories() {
+    if (!_cats) _cats = fetch(P('data/categories.json'))
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && d.categories) || [])
+      .catch(() => { _cats = null; return []; });
+    return _cats;
+  }
   function loadEcwidCats() {
     if (ecwidCatsLoaded) return ecwidCatsLoaded;
-    ecwidCatsLoaded = fetch(P('data/categories.json'))
-      .then(r => (r.ok ? r.json() : null))
+    ecwidCatsLoaded = categories()
+      .then(list => ({ categories: list }))
       .then(d => {
         for (const c of (d && d.categories) || []) {
           if (!c || !c.id || !c.name) continue;
@@ -174,6 +184,6 @@
       (ctaLabel ? '<a class="btn btn--teal" href="' + ctaHref + '">' + esc(ctaLabel) + '</a>' : '') + '</div>';
   }
 
-  window.skApp = { EN, t, esc, P, qs, money, num, date, products, byId, inCategory,
+  window.skApp = { EN, t, esc, P, qs, money, num, date, products, categories, byId, inCategory,
                    CATS, catName, catHref, liveCats, footer, empty };
 })();

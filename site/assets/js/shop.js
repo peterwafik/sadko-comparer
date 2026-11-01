@@ -438,7 +438,7 @@
     // Category tiles: every live category, or the admin's picked list in its
     // order. The tile picture is the Ecwid category image (data/categories.json).
     var catImage = {};
-    ((CACHE && CACHE.cats) || []).forEach(function (c) { if (c && c.image) catImage[String(c.id)] = c.image; });
+    ((CACHE && CACHE.cats) || []).forEach(function (c) { if (c && c.image) catImage[String(c.id)] = c.thumb || c.image; });
     var cats = C.liveCategories(products).map(function (c) {
       return { id: c.id, count: c.count, name: catNameOf(root, c.id), href: P('shop.html?cat=') + c.id, image: catImage[String(c.id)] || '' };
     });
@@ -1144,10 +1144,12 @@
     // 217 fridges sat one level down. parentId comes from this file; the
     // subtree is expanded by C.catFamily(). A failure resolves to [], which
     // returns the plain id comparison the filter used before.
-    var cats = fetch(P('data/categories.json'))
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { return (d && d.categories) || []; })
-      .catch(function () { return []; });
+    // The page-wide copy appshell.js already requested (one fetch, not two).
+    var cats = (window.skApp && window.skApp.categories) ? window.skApp.categories()
+      : fetch(P('data/categories.json'))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { return (d && d.categories) || []; })
+        .catch(function () { return []; });
     // The admin portal's Shop page layout. Hub-only like the rails; a failure
     // resolves to null, which renders the page exactly as it was before.
     var shopLayout = fixedPage ? Promise.resolve(null)

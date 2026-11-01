@@ -100,7 +100,7 @@
     var title = en ? translateForEN(clean(p.title)) : clean(p.title);
     var teaser = clean(p.description).slice(0, 120);
     var img = p.image
-      ? '<img loading="lazy" decoding="async" src="' + esc(p.image) + '" alt="' + esc(title) + '">'
+      ? '<img loading="lazy" decoding="async" src="' + esc(p.thumb || p.image) + '" alt="' + esc(title) + '">'   /* ~800 px rendition when Ecwid gave one; a card is ~360 px */
       : '<span class="card__noimg" aria-hidden="true"></span>';
     // The arrow said "this leaves the site", which it no longer does.
     var buyLabel = opts.buyLabel || (en ? 'View product' : 'اعرض المنتج');
@@ -157,7 +157,7 @@
     // The picture is the category's Ecwid image, set from the admin portal's
     // Shop page screen. No image, no request: the tile stays text-only.
     return '<a class="ctile' + (c.image ? ' ctile--img' : '') + '" href="' + esc(c.href) + '">' +
-      (c.image ? '<img class="ctile__img" src="' + esc(c.image) + '" alt="" loading="lazy" decoding="async">' : '') +
+      (c.image ? '<img class="ctile__img" src="' + esc(c.thumb || c.image) + '" alt="" loading="lazy" decoding="async">' : '') +
       '<span class="ctile__name">' + esc(c.name) + '</span>' +
       '<span class="ctile__count">' + esc(String(c.count)) + '</span></a>';
   }

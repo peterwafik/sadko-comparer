@@ -82,7 +82,7 @@ function mountPosters(container, api, si, config) {
       if (!pool.length) pool = all;
       // cheapest-first reads as "offers"
       pool = pool.slice().sort((a, b) => (a.price || 9e9) - (b.price || 9e9)).slice(0, 12);
-      return pool.map(p => ({ image: p.image, title: psTitle(p.title), price: p.price, href: feed.href, badge: feed.badge }));
+      return pool.map(p => ({ image: p.thumb || p.image, title: psTitle(p.title), price: p.price, href: feed.href, badge: feed.badge }));
     });
     // Round-robin across the feeds so consecutive deals differ in collection.
     const merged = [];

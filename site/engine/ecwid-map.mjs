@@ -181,6 +181,11 @@ export function toSadkoProduct(e) {
     url: e.url || '',
     title,
     image: images[0] || '',
+    /* Ecwid's ~800 px rendition of the main image, for cards and lists. The
+       full image is ~1500 px and 90-190 KB; a shop card draws it at ~360 px,
+       so the list pages downloaded 1.3 MB of pixels nobody saw. Empty when
+       Ecwid gave none, and the client falls back to `image`. */
+    thumb: e.hdThumbnailUrl || e.thumbnailUrl || '',
     images,
     price,
     description: stripHtml(e.description),
@@ -255,6 +260,8 @@ export function toSadkoCategory(e) {
     order: num(e.orderBy) ?? 0,
     enabled: e.enabled !== false,
     image: e.imageUrl || e.originalImageUrl || e.thumbnailUrl || '',
+    /* smaller rendition for the shop's category tiles (see products' thumb) */
+    thumb: e.hdThumbnailUrl || e.thumbnailUrl || '',
     productCount: num(e.productCount) ?? 0,
     url: e.url || '',
     description: stripHtml(e.description),

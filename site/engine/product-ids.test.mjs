@@ -85,6 +85,7 @@ const payPanelBody = functionBody(src, 'payPanel');
 const stockLineBody = functionBody(src, 'stockLine');
 const wireBody = functionBody(src, 'wire');
 const specsBody = functionBody(src, 'specsPanel');
+const descBody = functionBody(src, 'descLines');
 
 test('NOTHING on the product page links out to the Ecwid storefront any more', () => {
   /* p.url is the Ecwid product URL. The page may still carry it in the cart
@@ -168,14 +169,15 @@ test('a remaining count is printed ONLY when Ecwid is tracking the quantity', ()
   assert.ok(/tracked &&/.test(stockLineBody), 'the count is no longer gated on tracking');
 });
 
-test('the SKU reaches the spec table', () => {
-  assert.match(specsBody, /skuLine\(p\)/);
+test('the SKU reaches the specifications list', () => {
+  assert.match(specsBody, /String\(p\.sku \|\| ''\)\.trim\(\)/);
+  assert.match(specsBody, /Product code/);
 });
 
 test('a weight is shown only when one was actually entered', () => {
   /* 0 is Ecwid "unset" and the mapper already nulls it; a weight decides a
      real delivery charge, so it must never be implied. */
-  assert.match(specsBody, /p\.weight \?/);
+  assert.match(specsBody, /if \(p\.weight\)/);
 });
 
 /* ------------------------ instalments and payment ----------------------- */
@@ -224,15 +226,23 @@ test('an empty methods list renders nothing rather than an empty panel', () => {
 /* ---------------------------- the description --------------------------- */
 
 test('the rich description is rendered when the detail endpoint supplied one', () => {
-  assert.match(specsBody, /p\.descriptionHtml/);
+  assert.match(specsBody, /descLines\(p\)/);
+  assert.match(descBody, /p\.descriptionHtml/);
+});
+
+test('description markup is parsed inert and re-escaped, never written as HTML', () => {
+  assert.match(descBody, /createElement\('template'\)/);
+  assert.ok(!/descriptionHtml\s*\+/.test(specsBody + descBody), 'descriptionHtml is concatenated into markup again');
+  assert.match(specsBody, /esc\(x\.v\)/);
 });
 
 test('the plain description is still the fallback, so the flag being off is safe', () => {
-  assert.match(specsBody, /S\.norm\(p\.description\)/);
+  assert.match(descBody, /S\.norm\(p\.description\)/);
 });
 
-test('the description is no longer folded shut', () => {
-  assert.match(specsBody, /<details class="mt16" open>/);
+test('specifications and the SADKO description are one bulleted list, not two sections', () => {
+  assert.match(specsBody, /class="spec-list"/);
+  assert.ok(!/<details|الوصف الأصلى من صادكو/.test(specsBody), 'the separate description box is back');
 });
 
 /* -------------------------- the loads fail soft ------------------------- */

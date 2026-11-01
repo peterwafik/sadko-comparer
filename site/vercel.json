@@ -43,11 +43,35 @@
   ],
   "headers": [
     {
+      "source": "/assets/img/(.*)",
+      "headers": [
+        {
+          "key": "cache-control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
       "source": "/assets/vid/(.*)",
       "headers": [
         {
           "key": "cache-control",
           "value": "public, max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(css|js)/(.*)",
+      "has": [
+        {
+          "type": "query",
+          "key": "v"
+        }
+      ],
+      "headers": [
+        {
+          "key": "cache-control",
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     }

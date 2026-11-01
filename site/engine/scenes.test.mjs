@@ -90,3 +90,55 @@ test('the scene editor shows the exact frame the home page settles on', () => {
   const ease = (x, L) => { const c = x - 0.5; return (1 - L) * x + L * (4 * c * c * c + 0.5); };
   assert.equal(Math.round(ease(0.03, 0.5) * 8.04 * 100) / 100, 0.46);
 });
+
+/* Marker positions belong to a picture. The live database held a saved copy
+   whose living-room PHONE positions were placed on an older picture, and it
+   put them back on top of every deploy. */
+const LIVE_STALE = JSON.parse(JSON.stringify(DATA));
+{
+  const l = LIVE_STALE.scenes.find(s => s.id === 'living');
+  const old = [[0.51, 0.49], [0.617, 0.531], [0.869, 0.388], [0.687, 0.555], [0.614, 0.672], [0.163, 0.564], [0.343, 0.531]];
+  l.hotspots.forEach((h, i) => { h.mfx = old[i][0]; h.mfy = old[i][1]; h.fx = 0.4; });   // unstamped
+  l.title = { ar: 'أهلاً بك فى بيت صادكو', en: 'Welcome to SADKO home' };
+}
+
+test('unstamped saved phone positions fall back to the built-in ones; texts and desktop edits survive', () => {
+  const a = builtIn(), b = builtIn();
+  S.apply(b, LIVE_STALE, false);
+  const ai = a.find(s => s.id === 'living'), bi = b.find(s => s.id === 'living');
+  assert.equal(bi.title, 'أهلاً بك فى بيت صادكو');
+  bi.hotspots.forEach((h, j) => {
+    assert.equal(h.mfx, ai.hotspots[j].mfx, 'mfx #' + j);
+    assert.equal(h.mfy, ai.hotspots[j].mfy, 'mfy #' + j);
+    assert.equal(h.fx, 0.4, 'unstamped desktop edit kept #' + j);
+  });
+});
+
+test('a saved position stamped with the picture the site shows is used', () => {
+  const b = builtIn(), d = JSON.parse(JSON.stringify(LIVE_STALE));
+  const living = b.find(s => s.id === 'living');
+  const h = d.scenes.find(s => s.id === 'living').hotspots[0];
+  Object.assign(h, { mfx: 0.3, mfy: 0.31, mimg: living.stillMobile + '?v=9', fx: 0.2, fy: 0.21, dimg: living.still });
+  S.apply(b, d, false);
+  const got = b.find(s => s.id === 'living').hotspots[0];
+  assert.deepEqual([got.mfx, got.mfy, got.fx, got.fy], [0.3, 0.31, 0.2, 0.21]);
+});
+
+test('a position stamped with a different picture is dropped (the room was re-shot)', () => {
+  const a = builtIn(), b = builtIn(), d = JSON.parse(JSON.stringify(DATA));
+  const h = d.scenes.find(s => s.id === 'living').hotspots[2];
+  Object.assign(h, { mfx: 0.1, mfy: 0.1, mimg: 'assets/img/m_living_v1.jpg', fx: 0.1, fy: 0.1, dimg: 'assets/img/still_1.jpg' });
+  S.apply(b, d, false);
+  const want = a.find(s => s.id === 'living').hotspots[2], got = b.find(s => s.id === 'living').hotspots[2];
+  assert.deepEqual([got.mfx, got.mfy, got.fx, got.fy], [want.mfx, want.mfy, want.fx, want.fy]);
+});
+
+test('the admin editor stamps against the same pictures index.html shows', () => {
+  const src = readFileSync(new URL('../assets/js/admin/pages-site.js', import.meta.url), 'utf8');
+  const media = new Function(src.slice(src.indexOf('const MEDIA = {'), src.indexOf('};', src.indexOf('const MEDIA = {')) + 2) + '; return MEDIA;')();
+  for (const s of builtIn()) {
+    if (!media[s.id] || media[s.id].textOnly) continue;
+    assert.ok(S.sameImage(media[s.id].phone, s.stillMobile), s.id + ' phone picture');
+    assert.ok(S.sameImage(media[s.id].still, s.still), s.id + ' desktop still');
+  }
+});

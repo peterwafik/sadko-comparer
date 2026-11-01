@@ -1918,6 +1918,21 @@ function setEditableCache(res) {
   res.setHeader('vercel-cdn-cache-control', 'public, s-maxage=60, stale-while-revalidate=300');
 }
 
+/* The public catalogue feeds (products, categories, collections, promos).
+   They used to be `no-cache` with no CDN copy at all, so every shop visit
+   that landed on a fresh serverless instance waited for that instance to
+   build the whole catalogue from the database: measured 8.5 s on the live
+   site before the first product card could draw, on all four feeds at once.
+   Now Vercel's CDN answers from its copy and refreshes it in the background
+   (stale-while-revalidate), so a visitor never waits on a cold instance. A
+   price or stock change still reaches the page within ~30 s. The browser may
+   reuse its copy for 30 s, which spares a second 250 KB download when a
+   shopper goes shop -> product -> back. Nothing here is per-visitor. */
+function setCatalogCache(res) {
+  res.setHeader('cache-control', 'public, max-age=30');
+  res.setHeader('vercel-cdn-cache-control', 'public, s-maxage=30, stale-while-revalidate=600');
+}
+
 /* An ADMIN_CONTENT file as the site should serve it: the owner's saved edit
    if there is one, otherwise the file shipped with the site. */
 async function contentText(name) {
@@ -3950,8 +3965,12 @@ export async function handle(req, res) {
         if (!ADMIN_CONTENT[name]) return json(404, { error: 'unknown-content' });
         const file = path.join(ROOT, 'data', ADMIN_CONTENT[name].file);
         if (req.method === 'GET') {
-          const txt = (await cadm.getContent(name)) ?? (existsSync(file) ? await readFile(file, 'utf8') : '{}');
-          return json(200, { name, label: ADMIN_CONTENT[name].label, json: txt });
+          const bundled = existsSync(file) ? await readFile(file, 'utf8') : '{}';
+          const txt = (await cadm.getContent(name)) ?? bundled;
+          /* `defaults` = the file shipped with the site. The scenes editor uses
+             it to replace marker positions that were placed on a different
+             room image than the site now shows (see assets/js/scenes.js). */
+          return json(200, { name, label: ADMIN_CONTENT[name].label, json: txt, defaults: bundled });
         }
         if (req.method === 'PUT') {
           const b = await readJson(req, 2_000_000);
@@ -4570,9 +4589,9 @@ export async function handle(req, res) {
           .map(c => ({ id: c.id, name: c.name, nameEn: c.nameEn, parentId: c.parentId,
                        order: c.order, count: c.productCount,
                        /* the tile picture on the shop page, set in Ecwid from the admin portal */
-                       image: c.image || null }));
+                       image: c.image || null, thumb: c.thumb || null }));
         res.setHeader('content-type', 'application/json; charset=utf-8');
-        res.setHeader('cache-control', 'no-cache');
+        setCatalogCache(res);
         return res.end(JSON.stringify({ source: 'ecwid', categories: cats }));
       } catch (e) { /* fall through */ }
     }
@@ -4596,7 +4615,7 @@ export async function handle(req, res) {
         for (const k of ['offers', 'bestSellers'])
           if (collections[k]) collections[k].ids = pinOrder(collections[k].ids, layout.order[k]);
         res.setHeader('content-type', 'application/json; charset=utf-8');
-        res.setHeader('cache-control', 'no-cache');
+        setCatalogCache(res);
         return res.end(JSON.stringify({
           note: 'Derived live from the Ecwid store. offers and bestSellers are membership of ' +
                 'the curated categories, resolved by Arabic name because the stores use ' +
@@ -4639,7 +4658,7 @@ export async function handle(req, res) {
       const payload = await derivedPromosPayload();
       if (payload) {
         res.setHeader('content-type', 'application/json; charset=utf-8');
-        res.setHeader('cache-control', 'no-cache');
+        setCatalogCache(res);
         return res.end(JSON.stringify(payload));
       }
 
@@ -4655,7 +4674,7 @@ export async function handle(req, res) {
       const src = ecwidSource();
       const from = src.activeSource();
       res.setHeader('content-type', 'application/json; charset=utf-8');
-      res.setHeader('cache-control', 'no-cache');
+      setCatalogCache(res);
       /* `scrapedAt` kept for backwards compatibility with anything reading it,
          but it must not claim a scrape date when the data came from Ecwid — so
          it reports the sync time in that case, and `source` says which. */

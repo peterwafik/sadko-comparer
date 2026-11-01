@@ -14,7 +14,7 @@
   function card(stepIdx, inner) {
     const steps = stepIdx == null ? '' : '<div class="auth__steps">' + [0, 1, 2].map(i => '<i class="' + (i <= stepIdx ? 'on' : '') + '"></i>').join('') + '</div>';
     document.getElementById('root').innerHTML =
-      '<div class="auth"><div class="auth__card"><div class="auth__brand"><img src="assets/img/sadko-logo.png" alt=""><div><b>' +
+      '<div class="auth"><div class="auth__card"><div class="auth__brand"><img src="assets/img/sadko-logo-256.webp" alt=""><div><b>' +
       t('صادكو جروب', 'SADKO Group') + '</b><span>' + t('بوابة الإدارة', 'Admin portal') + '</span></div></div>' + steps + inner +
       '<div class="auth__foot"><span class="muted">' + t('للمسؤولين فقط', 'Administrators only') + '</span>' +
       '<button class="btn btn--quiet btn--sm" id="authLang">' + (A.EN() ? 'العربية' : 'English') + '</button></div></div></div>';

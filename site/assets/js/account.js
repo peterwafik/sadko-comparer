@@ -84,7 +84,7 @@
       return '<div class="sk-auth">' +
         '<div class="sk-auth__inner">' +
           '<a class="sk-auth__logo" href="' + A.P('index.html') + '" aria-label="SADKO">' +
-            '<img src="' + A.P('assets/img/sadko-logo.png') + '" alt="صادكو جروب"></a>' +
+            '<img src="' + A.P('assets/img/sadko-logo-256.webp') + '" alt="صادكو جروب"></a>' +
           '<div class="sk-auth__card">' +
             '<h1 id="authTitle">' + t('أهلاً بيك', 'Welcome') + '</h1>' +
             '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك لتُتم طلبك وتتابعه، ولتجد ترشيحاتك على مقاس منزلك.',
@@ -105,7 +105,7 @@
       return '<div class="sk-auth">' +
         '<div class="sk-auth__inner">' +
           '<a class="sk-auth__logo" href="' + A.P('index.html') + '" aria-label="SADKO">' +
-            '<img src="' + A.P('assets/img/sadko-logo.png') + '" alt="صادكو جروب"></a>' +
+            '<img src="' + A.P('assets/img/sadko-logo-256.webp') + '" alt="صادكو جروب"></a>' +
           '<div class="sk-auth__card">' +
             '<h1 id="authTitle">' + t('أهلاً بيك تانى', 'Welcome back') + '</h1>' +
             '<p class="sk-auth__sub" id="authSub">' + t('سجّل دخولك لتُتم طلبك وتتابعه، ولتجد ترشيحاتك على مقاس منزلك.',

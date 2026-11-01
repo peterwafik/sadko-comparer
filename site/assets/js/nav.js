@@ -252,8 +252,9 @@
     const prods = (window.skApp && window.skApp.products)
       ? window.skApp.products()
       : fetch(P('data/products.json')).then(r => r.json()).then(d => d.products || []).catch(() => []);
-    const cats = fetch(P('data/categories.json')).then(r => (r.ok ? r.json() : null))
-      .then(d => (d && d.categories) || []).catch(() => []);
+    const cats = (window.skApp && window.skApp.categories) ? window.skApp.categories()
+      : fetch(P('data/categories.json')).then(r => (r.ok ? r.json() : null))
+        .then(d => (d && d.categories) || []).catch(() => []);
     SEARCH.loading = Promise.all([prods, cats].concat(deps)).then(([products, categories]) => {
       const C = window.skShopCore;
       const T = LANG === 'en' && window.skCatalogI18n ? window.skCatalogI18n : null;
@@ -359,7 +360,7 @@
           const p = e.p, href = P('product.html?id=') + encodeURIComponent(p.id);
           SEARCH.items.push(href);
           return '<li><a class="sk-search__item sk-search__opt" href="' + href + '">' +
-            (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" width="52" height="52">' : '<span class="sk-search__noimg"></span>') +
+            (p.image ? '<img src="' + esc(p.thumb || p.image) + '" alt="" loading="lazy" width="52" height="52">' : '<span class="sk-search__noimg"></span>') +
             '<span class="sk-search__txt"><span class="sk-search__name">' + esc(String(e.shown).replace(/&nbsp;/g, ' ')) + '</span>' +
             '<span class="sk-search__meta">' + esc(money(p.price)) + (p.inStock === false ? ' · <i>' + esc(N.outStock) + '</i>' : '') + '</span></span></a></li>';
         }).join('') + '</ul>';
@@ -494,7 +495,7 @@
          on mid-shop — and "الرئيسية" is already the first link in the strap right
          beside it for anyone who does want it. aria-label/title say where it
          goes, since a brand mark otherwise reads as "back to home" by convention. */
-      `<a class="sk-nav__logo" href="${P('shop.html')}" aria-label="${N.all}" title="${N.all}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
+      `<a class="sk-nav__logo" href="${P('shop.html')}" aria-label="${N.all}" title="${N.all}"><img src="${P('assets/img/sadko-logo-256.webp')}" alt="صادكو جروب"></a>` +
       `<nav class="sk-nav__links sk-glass" aria-label="${N.pagesAria}">` +
         A('home', N.home, 'index.html') +
         `<div class="sk-shop">` +
@@ -553,7 +554,7 @@
       `<a class="sk-dlink${cls ? ' ' + cls : ''}${active === k ? ' is-active' : ''}" href="${P(href)}">${esc(label)}</a>`;
     drawer.innerHTML =
       `<div class="sk-drawer__top">` +
-        `<a class="sk-drawer__logo" href="${P('shop.html')}" aria-label="${N.all}" title="${N.all}"><img src="${P('assets/img/sadko-logo.png')}" alt="صادكو جروب"></a>` +
+        `<a class="sk-drawer__logo" href="${P('shop.html')}" aria-label="${N.all}" title="${N.all}"><img src="${P('assets/img/sadko-logo-256.webp')}" alt="صادكو جروب"></a>` +
         `<button type="button" class="sk-drawer__x" aria-label="${N.close}">&times;</button>` +
       `</div>` +
       `<div class="sk-drawer__icons">` +
@@ -847,9 +848,13 @@
   let CATALOG_INDEX = null;
   function catalogIndex() {
     if (!CATALOG_INDEX) {
-      CATALOG_INDEX = fetch(P('data/products.json')).then(r => r.json()).then(d => {
+      /* The page's shared catalogue (appshell.js) when there is one: on the shop
+         page this used to be a SECOND full download of products.json. */
+      const list = (window.skApp && window.skApp.products) ? window.skApp.products()
+        : fetch(P('data/products.json')).then(r => r.json()).then(d => d.products || []);
+      CATALOG_INDEX = list.then(products => {
         const byPath = {}, byId = {};
-        (d.products || []).forEach(p => {
+        (products || []).forEach(p => {
           if (p.id != null) byId[String(p.id)] = p;
           try { byPath[decodeURIComponent(new URL(p.url).pathname)] = p; } catch (e) {}
         });

@@ -248,7 +248,7 @@
     if (!side) return;
     const on = current();
     const pages = visible();
-    side.innerHTML = '<a class="side__brand" href="#/dashboard"><img src="assets/img/sadko-logo.png" alt=""><div><b>' + t('إدارة صادكو', 'SADKO Admin') +
+    side.innerHTML = '<a class="side__brand" href="#/dashboard"><img src="assets/img/sadko-logo-256.webp" alt=""><div><b>' + t('إدارة صادكو', 'SADKO Admin') +
       '</b><span>' + t('بوابة الإدارة', 'Admin portal') + '</span></div></a>' +
       GROUPS.map(g => {
         const items = pages.filter(p => p.group === g.key);

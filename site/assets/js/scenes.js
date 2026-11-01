@@ -33,6 +33,29 @@
     return o;
   }
 
+  /* ---- marker positions belong to a picture ----------------------------
+     A saved position is only meaningful on the image it was placed on. The
+     admin stamps each moved point with that image (`mimg` for the phone
+     picture, `dimg` for the desktop still). A saved position whose stamp does
+     not name the image this page shows (the room was re-shot, or it was saved
+     before stamping existed) is dropped in favour of the built-in position
+     from index.html, which always ships together with its image. Without
+     this, an old saved copy put the living room's phone markers back on the
+     previous picture's coordinates after every deploy.
+     Unstamped DESKTOP positions are kept: they were placed in the desktop
+     editor on the current room geometry, unlike the unstamped phone ones. */
+  var norm = function (u) { return String(u || '').split('?')[0].replace(/^\.?\//, ''); };
+  function sameImage(stamp, img) { return !!stamp && !!img && norm(stamp) === norm(img); }
+  /* The built-in point a saved one corresponds to: same Arabic label, else
+     same link at the same position in the list. A point added in the admin
+     matches neither and keeps its own positions. */
+  function builtinFor(defs, h, i) {
+    var ar = pick(h && h.label, false), j;
+    for (j = 0; j < defs.length; j++) if (ar && (defs[j]._ar || defs[j].label) === ar) return defs[j];
+    if (defs[i] && h && defs[i].href === h.href) return defs[i];
+    return null;
+  }
+
   /* Returns true when anything was applied. */
   function apply(sections, data, en) {
     if (!data || !Array.isArray(data.scenes) || !Array.isArray(sections)) return false;
@@ -46,7 +69,23 @@
         if (v) { s[k] = v; any = true; }
       });
       if (Array.isArray(d.hotspots)) {
-        s.hotspots = d.hotspots.map(function (h) { return hotspot(h, en); }).filter(Boolean);
+        var defs = (s.hotspots || []).slice();
+        s.hotspots = d.hotspots.map(function (h, i) {
+          var o = hotspot(h, en);
+          if (!o) return null;
+          var b = builtinFor(defs, h, i);
+          if (b) {
+            if (!sameImage(h.mimg, s.stillMobile)) {
+              o.mfx = b.mfx != null ? b.mfx : b.fx; o.mfy = b.mfy != null ? b.mfy : b.fy;
+            }
+            if (h.dimg && !sameImage(h.dimg, s.still)) {
+              o.fx = b.fx; o.fy = b.fy;
+              if (b.sfx != null) { o.sfx = b.sfx; o.sfy = b.sfy; } else { delete o.sfx; delete o.sfy; }
+            }
+          }
+          o._ar = pick(h.label, false);
+          return o;
+        }).filter(Boolean);
         any = true;
       }
     });
@@ -62,7 +101,7 @@
     return Promise.race([got, timer]);
   }
 
-  var api = { apply: apply, load: load, HREF: HREF };
+  var api = { apply: apply, load: load, HREF: HREF, sameImage: sameImage, builtinFor: builtinFor };
   root.skScenes = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

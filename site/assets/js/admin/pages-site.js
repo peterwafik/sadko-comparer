@@ -110,6 +110,30 @@
       if (ctx.stale()) return;
       let data; try { data = JSON.parse(c.json); } catch (e) { data = null; }
       if (!data || !Array.isArray(data.scenes)) { el.innerHTML = '<div class="note note--bad">' + t('ملف المشاهد غير صالح.', 'The scenes file is not valid.') + '</div>'; return; }
+      /* Show (and, on the next save, keep) the shipped position for any point
+         whose saved position was placed on a different picture than the site
+         now shows, exactly as the site itself does (assets/js/scenes.js).
+         Otherwise the editor would display stale points and a save would
+         stamp them as if they belonged to the current picture. */
+      let defs = null; try { defs = JSON.parse(c.defaults || 'null'); } catch (e) { defs = null; }
+      const SS = window.skScenes;
+      if (defs && Array.isArray(defs.scenes) && SS && SS.sameImage) {
+        data.scenes.forEach(sc => {
+          const d = defs.scenes.find(x => x.id === sc.id), m = MEDIA[sc.id];
+          if (!d || !m || !Array.isArray(sc.hotspots)) return;
+          const builtins = (d.hotspots || []).map(b => Object.assign({}, b, { label: (b.label && b.label.ar) || b.label }));
+          sc.hotspots.forEach((h, i) => {
+            const b = SS.builtinFor(builtins, h, i);
+            if (!b) return;
+            if (!SS.sameImage(h.mimg, m.phone)) { h.mfx = b.mfx ?? b.fx; h.mfy = b.mfy ?? b.fy; delete h.mimg; }
+            if (h.dimg && !SS.sameImage(h.dimg, m.still)) {
+              h.fx = b.fx; h.fy = b.fy;
+              if (b.sfx != null) { h.sfx = b.sfx; h.sfy = b.sfy; } else { delete h.sfx; delete h.sfy; }
+              delete h.dimg;
+            }
+          });
+        });
+      }
       const st = { i: 0, view: 'desk', sel: -1, dirty: false };
       const save = document.createElement('button');
       save.className = 'btn'; save.textContent = t('حفظ التغييرات', 'Save changes'); save.disabled = true;
@@ -182,8 +206,9 @@
           '<button class="btn btn--sm" id="addPin" style="margin-top:10px">' + t('+ إضافة نقطة', '+ Add a point') + '</button>' + list;
         box.querySelectorAll('[data-pick]').forEach(b => { b.onclick = () => select(Number(b.dataset.pick)); });
         box.querySelector('#addPin').onclick = () => {
+          const m = MEDIA[sc.id] || {};
           sc.hotspots.push({ label: { ar: 'نقطة جديدة', en: 'New point' }, href: 'shop.html', fx: 0.5, fy: 0.5, mfx: 0.5, mfy: 0.5,
-                             at: (MEDIA[sc.id] || {}).at || 0.5, span: 0.28 });
+                             at: m.at || 0.5, span: 0.28, dimg: m.still, mimg: m.phone });
           st.sel = sc.hotspots.length - 1; dirty(); paint();
         };
         if (!h) return;
@@ -239,8 +264,11 @@
               const x = Math.min(0.99, Math.max(0.01, (e.clientX - rect.left) / rect.width));
               const y = Math.min(0.99, Math.max(0.01, (e.clientY - rect.top) / rect.height));
               const h = sc.hotspots[i];
-              if (st.view === 'desk') { h.fx = round(x); h.fy = round(y); if (h.sfx != null) { h.sfx = h.fx; h.sfy = h.fy; } }
-              else { h.mfx = round(x); h.mfy = round(y); }
+              // Stamp the picture the point was placed on (see scenes.js): the site
+              // ignores a saved position once that picture is no longer shown.
+              const m = MEDIA[sc.id] || {};
+              if (st.view === 'desk') { h.fx = round(x); h.fy = round(y); if (h.sfx != null) { h.sfx = h.fx; h.sfy = h.fy; } if (m.still) h.dimg = m.still; }
+              else { h.mfx = round(x); h.mfy = round(y); if (m.phone) h.mimg = m.phone; }
               pin.style.left = x * 100 + '%'; pin.style.top = y * 100 + '%';
               pin.classList.toggle('pin--r', x < 0.5); pin.classList.toggle('pin--l', x >= 0.5);
               dirty();

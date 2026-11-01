@@ -86,7 +86,7 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${escHtml(nameAr)} | صادكو جروب</title>
 <meta name="description" content="تصفّح ${escHtml(nameAr)} من صادكو جروب، بالسعر والصورة والمواصفات.">
-<link rel="icon" href="../assets/img/sadko-logo.png">
+<link rel="icon" href="../assets/img/sadko-logo-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -102,15 +102,15 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 </div>
 <footer data-footer></footer>
 <script src="../assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="../assets/js/nav.js?v=g25" defer></script>
-<script src="../assets/js/appshell.js?v=a6" defer></script>
+<script src="../assets/js/nav.js?v=g26" defer></script>
+<script src="../assets/js/appshell.js?v=a7" defer></script>
 <script src="../assets/js/specs.js?v=a5" defer></script>
 <script src="../assets/js/store.js?v=a6" defer></script>
 <script src="../assets/js/homes.js?v=a7" defer></script>
 <script src="../assets/js/prefs.js?v=a8" defer></script>
 <script src="../assets/js/shop-core.js?v=s4" defer></script>
-<script src="../assets/js/storefront.js?v=s7" defer></script>
-<script src="../assets/js/shop.js?v=s8" defer></script>
+<script src="../assets/js/storefront.js?v=s8" defer></script>
+<script src="../assets/js/shop.js?v=s9" defer></script>
 </body>
 </html>
 `;

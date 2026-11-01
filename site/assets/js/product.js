@@ -257,18 +257,6 @@
       return '';
     }
 
-    /* ---- the SKU line ---------------------------------------------------
-       Worth showing because it is the number customer care asks for on the
-       phone, and the shopper otherwise has to read out a 60-character Arabic
-       title. Banner entries never reach this page (the detail endpoint
-       refuses them), so the banner- prefix cannot appear here. */
-    function skuLine(p) {
-      const sku = String(p.sku || '').trim();
-      if (!sku) return '';
-      return '<li><span class="k">' + t('كود المنتج', 'Product code') + '</span>' +
-        '<span class="v ltr">' + esc(sku) + '</span></li>';
-    }
-
     /* ---- 1. suitable for ---- */
     function suitability(p, s) {
       const rows = [];
@@ -463,40 +451,72 @@
         [t('قدرة التبريد', 'Cooling capacity'), s.cap.btu ? A.num(s.cap.btu) + ' BTU' : null],
         [t('الضمان', 'Warranty'), s.f.warranty ? t(s.f.warranty + ' سنة', s.f.warranty + ' years') : null],
       ];
-      /* Not a read-from-the-description guess like the rows above — the code
-         and the weight come from Ecwid's own fields, so they are appended
-         after them rather than mixed in. A weight is shown only when staff
-         actually entered one: 0 is Ecwid's "unset", and the mapper has
-         already turned that into null. */
-      const facts = skuLine(p) +
-        (p.weight ? '<li><span class="k">' + t('الوزن', 'Weight') + '</span><span class="v">' +
-          A.num(p.weight) + ' ' + t('كجم', 'kg') + '</span></li>' : '');
-      /* Only the rows that actually have a value are shown. A field the
-         product data does not state is left out entirely rather than listed
-         as a blank placeholder, so the table is never a column of blanks. */
-      const filled = rows.filter(r => r[1] != null && String(r[1]).trim() !== '');
-      const list = filled.map(r => '<li><span class="k">' + esc(r[0]) + '</span><span class="v">' +
-        esc(r[1]) + '</span></li>').join('') + facts;
+      /* One "Specifications" list. The facts read from the product (brand,
+         capacity, ...) and Ecwid's own fields (code, weight) come first, then
+         every line of SADKO's description, all as plain bullets. The
+         description used to sit in its own "Original SADKO description" box
+         under the table, which read as two competing spec sections.
+
+         Only rows that actually have a value are shown, so the list is never
+         a column of blanks. A weight is shown only when staff entered one: 0
+         is Ecwid's "unset", and the mapper has already turned that into null. */
+      const sku = String(p.sku || '').trim();
+      const facts = rows.filter(r => r[1] != null && String(r[1]).trim() !== '')
+        .map(r => ({ k: r[0], v: String(r[1]) }));
+      if (sku) facts.push({ k: t('كود المنتج', 'Product code'), v: sku, ltr: true });
+      if (p.weight) facts.push({ k: t('الوزن', 'Weight'), v: A.num(p.weight) + ' ' + t('كجم', 'kg') });
+      /* A description line that only repeats a fact above ("الماركة سامسونج")
+         is dropped, so the list does not say the same thing twice. */
+      const said = new Set(facts.map(f => (f.k + ' ' + f.v).replace(/\s+/g, ' ').trim()));
+      const lines = descLines(p).filter(x => !x.v || !said.has(((x.k ? x.k + ' ' : '') + x.v).replace(/\s+/g, ' ').trim()));
+      const li = x => x.h
+        ? '<li class="spec-list__h">' + esc(x.h) + '</li>'
+        : '<li>' + (x.k ? '<b>' + esc(x.k) + ':</b> ' : '') + '<span' + (x.ltr ? ' class="ltr"' : '') + '>' + esc(x.v) + '</span></li>';
+      const all = facts.concat(lines);
       return '<div class="panel mt16"><h2 class="panel__h">' + t('المواصفات', 'Specifications') + '</h2>' +
-        (list ? '<ul class="specs">' + list + '</ul>' : '') +
-        /* Ecwid's own copy, with the structure it was written in.
+        (all.length ? '<ul class="spec-list">' + all.map(li).join('') + '</ul>'
+                    : '<p class="small muted">' + t('لا توجد مواصفات مسجلة لهذا المنتج بعد.', 'No specifications listed for this product yet.') + '</p>') +
+        '</div>';
+    }
 
-           It used to be flattened to one paragraph by the mapper's stripHtml,
-           so a bulleted spec list arrived as a run-on sentence — and it was
-           folded inside a <details> that nobody opens. It is open by default
-           now, because it is the manufacturer's own description of the product
-           and the main thing a shopper scrolls down for.
-
-           descriptionHtml is sanitised server-side by safeHtml(): an
-           allow-list of structural tags with every attribute dropped, so no
-           href, src, style or handler reaches this innerHTML. The plain
-           description is the fallback when the detail endpoint is absent (the
-           Ecwid flag off, or a static host). */
-        '<details class="mt16" open><summary style="cursor:pointer;font-weight:800">' + t('الوصف الأصلى من صادكو', 'Original SADKO description') + '</summary>' +
-        (p.descriptionHtml
-          ? '<div class="pdp__desc small mt8">' + p.descriptionHtml + '</div>'
-          : '<p class="small muted mt8" style="line-height:1.9">' + esc(S.norm(p.description) || t('لا يوجد وصف.', 'No description.')) + '</p>') +
-        '</details></div>';
+    /* SADKO's description as a list of short lines. descriptionHtml is
+       sanitised server-side by safeHtml() (structural tags only, no
+       attributes) and is only parsed here into an inert <template>; the text
+       is re-escaped on output, so none of its markup reaches the page. Ecwid
+       copy is mostly <ul><li>, sometimes <p>/<br>/<div>; every block and every
+       line break becomes its own bullet. The plain description is the
+       fallback when the detail endpoint is absent (static host, flag off). */
+    function descLines(p) {
+      const out = [], seen = new Set();
+      const push = txt => String(txt || '').split('\n').forEach(raw => {
+        const x = raw.replace(/\s+/g, ' ').replace(/^[\s•·*\-–]+/, '').trim();
+        if (!x || seen.has(x)) return;
+        seen.add(x);
+        if (/[:：]\s*-?$/.test(x) && x.length < 60) { out.push({ h: x.replace(/\s*[:：]\s*-?$/, '') }); return; }
+        const m = x.match(/^([^:：]{2,40}?)\s*[:：]\s*(.+)$/);
+        out.push(m ? { k: m[1], v: m[2] } : { v: x });
+      });
+      if (p.descriptionHtml) {
+        const tpl = document.createElement('template');
+        tpl.innerHTML = p.descriptionHtml;
+        tpl.content.querySelectorAll('br').forEach(b => b.replaceWith('\n'));
+        tpl.content.querySelectorAll('tr').forEach(r => { r.textContent = [...r.children].map(c => c.textContent.trim()).filter(Boolean).join(': '); });
+        const BLOCK = 'li,p,div,h2,h3,h4,h5,h6,tr,blockquote,ul,ol,table,tbody,thead';
+        const walk = el => {
+          let buf = '';
+          el.childNodes.forEach(n => {
+            const blk = n.nodeType === 1 && (n.matches(BLOCK) || n.querySelector(BLOCK));
+            if (!blk) { buf += n.nodeType === 3 || n.nodeType === 1 ? n.textContent : ''; return; }
+            push(buf); buf = '';
+            if (n.querySelector(BLOCK)) walk(n); else push(n.textContent);
+          });
+          push(buf);
+        };
+        walk(tpl.content);
+      } else {
+        push(String(S.norm(p.description) || '').replace(/([.!؟])\s+/g, '$1\n'));
+      }
+      return out;
     }
 
     /* ---- 6. structured reviews (device-local) ---- */

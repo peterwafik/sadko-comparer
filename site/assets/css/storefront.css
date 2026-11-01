@@ -578,3 +578,11 @@ html[dir=ltr] .scrumb i { transform: scaleX(-1); display: inline-block; }
    the picture on top, name and count below. Tiles without one are unchanged. */
 .ctile--img { flex-wrap: wrap; align-content: flex-start; }
 .ctile__img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 10px; background: #fff; display: block; flex: 1 0 100%; }
+
+/* PDP: one bulleted Specifications list (facts + SADKO's description lines) */
+.spec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; line-height: 1.8; font-size: .92rem; color: var(--ink); }
+.spec-list li { position: relative; padding-inline-start: 22px; }
+.spec-list li::before { content: ""; position: absolute; inset-inline-start: 4px; top: .72em; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.spec-list b { font-weight: 800; color: var(--ink); }
+.spec-list .spec-list__h { padding-inline-start: 0; margin-top: 8px; font: 800 .98rem/1.6 Cairo, sans-serif; color: var(--accent-ink); }
+.spec-list .spec-list__h::before { display: none; }

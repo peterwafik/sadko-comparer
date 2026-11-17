@@ -561,3 +561,18 @@ test('the real promos still fill both blocks', () => {
   assert.deepEqual(JSON.parse(deal(1, 'solo')).ids, ['w1']);
   assert.deepEqual(JSON.parse(deal(4, 'grid')).ids, ['s1', 's2', 's3']);
 });
+
+/* The shop's banners went missing five times. These pin the three causes found
+   on 2026-11-18 so none of them can come back unnoticed. */
+test('banner artwork with a full web address is never prefixed with the site path', () => {
+  // Ecwid banner images are https URLs; prefixing them broke every banner on
+  // the category pages ("/https:/...cloudfront.net/..." -> 404).
+  assert.match(src, /if \(c\.image && local\(c\.image\)\) c\.image = P\(c\.image\)/);
+  assert.doesNotMatch(src, /if \(c\.image\) c\.image = P\(c\.image\)/);
+});
+
+test('a failed or empty banner request falls back to the last good banner list', () => {
+  assert.match(src, /sadko-highlights-last/);
+  assert.match(src, /localStorage\.getItem\(PROMO_KEY\)/);
+  assert.match(src, /throw new Error\('empty'\)/);
+});

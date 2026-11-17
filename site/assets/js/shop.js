@@ -105,7 +105,7 @@
   // reported to the console so the omission is diagnosable rather than silent.
   function localizePromos(promos) {
     var list = C.localizePromos(promos, EN, function (x) {
-      try { console.warn('[sadko] promo "' + (x && x.id) + '" has no titleEn — hidden in English.'); } catch (e) {}
+      try { console.info('[sadko] promo "' + (x && x.id) + '" has no titleEn; shown with a generic English name.'); } catch (e) {}
     });
     if (!list || !Array.isArray(list)) return list;
     /* promos.json stores SITE-ROOT-relative paths ("assets/img/highlights/x.jpg",
@@ -117,10 +117,15 @@
        because P() is shop.js's: storefront.js is deliberately DOM-only and has no
        idea how deep the page it is rendering into sits. Absolute URLs, tel:,
        mailto: and #anchors are left exactly as the owner wrote them. */
+    /* The image gets the SAME test as the link. It used to be prefixed
+       unconditionally, which was fine while every banner was a local file.
+       The Ecwid banners are full web addresses (https), and on the category
+       pages they gained a leading slash and 404ed (2026-11-18). */
+    var local = function (u) { return !/^([a-z]+:|\/\/|\/|#)/i.test(u); };
     return list.map(function (x) {
       var c = Object.assign({}, x);
-      if (c.image) c.image = P(c.image);
-      if (c.href && !/^([a-z]+:|\/\/|\/|#)/i.test(c.href)) c.href = P(c.href);
+      if (c.image && local(c.image)) c.image = P(c.image);
+      if (c.href && local(c.href)) c.href = P(c.href);
       return c;
     });
   }
@@ -1119,12 +1124,20 @@
     // rather than breaking the page.
     // One retry after a short pause: a single failed request (a 429, a cold
     // instance timing out) used to leave the whole shop without adverts.
+    /* Never an empty banner area because one request went wrong (2026-11-18):
+       three tries, a reply with no banners counts as a failure, and the last
+       good list is kept in localStorage and shown when every try fails. */
+    var PROMO_KEY = 'sadko-highlights-last';
     var getPromos = function () {
-      return fetch(P('data/highlights.json')).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+      return fetch(P('data/highlights.json')).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) { if (!d || !Array.isArray(d.promos) || !d.promos.length) throw new Error('empty'); return d; });
     };
-    var promos = getPromos().catch(function () {
-      return new Promise(function (ok) { setTimeout(ok, 1200); }).then(getPromos);
-    }).catch(function () { return null; });
+    var pause = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    var promos = getPromos()
+      .catch(function () { return pause(800).then(getPromos); })
+      .catch(function () { return pause(2000).then(getPromos); })
+      .then(function (d) { try { localStorage.setItem(PROMO_KEY, JSON.stringify({ promos: d.promos })); } catch (e) {} return d; })
+      .catch(function () { try { return JSON.parse(localStorage.getItem(PROMO_KEY) || 'null'); } catch (e) { return null; } });
     // Which brands actually have a logo file. Asking for every brand's logo and
     // letting the missing ones 404 into the wordmark fallback worked, but cost one
     // failed request per brand on every load — 12 of them with nothing shipped yet.

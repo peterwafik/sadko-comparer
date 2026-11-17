@@ -132,9 +132,9 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 <script src="../assets/js/store.js?v=a6" defer></script>
 <script src="../assets/js/homes.js?v=a8" defer></script>
 <script src="../assets/js/prefs.js?v=a9" defer></script>
-<script src="../assets/js/shop-core.js?v=s5" defer></script>
+<script src="../assets/js/shop-core.js?v=s12" defer></script>
 <script src="../assets/js/storefront.js?v=s10" defer></script>
-<script src="../assets/js/shop.js?v=s12" defer></script>
+<script src="../assets/js/shop.js?v=s20" defer></script>
 </body>
 </html>
 `;

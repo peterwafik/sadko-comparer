@@ -656,8 +656,19 @@
     var out = [];
     promos.forEach(function (x) {
       if (!x) return;
-      if (!x.titleEn) { if (onDrop) onDrop(x); return; }
       var c = Object.assign({}, x);
+      /* No English title: the banner STILL SHOWS. Its message is in the
+         artwork, so only the words around it change. It used to be dropped,
+         and the adverts managed in Ecwid never carry English, so the English
+         shop lost its top and middle banners entirely (2026-11-18). No Arabic
+         text is shown: a plain English name stands in for title and alt. */
+      if (!x.titleEn) {
+        if (onDrop) onDrop(x);
+        c.title = 'SADKO offer'; c.alt = 'SADKO offer';
+        delete c.sub; delete c.cta;
+        out.push(c);
+        return;
+      }
       c.title = x.titleEn;
       if (x.subEn) c.sub = x.subEn; else delete c.sub;
       if (x.ctaEn) c.cta = x.ctaEn; else delete c.cta;

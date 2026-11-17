@@ -380,14 +380,17 @@ test('localizePromos does not mutate the promo it was given', () => {
   assert.equal(input.sub, '٤٩ غسالة');
 });
 
-test('a promo with no titleEn is dropped in English, never shown in Arabic', () => {
-  const untranslated = { id: 'p2', title: 'عرض بدون ترجمة', sub: 'وصف', cta: 'اشتر' };
-  const dropped = [];
-  const out = core.localizePromos([PROMO, untranslated], true, x => dropped.push(x.id));
-  assert.deepEqual(out.map(x => x.id), ['p1']);
-  assert.deepEqual(dropped, ['p2']);
+test('a promo with no titleEn still shows in English, with no Arabic words around it', () => {
+  // Ecwid-managed adverts never carry English. Dropping them emptied the English
+  // shop's top and middle banners; the artwork itself is language-neutral.
+  const untranslated = { id: 'p2', image: 'x.jpg', title: 'عرض بدون ترجمة', sub: 'وصف', cta: 'اشتر', alt: 'نص بديل' };
+  const flagged = [];
+  const out = core.localizePromos([PROMO, untranslated], true, x => flagged.push(x.id));
+  assert.deepEqual(out.map(x => x.id), ['p1', 'p2']);
+  assert.equal(out[1].image, 'x.jpg');
+  assert.deepEqual(flagged, ['p2']);
   // the whole rendered payload must carry no Arabic at all
-  assert.ok(!AR_RE.test(JSON.stringify(out.map(x => [x.title, x.sub, x.cta]))));
+  assert.ok(!AR_RE.test(JSON.stringify(out.map(x => [x.title, x.sub, x.cta, x.alt]))));
 });
 
 test('a missing subEn/ctaEn drops just that line instead of falling back to Arabic', () => {

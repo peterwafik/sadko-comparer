@@ -640,6 +640,16 @@
     var emptyMsg = state.q
       ? t('لا توجد نتائج لهذا البحث، جرّب كلمة أخرى.', 'No results. Try another search.')
       : t('لا يوجد منتجات فى هذا القسم حاليًا.', 'No products in this category yet.');
+    /* A category with nothing in it yet (no search, no filters narrowing it)
+       is a section that is still being stocked: show the "coming soon" page
+       rather than an empty grid. A search or filter that matches nothing
+       stays here, with its own message, so it can be changed. */
+    if (!pg.total && products && products.length && state.cat && !state.q && !(state.brands && state.brands.length) &&
+        state.min == null && state.max == null) {
+      location.replace(P('soon.html') + '?cat=' + encodeURIComponent(state.cat) +
+        (title ? '&name=' + encodeURIComponent(title) : ''));
+      return;
+    }
 
     root.innerHTML =
       // The site header (nav.js's `.sk-nav--solid`, z-index 70) sits fixed above

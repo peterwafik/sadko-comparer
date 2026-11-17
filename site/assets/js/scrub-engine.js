@@ -291,11 +291,26 @@ function mountScrollWorld(container, config) {
       if (s.dead) { s.el.style.opacity = 0; s.visible = false; }
     });
     totalW = off;
-    track.style.height = (totalW * vh + vh) + 'px';   // +1vh so the last flight completes
+    track.style.height = fullHeight() + 'px';
     gateMax = -1;                                       // force applyGate() to re-measure
     read();
     pump();
   }
+
+  /* Where the scroll ENDS. By default the page runs the whole last flight
+     (+1vh so it completes). config.endAt (0..1) instead stops the scroll that
+     far through the LAST live section, so the tour can finish on a resting view,
+     e.g. the laundry room's full-room showcase with every marker lit, instead of
+     flying on toward a room or page that is not part of it. */
+  function endY() {
+    const f = config.endAt;
+    if (f == null) return totalW * vh;
+    let last = null;
+    for (let i = NSEG - 1; i >= 0; i--) if (!SEGMENTS[i].dead) { last = SEGMENTS[i]; break; }
+    if (!last) return totalW * vh;
+    return last.start + (last.end - last.start) * clamp(f);
+  }
+  function fullHeight() { return endY() + vh; }
 
   function jumpTo(i) {
     const seg = SECTIONS[i]._seg;
@@ -362,7 +377,7 @@ function mountScrollWorld(container, config) {
   function keepClip(url, blob) {
     try {
       if (!('caches' in window)) return;
-      caches.open(CLIP_CACHE)
+      return caches.open(CLIP_CACHE)
         .then(c => c.put(url, new Response(blob, { headers: { 'content-type': 'video/mp4' } })))
         .catch(() => {});                // quota or private mode: the clip still plays, just not kept
     } catch (e) {}
@@ -411,6 +426,7 @@ function mountScrollWorld(container, config) {
   }
 
   async function fetchClip(s) {
+    if (s.prefetch) { try { await s.prefetch; } catch (e) {} }
     const src = clipSrc(s);
     const liteUrl = liteOf(src);
     // A clip already on this device is used whatever the connection: full first.
@@ -598,7 +614,7 @@ function mountScrollWorld(container, config) {
     if (g !== gateSeg) { gateSeg = g; gateAt = Date.now(); }
     if (max !== gateMax) {
       gateMax = max;
-      track.style.height = (g ? max + vh : totalW * vh + vh) + 'px';
+      track.style.height = (g ? Math.min(max + vh, fullHeight()) : fullHeight()) + 'px';
       document.documentElement.classList.toggle('sw-gated', !!g);
     }
     // Shown only to a reader actually waiting at the gate, not to one far above it.
@@ -611,6 +627,69 @@ function mountScrollWorld(container, config) {
 
   // Kept as the name the rest of the engine uses; the queue does the work now.
   function loadClip() { pump(); }
+
+  /* ---- portrait phone: get the LANDSCAPE tour ready in the background -------
+     Turning a phone sideways switches it to the desktop flight (see the inline
+     viewport script in index.html): the 16:9 desktop stills and the landscape
+     clips, none of which a portrait phone otherwise fetches. Downloading them
+     only at the moment of the turn made the sideways view slow to appear.
+
+     So once the portrait page has settled, the three rooms' desktop stills are
+     attached (they download while hidden) and their landscape clips are fetched
+     one at a time, at low priority, straight into the clip cache. A turn then
+     finds everything on the device: fetchClip() reads the cache, or waits for a
+     prefetch still in flight instead of starting a second download. The cache
+     (and the images' HTTP cache) keeps it all for later visits too.
+     Skipped on data-saver / 2G connections and with reduced motion. */
+  let landscapeWarmed = false;
+  function attachDesktopStills() {
+    SEGMENTS.forEach(s => {
+      if (s.dead || !s.still || !s.img || s.img.getAttribute('src')) return;
+      s.img.loading = 'eager';           // a lazy image that is display:none may never load
+      s.img.src = s.still;
+    });
+  }
+  function warmLandscape() {
+    if (landscapeWarmed || reduce || !coarse || !portraitMQ.matches) return;
+    if (netInfo && (netInfo.saveData || /(^|-)2g$/.test(netInfo.effectiveType || ''))) return;
+    landscapeWarmed = true;
+    attachDesktopStills();
+    const rooms = SEGMENTS.filter(s => s.stillM && !s.portraitOnly && clipSrc(s));
+    (async () => {
+      for (const s of rooms) {
+        if (s.hasClip || s.loading) continue;
+        const src = clipSrc(s);
+        if (await cachedClip(src) || (LITE_ON && await cachedClip(liteOf(src)))) continue;
+        const urls = LITE_ON && (lite || !speedKnown) ? [liteOf(src), src] : [src];
+        s.prefetch = (async () => {
+          for (const url of urls) {
+            try {
+              const r = await fetch(url, { priority: 'low' });
+              if (!r.ok) continue;
+              await keepClip(url, await r.blob());
+              return;
+            } catch (e) { return; }
+          }
+        })();
+        try { await s.prefetch; } finally { s.prefetch = null; }
+      }
+    })();
+  }
+  // Start once the portrait page has loaded and gone quiet.
+  function scheduleWarmLandscape() {
+    if (!coarse) return;
+    const go = () => setTimeout(() => {
+      if ('requestIdleCallback' in window) requestIdleCallback(warmLandscape, { timeout: 4000 });
+      else warmLandscape();
+    }, 2500);
+    if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
+  }
+  scheduleWarmLandscape();
+  // Turned sideways before the warm-up ran: the desktop stills are needed now.
+  const onLandscapeTurn = () => { if (coarse && !portraitMQ.matches) attachDesktopStills(); };
+  if (portraitMQ.addEventListener) portraitMQ.addEventListener('change', onLandscapeTurn);
+  else if (portraitMQ.addListener) portraitMQ.addListener(onLandscapeTurn);
+  onLandscapeTurn();
 
   /* ---- outro: fade the last leg out and hand off to another page ----------
      config.outro = { href, from }. Across the last section, `from`..1 of its
@@ -705,7 +784,7 @@ function mountScrollWorld(container, config) {
   }
 
   /* Text colour for a fill in a room's accent: dark ink on a light accent
-     (the living room's mint #68D1D4, where white would be ~1.5:1), white on a
+     (the living room's mint #2E7E88, where white would be ~1.5:1), white on a
      deep one (the kitchen amber, the laundry blue). */
   function onAccent(hex) {
     const m = /^#([0-9a-f]{6})$/i.exec(String(hex || '').trim());
@@ -717,7 +796,11 @@ function mountScrollWorld(container, config) {
   }
 
   function read() {
-    const y = window.scrollY || window.pageYOffset;
+    // With config.endAt the tour stops at that point: anything below it on the
+    // page (the home footer) scrolls up over a scene that stays on its resting
+    // frame, markers included (they read this same y from sw:frame).
+    const rawY = window.scrollY || window.pageYOffset;
+    const y = config.endAt != null ? Math.min(rawY, endY()) : rawY;
     // Portrait phones show static scene images with no camera-scrub, so the whole
     // transition between rooms IS the crossfade — widen it there into a clear,
     // gentle dissolve rather than the tight seam the video flight used.

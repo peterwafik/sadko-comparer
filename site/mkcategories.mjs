@@ -84,15 +84,39 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* A phone turned sideways gets the DESKTOP layout: the viewport is set to a
+   laptop width (1200px, above the 1080px strap breakpoint) and scaled to fit,
+   so the scenes, appliance markers, copy and bars use their desktop placement
+   instead of a stretched phone layout. Upright again: back to the phone layout. */
+(function () {
+  var m = document.querySelector('meta[name=viewport]'); if (!m) return;
+  var base = m.getAttribute('content'), DESK = 'width=1200';
+  function landscape() {
+    if (screen.orientation && screen.orientation.type) return screen.orientation.type.indexOf('landscape') === 0;
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return window.innerWidth > window.innerHeight;
+  }
+  function apply() {
+    var touch = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+    var phone = touch && Math.min(screen.width, screen.height) <= 500;
+    var want = phone && landscape() ? DESK : base;
+    if (m.getAttribute('content') !== want) m.setAttribute('content', want);
+  }
+  apply();
+  if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', apply);
+  window.addEventListener('orientationchange', function () { setTimeout(apply, 60); });
+})();
+</script>
 <title>${escHtml(nameAr)} | صادكو جروب</title>
 <meta name="description" content="تصفّح ${escHtml(nameAr)} من صادكو جروب، بالسعر والصورة والمواصفات.">
 <link rel="icon" href="../assets/img/sadko-logo-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/category.css?v=c5">
-<link rel="stylesheet" href="../assets/css/app.css?v=a9">
-<link rel="stylesheet" href="../assets/css/storefront.css?v=s9">
+<link rel="stylesheet" href="../assets/css/category.css?v=c6">
+<link rel="stylesheet" href="../assets/css/app.css?v=a12">
+<link rel="stylesheet" href="../assets/css/storefront.css?v=s10">
 </head>
 <body>
 <div class="wrap wrap--wide">
@@ -102,15 +126,15 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 </div>
 <footer data-footer></footer>
 <script src="../assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="../assets/js/nav.js?v=g26" defer></script>
+<script src="../assets/js/nav.js?v=g47" defer></script>
 <script src="../assets/js/appshell.js?v=a7" defer></script>
 <script src="../assets/js/specs.js?v=a6" defer></script>
 <script src="../assets/js/store.js?v=a6" defer></script>
-<script src="../assets/js/homes.js?v=a7" defer></script>
-<script src="../assets/js/prefs.js?v=a8" defer></script>
+<script src="../assets/js/homes.js?v=a8" defer></script>
+<script src="../assets/js/prefs.js?v=a9" defer></script>
 <script src="../assets/js/shop-core.js?v=s5" defer></script>
 <script src="../assets/js/storefront.js?v=s10" defer></script>
-<script src="../assets/js/shop.js?v=s11" defer></script>
+<script src="../assets/js/shop.js?v=s12" defer></script>
 </body>
 </html>
 `;

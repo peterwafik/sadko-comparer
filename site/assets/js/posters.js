@@ -213,9 +213,9 @@ function injectPosterCSS() {
   .ps-card__title{display:block;font-size:clamp(.72rem,1.5vw,1.2rem);font-weight:800;color:#2b2318;
     line-height:1.3;max-height:2.7em;overflow:hidden;}
   .ps-card__price{display:block;font-style:normal;font-size:clamp(.8rem,1.8vw,1.35rem);
-    font-weight:800;color:var(--sadko-teal-deep,#68D1D4);direction:ltr;}
-  .ps-card__cta{display:inline-block;font-size:clamp(.6rem,1.1vw,.8rem);font-weight:700;color:#14343a;
-    background:var(--sadko-teal-deep,#68D1D4);border-radius:999px;padding:5px 14px;margin-top:2%;}
+    font-weight:800;color:var(--sadko-teal-deep,#2E7E88);direction:ltr;}
+  .ps-card__cta{display:inline-block;font-size:clamp(.6rem,1.1vw,.8rem);font-weight:700;color:#fff;
+    background:var(--sadko-teal-deep,#2E7E88);border-radius:999px;padding:5px 14px;margin-top:2%;}
   .ps-card--about{background:linear-gradient(160deg,#f7f2e8,#efe3cd);}
   .ps-card--about .ps-card__img{flex-basis:26%;}
   .ps-card--about .ps-card__price{font-weight:600;color:#5c5142;direction:rtl;font-size:clamp(.62rem,1.1vw,.9rem);line-height:1.5;white-space:normal;}
@@ -233,7 +233,7 @@ function injectPosterCSS() {
   /* slide indicator */
   .ps-dots{position:absolute;left:0;right:0;bottom:4%;display:flex;gap:5px;justify-content:center;pointer-events:none;}
   .ps-dots i{width:5px;height:5px;border-radius:50%;background:rgba(60,40,20,.28);transition:background .2s,transform .2s;}
-  .ps-dots i.is-on{background:var(--sadko-teal-deep,#68D1D4);transform:scale(1.4);}
+  .ps-dots i.is-on{background:var(--sadko-teal-deep,#2E7E88);transform:scale(1.4);}
   html[dir=ltr] .ps-card,html[dir=ltr] .ps-card--about .ps-card__price{direction:ltr;}
   html[dir=ltr] .ps-card__meta{text-align:left;}
   @media (max-width:860px){

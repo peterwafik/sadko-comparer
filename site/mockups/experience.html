@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Mockups: choose how to shop | SADKO</title>
+<link rel="icon" href="../assets/img/sadko-logo-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#2E7E88; --teal-2:#256A73; --teal-text:#2A7779; --tint:#E6F0F1; --tint-2:#EFF6F6;
+  --amber:#fe9800; --ink:#14343a; --ink-soft:#5b6b6e; --bg:#f7f5f1; --line:#e6e2da; --card:#fff;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Cairo','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+a{color:var(--teal-text)}
+.wrap{max-width:1320px;margin:0 auto;padding:28px clamp(16px,3vw,40px) 80px}
+
+/* ---------- page chrome (English, for the team) ---------- */
+.intro{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;margin-bottom:22px}
+.intro h1{font-size:clamp(1.6rem,2.6vw,2.2rem);line-height:1.25;margin:0 0 8px}
+.intro p{margin:0;color:var(--ink-soft);max-width:760px}
+.intro img{width:64px;height:64px}
+.tag{display:inline-block;font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--teal-text);margin-bottom:6px}
+.rec{background:#fff;border:2px solid var(--teal);border-radius:18px;padding:18px 22px;margin:0 0 26px;display:flex;gap:16px;align-items:flex-start}
+.rec b.badge{flex:0 0 auto;background:var(--teal);color:#fff;border-radius:999px;padding:4px 14px;font-size:.85rem}
+.rec p{margin:0}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.tabs button{font:800 1rem 'Cairo',sans-serif;border:2px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:12px 18px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.tabs button span.n{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--tint);color:var(--teal-text);font-size:.9rem}
+.tabs button.on{border-color:var(--teal);background:var(--teal);color:#fff}
+.tabs button.on span.n{background:#fff;color:var(--teal)}
+.tabs button .star{color:var(--amber)}
+.concept{display:none}
+.concept.on{display:block}
+.chead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.chead h2{margin:0;font-size:1.5rem}
+.chead p{margin:2px 0 0;color:var(--ink-soft);max-width:820px}
+.reset{font:800 .95rem 'Cairo',sans-serif;background:#fff;border:2px solid var(--teal);color:var(--teal-text);border-radius:999px;padding:9px 18px;cursor:pointer}
+.reset:hover{background:var(--tint-2)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px;align-items:start}
+.cap{font-size:.8rem;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:22px}
+.note{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.note h3{margin:0 0 6px;font-size:1rem}
+.note ul{margin:0;padding-inline-start:18px}
+.note li{margin:3px 0}
+.note .ar{font-weight:700;color:var(--ink)}
+.note .en{color:var(--ink-soft)}
+.pros li::marker{content:'+  ';color:#17795a;font-weight:900}
+.cons li::marker{content:'-  ';color:#b23b3b;font-weight:900}
+.howto{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 26px;margin-top:34px}
+.howto h2{margin:0 0 10px}
+.howto ol{margin:0;padding-inline-start:22px}
+.howto li{margin:8px 0}
+.howto code{background:var(--tint-2);border-radius:6px;padding:1px 6px;font-size:.9em}
+@media (max-width:980px){.stage{grid-template-columns:1fr}.phone-col{max-width:320px}}
+
+/* ---------- device frames ---------- */
+.dev{position:relative;background:#1e2a2c;border-radius:18px;padding:12px;box-shadow:0 20px 50px rgba(20,52,58,.22)}
+.dev--desk .bar{display:flex;gap:6px;padding:0 4px 9px}
+.dev--desk .bar i{width:10px;height:10px;border-radius:50%;background:#3d4c4f}
+.dev--phone{border-radius:38px;padding:11px}
+.vp{position:relative;overflow:hidden;background:var(--bg);border-radius:8px}
+.dev--phone .vp{border-radius:28px}
+.vp > .scr{position:absolute;top:0;left:0;transform-origin:0 0}
+.dev--desk .scr{width:1280px;height:780px}
+.dev--phone .scr{width:390px;height:820px}
+
+/* ===================== the mocked SADKO screens (Arabic) ===================== */
+.scr{direction:rtl;font-family:'Cairo',sans-serif;color:var(--ink);background:var(--bg);overflow:hidden}
+.scr *{font-family:inherit}
+.scr[dir=ltr]{direction:ltr}
+.view{position:absolute;inset:0;transition:opacity .45s ease}
+.view.hide{opacity:0;pointer-events:none}
+
+/* top strap */
+.strap{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:14px;padding:14px 24px;height:84px}
+.strap--solid{background:#fff;box-shadow:0 2px 12px rgba(20,52,58,.08)}
+.strap--glass{background:linear-gradient(180deg,rgba(247,245,241,.92),rgba(247,245,241,.55))}
+.strap .logo{width:54px;height:54px}
+.strap nav{display:flex;gap:6px;background:#fff;border-radius:999px;padding:6px;box-shadow:0 4px 18px rgba(20,52,58,.08)}
+.strap nav a{font-weight:800;font-size:16px;color:var(--ink);text-decoration:none;padding:9px 14px;border-radius:999px;white-space:nowrap}
+.strap .sp{flex:1}
+.strap .call{background:var(--amber);color:#241a05;font-weight:900;border-radius:999px;padding:12px 20px;font-size:16px;white-space:nowrap}
+.strap .ic{width:46px;height:46px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(20,52,58,.08)}
+.strap .ic svg{width:22px;height:22px}
+
+/* phone strap */
+.pstrap{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;height:68px;background:#fff;box-shadow:0 2px 12px rgba(20,52,58,.08)}
+.pstrap .logo{width:44px;height:44px}
+.pstrap .burger{width:44px;height:44px;border-radius:12px;background:var(--tint-2);display:grid;place-items:center}
+.pstrap .burger svg{width:24px;height:24px}
+
+/* "how do you want to shop" switch: the key control */
+.sw{display:flex;align-items:stretch;background:#fff;border:2px solid var(--teal);border-radius:18px;padding:4px;gap:4px;box-shadow:0 6px 18px rgba(46,126,136,.18)}
+.sw__lab{display:flex;align-items:center;padding:0 12px 0 8px;font-weight:800;font-size:15px;color:var(--teal-text);white-space:nowrap}
+.sw button{position:relative;display:flex;align-items:center;gap:9px;border:0;cursor:pointer;border-radius:13px;padding:10px 18px;font-weight:900;font-size:18px;background:transparent;color:var(--ink);min-height:52px}
+.sw button svg{width:24px;height:24px;flex:0 0 auto}
+.sw button.on{background:var(--teal);color:#fff}
+.sw button.on::after{content:'أنت هنا';position:absolute;top:100%;left:50%;transform:translate(-50%,8px);background:var(--ink);color:#fff;font-size:12px;font-weight:800;border-radius:8px;padding:2px 9px;white-space:nowrap}
+.sw button:not(.on):hover{background:var(--tint)}
+.sw button .tick{display:none}
+.sw button.on .tick{display:inline}
+.sw--wide{width:100%}
+.sw--wide button{flex:1;justify-content:center}
+.sw--wide button.on::after{display:none}
+
+/* home (3D rooms) view */
+.home{background:#d9cfc1 center/cover no-repeat}
+.home::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,52,58,0) 40%,rgba(20,52,58,.45))}
+.home .copy{position:absolute;z-index:2;right:56px;top:46%;transform:translateY(-50%);color:#fff;max-width:440px;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+.home .copy small{display:block;font-weight:800;font-size:20px;opacity:.95}
+.home .copy h3{margin:4px 0 10px;font-size:46px;line-height:1.2}
+.home .copy p{margin:0;font-size:19px;font-weight:600}
+.dot{position:absolute;z-index:2;width:30px;height:30px;border-radius:50%;background:var(--teal);border:3px solid #fff;box-shadow:0 0 0 0 rgba(46,126,136,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}70%{box-shadow:0 0 0 18px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.dock{position:absolute;z-index:3;left:50%;bottom:26px;transform:translateX(-50%);display:flex;gap:6px;background:rgba(255,255,255,.92);border-radius:999px;padding:6px}
+.dock span{font-weight:800;font-size:15px;padding:8px 16px;border-radius:999px}
+.dock span.on{background:var(--teal);color:#fff}
+.phone .home .copy{right:20px;left:20px;top:auto;bottom:150px;transform:none}
+.phone .home .copy h3{font-size:30px}
+.phone .home .copy p{font-size:16px}
+.phone .home::after{background:linear-gradient(180deg,rgba(20,52,58,0) 45%,rgba(20,52,58,.6))}
+
+/* shop (classic) view */
+.shop{padding:108px 40px 40px;background:var(--bg)}
+.shop .search{display:flex;gap:10px;margin-bottom:16px}
+.shop .search div{flex:1;background:#fff;border:1px solid var(--line);border-radius:999px;padding:13px 22px;font-size:17px;color:var(--ink-soft)}
+.shop .search b{background:var(--teal);color:#fff;border-radius:999px;padding:13px 26px;font-size:17px}
+.chips{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.chips span{background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:7px 16px;font-weight:700;font-size:15px}
+.chips span.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pc{background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 10px rgba(20,52,58,.05)}
+.pc .im{height:150px;background:#fff center/contain no-repeat;border-radius:10px;margin-bottom:8px}
+.pc .t{font-weight:700;font-size:14px;line-height:1.45;height:41px;overflow:hidden}
+.pc .p{font-weight:900;color:var(--teal-text);font-size:17px;margin-top:6px}
+.pc .add{margin-top:8px;background:var(--teal);color:#fff;text-align:center;border-radius:10px;padding:7px;font-weight:800;font-size:14px}
+.phone .shop{padding:88px 14px 14px}
+.phone .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+.phone .pc .im{height:110px}
+.phone .chips{flex-wrap:nowrap;overflow:hidden}
+
+/* concept 1: full entrance page */
+.door{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;background:var(--bg);transition:opacity .5s ease}
+.door.hide{opacity:0;pointer-events:none}
+.door__head{text-align:center;padding:26px 20px 12px}
+.door__head img{width:62px;height:62px}
+.door__head h3{margin:6px 0 2px;font-size:38px;line-height:1.3}
+.door__head p{margin:0;font-size:20px;color:var(--ink-soft);font-weight:600}
+.door__pair{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:26px;padding:14px 46px 10px}
+.choice{position:relative;display:flex;flex-direction:column;border:3px solid transparent;background:#fff;border-radius:26px;overflow:hidden;cursor:pointer;text-align:start;padding:0;box-shadow:0 10px 30px rgba(20,52,58,.1);transition:transform .2s,border-color .2s,box-shadow .2s}
+.choice:hover,.choice:focus-visible{transform:translateY(-4px);border-color:var(--teal);box-shadow:0 18px 40px rgba(46,126,136,.25);outline:none}
+.choice .pic{flex:1;min-height:0;background:#ddd center/cover no-repeat;position:relative}
+.choice .pic--shop{background:var(--tint-2);padding:16px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:10px}
+.choice .pic--shop i{aspect-ratio:auto!important}
+.choice .pic--shop i{display:block;background:#fff center/contain no-repeat;border-radius:12px;aspect-ratio:1;box-shadow:0 2px 8px rgba(20,52,58,.06)}
+.choice .txt{padding:14px 22px 18px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center}
+.choice .ico{grid-row:span 2;width:64px;height:64px;border-radius:18px;background:var(--tint);display:grid;place-items:center;color:var(--teal)}
+.choice .ico svg{width:36px;height:36px}
+.choice b{font-size:28px;line-height:1.25}
+.choice span{font-size:17px;color:var(--ink-soft);font-weight:600}
+.choice .go{grid-column:1/-1;margin-top:12px;background:var(--teal);color:#fff;border-radius:16px;padding:14px;text-align:center;font-weight:900;font-size:21px}
+.door__foot{padding:4px 0 16px;text-align:center;font-size:16px;color:var(--ink-soft);font-weight:700}
+.door__foot label{display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+.door__foot input{width:22px;height:22px;accent-color:var(--teal)}
+.phone .door__head{padding:14px 16px 4px}
+.phone .door__head img{width:44px;height:44px}
+.phone .door__head h3{font-size:25px}
+.phone .door__head p{font-size:15px}
+.phone .door__pair{grid-template-columns:1fr;grid-template-rows:1fr 1fr;gap:12px;padding:8px 14px 6px}
+.phone .choice .txt{padding:10px 14px 12px;gap:2px 12px}
+.phone .choice .ico{width:46px;height:46px;border-radius:14px}
+.phone .choice .ico svg{width:26px;height:26px}
+.phone .choice b{font-size:20px}
+.phone .choice span{font-size:13px;line-height:1.45}
+.phone .choice .go{font-size:17px;padding:9px;margin-top:8px;border-radius:12px}
+.phone .choice .pic--shop{grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;align-content:stretch;padding:8px 10px;gap:6px}
+.phone .choice .pic--shop i{aspect-ratio:auto}
+.phone .door__foot{font-size:13.5px;padding:2px 0 12px}
+
+/* concept 2: welcome card over the live house */
+.veil{position:absolute;inset:0;z-index:20;background:rgba(20,52,58,.55);display:grid;place-items:center;transition:opacity .45s}
+.veil.hide{opacity:0;pointer-events:none}
+.wcard{background:#fff;border-radius:28px;padding:30px 34px 26px;width:760px;box-shadow:0 30px 70px rgba(0,0,0,.3);text-align:center}
+.wcard h3{margin:0 0 2px;font-size:32px}
+.wcard p.sub{margin:0 0 20px;color:var(--ink-soft);font-size:18px;font-weight:600}
+.wbtns{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.wbtn{display:flex;flex-direction:column;align-items:center;gap:8px;border:3px solid var(--line);background:#fff;border-radius:22px;padding:22px 16px;cursor:pointer;transition:.18s}
+.wbtn:hover{border-color:var(--teal);background:var(--tint-2)}
+.wbtn .ico{width:72px;height:72px;border-radius:20px;background:var(--tint);display:grid;place-items:center;color:var(--teal)}
+.wbtn .ico svg{width:40px;height:40px}
+.wbtn b{font-size:24px;display:block}
+.wbtn span{font-size:16px;color:var(--ink-soft);font-weight:600;line-height:1.5}
+.wbtn.pri{border-color:var(--teal)}
+.wcard .later{margin-top:14px;font-size:15px;color:var(--ink-soft);font-weight:700}
+.phone .wcard{width:350px;padding:22px 18px 18px;border-radius:24px}
+.phone .wcard h3{font-size:23px}
+.phone .wcard p.sub{font-size:14.5px;margin-bottom:14px}
+.phone .wbtns{grid-template-columns:1fr;gap:10px}
+.phone .wbtn{flex-direction:row;text-align:start;padding:12px 14px;gap:12px}
+.phone .wbtn .ico{width:52px;height:52px;flex:0 0 auto}
+.phone .wbtn .ico svg{width:30px;height:30px}
+.phone .wbtn b{font-size:19px;display:block}
+.phone .wbtn span{font-size:13px}
+.phone .wcard .later{font-size:13px}
+
+/* concept 3 phone: switch row under the header */
+.subbar{position:absolute;top:68px;left:0;right:0;z-index:4;padding:10px 12px;background:rgba(255,255,255,.96);box-shadow:0 4px 12px rgba(20,52,58,.06)}
+.subbar .sw button{font-size:17px;min-height:50px;padding:8px 10px}
+.phone.c3 .shop{padding-top:160px}
+.phone.c3 .home .copy{bottom:120px}
+
+/* concept 4: floating button (desktop) + bottom tabs (phone) */
+.fab{position:absolute;z-index:8;left:28px;bottom:28px;display:flex;align-items:center;gap:12px;background:var(--teal);color:#fff;border:3px solid #fff;border-radius:22px;padding:12px 22px 12px 16px;box-shadow:0 14px 34px rgba(20,52,58,.35);cursor:pointer;text-align:start}
+.fab .ico{width:50px;height:50px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.fab .ico svg{width:30px;height:30px}
+.fab small{display:block;font-size:14px;font-weight:700;opacity:.9}
+.fab b{display:block;font-size:21px;line-height:1.25}
+.fab:hover{background:var(--teal-2)}
+.tabbar{position:absolute;z-index:8;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr;background:#fff;box-shadow:0 -6px 18px rgba(20,52,58,.12);padding:8px 10px 14px;gap:8px}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;border-radius:16px;padding:8px 4px;font-weight:900;font-size:17px;color:var(--ink);cursor:pointer}
+.tabbar button svg{width:28px;height:28px}
+.tabbar button.on{background:var(--teal);color:#fff}
+.tabbar button small{font-size:11.5px;font-weight:700;opacity:.85}
+.phone.c4 .shop{padding-bottom:110px}
+.phone.c4 .home .copy,.phone.c5 .home .copy{bottom:120px}
+.phone.c4 .dock,.phone.c5 .dock{display:none}
+
+/* toast */
+.toast{position:absolute;z-index:30;top:100px;left:50%;transform:translate(-50%,-14px);background:var(--ink);color:#fff;font-weight:800;font-size:18px;border-radius:14px;padding:12px 22px;opacity:0;transition:.3s;white-space:nowrap;display:flex;gap:10px;align-items:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+/* ===== ★ the morphing house bar: a house (roof, chimney, walls) holding the rooms, beside the shop ===== */
+.mhome{background:#d9cfc1 center/cover no-repeat;transition:background-image .6s ease}
+.mhome::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,52,58,0) 40%,rgba(20,52,58,.45))}
+.mhome .copy{position:absolute;z-index:2;right:56px;top:42%;transform:translateY(-50%);color:#fff;max-width:460px;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+.mhome .copy small{display:block;font-weight:800;font-size:20px}
+.mhome .copy h3{margin:4px 0 10px;font-size:46px;line-height:1.2}
+.mhome .copy p{margin:0;font-size:19px;font-weight:600}
+.scr[dir=ltr] .mhome::after{background:linear-gradient(270deg,rgba(20,52,58,0) 40%,rgba(20,52,58,.45))}
+.scr[dir=ltr] .mhome .copy{right:auto;left:56px}
+.phone .mhome::after,.phone.scr[dir=ltr] .mhome::after{background:linear-gradient(180deg,rgba(20,52,58,0) 40%,rgba(20,52,58,.65))}
+.phone .mhome .copy,.phone.scr[dir=ltr] .mhome .copy{right:20px;left:20px;top:auto;bottom:150px;transform:none}
+.phone .mhome .copy h3{font-size:29px}
+.phone .mhome .copy p{font-size:15.5px}
+.mshop{padding-bottom:150px}
+.mshop .chips span{cursor:pointer;white-space:nowrap}
+.phone .mshop{padding-bottom:130px}
+
+.mbwrap{position:absolute;z-index:9;left:0;right:0;bottom:20px;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.mb{pointer-events:auto;display:flex;align-items:flex-end;gap:12px;transform-origin:50% 100%;white-space:nowrap;filter:drop-shadow(0 12px 20px rgba(20,52,58,.32))}
+.mb [hidden]{display:none!important}
+
+/* the house */
+.mh{position:relative;display:flex;flex-direction:column;background:none;border:0;padding:0;font-family:inherit;color:inherit;cursor:default;text-align:center}
+.mh.is-off{cursor:pointer}
+.mh__roof{position:relative;height:26px;margin:0 12px -2.5px;pointer-events:none;transform-origin:50% 100%}
+.mh__roof svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;color:var(--teal);transition:color .35s}
+.mh__roof path{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.mh.is-off .mh__roof svg{color:var(--amber)}
+.mh__smoke{position:absolute;left:0;top:0;width:7px;height:7px;margin:-10px 0 0 -3.5px}
+.mh__smoke i{position:absolute;left:0;top:0;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 0 0 1px rgba(20,52,58,.15);opacity:0}
+.mh.is-on .mh__smoke i{animation:smoke 2.6s ease-out infinite}
+.mh.is-on .mh__smoke i:nth-child(2){animation-delay:.85s}
+.mh.is-on .mh__smoke i:nth-child(3){animation-delay:1.7s}
+@keyframes smoke{0%{opacity:0;transform:translate(0,0) scale(.5)}20%{opacity:.9}100%{opacity:0;transform:translate(6px,-16px) scale(1.5)}}
+.mh__walls{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;background:#fff;border:3.5px solid var(--teal);border-radius:20px;padding:2px 6px;min-height:64px;overflow:hidden;transition:border-color .35s,background-color .35s}
+.mh__rooms{display:flex;gap:4px;align-items:center}
+
+.mh__door{display:flex;align-items:center;color:#241a05;padding-inline-start:4px}
+.mh__door svg{width:24px;height:28px}
+.mh__tag{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;padding:0 10px 0 6px;color:var(--teal-text)}
+.mh__tag small{font-size:12.5px;font-weight:800;opacity:.85}
+.mh__tag b{font-size:19px;font-weight:900}
+.mh.is-on .mh__tag{border-inline-end:2px solid var(--tint);margin-inline-end:4px;padding-inline-end:14px}
+.mh.is-off .mh__tag{color:#241a05;padding:0}
+.mh.is-off .mh__walls{border-color:var(--amber)}
+.mh.is-off:hover .mh__walls{background:#fff6e6}
+
+.mb__opt{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;cursor:pointer;border-radius:16px;padding:11px 16px;font:800 17px 'Cairo',sans-serif;color:var(--ink);min-height:52px}
+.mb__opt em{font-style:normal;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--tint);color:var(--teal-text);font-size:13px;font-weight:900}
+.mb__opt:hover{background:var(--tint-2)}
+.mb__opt.on{background:var(--tint);color:var(--teal-text);box-shadow:inset 0 0 0 2px var(--teal)}
+.mb__opt.on em{background:var(--teal);color:#fff}
+
+/* the shop end */
+.ms{display:flex;align-items:center;gap:10px;border:0;cursor:pointer;border-radius:20px;padding:8px 18px 8px 14px;min-height:64px;font-family:inherit;background:var(--amber);color:#241a05;transition:background-color .35s,color .35s}
+.ms svg{width:28px;height:28px;flex:0 0 auto}
+.ms__lab{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
+.ms__lab small{font-size:12.5px;font-weight:800;opacity:.85}
+.ms__lab b{font-size:19px;font-weight:900}
+.ms.is-on{background:var(--teal);color:#fff;cursor:default}
+.ms:not(.is-on):hover{background:#ffad33}
+
+.mhint{position:relative;margin-bottom:22px;background:var(--ink);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:9px 18px;opacity:0;transform:translateY(8px);transition:.35s;white-space:nowrap}
+.mhint::after{content:'';position:absolute;left:50%;bottom:-8px;margin-left:-9px;border:9px solid transparent;border-bottom:0;border-top-color:var(--ink)}
+.mhint.show{opacity:1;transform:none}
+
+.phone .mbwrap{bottom:12px}
+.phone .mb{gap:5px}
+.phone .mh__roof{height:20px;margin:0 9px -2px}
+.phone .mh__roof path{stroke-width:4}
+.phone .mh__tag{padding:0 3px}
+.phone .mh.is-on .mh__tag{padding-inline-end:6px;margin-inline-end:0}
+.phone .mh__tag small{font-size:9.5px}
+.phone .mh__tag b{font-size:13.5px}
+.phone .mh__walls{padding:2px 3px;min-height:62px;border-radius:16px;border-width:3px}
+.phone .mb__opt{padding:8px 5px;font-size:14px;min-height:48px;border-radius:13px}
+.phone .mb__opt em{display:none}
+.phone .mh__door svg{width:18px;height:22px}
+.phone .ms{flex-direction:column;gap:0;padding:6px 8px;min-height:62px;border-radius:16px}
+.phone .ms svg{width:24px;height:24px}
+.phone .ms__lab{align-items:center}
+.phone .ms__lab small{font-size:10px}
+.phone .ms__lab b{font-size:13px}
+.phone .mhint{font-size:13px;padding:7px 12px;white-space:normal;text-align:center;max-width:300px;margin-bottom:18px}
+.mlang{display:inline-flex;border:2px solid var(--teal);border-radius:999px;overflow:hidden;margin-inline-end:10px}
+.mlang button{font:800 .95rem 'Cairo',sans-serif;border:0;background:#fff;color:var(--teal-text);padding:8px 16px;cursor:pointer}
+.mlang button.on{background:var(--teal);color:#fff}
+@media (prefers-reduced-motion:reduce){.mh.is-on .mh__smoke i{animation:none}}
+
+.phone .toast{top:150px;font-size:14px;padding:9px 14px;white-space:normal;width:330px;text-align:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="intro">
+    <div>
+      <span class="tag">Mockups for review · not linked from the live site</span>
+      <h1>Let every visitor choose how to shop, and switch back with one press</h1>
+      <p>SADKO has two ways to shop: the <b>3D house</b>, where you walk through rooms and tap an appliance, and the <b>classic shop</b>, which is a normal product list with search and filters. Below are four ways to offer that choice. Each frame works: press the buttons inside it. Use “Start over” to see it again as a first visit. The screens are in Arabic as on the real site; the notes under each one give the English wording.</p>
+    </div>
+    <img src="../assets/img/sadko-logo-256.png" alt="SADKO">
+  </header>
+
+  <div class="rec">
+    <b class="badge">Recommended</b>
+    <p><b>The welcome card (idea 2), then one bottom bar that is both the room menu and the switch.</b> The three rooms sit inside a little house drawn around them: a low V roof, a small chimney and walls, with “Home view” written inside the walls beside the rooms. Beside it is the “Shop view” button. Press “Shop view” and the rooms leave, the house squishes down to a small house, and the bar stays compact for as long as you are in the shop. Press the small house and it springs back open with the rooms inside.</p>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="on" data-c="c5"><span class="n star">★</span>Card + house bar (recommended)</button>
+    <button data-c="c1"><span class="n">1</span>Welcome page</button>
+    <button data-c="c2"><span class="n">2</span>Welcome card over the house</button>
+    <button data-c="c3"><span class="n">3</span>Switch in the top bar</button>
+    <button data-c="c4"><span class="n">4</span>Floating button + phone bar</button>
+  </div>
+
+  <!-- ===== concept sections; frames are filled by script ===== -->
+  <section class="concept" id="c1">
+    <div class="chead">
+      <div><h2>1. A welcome page with two big doors</h2>
+      <p>The first visit opens a full page with only two choices: large pictures, large words, one button each. Nothing else competes for attention. Choose one and you go straight in.</p></div>
+      <button class="reset" data-reset="c1">↺ Start over (first visit)</button>
+    </div>
+    <div class="stage"><div><p class="cap">Desktop</p><div data-frame="desk" data-concept="c1"></div></div>
+      <div class="phone-col"><p class="cap">Phone</p><div data-frame="phone" data-concept="c1"></div></div></div>
+    <div class="notes">
+      <div class="note"><h3>Wording</h3><ul>
+        <li><span class="ar">أهلاً بك في صادكو. كيف تحب أن تتسوق؟</span><br><span class="en">Welcome to SADKO. How would you like to shop?</span></li>
+        <li><span class="ar">تجوّل في البيت</span> · <span class="en">Walk through the house</span></li>
+        <li><span class="ar">تسوّق بالطريقة العادية</span> · <span class="en">Shop the usual way</span></li>
+        <li><span class="ar">تذكّر اختياري</span> · <span class="en">Remember my choice</span></li></ul></div>
+      <div class="note pros"><h3>Strengths</h3><ul><li>The clearest option: it is impossible to miss.</li><li>Pictures explain the difference before any words are read.</li><li>Very large targets, good for older visitors and shaky hands.</li></ul></div>
+      <div class="note cons"><h3>Watch out</h3><ul><li>One extra step before shopping, so show it only on the first visit.</li><li>On its own it does not help someone switch later. Pair it with idea 3 or 4.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="concept" id="c2">
+    <div class="chead">
+      <div><h2>2. A welcome card over the moving house</h2>
+      <p>The house loads behind a soft dark layer, so visitors already see what the 3D option looks like. A card in the middle asks the same question with two big buttons.</p></div>
+      <button class="reset" data-reset="c2">↺ Start over (first visit)</button>
+    </div>
+    <div class="stage"><div><p class="cap">Desktop</p><div data-frame="desk" data-concept="c2"></div></div>
+      <div class="phone-col"><p class="cap">Phone</p><div data-frame="phone" data-concept="c2"></div></div></div>
+    <div class="notes">
+      <div class="note"><h3>Wording</h3><ul>
+        <li><span class="ar">كيف تحب أن تتسوق اليوم؟</span><br><span class="en">How would you like to shop today?</span></li>
+        <li><span class="ar">تقدر تغيّر رأيك في أي وقت من الزر أعلى الصفحة</span><br><span class="en">You can change your mind any time with the button at the top of the page</span></li></ul></div>
+      <div class="note pros"><h3>Strengths</h3><ul><li>Lighter than a full page; the house still makes its first impression.</li><li>Takes less work to build: it sits on the current home page.</li></ul></div>
+      <div class="note cons"><h3>Watch out</h3><ul><li>Some people close pop-ups by reflex without reading them.</li><li>The house has to load first, which is slower on weak phones.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="concept" id="c3">
+    <div class="chead">
+      <div><h2>3. A labelled switch in the top bar, on every page</h2>
+      <p>One control, always in the same place: “طريقة التسوق” (Way of shopping) followed by two buttons, each with an icon and a word. The current one is filled in teal and marked “أنت هنا” (You are here). One press moves you to the other experience.</p></div>
+      <button class="reset" data-reset="c3">↺ Reset</button>
+    </div>
+    <div class="stage"><div><p class="cap">Desktop</p><div data-frame="desk" data-concept="c3"></div></div>
+      <div class="phone-col"><p class="cap">Phone</p><div data-frame="phone" data-concept="c3"></div></div></div>
+    <div class="notes">
+      <div class="note"><h3>Wording</h3><ul>
+        <li><span class="ar">طريقة التسوق:</span> · <span class="en">Way of shopping:</span></li>
+        <li><span class="ar">البيت</span> · <span class="en">The house</span> &nbsp;|&nbsp; <span class="ar">المتجر</span> · <span class="en">The shop</span></li>
+        <li><span class="ar">أنت هنا</span> · <span class="en">You are here</span></li></ul></div>
+      <div class="note pros"><h3>Strengths</h3><ul><li>Always visible, so nobody has to remember where it is.</li><li>Each option has an icon and a word, with no symbol-only buttons.</li><li>Works the same way on all 25 pages.</li></ul></div>
+      <div class="note cons"><h3>Watch out</h3><ul><li>Takes space in an already full top bar. Phones need a row of their own under the header.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="concept" id="c4">
+    <div class="chead">
+      <div><h2>4. A big floating button (desktop) and a bottom bar (phone)</h2>
+      <p>Desktop: a large teal button in the corner names the other experience, for example “غيّر إلى: المتجر العادي” (Switch to: the classic shop). Phone: a two-tab bar at the bottom, where thumbs already rest, like the apps people use every day.</p></div>
+      <button class="reset" data-reset="c4">↺ Reset</button>
+    </div>
+    <div class="stage"><div><p class="cap">Desktop</p><div data-frame="desk" data-concept="c4"></div></div>
+      <div class="phone-col"><p class="cap">Phone</p><div data-frame="phone" data-concept="c4"></div></div></div>
+    <div class="notes">
+      <div class="note"><h3>Wording</h3><ul>
+        <li><span class="ar">غيّر طريقة التسوق</span> · <span class="en">Change how you shop</span></li>
+        <li><span class="ar">إلى المتجر العادي</span> · <span class="en">To the classic shop</span></li>
+        <li><span class="ar">إلى التجول في البيت</span> · <span class="en">To walking through the house</span></li></ul></div>
+      <div class="note pros"><h3>Strengths</h3><ul><li>The phone bar is the most familiar pattern for people who use WhatsApp, Facebook and other apps.</li><li>Always within thumb reach.</li></ul></div>
+      <div class="note cons"><h3>Watch out</h3><ul><li>The floating button can cover content. Keep it small on narrow screens and away from the cart.</li><li>The site already has a room bar at the bottom of the house; the two must not stack.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="concept on" id="c5">
+    <div class="chead">
+      <div><h2>★ Welcome card + the house-shaped bottom bar</h2>
+      <p>First visit: the welcome card asks the question over the house. After that, the bar at the bottom is the switch. In the home, the rooms live inside a house with a roof, chimney and walls, labelled “Home view”. In the shop, the house shrinks to a small closed house with a door, and no rooms are shown. Pressing it opens the house back up.</p></div>
+      <div><span class="mlang"><button data-lang="en" class="on">English</button><button data-lang="ar">عربي</button></span><button class="reset" data-reset="c5">↺ Start over (first visit)</button></div>
+    </div>
+    <div class="stage"><div><p class="cap">Desktop</p><div data-morph="desk"></div></div>
+      <div class="phone-col"><p class="cap">Phone</p><div data-morph="phone"></div></div></div>
+    <div class="notes">
+      <div class="note"><h3>Try this</h3><ul><li>Choose an option on the card.</li><li>Press a room inside the house: the picture changes.</li><li>Press the amber “Shop view” button: the rooms leave and the house squishes down.</li><li>Press the small amber house to open it again.</li></ul></div>
+      <div class="note"><h3>Wording (English · Arabic)</h3><ul>
+        <li><span class="en">Home view</span> · <span class="ar">عرض البيت</span> (inside the walls, beside the rooms)</li>
+        <li><span class="en">Shop view</span> · <span class="ar">عرض المتجر</span></li>
+        <li><span class="en">You are here</span> · <span class="ar">أنت هنا</span> &nbsp;/&nbsp; <span class="en">Go to</span> · <span class="ar">انتقل إلى</span></li>
+        <li><span class="en">From here you move between the home and the shop</span><br><span class="ar">من هنا تنتقل بين البيت والمتجر</span> (shown once)</li></ul></div>
+      <div class="note pros"><h3>Why it suits older visitors</h3><ul><li>The house shape says “home” before any word is read, and the rooms are visibly inside it.</li><li>In the shop, the bar is small and calm: one house to go back, nothing else.</li><li>Teal means “you are here”, amber means “go there”, and both always carry words.</li><li>The house and the shop button never swap places.</li></ul></div>
+      <div class="note cons"><h3>Notes for building it</h3><ul><li>The motion lasts about 0.7 s and is skipped for people who turn on “reduce motion”. The chimney smoke stops too.</li><li>The shop's categories now sit at the top of the shop page, not in the bar.</li><li>It replaces today's room bar. Today's fourth button, “المتجر”, becomes “Shop view”.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="howto">
+    <h2>How we would build it on the real site</h2>
+    <ol>
+      <li><b>Remember the choice.</b> Save <code>sadko-mode = house | shop</code> in the browser (localStorage, the same way the language choice is saved). There is no account needed.</li>
+      <li><b>Welcome page.</b> On the home page, if no choice is saved yet, show the welcome page before the house starts loading. Choosing “Shop the usual way” opens <code>shop.html</code>; choosing the house starts the 3D tour. The “Remember my choice” tick is on by default.</li>
+      <li><b>Returning visitors.</b> If the saved choice is “shop”, opening the home page goes straight to the shop. A link such as <code>index.html?house</code> always opens the house, so the switch and shared links keep working.</li>
+      <li><b>The switch.</b> Add it once in <code>nav.js</code>, the top bar shared by every page, so it appears on all pages with one change. On phones it becomes the bottom bar.</li>
+      <li><b>Nothing is lost.</b> The cart, saved items and language stay the same in both experiences, because they are already shared across the site.</li>
+      <li><b>Measure it.</b> Count how many people pick each door and how often they switch, using the analytics we already have, then adjust the default.</li>
+      <li><b>Admin option.</b> A setting in the admin portal can turn the welcome page on or off and choose which experience is the default.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const IMG = '../assets/img/';
+  const PRODUCTS = [
+    {t:'مبرد مياه باناسونيك 3 حنفية ب/س خزان مقاوم',p:9999,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/products/708468619/4633049037.jpg'},
+    {t:'ميكروويف فريش 36 لتر سيلفر سولو',p:7549,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/products/586202765/5745569535.jpg'},
+    {t:'ميكروويف شارب سولو 28 لتر 1100 وات',p:9489,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/4798900309.jpg'},
+    {t:'مكواة ملابس سوكانى 2200 وات',p:1125,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/products/791003507/5292429258.webp'},
+    {t:'كبة سوكانى استانلس 6.5 لتر 1500 وات',p:2188,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/products/823225261/5652376340.webp'},
+    {t:'فرن فريش 5 شعلة 90 سم أمان كامل',p:22275,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/products/683166898/4448819712.webp'},
+    {t:'ثلاجة كريازى 16 قدم نوفروست',p:32044,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/products/236629437/1663089440.jpg'},
+    {t:'ثلاجة تورنيدو ميني بار 100 لتر',p:11839,i:'https://d2j6dbq0eux0bg.cloudfront.net/images/18028328/5070768086.jpg'}
+  ];
+  const fmt = n => n.toLocaleString('ar-EG') + ' ج.م';
+
+  const I = {
+    house:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg>',
+    grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
+    tick:'<svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    cart:'<svg viewBox="0 0 24 24" fill="none" stroke="#14343a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h3l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.5a1.5 1.5 0 0 0 1.5-1.1L21 8H6.3"/></svg>',
+    user:'<svg viewBox="0 0 24 24" fill="none" stroke="#14343a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+    burger:'<svg viewBox="0 0 24 24" fill="none" stroke="#14343a" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h13a4 4 0 0 1 4 4"/><path d="m17 20 4-4-4-4"/><path d="M21 16H8a4 4 0 0 1-4-4"/></svg>'
+  };
+  const L = { house:'البيت', shop:'المتجر' };
+
+  /* one switch: label + two buttons, current one filled and marked "you are here" */
+  const switchHTML = (mode, wide) =>
+    '<div class="sw'+(wide?' sw--wide':'')+'">' + (wide ? '' : '<span class="sw__lab">طريقة التسوق:</span>') +
+    '<button data-go="house" class="'+(mode==='house'?'on':'')+'">'+I.house+'<span>'+L.house+'</span>'+I.tick+'</button>' +
+    '<button data-go="shop" class="'+(mode==='shop'?'on':'')+'">'+I.grid+'<span>'+L.shop+'</span>'+I.tick+'</button></div>';
+
+  function homeView(phone){
+    return '<div class="view home" data-view="house" style="background-image:url('+IMG+(phone?'m_living_v6.jpg':'still_1v8.jpg')+')">' +
+      '<div class="copy"><small>غرفة المعيشة</small><h3>اضغط على أي جهاز في الغرفة</h3><p>شاهد التكييف والتلفزيون والمراوح في مكانها الحقيقي.</p></div>' +
+      (phone ? '<i class="dot" style="top:36%;left:30%"></i><i class="dot" style="top:52%;left:62%"></i>'
+             : '<i class="dot" style="top:30%;left:22%"></i><i class="dot" style="top:55%;left:40%"></i><i class="dot" style="top:44%;left:58%"></i>') +
+      '<div class="dock"><span class="on">المعيشة</span><span>المطبخ</span><span>الغسيل</span><span>العائلة</span></div></div>';
+  }
+  function shopView(phone){
+    const items = PRODUCTS.slice(0, phone ? 6 : 8).map(p =>
+      '<div class="pc"><div class="im" style="background-image:url('+p.i+')"></div><div class="t">'+p.t+'</div><div class="p">'+fmt(p.p)+'</div><div class="add">أضف للسلة</div></div>').join('');
+    return '<div class="view shop" data-view="shop"><div class="search"><div>ابحث في منتجات صادكو...</div><b>بحث</b></div>' +
+      '<div class="chips"><span class="on">الكل</span><span>ثلاجات</span><span>تكييف</span><span>شاشات</span><span>مطبخ</span><span>غسالات</span></div>' +
+      '<div class="grid">'+items+'</div></div>';
+  }
+  function deskStrap(c, mode){
+    const glass = mode === 'house';
+    const sw = (c==='c3'||c==='c5') ? switchHTML(mode) : '';
+    return '<div class="strap '+(glass?'strap--glass':'strap--solid')+'"><img class="logo" src="'+IMG+'sadko-logo-256.png" alt="">' +
+      '<nav><a>الرئيسية</a><a>المتجر</a><a>ساعدني أختار</a><a>تواصل معنا</a></nav><span class="sp"></span>' + sw +
+      '<span class="ic">'+I.user+'</span><span class="ic">'+I.cart+'</span><span class="call">اتصل 19140</span></div>';
+  }
+  function phoneStrap(){
+    return '<div class="pstrap"><img class="logo" src="'+IMG+'sadko-logo-256.png" alt=""><span class="burger">'+I.burger+'</span></div>';
+  }
+  const shopThumbs = n => PRODUCTS.slice(0,n).map(p=>'<i style="background-image:url('+p.i+')"></i>').join('');
+
+  function doorHTML(phone){
+    return '<div class="door" data-gate>' +
+      '<div class="door__head"><img src="'+IMG+'sadko-logo-256.png" alt=""><h3>أهلاً بك في صادكو. كيف تحب أن تتسوق؟</h3><p>اختر طريقة، وتقدر تغيّرها في أي وقت بضغطة واحدة.</p></div>' +
+      '<div class="door__pair">' +
+        '<button class="choice" data-go="house"><div class="pic" style="background-image:url('+IMG+(phone?'still_1v8.jpg':'still_1v8.jpg')+')"></div>' +
+          '<div class="txt"><span class="ico">'+I.house+'</span><b>تجوّل في البيت</b><span>شاهد الأجهزة داخل غرف حقيقية واضغط على ما يعجبك.</span><div class="go">ادخل البيت</div></div></button>' +
+        '<button class="choice" data-go="shop"><div class="pic pic--shop">'+shopThumbs(phone?8:6)+'</div>' +
+          '<div class="txt"><span class="ico">'+I.grid+'</span><b>تسوّق بالطريقة العادية</b><span>كل المنتجات في قائمة واحدة مع البحث والأسعار.</span><div class="go">ادخل المتجر</div></div></button>' +
+      '</div><div class="door__foot"><label><input type="checkbox" checked> تذكّر اختياري في المرة القادمة</label></div></div>';
+  }
+  function cardHTML(){
+    return '<div class="veil" data-gate><div class="wcard"><h3>كيف تحب أن تتسوق اليوم؟</h3><p class="sub">اختر طريقة واحدة. الاثنان فيهم نفس المنتجات والأسعار.</p>' +
+      '<div class="wbtns"><button class="wbtn pri" data-go="house"><span class="ico">'+I.house+'</span><div><b>تجوّل في البيت</b><span>غرف حقيقية، اضغط على الجهاز</span></div></button>' +
+      '<button class="wbtn" data-go="shop"><span class="ico">'+I.grid+'</span><div><b>تسوّق بالطريقة العادية</b><span>قائمة منتجات مع البحث</span></div></button></div>' +
+      '<p class="later">تقدر تغيّر رأيك في أي وقت من الزر أعلى الصفحة</p></div></div>';
+  }
+  function fabHTML(mode){
+    const other = mode === 'house' ? 'shop' : 'house';
+    return '<button class="fab" data-go="'+other+'"><span class="ico">'+(other==='shop'?I.grid:I.house)+'</span><span><small>غيّر طريقة التسوق</small><b>'+(other==='shop'?'إلى المتجر العادي':'إلى التجول في البيت')+'</b></span></button>';
+  }
+  function tabbarHTML(mode){
+    return '<div class="tabbar">' +
+      '<button data-go="house" class="'+(mode==='house'?'on':'')+'">'+I.house+'<span>'+L.house+'</span><small>'+(mode==='house'?'أنت هنا':'التجول في الغرف')+'</small></button>' +
+      '<button data-go="shop" class="'+(mode==='shop'?'on':'')+'">'+I.grid+'<span>'+L.shop+'</span><small>'+(mode==='shop'?'أنت هنا':'كل المنتجات')+'</small></button></div>';
+  }
+
+  /* -------- a frame = one device showing one concept, with its own state -------- */
+  const frames = [];
+  function Frame(host){
+    const device = host.dataset.frame, c = host.dataset.concept, phone = device === 'phone';
+    host.innerHTML = '<div class="dev dev--'+device+'">' + (phone ? '' : '<div class="bar"><i></i><i></i><i></i></div>') +
+      '<div class="vp"><div class="scr '+(phone?'phone ':'')+c+'"></div></div></div>';
+    const vp = host.querySelector('.vp'), scr = host.querySelector('.scr');
+    const W = phone ? 390 : 1280, H = phone ? 820 : 780;
+    const st = { mode: 'house', gate: c==='c1'||c==='c2'||c==='c5', toast: '' };
+    function fit(){ const s = vp.clientWidth / W; scr.style.transform = 'scale('+s+')'; vp.style.height = (H*s)+'px'; }
+    function render(){
+      const m = st.mode;
+      let h = homeView(phone).replace('class="view home"', 'class="view home'+(m==='house'?'':' hide')+'"') +
+              shopView(phone).replace('class="view shop"', 'class="view shop'+(m==='shop'?'':' hide')+'"');
+      h += phone ? phoneStrap() : deskStrap(c, m);
+      if (phone && c==='c3') h += '<div class="subbar">'+switchHTML(m, true)+'</div>';
+      if (c==='c4' && !phone) h += fabHTML(m);
+      if ((c==='c4' || c==='c5') && phone) h += tabbarHTML(m);
+      if (st.gate) h += (c==='c2') ? cardHTML() : doorHTML(phone);
+      h += '<div class="toast'+(st.toast?' show':'')+'">'+I.tick.replace('class="tick"','width="22" height="22"')+'<span>'+(st.toast||'')+'</span></div>';
+      scr.innerHTML = h;
+    }
+    scr.addEventListener('click', e => {
+      const b = e.target.closest('[data-go]'); if (!b) return;
+      const to = b.dataset.go, fromGate = st.gate;
+      if (!fromGate && to === st.mode) { flash('أنت بالفعل في '+(to==='house'?'البيت':'المتجر')); return; }
+      st.mode = to; st.gate = false;
+      flash(fromGate ? 'تمام! سنتذكر اختيارك في المرة القادمة' : (to==='house'?'أهلاً بك في البيت':'أهلاً بك في المتجر'));
+    });
+    let tid;
+    function flash(msg){ st.toast = msg; render(); clearTimeout(tid); tid = setTimeout(()=>{ st.toast=''; const t=scr.querySelector('.toast'); t && t.classList.remove('show'); }, 2200); }
+    this.reset = () => { st.mode = 'house'; st.gate = c==='c1'||c==='c2'||c==='c5'; st.toast=''; render(); };
+    this.concept = c; this.fit = fit;
+    render(); fit();
+    new ResizeObserver(fit).observe(vp);
+  }
+  document.querySelectorAll('[data-frame]').forEach(h => frames.push(new Frame(h)));
+
+  /* ================= ★ welcome card + morphing house bar ================= */
+  const MT = {
+    ar: {
+      dir:'rtl', home:'عرض البيت', shop:'عرض المتجر', here:'أنت هنا', go:'انتقل إلى',
+      rooms:[
+        {n:'المعيشة', eb:'غرفة المعيشة', h:'اضغط على أي جهاز في الغرفة', p:'شاهد التكييف والتلفزيون والمراوح في مكانها الحقيقي.'},
+        {n:'المطبخ', eb:'المطبخ', h:'أجهزة المطبخ في مكانها', p:'ثلاجات وبوتاجازات وميكروويف كما ستبدو عندك.'},
+        {n:'الغسيل', eb:'غرفة الغسيل', h:'الغسالات والمكاوي', p:'اختر الغسالة المناسبة لمساحتك.'}],
+      cats:['الكل','ثلاجات','مطبخ','أجهزة صغيرة'],
+      nav:['الرئيسية','المتجر','ساعدني أختار','تواصل معنا'], call:'اتصل 19140',
+      search:'ابحث في منتجات صادكو...', searchBtn:'بحث', add:'أضف للسلة',
+      price: n => n.toLocaleString('ar-EG') + ' ج.م',
+      titles: PRODUCTS.map(p => p.t),
+      cardH:'كيف تحب أن تتسوق اليوم؟', cardSub:'اختر طريقة واحدة. الاثنان فيهم نفس المنتجات والأسعار.',
+      optHome:'تجوّل في البيت', optHomeSub:'غرف حقيقية، اضغط على الجهاز', optShop:'تسوّق بالطريقة العادية', optShopSub:'قائمة منتجات مع البحث',
+      later:'تقدر تغيّر رأيك في أي وقت من الشريط أسفل الشاشة',
+      hint:'من هنا تنتقل بين البيت والمتجر', saved:'تمام! سنتذكر اختيارك في المرة القادمة', toHome:'رجعت إلى البيت', toShop:'أهلاً بك في المتجر'
+    },
+    en: {
+      dir:'ltr', home:'Home view', shop:'Shop view', here:'You are here', go:'Go to',
+      rooms:[
+        {n:'Living room', s:'Living', eb:'Living room', h:'Tap any appliance in the room', p:'See the AC, TV and fans where they really go.'},
+        {n:'Kitchen', eb:'Kitchen', h:'Kitchen appliances in place', p:'Fridges, cookers and microwaves as they would look at home.'},
+        {n:'Laundry', eb:'Laundry room', h:'Washers and irons', p:'Pick the washer that fits your space.'}],
+      cats:['All','Fridges','Kitchen','Small appliances'],
+      nav:['Home','Shop','Help me choose','Contact us'], call:'Call 19140',
+      search:'Search SADKO products...', searchBtn:'Search', add:'Add to cart',
+      price: n => 'EGP ' + n.toLocaleString('en-US'),
+      titles:['Panasonic water dispenser, 3 taps, hot/cold','Fresh microwave 36 L, silver, solo','Sharp solo microwave 28 L, 1100 W','Sokany steam iron 2200 W','Sokany stainless chopper 6.5 L, 1500 W','Fresh gas cooker, 5 burners, 90 cm','Kiriazi fridge 16 ft, no frost','Tornado mini-bar fridge 100 L'],
+      cardH:'How would you like to shop today?', cardSub:'Pick one. Both have the same products and prices.',
+      optHome:'Walk through the home', optHomeSub:'Real rooms, tap an appliance', optShop:'Shop the usual way', optShopSub:'A product list with search',
+      later:'You can change your mind any time from the bar at the bottom of the screen',
+      hint:'From here you move between the home and the shop', saved:'Great! We will remember your choice next time', toHome:'Back in the home', toShop:'Welcome to the shop'
+    }
+  };
+  const ROOM_IMG = [{d:'still_1v8.jpg', m:'m_living_v6.jpg'}, {d:'still_2.jpg', m:'m_kitchen.jpg'}, {d:'still_3.jpg', m:'m_laundry.jpg'}];
+  const CAT_KEYS = ['all','fridge','kitchen','small'];
+  const PCAT = ['kitchen','kitchen','kitchen','small','small','kitchen','fridge','fridge'];
+  const DOOR = '<svg viewBox="0 0 26 30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M4 29V3.5A1.5 1.5 0 0 1 5.5 2h15A1.5 1.5 0 0 1 22 3.5V29"/><path d="M1.5 29h23"/><circle cx="17.5" cy="16" r="1.6" fill="currentColor" stroke="none"/></svg>';
+  const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  let morphLang = 'en';
+  const morphFrames = [];
+
+  function MorphFrame(host){
+    const phone = host.dataset.morph === 'phone';
+    host.innerHTML = '<div class="dev dev--'+(phone?'phone':'desk')+'">' + (phone ? '' : '<div class="bar"><i></i><i></i><i></i></div>') +
+      '<div class="vp"><div class="scr '+(phone?'phone ':'')+'cm"></div></div></div>';
+    const vp = host.querySelector('.vp'), scr = host.querySelector('.scr');
+    const W = phone ? 390 : 1280, H = phone ? 820 : 780;
+    let st, busy, tid, T;
+    const $ = s => scr.querySelector(s), $$ = s => [...scr.querySelectorAll(s)];
+
+    const gridHTML = cat => PRODUCTS.map((p,i) => (cat==='all'||PCAT[i]===cat) && !(phone && i>5 && cat==='all') ?
+      '<div class="pc"><div class="im" style="background-image:url('+p.i+')"></div><div class="t">'+T.titles[i]+'</div><div class="p">'+T.price(p.p)+'</div><div class="add">'+T.add+'</div></div>' : '').join('');
+    const copyHTML = i => '<small>'+T.rooms[i].eb+'</small><h3>'+T.rooms[i].h+'</h3><p>'+T.rooms[i].p+'</p>';
+    const strapHTML = () => phone
+      ? '<div class="pstrap"><img class="logo" src="'+IMG+'sadko-logo-256.png" alt=""><span class="burger">'+I.burger+'</span></div>'
+      : '<div class="strap strap--glass"><img class="logo" src="'+IMG+'sadko-logo-256.png" alt=""><nav>'+T.nav.map(n=>'<a>'+n+'</a>').join('')+'</nav><span class="sp"></span>' +
+        '<span class="ic">'+I.user+'</span><span class="ic">'+I.cart+'</span><span class="call">'+T.call+'</span></div>';
+
+    function build(){
+      T = MT[morphLang];
+      st = { mode:'house', room:0, cat:'all' }; busy = false;
+      scr.setAttribute('dir', T.dir);
+      scr.innerHTML =
+        '<div class="view mhome" style="background-image:url('+IMG+(phone?ROOM_IMG[0].m:ROOM_IMG[0].d)+')"><div class="copy">'+copyHTML(0)+'</div>' +
+          (phone ? '<i class="dot" style="top:34%;left:30%"></i><i class="dot" style="top:50%;left:64%"></i>'
+                 : '<i class="dot" style="top:30%;left:22%"></i><i class="dot" style="top:55%;left:40%"></i><i class="dot" style="top:44%;left:58%"></i>') + '</div>' +
+        '<div class="view shop mshop hide"><div class="search"><div>'+T.search+'</div><b>'+T.searchBtn+'</b></div>' +
+          '<div class="chips">'+T.cats.map((c,i)=>'<span data-cat="'+CAT_KEYS[i]+'"'+(i?'':' class="on"')+'>'+c+'</span>').join('')+'</div>' +
+          '<div class="grid">'+gridHTML('all')+'</div></div>' +
+        strapHTML() +
+        '<div class="mbwrap"><div class="mhint">'+T.hint+'</div><div class="mb">' +
+          '<div class="mh is-on" data-go="house" role="button" aria-label="'+T.home+'">' +
+            '<div class="mh__roof"><svg aria-hidden="true"><path class="mh__v"/><path class="mh__ch"/></svg><span class="mh__smoke"><i></i><i></i><i></i></span>' +
+              '</div>' +
+            '<div class="mh__walls"><span class="mh__door" hidden>'+DOOR+'</span><span class="mh__tag"><small>'+T.here+'</small><b>'+T.home+'</b></span>' +
+              '<div class="mh__rooms">'+T.rooms.map((r,i)=>'<button class="mb__opt'+(i?'':' on')+'" data-room="'+i+'"><em>'+(i+1)+'</em>'+(phone && r.s || r.n)+'</button>').join('')+'</div>' +
+              
+            '</div></div>' +
+          '<button class="ms" data-go="shop">'+I.grid+'<span class="ms__lab"><small>'+T.go+'</small><b>'+T.shop+'</b></span></button>' +
+        '</div></div>' +
+        '<div class="veil"><div class="wcard"><h3>'+T.cardH+'</h3><p class="sub">'+T.cardSub+'</p><div class="wbtns">' +
+          '<button class="wbtn pri" data-go="house"><span class="ico">'+I.house+'</span><div><b>'+T.optHome+'</b><span>'+T.optHomeSub+'</span></div></button>' +
+          '<button class="wbtn" data-go="shop"><span class="ico">'+I.grid+'</span><div><b>'+T.optShop+'</b><span>'+T.optShopSub+'</span></div></button></div>' +
+          '<p class="later">'+T.later+'</p></div></div>' +
+        '<div class="toast">'+I.tick.replace('class="tick"','width="22" height="22"')+'<span></span></div>';
+      watchRoof();
+    }
+    /* The roof is drawn in real pixels, not stretched, so the line stays even and the chimney's
+       sides end exactly on the roof slope at any width. It redraws whenever the house changes
+       width, including every frame of the squish. */
+    let roofRO;
+    function drawRoof(){
+      const roof = $('.mh__roof'); if (!roof) return;
+      const w = roof.offsetWidth, h = roof.offsetHeight, sw = phone ? 4 : 5, half = sw / 2;
+      const peak = half + 0.5, y = x => h - (h - peak) * (x <= w/2 ? x / (w/2) : (w - x) / (w/2));
+      const cw = phone ? 10 : 13, x1 = Math.round(w * 0.2), x2 = x1 + cw, top = Math.max(half, y(x2) - (phone ? 8 : 10));
+      const svg = roof.querySelector('svg'); svg.setAttribute('viewBox', '0 0 '+w+' '+h);
+      roof.querySelector('.mh__v').setAttribute('d', 'M'+half+','+h+' L'+(w/2)+','+peak+' L'+(w-half)+','+h);
+      roof.querySelector('.mh__ch').setAttribute('d', 'M'+x1+','+y(x1).toFixed(1)+' V'+top+' H'+x2+' V'+y(x2).toFixed(1)+' M'+(x1-3)+','+top+' H'+(x2+3));
+      const smoke = roof.querySelector('.mh__smoke'); smoke.style.left = (x1 + cw/2)+'px'; smoke.style.top = top+'px';
+    }
+    function watchRoof(){
+      if (roofRO) roofRO.disconnect();
+      roofRO = new ResizeObserver(drawRoof); roofRO.observe($('.mh__roof')); drawRoof();
+    }
+    function flash(msg){
+      const t = $('.toast'); t.querySelector('span').textContent = msg; t.classList.add('show');
+      clearTimeout(tid); tid = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+    function hint(){
+      const h = $('.mhint'); h.classList.add('show'); setTimeout(() => h.classList.remove('show'), 4200);
+      const other = st.mode === 'house' ? $('.ms') : $('.mh');
+      if (!reduceMotion()) other.animate([{transform:'scale(1)'},{transform:'scale(1.08)'},{transform:'scale(.97)'},{transform:'scale(1)'}], {duration:700, delay:500, iterations:2});
+    }
+
+    /* the morph: room buttons pop out, the house squishes to its new width (roof stretches with it), new content springs in */
+    async function setMode(to){
+      if (busy || to === st.mode) return;
+      busy = true; st.mode = to;
+      const still = reduceMotion();
+      const bar = $('.mb'), house = $('.mh'), shop = $('.ms'), rooms = $('.mh__rooms'), go = $('.mh__door'), roof = $('.mh__roof');
+      $('.mhome').classList.toggle('hide', to !== 'house');
+      $('.mshop').classList.toggle('hide', to !== 'shop');
+      const strap = $('.strap'); if (strap) { strap.classList.toggle('strap--glass', to==='house'); strap.classList.toggle('strap--solid', to==='shop'); }
+
+      const out = to === 'shop' ? [...rooms.children] : [go];
+      if (!still) await Promise.all(out.map((el,i) => el.animate(
+        [{opacity:1, transform:'none'}, {opacity:0, transform:'scale(.3) translateY(8px)'}],
+        {duration:170, delay:(out.length-1-i)*40, easing:'cubic-bezier(.5,0,.75,0)', fill:'forwards'}).finished));
+
+      const w0 = house.offsetWidth;
+      rooms.hidden = to === 'shop'; go.hidden = to === 'house';
+      out.forEach(el => el.getAnimations().forEach(a => a.cancel()));
+      house.classList.toggle('is-on', to === 'house'); house.classList.toggle('is-off', to !== 'house');
+      shop.classList.toggle('is-on', to === 'shop');
+      shop.querySelector('small').textContent = to === 'shop' ? T.here : T.go;
+      house.querySelector('.mh__tag small').textContent = to === 'house' ? T.here : T.go;
+      const w1 = house.offsetWidth, d = w1 - w0;
+
+      if (!still) {
+        house.animate([{width:w0+'px'}, {width:(w1+d*.16)+'px', offset:.5}, {width:(w1-d*.06)+'px', offset:.78}, {width:w1+'px'}],
+          {duration:640, easing:'cubic-bezier(.3,.7,.4,1)'});
+        bar.animate([{transform:'scale(1,1)'}, {transform:'scale(.95,1.1)', offset:.2}, {transform:'scale(1.04,.93)', offset:.5},
+          {transform:'scale(.99,1.02)', offset:.75}, {transform:'scale(1,1)'}], {duration:660, easing:'ease-out'});
+        roof.animate([{transform:'translateY(0) scaleY(1)'}, {transform:'translateY(4px) scaleY(.8)', offset:.25}, {transform:'translateY(-7px) scaleY(1.12)', offset:.55}, {transform:'translateY(1px) scaleY(.97)', offset:.8}, {transform:'none'}],
+          {duration:700, easing:'ease-out'});
+        (to === 'shop' ? shop : house).animate([{transform:'scale(1)'}, {transform:'scale(.88)', offset:.25}, {transform:'scale(1.07)', offset:.6}, {transform:'scale(1)'}], {duration:520});
+        const inn = to === 'shop' ? [go] : [...rooms.children];
+        inn.forEach((el,i) => el.animate(
+          [{opacity:0, transform:'translateY(14px) scale(.4)'}, {opacity:1, transform:'translateY(-4px) scale(1.1)', offset:.65}, {opacity:1, transform:'none'}],
+          {duration:440, delay:170 + i*70, easing:'cubic-bezier(.2,.8,.3,1)', fill:'backwards'}));
+        await wait(440);
+      }
+      flash(to === 'house' ? T.toHome : T.toShop);
+      busy = false;
+    }
+    function pickRoom(i){
+      if (i === st.room) return; st.room = i;
+      $$('[data-room]').forEach(b => b.classList.toggle('on', +b.dataset.room === i));
+      const home = $('.mhome'), copy = home.querySelector('.copy');
+      home.style.backgroundImage = 'url('+IMG+(phone?ROOM_IMG[i].m:ROOM_IMG[i].d)+')';
+      copy.innerHTML = copyHTML(i);
+      if (!reduceMotion()) copy.animate([{opacity:0, transform:(phone?'':'translateY(-50%) ')+'translateY(14px)'}, {opacity:1, transform:phone?'none':'translateY(-50%)'}], {duration:400, easing:'ease-out'});
+    }
+    function pickCat(k){
+      if (k === st.cat) return; st.cat = k;
+      $$('[data-cat]').forEach(b => b.classList.toggle('on', b.dataset.cat === k));
+      const g = $('.mshop .grid'); g.innerHTML = gridHTML(k);
+      if (!reduceMotion()) [...g.children].forEach((el,i) => el.animate([{opacity:0, transform:'scale(.9)'}, {opacity:1, transform:'none'}], {duration:280, delay:i*40, fill:'backwards'}));
+    }
+
+    scr.addEventListener('click', async e => {
+      const room = e.target.closest('[data-room]'); if (room) { e.stopPropagation(); return pickRoom(+room.dataset.room); }
+      const cat = e.target.closest('[data-cat]'); if (cat) return pickCat(cat.dataset.cat);
+      const go = e.target.closest('[data-go]'); if (!go) return;
+      const veil = e.target.closest('.veil');
+      if (veil) {  // first-visit card
+        veil.classList.add('hide'); flash(T.saved);
+        if (go.dataset.go === 'shop') { await wait(350); await setMode('shop'); }
+        setTimeout(hint, 900);
+        return;
+      }
+      setMode(go.dataset.go);
+    });
+
+    function fit(){ const s = vp.clientWidth / W; scr.style.transform = 'scale('+s+')'; vp.style.height = (H*s)+'px'; }
+    this.concept = 'c5'; this.fit = fit; this.reset = build;
+    build(); fit();
+    new ResizeObserver(fit).observe(vp);
+    morphFrames.push(this);
+  }
+  document.querySelectorAll('[data-morph]').forEach(h => frames.push(new MorphFrame(h)));
+  document.querySelectorAll('.mlang button').forEach(b => b.addEventListener('click', () => {
+    morphLang = b.dataset.lang;
+    document.querySelectorAll('.mlang button').forEach(x => x.classList.toggle('on', x === b));
+    morphFrames.forEach(f => f.reset());
+  }));
+
+  document.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () =>
+    frames.filter(f => f.concept === b.dataset.reset).forEach(f => f.reset())));
+
+  const tabs = document.querySelectorAll('.tabs button');
+  function show(id){
+    tabs.forEach(t => t.classList.toggle('on', t.dataset.c === id));
+    document.querySelectorAll('.concept').forEach(s => s.classList.toggle('on', s.id === id));
+    frames.forEach(f => f.fit());
+    history.replaceState(null, '', '#'+id);
+  }
+  tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.c)));
+  const fromHash = () => { if (/^#c[1-5]$/.test(location.hash)) show(location.hash.slice(1)); };
+  window.addEventListener('hashchange', fromHash); fromHash();
+})();
+</script>
+</body>
+</html>

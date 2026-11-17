@@ -3,13 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* A phone turned sideways gets the DESKTOP layout: the viewport is set to a
+   laptop width (1200px, above the 1080px strap breakpoint) and scaled to fit,
+   so the scenes, appliance markers, copy and bars use their desktop placement
+   instead of a stretched phone layout. Upright again: back to the phone layout. */
+(function () {
+  var m = document.querySelector('meta[name=viewport]'); if (!m) return;
+  var base = m.getAttribute('content'), DESK = 'width=1200';
+  function landscape() {
+    if (screen.orientation && screen.orientation.type) return screen.orientation.type.indexOf('landscape') === 0;
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return window.innerWidth > window.innerHeight;
+  }
+  function apply() {
+    var touch = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+    var phone = touch && Math.min(screen.width, screen.height) <= 500;
+    var want = phone && landscape() ? DESK : base;
+    if (m.getAttribute('content') !== want) m.setAttribute('content', want);
+  }
+  apply();
+  if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', apply);
+  window.addEventListener('orientationchange', function () { setTimeout(apply, 60); });
+})();
+</script>
 <title>شروط الاستخدام | صادكو جروب</title>
 <meta name="description" content="كيف تستخدم الموقع، ومن أين تأتى الأسعار والمواصفات، وما حدود مقارنة الأسعار والترشيحات، والطلبات والإلغاء والملكية الفكرية.">
 <link rel="icon" href="assets/img/sadko-logo-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/app.css?v=a13">
+<link rel="stylesheet" href="assets/css/app.css?v=a16">
 </head>
 <body>
 
@@ -29,7 +53,7 @@
 
 <footer data-footer></footer>
 
-<script src="assets/js/nav.js?v=g42" defer></script>
+<script src="assets/js/nav.js?v=g47" defer></script>
 <script src="assets/js/appshell.js?v=a15" defer></script>
 <script src="assets/js/info.js?v=a11" defer></script>
 <script>

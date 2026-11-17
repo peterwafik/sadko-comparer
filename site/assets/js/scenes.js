@@ -12,7 +12,13 @@
 
   /* Where a point may send someone: a page of this site or a category page.
      Nothing absolute, no protocol, nothing that climbs out of the site. */
-  var HREF = /^(category\/\d{1,20}(\.html)?|shop(\.html)?(\?cat=\d{1,20})?|[a-z]+(\.html)?)$/;
+  var HREF = /^(category\/\d{1,20}(\.html)?|shop(\.html)?(\?cat=\d{1,20}(&q=[A-Za-z0-9%._~-]{1,160})?)?|soon(\.html)?(\?c=[a-z-]{1,40})?|[a-z]+(\.html)?)$/;
+  /* The old built category pages (the previous site's catalogue) that every
+     point used to open. A saved copy still pointing a point at one of these
+     was never changed on purpose, so it follows the built-in link instead
+     (the live shop's own category, or the "under construction" page). A link
+     an admin chose deliberately is anything else, and is kept. */
+  var LEGACY = /^category\/(38022381|38032005|50318054|102858075|112439376|38003799|38003882|38005648|38005652|40507239)(\.html)?$/;
   var frac = function (v) { var n = Number(v); return isFinite(n) && n >= 0 && n <= 1 ? n : null; };
   var pick = function (pair, en) {
     if (!pair || typeof pair !== 'object') return null;
@@ -75,6 +81,7 @@
           if (!o) return null;
           var b = builtinFor(defs, h, i);
           if (b) {
+            if (LEGACY.test(String(h.href || '')) && b.href) o.href = b.href;
             if (!sameImage(h.mimg, s.stillMobile)) {
               o.mfx = b.mfx != null ? b.mfx : b.fx; o.mfy = b.mfy != null ? b.mfy : b.fy;
             }

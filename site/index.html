@@ -3,19 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* A phone turned sideways gets the DESKTOP layout: the viewport is set to a
+   laptop width (1200px, above the 1080px strap breakpoint) and scaled to fit,
+   so the scenes, appliance markers, copy and bars use their desktop placement
+   instead of a stretched phone layout. Upright again: back to the phone layout. */
+(function () {
+  var m = document.querySelector('meta[name=viewport]'); if (!m) return;
+  var base = m.getAttribute('content'), DESK = 'width=1200';
+  function landscape() {
+    if (screen.orientation && screen.orientation.type) return screen.orientation.type.indexOf('landscape') === 0;
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return window.innerWidth > window.innerHeight;
+  }
+  function apply() {
+    var touch = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+    var phone = touch && Math.min(screen.width, screen.height) <= 500;
+    var want = phone && landscape() ? DESK : base;
+    if (m.getAttribute('content') !== want) m.setAttribute('content', want);
+  }
+  apply();
+  if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', apply);
+  window.addEventListener('orientationchange', function () { setTimeout(apply, 60); });
+})();
+</script>
 <title>صادكو جروب | منزلك بالكامل</title>
-<meta name="description" content="تجوّل داخل منزل صادكو: كل فئات الأجهزة الكهربائية فى ثلاث غرف، وفى نهايتها تدخل المتجر مباشرةً. اضغط على أى جهاز وتسوّق من فئته مباشرةً.">
+<meta name="description" content="تجوّل داخل منزل صادكو: كل فئات الأجهزة الكهربائية فى ثلاث غرف. اضغط على أى جهاز وتسوّق من فئته مباشرةً.">
 <link rel="icon" href="assets/img/sadko-logo-256.png">
+<script>
+/* A visitor who chose "Shop view" before lands in the shop when they come back
+   from outside the site. Links inside the site (the logo, "Home", the house in
+   the bottom bar via ?house) still open the house. Runs before anything heavy loads. */
+(function () {
+  try {
+    if (localStorage.getItem('sadko-mode') !== 'shop' || /[?&](house|spots)\b/.test(location.search)) return;
+    var ref = document.referrer, internal = false;
+    try { internal = !!ref && new URL(ref).origin === location.origin; } catch (e) {}
+    if (!internal) location.replace('shop.html');
+  } catch (e) {}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="assets/js/scrub-engine.js?v=g35" defer></script>
-<script src="assets/js/nav.js?v=g42" defer></script>
+<script src="assets/js/scrub-engine.js?v=g38" defer></script>
+<script src="assets/js/nav.js?v=g47" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
-<script src="assets/js/scenes.js?v=g3" defer></script>
-<script src="assets/js/hotspots.js?v=g49" defer></script>
-<script src="assets/js/guide.js?v=g18" defer></script>
-<link rel="stylesheet" href="assets/css/site.css?v=g19">
+<script src="assets/js/scenes.js?v=g4" defer></script>
+<script src="assets/js/hotspots.js?v=g51" defer></script>
+<script src="assets/js/modebar.js?v=m5" defer></script>
+<script src="assets/js/guide.js?v=g21" defer></script>
+<link rel="stylesheet" href="assets/css/site.css?v=g20">
 </head>
 <body>
 <div id="world"></div>
@@ -54,6 +92,16 @@ window.addEventListener('DOMContentLoaded', () => {
   const FREEZERS   = C('38005648');    // فريزرات — 22
   const LAUNDRY    = C('38005652');    // غسالات — 49, incl. 8 dishwashers and the dryers
   const WATER_HEAT = C('40507239');    // سخانات مياه — 27: 9 gas, 11 electric
+  /* Since 2026-11-12 the markers open the LIVE shop (the Ecwid store) filtered to
+     the appliance's own category, narrowed by a search word where the store
+     files it inside a broader category (heaters live under fans & coolers,
+     dough mixers and juicers under blenders). Every link was checked against
+     the live catalogue. An appliance the store does not stock yet opens the
+     "under construction" page (soon.html) instead of an unrelated list.
+     The C(...) constants above are the old built category pages, kept for
+     reference; assets/js/scenes.js upgrades any saved copy still using them. */
+  const SHOP = (cat, q) => 'shop?cat=' + cat + (q ? '&q=' + encodeURIComponent(q) : '');
+  const SOON = key => 'soon?c=' + key;
 
   /* Three labels have NO matching product anywhere in the catalogue: sound
      systems, air purifiers/humidifiers and sewing machines. They now open the
@@ -96,7 +144,7 @@ window.addEventListener('DOMContentLoaded', () => {
       stillHold: 0.52,
       stillMobile: 'assets/img/m_living_v6.jpg',   // 9:21 portrait scene for phones
       clip: 'assets/vid/leg_1v8.mp4', clipMobile: 'assets/vid/leg_1v8-m.mp4',
-      accent: '#68D1D4',
+      accent: '#2E7E88',
       scroll: 1.9, linger: 0.5,
       copyY: 0.46,      // mid-height: clears the top-right AC and the bottom heaters
       mCopyX: 0.50, mCopyY: 0.20,   // phone: standardized top-centre position (same in every room)
@@ -118,13 +166,13 @@ window.addEventListener('DOMContentLoaded', () => {
         // cooler drifts off by 2.4s. Anchoring them together is what makes the room
         // read correctly on its own, without depending on showcase mode being on —
         // so a reload, a language switch or a Back all still show the full room.
-        { fx: 0.508, fy: 0.493, at: 0.03, span: 0.30, mfx: 0.562, mfy: 0.495, label: 'تليفزيونات', href: TVS },
-        { fx: 0.605, fy: 0.618, at: 0.03, span: 0.30, mfx: 0.706, mfy: 0.543, label: 'أنظمة صوت وترفيه', href: TVS },
-        { fx: 0.887, fy: 0.174, at: 0.03, span: 0.30, mfx: 0.900, mfy: 0.354, label: 'تكييفات هواء', href: AC },
-        { fx: 0.645, fy: 0.667, at: 0.03, span: 0.32, sfx: 0.645, sfy: 0.667, mfx: 0.758, mfy: 0.585, label: 'مراوح ومبردات هواء', href: CLIMATE },
-        { fx: 0.789, fy: 0.861, at: 0.03, span: 0.32, sfx: 0.789, sfy: 0.861, mfx: 0.762, mfy: 0.702, label: 'دفايات', href: CLIMATE },
-        { fx: 0.040, fy: 0.680, at: 0.03, span: 0.32, sfx: 0.040, sfy: 0.680, mfx: 0.095, mfy: 0.620, label: 'تنقية وترطيب الهواء', href: CLIMATE },
-        { fx: 0.367, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.367, sfy: 0.597, mfx: 0.366, mfy: 0.540, label: 'مبردات مياه', href: WATER_DISP },
+        { fx: 0.508, fy: 0.493, at: 0.03, span: 0.30, mfx: 0.562, mfy: 0.495, label: 'تليفزيونات', href: SHOP('206642016') },
+        { fx: 0.605, fy: 0.618, at: 0.03, span: 0.30, mfx: 0.706, mfy: 0.543, label: 'أنظمة صوت وترفيه', href: SOON('sound') },
+        { fx: 0.887, fy: 0.174, at: 0.03, span: 0.30, mfx: 0.900, mfy: 0.354, label: 'تكييفات هواء', href: SHOP('206629766') },
+        { fx: 0.645, fy: 0.667, at: 0.03, span: 0.32, sfx: 0.645, sfy: 0.667, mfx: 0.758, mfy: 0.585, label: 'مراوح ومبردات هواء', href: SHOP('206629768') },
+        { fx: 0.789, fy: 0.861, at: 0.03, span: 0.32, sfx: 0.789, sfy: 0.861, mfx: 0.762, mfy: 0.702, label: 'دفايات', href: SHOP('206629768', 'دفاية') },
+        { fx: 0.040, fy: 0.680, at: 0.03, span: 0.32, sfx: 0.040, sfy: 0.680, mfx: 0.095, mfy: 0.620, label: 'تنقية وترطيب الهواء', href: SOON('purifiers') },
+        { fx: 0.367, fy: 0.597, at: 0.03, span: 0.32, sfx: 0.367, sfy: 0.597, mfx: 0.366, mfy: 0.540, label: 'مبردات مياه', href: SHOP('206629769') },
       ],
     },
     {
@@ -146,21 +194,21 @@ window.addEventListener('DOMContentLoaded', () => {
       title: 'مطبخ فيه كل شىء… حرفياً',
       showcase: 0.92,   // the settle: full counter line-up + cooker wall + cold corner
       hotspots: [
-        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.088, mfy: 0.539, label: 'ميكروييف', href: SMALL },
-        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.146, mfy: 0.625, label: 'خلاطات', href: SMALL },
-        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.240, mfy: 0.523, label: 'كاتيل وماكينات قهوة', href: SMALL },
-        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, mfx: 0.331, mfy: 0.514, label: 'قلايات', href: SMALL },
-        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.381, mfy: 0.517, label: 'أجهزة صغيرة', href: SMALL },
-        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, mfx: 0.426, mfy: 0.512, label: 'عجانات', href: SMALL },
-        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.505, mfy: 0.512, label: 'محضرات طعام', href: SMALL },
-        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.547, mfy: 0.509, label: 'عصارات', href: SMALL },
-        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.600, mfy: 0.520, label: 'جريل وتوستر', href: SMALL },
-        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, mfx: 0.349, mfy: 0.540, label: 'غسالات أطباق', href: LAUNDRY },
-        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, mfx: 0.507, mfy: 0.536, label: 'أفران وبوتاجازات', href: COOKING },
-        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, mfx: 0.501, mfy: 0.469, label: 'شفاطات', href: COOKING },
-        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.817, mfy: 0.521, label: 'ثلاجات', href: FRIDGES },
-        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.870, mfy: 0.630, label: 'حلل كهربائية ومفارم', href: SMALL },
-        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, mfx: 0.884, mfy: 0.560, label: 'فريزرات', href: FREEZERS },
+        { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.088, mfy: 0.539, label: 'ميكروييف', href: SHOP('206629764') },
+        { fx: 0.180, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.146, mfy: 0.625, label: 'خلاطات', href: SHOP('206629520', 'خلاط') },
+        { fx: 0.218, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.240, mfy: 0.523, label: 'كاتيل وماكينات قهوة', href: SHOP('206629524') },
+        { fx: 0.333, fy: 0.551, at: 0.92, span: 0.26, mfx: 0.331, mfy: 0.514, label: 'قلايات', href: SHOP('206642510') },
+        { fx: 0.378, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.381, mfy: 0.517, label: 'أجهزة صغيرة', href: SHOP('206629770') },
+        { fx: 0.424, fy: 0.565, at: 0.92, span: 0.26, mfx: 0.426, mfy: 0.512, label: 'عجانات', href: SHOP('206629520', 'عجان') },
+        { fx: 0.494, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.505, mfy: 0.512, label: 'محضرات طعام', href: SHOP('206629520', 'كبة') },
+        { fx: 0.538, fy: 0.546, at: 0.92, span: 0.26, mfx: 0.547, mfy: 0.509, label: 'عصارات', href: SHOP('206629520', 'عصارة') },
+        { fx: 0.594, fy: 0.570, at: 0.92, span: 0.26, mfx: 0.600, mfy: 0.520, label: 'جريل وتوستر', href: SHOP('206629770', 'جريل') },
+        { fx: 0.346, fy: 0.722, at: 0.92, span: 0.26, mfx: 0.349, mfy: 0.540, label: 'غسالات أطباق', href: SHOP('206642503') },
+        { fx: 0.494, fy: 0.700, at: 0.92, span: 0.26, mfx: 0.507, mfy: 0.536, label: 'أفران وبوتاجازات', href: SHOP('206642506') },
+        { fx: 0.497, fy: 0.398, at: 0.92, span: 0.26, mfx: 0.501, mfy: 0.469, label: 'شفاطات', href: SHOP('206629768', 'شفاط') },
+        { fx: 0.813, fy: 0.574, at: 0.92, span: 0.26, mfx: 0.817, mfy: 0.521, label: 'ثلاجات', href: SHOP('206629761') },
+        { fx: 0.903, fy: 0.607, at: 0.92, span: 0.26, mfx: 0.870, mfy: 0.630, label: 'حلل كهربائية ومفارم', href: SHOP('206629770', 'مفرمة') },
+        { fx: 0.909, fy: 0.750, at: 0.92, span: 0.26, mfx: 0.884, mfy: 0.560, label: 'فريزرات', href: SHOP('206629763') },
       ],
     },
     {
@@ -182,45 +230,16 @@ window.addEventListener('DOMContentLoaded', () => {
       // The portrait m_laundry.jpg has ONE machine: washer + dryer markers both sit
       // on it, side by side (the user's request).
       hotspots: [
-        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.659, mfy: 0.599, label: 'غسالات ملابس', href: LAUNDRY },
-        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.700, mfy: 0.548, label: 'مجففات ملابس', href: LAUNDRY },
-        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, mfx: 0.699, mfy: 0.380, label: 'سخانات غاز', href: WATER_HEAT },
-        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, mfx: 0.851, mfy: 0.323, label: 'سخانات كهرباء', href: WATER_HEAT },
-        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, mfx: 0.215, mfy: 0.529, label: 'مكاوى', href: SMALL },
-        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, mfx: 0.334, mfy: 0.432, label: 'مكاوى بخار وستيمر', href: SMALL },
-        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, mfx: 0.456, mfy: 0.573, label: 'مكانس', href: SMALL },
-        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, mfx: 0.410, mfy: 0.630, label: 'مكانس روبوت وعمودية', href: SMALL },
-        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, mfx: 0.845, mfy: 0.518, label: 'ماكينات خياطة', href: SMALL },
+        { fx: 0.655, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.659, mfy: 0.599, label: 'غسالات ملابس', href: SHOP('206629518') },
+        { fx: 0.549, fy: 0.699, at: 0.50, span: 0.28, mfx: 0.700, mfy: 0.548, label: 'مجففات ملابس', href: SOON('dryers') },
+        { fx: 0.760, fy: 0.269, at: 0.50, span: 0.28, mfx: 0.699, mfy: 0.380, label: 'سخانات غاز', href: SHOP('206642505') },
+        { fx: 0.836, fy: 0.167, at: 0.50, span: 0.28, mfx: 0.851, mfy: 0.323, label: 'سخانات كهرباء', href: SHOP('206642014') },
+        { fx: 0.258, fy: 0.560, at: 0.50, span: 0.28, mfx: 0.215, mfy: 0.529, label: 'مكاوى', href: SHOP('206629521') },
+        { fx: 0.321, fy: 0.375, at: 0.50, span: 0.28, mfx: 0.334, mfy: 0.432, label: 'مكاوى بخار وستيمر', href: SHOP('206629521', 'بخار') },
+        { fx: 0.379, fy: 0.694, at: 0.50, span: 0.28, mfx: 0.456, mfy: 0.573, label: 'مكانس', href: SHOP('206629762') },
+        { fx: 0.464, fy: 0.497, at: 0.50, span: 0.28, mfx: 0.410, mfy: 0.630, label: 'مكانس روبوت وعمودية', href: SOON('robot-vacuums') },
+        { fx: 0.846, fy: 0.540, at: 0.50, span: 0.28, mfx: 0.845, mfy: 0.518, label: 'ماكينات خياطة', href: SOON('sewing') },
       ],
-    },
-    {
-      // The offers room is gone. This last section is the hand-off to the shop:
-      // the laundry flight starts, and is CUT before it arrives — clipEnd 0.30 is
-      // just under the frame where the old room's gallery wall first reads
-      // (frame 42 of 151 = 0.28), so the reader never sees a room they cannot
-      // enter. From `outro.from` the stage fades out and the browser goes to
-      // shop.html. See the outro block in scrub-engine.js for the two guards.
-      id: 'shop', label: 'المتجر',
-      href: 'shop.html',            // the dock button navigates instead of framing
-      // still_shop.jpg is leg_4 at exactly clipEnd (1.109s of 5.042s) — the doorway
-      // out of the laundry, before the offers room resolves. It MUST match the cut:
-      // the still is what shows until the clip decodes, so still_4.jpg (the offers
-      // room itself) put the deleted room straight back on screen.
-      still: 'assets/img/still_shop.jpg',
-      // Portrait has no video to cut, so it must not use the offers-room still at
-      // all — it holds the laundry frame and dissolves straight into the fade.
-      stillMobile: 'assets/img/m_laundry.jpg?v=2',
-      clip: 'assets/vid/leg_4.mp4', clipMobile: 'assets/vid/leg_4-m.mp4',
-      clipEnd: 0.22,
-      accent: '#8a6242',
-      scroll: 1.1, linger: 0,
-      copyY: 0.5,
-      mCopyX: 0.50, mCopyY: 0.20,
-      eyebrow: 'كل ما رأيته… وأكثر',
-      title: 'ادخل المتجر',
-      showcase: 0.22,
-      showcaseLabel: 'تسوّق كل المنتجات',
-      hotspots: [],
     },
   ];
 
@@ -277,10 +296,11 @@ window.addEventListener('DOMContentLoaded', () => {
     connScroll: 0.9,
     crossfade: 0.1,
     sections: SECTIONS,
-    // Hand off to the shop at the end of the last (cut) leg. `from` is the point
-    // in that section's scroll where the fade begins; it completes at the end of
-    // the section, and that is when the browser follows `href`.
-    outro: { href: 'shop.html', from: 0.55 },
+    // The tour ENDS in the laundry room, on its full-room view (showcase 0.50)
+    // with every marker lit. Home view and Shop view are separate now (see
+    // modebar.js), so the scroll no longer flies on into the shop: the way there
+    // is the "Shop view" button in the bottom bar or "Shop" in the top strap.
+    endAt: 0.50,
     // DESKTOP: architecture A — the 16:9 legs chain directly, no connectors.
     connectors: [],
     // PORTRAIT PHONES: the rooms there are fitted portrait IMAGES, not the 16:9
@@ -291,14 +311,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // connector with no landscape clip is collapsed to zero scroll and never
     // fetched off portrait (see scrub-engine layout() / loadClip()).
     //
-    // The third slot is deliberately null. A laundry->offers walk exists
-    // (m_conn3.mp4) but it lands in the offers room, which this flow no longer
-    // has — the last section is the shop hand-off, which holds the laundry
-    // scene and dissolves out on purpose.
+    // The tour ends in the laundry room (endAt), so there is no third walk.
     connectorsMobile: [
       'assets/vid/m_conn1v6.mp4', // living (v5) -> dining table -> kitchen doorway -> kitchen
       'assets/vid/m_conn2.mp4',   // kitchen -> laundry
-      null,                       // laundry -> shop: the deliberate fade-out
     ],
   });
 

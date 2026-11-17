@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* A phone turned sideways gets the DESKTOP layout: the viewport is set to a
+   laptop width (1200px, above the 1080px strap breakpoint) and scaled to fit,
+   so the scenes, appliance markers, copy and bars use their desktop placement
+   instead of a stretched phone layout. Upright again: back to the phone layout. */
+(function () {
+  var m = document.querySelector('meta[name=viewport]'); if (!m) return;
+  var base = m.getAttribute('content'), DESK = 'width=1200';
+  function landscape() {
+    if (screen.orientation && screen.orientation.type) return screen.orientation.type.indexOf('landscape') === 0;
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return window.innerWidth > window.innerHeight;
+  }
+  function apply() {
+    var touch = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+    var phone = touch && Math.min(screen.width, screen.height) <= 500;
+    var want = phone && landscape() ? DESK : base;
+    if (m.getAttribute('content') !== want) m.setAttribute('content', want);
+  }
+  apply();
+  if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', apply);
+  window.addEventListener('orientationchange', function () { setTimeout(apply, 60); });
+})();
+</script>
+<meta name="robots" content="noindex">
+<title>قريباً | صادكو جروب</title>
+<link rel="icon" href="/assets/img/sadko-logo-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/app.css?v=a16">
+<style>
+/* "Under construction": where a home-page marker lands when the shop does not
+   stock that appliance yet, and where an empty category sends the visitor.
+   Same house motif as the bottom bar (outline roof + chimney), being built. */
+.soon { position: relative; overflow: hidden; min-height: calc(100vh - 64px); display: grid; place-items: center;
+  padding: clamp(28px,6vw,72px) 16px clamp(130px,16vw,170px);
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(46,126,136,.13), transparent 70%),
+    radial-gradient(40% 40% at 85% 85%, rgba(254,152,0,.10), transparent 70%),
+    var(--bg); }
+.soon__card { position: relative; z-index: 1; width: min(760px, 100%); text-align: center; }
+.soon__art { width: min(420px, 86vw); height: auto; display: block; margin: 0 auto 10px; overflow: visible; }
+.soon__eyebrow { display: inline-flex; align-items: center; gap: 8px; font: 800 .95rem 'Cairo', sans-serif; color: var(--accent-ink);
+  background: #fff; border: 1.5px solid rgba(46,126,136,.25); border-radius: 999px; padding: 6px 14px; margin: 0 0 14px; }
+.soon__eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px rgba(254,152,0,.2); animation: soon-blink 1.6s ease-in-out infinite; }
+@keyframes soon-blink { 50% { opacity: .35; } }
+.soon h1 { font: 900 clamp(1.6rem,4.4vw,2.5rem)/1.3 'Cairo', sans-serif; margin: 0 0 12px; color: var(--ink); }
+.soon h1 b { color: var(--accent-ink); }
+.soon p { margin: 0 auto 26px; max-width: 54ch; color: var(--ink-soft); font: 700 clamp(1rem,2.1vw,1.12rem)/1.9 'Cairo', sans-serif; }
+.soon__go { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.soon__go a { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 800 1rem 'Cairo', sans-serif;
+  border-radius: 18px; padding: 13px 22px; min-height: 52px; background: #fff; color: var(--accent-ink); border: 2px solid var(--accent);
+  transition: transform .18s, background-color .18s; }
+.soon__go a svg { width: 22px; height: 22px; flex: 0 0 auto; }
+.soon__go a:hover { transform: translateY(-2px); background: #EFF6F6; }
+.soon__go a.is-main { background: var(--accent); color: #fff; }
+.soon__go a.is-main:hover { background: #256A73; }
+.soon__go a.is-call { border-color: var(--amber); background: var(--amber); color: #241a05; }
+.soon__go a.is-call:hover { background: #ffad33; }
+.soon__go a:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+.soon__note { margin: 22px 0 0; font: 700 .9rem 'Cairo', sans-serif; color: var(--ink-soft); }
+
+/* the illustration */
+.sa-line { fill: none; stroke: #2E7E88; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.sa-wall { fill: none; stroke: #2E7E88; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 14 12; animation: sa-build 6s linear infinite; }
+@keyframes sa-build { to { stroke-dashoffset: -260; } }
+.sa-ground { stroke: rgba(20,52,58,.16); stroke-width: 4; stroke-linecap: round; }
+.sa-brick { fill: #E6F0F1; stroke: #2E7E88; stroke-width: 2.5; }
+.sa-crane { fill: none; stroke: #fe9800; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.sa-swing { transform-origin: 300px 46px; animation: sa-swing 3.2s ease-in-out infinite; }
+@keyframes sa-swing { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+.sa-box { fill: #fff; stroke: #fe9800; stroke-width: 4; }
+.sa-boxline { stroke: #fe9800; stroke-width: 3; stroke-linecap: round; }
+.sa-smoke circle { fill: #fff; stroke: rgba(20,52,58,.18); stroke-width: 1.5; opacity: 0; animation: sa-smoke 3s ease-out infinite; }
+.sa-smoke circle:nth-child(2) { animation-delay: 1s; } .sa-smoke circle:nth-child(3) { animation-delay: 2s; }
+@keyframes sa-smoke { 0% { opacity: 0; transform: translate(0,0) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(12px,-34px) scale(1.5); } }
+.sa-smoke circle { transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .sa-wall, .sa-swing, .sa-smoke circle, .soon__eyebrow i { animation: none; }
+  .sa-smoke circle:first-child { opacity: 1; }
+}
+html[dir=ltr] .soon__go { direction: ltr; }
+</style>
+</head>
+<body>
+<main class="soon">
+  <div class="soon__card">
+    <svg class="soon__art" viewBox="0 0 420 300" role="img" aria-labelledby="soon-art-t">
+      <title id="soon-art-t">A house being built, with a crane lowering a new appliance into it</title>
+      <line class="sa-ground" x1="20" y1="268" x2="400" y2="268"/>
+      <!-- the house: outline roof + chimney (as in the bottom bar), walls still going up -->
+      <g class="sa-smoke"><circle cx="112" cy="70" r="7"/><circle cx="112" cy="70" r="7"/><circle cx="112" cy="70" r="7"/></g>
+      <path class="sa-line" d="M100 112 V78 H124 V96 M95 78 H129"/>
+      <path class="sa-line" d="M52 150 L190 60 L328 150"/>
+      <path class="sa-wall" d="M78 150 V266 H302 V150"/>
+      <path class="sa-line" d="M168 266 V214 Q168 204 178 204 H202 Q212 204 212 214 V266"/>
+      <rect class="sa-brick" x="98" y="176" width="40" height="22" rx="4"/>
+      <rect class="sa-brick" x="242" y="176" width="40" height="22" rx="4"/>
+      <rect class="sa-brick" x="320" y="242" width="34" height="24" rx="4"/>
+      <rect class="sa-brick" x="356" y="242" width="34" height="24" rx="4"/>
+      <rect class="sa-brick" x="338" y="216" width="34" height="24" rx="4"/>
+      <!-- the crane, lowering a boxed appliance -->
+      <path class="sa-crane" d="M392 266 V30 M392 30 H250 M392 30 L362 60 M392 56 L370 30 M392 90 L370 64 M392 124 L370 98"/>
+      <g class="sa-swing">
+        <line class="sa-crane" x1="300" y1="30" x2="300" y2="96"/>
+        <rect class="sa-box" x="272" y="96" width="56" height="50" rx="8"/>
+        <line class="sa-boxline" x1="284" y1="110" x2="316" y2="110"/>
+        <circle class="sa-boxline" cx="300" cy="128" r="10" fill="none"/>
+      </g>
+    </svg>
+
+    <p class="soon__eyebrow"><i aria-hidden="true"></i><span data-i18n="eyebrow">قريباً في بيت صادكو</span></p>
+    <h1><span data-i18n="h">نجهّز لك قسم</span> <b id="soonName">هذا القسم</b></h1>
+    <p data-i18n="p">نعمل الآن على تجهيز هذا القسم بأفضل الموديلات والأسعار. لحين افتتاحه، تقدر تطلب أي جهاز بالتليفون ونساعدك تختار المناسب لبيتك.</p>
+    <div class="soon__go">
+      <a class="is-main" href="/?house"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg><span data-i18n="home">ارجع إلى البيت</span></a>
+      <a href="/shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg><span data-i18n="shop">تصفّح المتجر</span></a>
+      <a class="is-call" href="tel:19140"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><span data-i18n="call">اتصل 19140</span></a>
+    </div>
+    <p class="soon__note" data-i18n="note">خدمة العملاء متاحة يومياً لمساعدتك.</p>
+  </div>
+</main>
+<script>
+(function () {
+  /* Which section is coming: ?c=<key> from a home-page marker, or ?cat=<id>&name=<n>
+     from an empty shop category. Written with textContent only. */
+  var lang = 'ar';
+  try { lang = localStorage.getItem('sadko-lang') === 'en' ? 'en' : 'ar'; } catch (e) {}
+  var en = lang === 'en';
+  var NAMES = {
+    sound: ['أنظمة الصوت والترفيه', 'sound & entertainment'],
+    purifiers: ['تنقية وترطيب الهواء', 'air purifiers & humidifiers'],
+    dryers: ['مجففات الملابس', 'clothes dryers'],
+    'robot-vacuums': ['المكانس الروبوت والعمودية', 'robot & stick vacuums'],
+    sewing: ['ماكينات الخياطة', 'sewing machines']
+  };
+  var q = new URLSearchParams(location.search);
+  var key = (q.get('c') || '').toLowerCase();
+  var name = NAMES[key] ? NAMES[key][en ? 1 : 0] : String(q.get('name') || '').trim().slice(0, 60);
+  var nameEl = document.getElementById('soonName');
+  if (name) nameEl.textContent = name;
+  else { nameEl.textContent = en ? 'this section' : 'هذا القسم'; if (!en) document.querySelector('[data-i18n=h]').textContent = 'نجهّز لك'; }
+
+  if (en) {
+    var T = { eyebrow: 'Coming soon to the SADKO home', h: 'Coming soon:',
+      p: 'We are preparing this section with the best models and prices. Until it opens, you can order any appliance by phone and we will help you choose the right one for your home.',
+      home: 'Back to the home', shop: 'Browse the shop', call: 'Call 19140', note: 'Customer care is here to help every day.' };
+    document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';
+    document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = T[el.getAttribute('data-i18n')]; });
+    if (!name) nameEl.textContent = 'this section';
+  }
+  document.title = (en ? 'Coming soon: ' + nameEl.textContent : 'قريباً: ' + nameEl.textContent) + (en ? ' | SADKO Group' : ' | صادكو جروب');
+})();
+</script>
+<script src="/assets/js/nav.js?v=g47" defer></script>
+</body>
+</html>

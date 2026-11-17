@@ -21,7 +21,7 @@
             "ar": "تليفزيونات",
             "en": "TVs"
           },
-          "href": "category/38022381.html",
+          "href": "shop?cat=206642016",
           "fx": 0.508,
           "fy": 0.493,
           "mfx": 0.562,
@@ -34,7 +34,7 @@
             "ar": "أنظمة صوت وترفيه",
             "en": "Sound & entertainment"
           },
-          "href": "category/38022381.html",
+          "href": "soon?c=sound",
           "fx": 0.605,
           "fy": 0.618,
           "mfx": 0.706,
@@ -47,7 +47,7 @@
             "ar": "تكييفات هواء",
             "en": "Air conditioners"
           },
-          "href": "category/38032005.html",
+          "href": "shop?cat=206629766",
           "fx": 0.887,
           "fy": 0.174,
           "mfx": 0.9,
@@ -60,7 +60,7 @@
             "ar": "مراوح ومبردات هواء",
             "en": "Fans & air coolers"
           },
-          "href": "category/50318054.html",
+          "href": "shop?cat=206629768",
           "fx": 0.645,
           "fy": 0.667,
           "mfx": 0.758,
@@ -75,7 +75,7 @@
             "ar": "دفايات",
             "en": "Space heaters"
           },
-          "href": "category/50318054.html",
+          "href": "shop?cat=206629768&q=%D8%AF%D9%81%D8%A7%D9%8A%D8%A9",
           "fx": 0.789,
           "fy": 0.861,
           "mfx": 0.762,
@@ -90,7 +90,7 @@
             "ar": "تنقية وترطيب الهواء",
             "en": "Air purifiers & humidifiers"
           },
-          "href": "category/50318054.html",
+          "href": "soon?c=purifiers",
           "fx": 0.04,
           "fy": 0.68,
           "mfx": 0.095,
@@ -105,7 +105,7 @@
             "ar": "مبردات مياه",
             "en": "Water dispensers"
           },
-          "href": "category/102858075.html",
+          "href": "shop?cat=206629769",
           "fx": 0.367,
           "fy": 0.597,
           "mfx": 0.366,
@@ -137,7 +137,7 @@
             "ar": "ميكروييف",
             "en": "Microwaves"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629764",
           "fx": 0.098,
           "fy": 0.638,
           "mfx": 0.088,
@@ -150,7 +150,7 @@
             "ar": "خلاطات",
             "en": "Blenders"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629520&q=%D8%AE%D9%84%D8%A7%D8%B7",
           "fx": 0.18,
           "fy": 0.574,
           "mfx": 0.146,
@@ -163,7 +163,7 @@
             "ar": "كاتيل وماكينات قهوة",
             "en": "Kettles & coffee machines"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629524",
           "fx": 0.218,
           "fy": 0.607,
           "mfx": 0.24,
@@ -176,7 +176,7 @@
             "ar": "قلايات",
             "en": "Air fryers"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206642510",
           "fx": 0.333,
           "fy": 0.551,
           "mfx": 0.331,
@@ -189,7 +189,7 @@
             "ar": "أجهزة صغيرة",
             "en": "Small appliances"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629770",
           "fx": 0.378,
           "fy": 0.57,
           "mfx": 0.381,
@@ -202,7 +202,7 @@
             "ar": "عجانات",
             "en": "Dough mixers"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629520&q=%D8%B9%D8%AC%D8%A7%D9%86",
           "fx": 0.424,
           "fy": 0.565,
           "mfx": 0.426,
@@ -215,7 +215,7 @@
             "ar": "محضرات طعام",
             "en": "Food processors"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629520&q=%D9%83%D8%A8%D8%A9",
           "fx": 0.494,
           "fy": 0.546,
           "mfx": 0.505,
@@ -228,7 +228,7 @@
             "ar": "عصارات",
             "en": "Juicers"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629520&q=%D8%B9%D8%B5%D8%A7%D8%B1%D8%A9",
           "fx": 0.538,
           "fy": 0.546,
           "mfx": 0.547,
@@ -241,7 +241,7 @@
             "ar": "جريل وتوستر",
             "en": "Grills & toasters"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629770&q=%D8%AC%D8%B1%D9%8A%D9%84",
           "fx": 0.594,
           "fy": 0.57,
           "mfx": 0.6,
@@ -254,7 +254,7 @@
             "ar": "غسالات أطباق",
             "en": "Dishwashers"
           },
-          "href": "category/38005652.html",
+          "href": "shop?cat=206642503",
           "fx": 0.346,
           "fy": 0.722,
           "mfx": 0.349,
@@ -267,7 +267,7 @@
             "ar": "أفران وبوتاجازات",
             "en": "Ovens & cookers"
           },
-          "href": "category/38003799.html",
+          "href": "shop?cat=206642506",
           "fx": 0.494,
           "fy": 0.7,
           "mfx": 0.507,
@@ -280,7 +280,7 @@
             "ar": "شفاطات",
             "en": "Hoods"
           },
-          "href": "category/38003799.html",
+          "href": "shop?cat=206629768&q=%D8%B4%D9%81%D8%A7%D8%B7",
           "fx": 0.497,
           "fy": 0.398,
           "mfx": 0.501,
@@ -293,7 +293,7 @@
             "ar": "ثلاجات",
             "en": "Refrigerators"
           },
-          "href": "category/38003882.html",
+          "href": "shop?cat=206629761",
           "fx": 0.813,
           "fy": 0.574,
           "mfx": 0.817,
@@ -306,7 +306,7 @@
             "ar": "حلل كهربائية ومفارم",
             "en": "Electric pots & choppers"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629770&q=%D9%85%D9%81%D8%B1%D9%85%D8%A9",
           "fx": 0.903,
           "fy": 0.607,
           "mfx": 0.87,
@@ -319,7 +319,7 @@
             "ar": "فريزرات",
             "en": "Freezers"
           },
-          "href": "category/38005648.html",
+          "href": "shop?cat=206629763",
           "fx": 0.909,
           "fy": 0.75,
           "mfx": 0.884,
@@ -349,7 +349,7 @@
             "ar": "غسالات ملابس",
             "en": "Washing machines"
           },
-          "href": "category/38005652.html",
+          "href": "shop?cat=206629518",
           "fx": 0.655,
           "fy": 0.699,
           "mfx": 0.659,
@@ -362,7 +362,7 @@
             "ar": "مجففات ملابس",
             "en": "Clothes dryers"
           },
-          "href": "category/38005652.html",
+          "href": "soon?c=dryers",
           "fx": 0.549,
           "fy": 0.699,
           "mfx": 0.7,
@@ -375,7 +375,7 @@
             "ar": "سخانات غاز",
             "en": "Gas water heaters"
           },
-          "href": "category/40507239.html",
+          "href": "shop?cat=206642505",
           "fx": 0.76,
           "fy": 0.269,
           "mfx": 0.699,
@@ -388,7 +388,7 @@
             "ar": "سخانات كهرباء",
             "en": "Electric water heaters"
           },
-          "href": "category/40507239.html",
+          "href": "shop?cat=206642014",
           "fx": 0.836,
           "fy": 0.167,
           "mfx": 0.851,
@@ -401,7 +401,7 @@
             "ar": "مكاوى",
             "en": "Irons"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629521",
           "fx": 0.258,
           "fy": 0.56,
           "mfx": 0.215,
@@ -414,7 +414,7 @@
             "ar": "مكاوى بخار وستيمر",
             "en": "Steam irons & steamers"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629521&q=%D8%A8%D8%AE%D8%A7%D8%B1",
           "fx": 0.321,
           "fy": 0.375,
           "mfx": 0.334,
@@ -427,7 +427,7 @@
             "ar": "مكانس",
             "en": "Vacuum cleaners"
           },
-          "href": "category/112439376.html",
+          "href": "shop?cat=206629762",
           "fx": 0.379,
           "fy": 0.694,
           "mfx": 0.456,
@@ -440,7 +440,7 @@
             "ar": "مكانس روبوت وعمودية",
             "en": "Robot & stick vacuums"
           },
-          "href": "category/112439376.html",
+          "href": "soon?c=robot-vacuums",
           "fx": 0.464,
           "fy": 0.497,
           "mfx": 0.41,
@@ -453,7 +453,7 @@
             "ar": "ماكينات خياطة",
             "en": "Sewing machines"
           },
-          "href": "category/112439376.html",
+          "href": "soon?c=sewing",
           "fx": 0.846,
           "fy": 0.54,
           "mfx": 0.845,

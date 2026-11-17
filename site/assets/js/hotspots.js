@@ -292,6 +292,19 @@ function mountHotspots(container, api, sections) {
                          y: still.cy + (p.y - still.cy) * still.sc };
         return { it, x: p.x, y: p.y, bx: p.x, by: p.y };
       });
+      /* A marker belongs ON its appliance. When the screen's shape crops that
+         appliance out of the picture (a 4:3 monitor loses the edges of a 16:9
+         room; a very wide window loses some top and bottom), the marker is hidden
+         rather than slid in from the edge onto whatever wall happens to be there,
+         which is what made the living room's air-purifier marker "drift" from
+         screen to screen. Same frame geometry as the scene, so this is exact. */
+      const lw = layer.clientWidth || m.r.width, lh = layer.clientHeight || m.r.height;
+      pts.forEach(p => {
+        const out = p.bx < -2 || p.bx > lw + 2 || p.by < -2 || p.by > lh + 2;
+        p.it.cropped = out;
+        p.it.el.classList.toggle('hs-spot--cropped', out);
+        if (out) p.it.vis = false;
+      });
       declutter(pts, MAX_NUDGE * m.dw);
       pts.forEach(p => {
         p.it.x = p.x; p.it.y = p.y;
@@ -306,7 +319,7 @@ function mountHotspots(container, api, sections) {
   // MIN_GAP, then clamp every marker back inside `cap` px of the coordinate it
   // was authored at, so it can never drift off its appliance.
   function declutter(pts, cap) {
-    const live = pts.filter(p => p.it.op > 0.02);
+    const live = pts.filter(p => p.it.op > 0.02 && !p.it.cropped);
     if (live.length < 2) return;
     const lb = layer.getBoundingClientRect();
     const edge = RING_R + 3;
@@ -351,9 +364,13 @@ function mountHotspots(container, api, sections) {
          `transform: translate(...)` on a marker inside .hs-layer, so they are
          layer-local. Clamping against the stage's viewport rect let a marker sit
          a whole layer-offset past the edge — 399px on a 393px phone. */
+      /* ...but never by pulling a marker INWARD past its own appliance: a dot
+         whose appliance sits right at the edge stays on it (its ring may be cut
+         by the edge). The clamp only stops a decluttering push from shoving a
+         marker further out than its appliance already is. */
       live.forEach(pt => {
-        const nx = Math.min(Math.max(pt.x, edge), lb.width - edge);
-        const ny = Math.min(Math.max(pt.y, edge), lb.height - edge);
+        const nx = Math.min(Math.max(pt.x, Math.min(edge, pt.bx)), Math.max(lb.width - edge, pt.bx));
+        const ny = Math.min(Math.max(pt.y, Math.min(edge, pt.by)), Math.max(lb.height - edge, pt.by));
         /* A clamp counts as movement. Pulling a marker back from the edge can
            push it INTO a neighbour, and if the pairwise pass that round had
            nothing else to do the loop would break on `!moved` and leave the two
@@ -681,6 +698,8 @@ function injectHotspotCSS() {
   .hs-spot{position:absolute;top:0;left:0;width:18px;height:18px;z-index:1;
     text-decoration:none;will-change:transform;margin:-9px 0 0 -9px;
     opacity:0;pointer-events:none;transition:opacity .18s linear;}
+  /* its appliance is cropped out of view on this screen shape: no marker */
+  .hs-spot.hs-spot--cropped{opacity:0 !important;pointer-events:none !important;visibility:hidden;}
   /* the marker you're pointing at always reads over its neighbours */
   .hs-spot:hover,.hs-spot:focus-within{z-index:9;}
   .hs-spot__dot{position:absolute;inset:0;border-radius:50%;
@@ -792,15 +811,15 @@ function injectHotspotCSS() {
   .hs-coach{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translate(-50%,16px);
     z-index:60;display:flex;align-items:center;gap:12px;direction:rtl;max-width:min(92vw,560px);
     background:color-mix(in srgb,#10282c 88%,transparent);backdrop-filter:blur(10px);
-    border:1px solid color-mix(in srgb,var(--sw-accent,#68D1D4) 45%,transparent);
+    border:1px solid color-mix(in srgb,var(--sw-accent,#2E7E88) 45%,transparent);
     border-radius:16px;padding:13px 16px;opacity:0;transition:opacity .35s ease, transform .35s ease;}
   .hs-coach.is-in{opacity:1;transform:translate(-50%,0);}
   .hs-coach p{margin:0;color:#fff;font-size:.88rem;line-height:1.55;font-family:var(--sw-font-display);}
   .hs-coach b{color:#ffd03f;font-weight:800;}
   .hs-coach__dot{position:relative;width:14px;height:14px;border-radius:50%;flex:0 0 auto;
-    background:var(--sw-accent,#68D1D4);border:2px solid rgba(255,255,255,.9);}
+    background:var(--sw-accent,#2E7E88);border:2px solid rgba(255,255,255,.9);}
   .hs-coach__dot::after{content:"";position:absolute;inset:-6px;border-radius:50%;
-    border:2px solid color-mix(in srgb,var(--sw-accent,#68D1D4) 75%,transparent);animation:hs-pulse 2s ease-out infinite;}
+    border:2px solid color-mix(in srgb,var(--sw-accent,#2E7E88) 75%,transparent);animation:hs-pulse 2s ease-out infinite;}
   .hs-coach__x{flex:0 0 auto;background:none;border:0;color:#fff;opacity:.7;font-size:1.3rem;cursor:pointer;padding:2px 6px;}
   .hs-coach__x:hover{opacity:1;}
   /* On phones the copy panel owns the bottom — dock the coach under the nav. */

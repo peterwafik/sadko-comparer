@@ -49,8 +49,26 @@ function mountGuide(container, api, sections) {
 
   injectGuideCSS();
 
-  /* ---------------- room dock ---------------- */
-  const dock = document.createElement('nav');
+  /* ---------------- room dock ----------------
+     Since 2026-11-12 the dock is the shared "Home view / Shop view" bar
+     (modebar.js): the rooms sit inside a little house, and the shop section
+     becomes its "Shop view" end. The plain pill dock below is kept only as a
+     fallback for when modebar.js did not load. */
+  let dock, setActiveRoom, modeBar = null;
+  const roomIdx = sections.map((s, i) => (s.href ? -1 : i)).filter(i => i >= 0);
+  if (window.skModeBar) {
+    const shopSec = sections.find(s => s.href);
+    const bar = window.skModeBar.mount({
+      mode: 'house',
+      rooms: roomIdx.map(i => sections[i].label),
+      active: 0,
+      onRoom: k => { if (api.enterShowcase) api.enterShowcase(roomIdx[k]); },
+      shopHref: shopSec ? shopSec.href : 'shop.html',
+    });
+    dock = bar.el; modeBar = bar;
+    setActiveRoom = act => { const k = roomIdx.indexOf(act); bar.setActive(k >= 0 ? k : roomIdx.length - 1); };
+  } else {
+  dock = document.createElement('nav');
   dock.className = 'gd-dock';
   dock.setAttribute('aria-label', G.dockAria);
   const dockBtns = sections.map((s, i) => {
@@ -72,6 +90,11 @@ function mountGuide(container, api, sections) {
     return b;
   });
   container.appendChild(dock);
+  setActiveRoom = act => dockBtns.forEach((b, i) => {
+    b.classList.toggle('is-active', i === act);
+    if (i === act) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
+  }
 
   /* The floating "؟" help button was removed on 2026-10-31 at the owner's
      request (desktop and mobile). The first-visit walkthrough still runs once. */
@@ -82,10 +105,7 @@ function mountGuide(container, api, sections) {
     const y = e.detail.y;
     let act = 0;
     sections.forEach((s, i) => { if (s._seg && y >= s._seg.start - 1) act = i; });
-    dockBtns.forEach((b, i) => {
-      b.classList.toggle('is-active', i === act);
-      if (i === act) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
-    });
+    setActiveRoom(act);
     dock.classList.toggle('is-showcase', !!(hsLayer && hsLayer.classList.contains('hs-layer--showcase')));
   });
 
@@ -123,8 +143,14 @@ function mountGuide(container, api, sections) {
     },
     {
       sel: () => dock,
-      title: EN ? 'Room buttons: the fastest route' : 'أزرار الغرف: أسرع طريق',
-      body: EN
+      title: () => window.skModeBar
+        ? (EN ? 'Your home, room by room' : 'بيتك، غرفة بغرفة')
+        : (EN ? 'Room buttons: the fastest route' : 'أزرار الغرف: أسرع طريق'),
+      body: () => window.skModeBar
+        ? (EN
+          ? 'Press any room inside this house to jump to its best view. Any time you like, press “Shop” beside it for the usual product list; the small house there brings you back here.'
+          : 'اضغط على أي غرفة داخل هذا البيت لتنتقل مباشرة إلى أفضل لقطة فيها. وفي أي وقت اضغط «المتجر» بجانبه لتصل إلى قائمة المنتجات العادية، والبيت الصغير هناك يرجعك إلى هنا.')
+        : EN
         // No longer mentions the side dot rail: index.html passes route:false,
         // so those dots do not exist. A walkthrough that points at absent
         // furniture is the same fault that killed the old step 4.
@@ -371,10 +397,21 @@ function mountGuide(container, api, sections) {
   const params = new URLSearchParams(location.search);
   let seen = false;
   try { seen = !!localStorage.getItem(GUIDE_KEY); } catch (e) {}
-  if (!seen && !params.has('spots')) {
+  const startTour = () => {
+    if (seen || params.has('spots')) return;
     try { localStorage.setItem(COACH_KEY, '1'); } catch (e) {}   // tour replaces the toast
     setTimeout(openTour, 900);
-  }
+  };
+  /* First visit: the welcome card asks "home or shop?" before anything else.
+     The tour only follows if they chose to stay in the house; choosing the shop
+     squishes the bar and leaves for the shop. */
+  if (window.skModeBar && window.skModeBar.needsWelcome() && modeBar) {
+    try { localStorage.setItem(COACH_KEY, '1'); } catch (e) {}   // no coach toast under the card
+    window.skModeBar.showWelcome(m => {
+      if (m === 'shop') setTimeout(() => modeBar && modeBar.go('shop'), 380);
+      else startTour();
+    });
+  } else startTour();
 
   function escg(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 }
@@ -400,9 +437,9 @@ function injectGuideCSS() {
     transition:background .22s,color .22s,transform .18s,box-shadow .22s;}
   .gd-dock__btn em{font-style:normal;direction:ltr;display:grid;place-items:center;width:20px;height:20px;flex:0 0 auto;
     font-size:.72rem;font-weight:800;border-radius:50%;background:rgba(20,52,58,.1);color:#14343a;}
-  .gd-dock__btn:hover,.gd-dock__btn:focus-visible{background:rgba(104,209,212,.13);transform:translateY(-1px);}
-  .gd-dock__btn.is-active{background:var(--sw-accent,#68D1D4);color:var(--sw-on-accent,#14343a);
-    box-shadow:0 4px 14px color-mix(in srgb,var(--sw-accent,#68D1D4) 45%,transparent);}
+  .gd-dock__btn:hover,.gd-dock__btn:focus-visible{background:rgba(46,126,136,.13);transform:translateY(-1px);}
+  .gd-dock__btn.is-active{background:var(--sw-accent,#2E7E88);color:var(--sw-on-accent,#14343a);
+    box-shadow:0 4px 14px color-mix(in srgb,var(--sw-accent,#2E7E88) 45%,transparent);}
   .gd-dock__btn.is-active em{background:rgba(255,255,255,.5);color:#14343a;}
   .gd-dock.is-showcase .gd-dock__btn.is-active{background:var(--sadko-amber,#fe9800);color:#241a05;}
   .gd-dock.is-showcase .gd-dock__btn.is-active em{background:rgba(255,255,255,.55);color:#241a05;}
@@ -429,7 +466,7 @@ function injectGuideCSS() {
     font:800 1.15rem/1 var(--sw-font-display,inherit);
     box-shadow:0 12px 34px rgba(18,42,47,.18), inset 0 1px 0 rgba(255,255,255,.6);
     transition:transform .18s,background .22s,color .22s;}
-  .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#68D1D4);color:var(--sw-on-accent,#14343a);}
+  .gd-help:hover,.gd-help:focus-visible{transform:translateY(-2px);background:var(--sw-accent,#2E7E88);color:var(--sw-on-accent,#14343a);}
 
   /* ---- make room for the dock in the existing chrome ---- */
   .sw-hint{bottom:calc(var(--gd-lift) + 68px + env(safe-area-inset-bottom));}
@@ -438,6 +475,11 @@ function injectGuideCSS() {
     .sw-hint{bottom:calc(var(--gd-lift) + 66px + env(safe-area-inset-bottom));}
     .sw-copy{bottom:calc(clamp(120px,18vh,176px) + env(safe-area-inset-bottom));}
   }
+  /* The house-shaped mode bar (modebar.js) is taller than the old pill dock:
+     roof 26px + body 64px off a 22px lift on desktop, 20 + 62 off 12 on phones. */
+  html.skmb-on .sw-hint{bottom:calc(128px + env(safe-area-inset-bottom));}
+  @media (min-width:861px){ html.skmb-on .hs-coach{bottom:calc(132px + env(safe-area-inset-bottom));} }
+  @media (max-width:700px){ html.skmb-on .sw-hint{bottom:calc(104px + env(safe-area-inset-bottom));} }
   /* Phones name every room, exactly as the desktop bar does. The rule this
      replaces hid every label but the active one, so the bar read as one word
      beside three anonymous numbers — you could see where you WERE and had no
@@ -476,8 +518,8 @@ function injectGuideCSS() {
     background:#fff;color:var(--sw-ink,#14343a);border-radius:18px;padding:18px 20px 16px;
     box-shadow:0 24px 60px rgba(7,22,26,.45);font-family:var(--sw-font-display,inherit);
     transition:left .45s cubic-bezier(.22,.8,.24,1),top .45s cubic-bezier(.22,.8,.24,1);}
-  .gd-tour__step{display:inline-block;direction:ltr;font:800 .72rem/1 ui-monospace,Menlo,monospace;color:#14343a;
-    background:var(--sw-accent,#68D1D4);border-radius:999px;padding:5px 10px;}
+  .gd-tour__step{display:inline-block;direction:ltr;font:800 .72rem/1 ui-monospace,Menlo,monospace;color:#fff;
+    background:var(--sw-accent,#2E7E88);border-radius:999px;padding:5px 10px;}
   .gd-tour__card h3{margin:10px 0 6px;font-size:1.15rem;font-weight:800;line-height:1.35;}
   .gd-tour__card p{margin:0;font-size:.9rem;line-height:1.7;color:#3f5457;}
   /* nowrap on the controls, wrap on the row: the last step's button reads

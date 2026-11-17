@@ -89,7 +89,6 @@
     living: { clip: 'assets/vid/leg_1v8.mp4', at: 0.03, linger: 0.5, still: 'assets/img/still_1v8.jpg', phone: 'assets/img/m_living_v6.jpg' },
     kitchen: { clip: 'assets/vid/leg_2v8.mp4', at: 0.92, linger: 0.5, still: 'assets/img/still_2.jpg', phone: 'assets/img/m_kitchen.jpg?v=2' },
     laundry: { clip: 'assets/vid/leg_3.mp4', at: 0.50, linger: 0.45, still: 'assets/img/still_3.jpg', phone: 'assets/img/m_laundry.jpg?v=2' },
-    shop: { clip: 'assets/vid/leg_4.mp4', at: 0.22, linger: 0, clipEnd: 0.22, still: 'assets/img/still_shop.jpg', phone: 'assets/img/m_laundry.jpg?v=2', textOnly: true },
   };
   /* The clip time the home page shows at a scroll progress: scrub-engine.js
      eases progress through `linger` (lingerEase) and scales by clipEnd. The
@@ -134,7 +133,40 @@
           });
         });
       }
-      const st = { i: 0, view: 'desk', sel: -1, dirty: false };
+      const st = { i: 0, view: 'desk', sel: -1, dirty: false, crop: false };
+      /* WHAT EACH SCREEN SHOWS. The site fills the screen with the room
+         (object-fit:cover), so a screen whose shape differs from the picture
+         crops it: a 16:10 laptop or a 4:3 monitor loses the left and right
+         edges of the 16:9 room, a wide window loses some top and bottom
+         (positioned at 42% like --sw-objy), and the phone picture is also cover-
+         fitted and then zoomed 1.12x about its centre (--sw-mzoom). A point on a
+         cropped appliance is HIDDEN on that screen (hotspots.js), never slid
+         onto something else. These frames are the same arithmetic, so what is
+         inside a frame here is exactly what that screen shows. */
+      const SCREENS = {
+        desk: [
+          { k: '1610', a: 16 / 10, n: ['لابتوب ١٦:١٠ (ماك بوك)', '16:10 laptop (MacBook)'] },
+          { k: '43', a: 4 / 3, n: ['شاشة قديمة ٤:٣', 'Older 4:3 monitor'] },
+          { k: 'wide', a: 2.16, n: ['موبايل بالعرض', 'Phone held sideways'] },
+          { k: 'ultra', a: 64 / 27, n: ['شاشة عريضة جداً ٢١:٩', 'Ultrawide 21:9'] },
+        ],
+        phone: [
+          { k: 'tall', a: 390 / 844, n: ['موبايل حديث (٣٩٠×٨٤٤)', 'Modern phone (390×844)'] },
+          { k: 'short', a: 375 / 667, n: ['موبايل قصير (٣٧٥×٦٦٧)', 'Short phone (375×667)'] },
+        ],
+      };
+      function visibleBox(view, a) {
+        if (view === 'desk') {
+          const r = 16 / 9;
+          if (a < r) { const w = a / r; return { x: (1 - w) / 2, y: 0, w, h: 1 }; }
+          const h = r / a; return { x: 0, y: (1 - h) * 0.42, w: 1, h };
+        }
+        const r = 822 / 1920, z = 1.12;
+        const w = Math.min(1, a / r) / z, h = Math.min(1, r / a) / z;
+        return { x: (1 - w) / 2, y: (1 - h) / 2, w, h };
+      }
+      const inBox = (b, x, y) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+      const hiddenOn = (view, x, y) => SCREENS[view].filter(sc => !inBox(visibleBox(view, sc.a), x, y));
       const save = document.createElement('button');
       save.className = 'btn'; save.textContent = t('حفظ التغييرات', 'Save changes'); save.disabled = true;
       const view = document.createElement('a');
@@ -164,19 +196,21 @@
           A.field(label + ' (' + t('عربى', 'Arabic') + ')', '<input class="input" data-k="' + k + '" data-l="ar" value="' + esc(sc[k].ar) + '" dir="rtl">') +
           A.field(label + ' (' + t('إنجليزى', 'English') + ')', '<input class="input" data-k="' + k + '" data-l="en" value="' + esc(sc[k].en) + '" dir="ltr">') + '</div>' : '';
         el.innerHTML =
-          '<div class="tabs">' + data.scenes.map((s, i) => '<button data-scene="' + i + '" class="' + (i === st.i ? 'on' : '') + '">' + (i + 1) + ' · ' + esc(t(s.label.ar, s.label.en || s.label.ar)) + '</button>').join('') + '</div>' +
+          '<div class="tabs">' + data.scenes.map((s, i) => !MEDIA[s.id] ? '' : '<button data-scene="' + i + '" class="' + (i === st.i ? 'on' : '') + '">' + (i + 1) + ' · ' + esc(t(s.label.ar, s.label.en || s.label.ar)) + '</button>').join('') + '</div>' +
           '<div class="card"><h2>' + t('نص المشهد', 'Scene text') + '</h2>' +
             pair('label', t('اسم الغرفة', 'Room name')) + pair('eyebrow', t('السطر الصغير', 'Small line')) + pair('title', t('العنوان', 'Title')) +
             pair('showcaseLabel', t('زر العرض', 'Showcase button')) + '</div>' +
           (media.textOnly ? '<div class="note" style="margin-top:12px">' + t('هذا المشهد هو الانتقال إلى المتجر، وليس فيه نقاط.', 'This scene is the hand-off to the shop; it has no points.') + '</div>' :
           '<div class="card"><h2><span class="lft">' + t('النقاط القابلة للضغط', 'Clickable points') + ' <span class="chip">' + A.num(sc.hotspots.length) + '</span></span>' +
             '<span class="seg"><button data-view="desk" class="' + (st.view === 'desk' ? 'on' : '') + '">' + t('كمبيوتر', 'Desktop') + '</button>' +
-            '<button data-view="phone" class="' + (st.view === 'phone' ? 'on' : '') + '">' + t('موبايل', 'Phone') + '</button></span></h2>' +
+            '<button data-view="phone" class="' + (st.view === 'phone' ? 'on' : '') + '">' + t('موبايل', 'Phone') + '</button></span>' +
+            '<button class="btn btn--sm' + (st.crop ? '' : ' btn--ghost') + '" id="cropTog" style="margin-inline-start:8px">' + t('ما تعرضه كل شاشة', 'What screens show') + '</button></h2>' +
             '<div class="scene-ed"><div><div class="stage ' + (st.view === 'desk' ? 'stage--desk' : 'stage--phone') + '" id="stage">' +
               (st.view === 'desk'
                 ? '<img class="bg" id="still" src="' + media.still + '" alt=""><video id="vid" muted playsinline preload="auto" style="position:absolute;inset:0;opacity:0"></video>'
                 : '<img class="bg" src="' + media.phone + '" alt="">') +
               sc.hotspots.map((h, i) => pinHtml(h, i)).join('') +
+              (st.crop ? SCREENS[st.view].map(scr => { const b = visibleBox(st.view, scr.a); return '<div class="crop crop--' + scr.k + '" style="left:' + (b.x * 100) + '%;top:' + (b.y * 100) + '%;width:' + (b.w * 100) + '%;height:' + (b.h * 100) + '%"><span style="top:' + (4 + 22 * SCREENS[st.view].indexOf(scr)) + 'px">' + esc(t(scr.n[0], scr.n[1])) + '</span></div>'; }).join('') : '') +
               '<div class="stage__hint">' + t('اسحب النقطة لتحريكها', 'Drag a point to move it') + '</div></div>' +
               (st.view === 'desk' ? '<p class="tiny muted" style="margin:6px 0 0">' + t('الصورة هى اللحظة من فيديو الغرفة التى قيست عليها النقاط.', 'The picture is the moment of the room video the points were measured on.') + '</p>' : '') +
             '</div><div id="pinSide"></div></div></div>');
@@ -184,7 +218,7 @@
       }
       function pinHtml(h, i) {
         const x = st.view === 'desk' ? h.fx : (h.mfx ?? h.fx), y = st.view === 'desk' ? h.fy : (h.mfy ?? h.fy);
-        return '<button class="pin' + (i === st.sel ? ' sel' : '') + (x < 0.5 ? ' pin--r' : ' pin--l') + '" data-pin="' + i + '" style="left:' + (x * 100) + '%;top:' + (y * 100) + '%"><i>' + esc(t(h.label.ar, h.label.en || h.label.ar)) + '</i></button>';
+        return '<button class="pin' + (i === st.sel ? ' sel' : '') + (x < 0.5 ? ' pin--r' : ' pin--l') + (hiddenOn(st.view, x, y).length ? ' pin--warn' : '') + '" data-pin="' + i + '" style="left:' + (x * 100) + '%;top:' + (y * 100) + '%"><i>' + esc(t(h.label.ar, h.label.en || h.label.ar)) + '</i></button>';
       }
       function paintSide() {
         const box = el.querySelector('#pinSide');
@@ -201,6 +235,9 @@
             '<div class="small muted" style="margin-bottom:10px">' + t('الموضع: ', 'Position: ') + '<span dir="ltr" class="ltr">↔ ' +
               Math.round((st.view === 'desk' ? h.fx : h.mfx) * 100) + '%  ↕ ' + Math.round((st.view === 'desk' ? h.fy : h.mfy) * 100) + '%</span> · ' +
               (st.view === 'desk' ? t('كمبيوتر', 'desktop') : t('موبايل', 'phone')) + '</div>' +
+            (() => { const x = st.view === 'desk' ? h.fx : (h.mfx ?? h.fx), y = st.view === 'desk' ? h.fy : (h.mfy ?? h.fy); const hid = hiddenOn(st.view, x, y);
+              return hid.length ? '<div class="note note--warn small" style="margin-bottom:10px">' + t('هذه النقطة مخفية على: ', 'This point is hidden on: ') + hid.map(sc => esc(t(sc.n[0], sc.n[1]))).join('، ') + t('، لأن الجهاز نفسه خارج الصورة على هذه الشاشات. حرّكها للداخل إن كان الجهاز يمتد للداخل.', ', because the appliance itself is outside the picture on those screens. Move it inward if the appliance extends further in.') + '</div>'
+                : '<div class="small muted" style="margin-bottom:10px">' + t('تظهر على كل الشاشات.', 'Shown on every screen.') + '</div>'; })() +
             '<button class="btn btn--ghost btn--bad btn--sm" id="delPin">' + I.trash + t('حذف النقطة', 'Remove point') + '</button></div>'
           : '<p class="small muted" style="margin:0 0 8px">' + t('اختر نقطة من الصورة أو من القائمة لتعديلها.', 'Pick a point on the picture or in the list to edit it.') + '</p>') +
           '<button class="btn btn--sm" id="addPin" style="margin-top:10px">' + t('+ إضافة نقطة', '+ Add a point') + '</button>' + list;
@@ -233,6 +270,7 @@
       function bind() {
         el.querySelectorAll('[data-scene]').forEach(b => { b.onclick = () => { st.i = Number(b.dataset.scene); st.sel = -1; paint(); }; });
         el.querySelectorAll('[data-view]').forEach(b => { b.onclick = () => { st.view = b.dataset.view; paint(); }; });
+        const ct = el.querySelector('#cropTog'); if (ct) ct.onclick = () => { st.crop = !st.crop; paint(); };
         el.querySelectorAll('[data-k]').forEach(inp => {
           inp.oninput = () => { data.scenes[st.i][inp.dataset.k][inp.dataset.l] = inp.value; dirty(); };
         });
@@ -271,6 +309,7 @@
               else { h.mfx = round(x); h.mfy = round(y); if (m.phone) h.mimg = m.phone; }
               pin.style.left = x * 100 + '%'; pin.style.top = y * 100 + '%';
               pin.classList.toggle('pin--r', x < 0.5); pin.classList.toggle('pin--l', x >= 0.5);
+              pin.classList.toggle('pin--warn', hiddenOn(st.view, x, y).length > 0);
               dirty();
             };
             const up = () => { pin.removeEventListener('pointermove', move); pin.removeEventListener('pointerup', up); paintSide(); };

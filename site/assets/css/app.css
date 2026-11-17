@@ -6,10 +6,10 @@
    ========================================================================== */
 * { box-sizing: border-box; }
 :root {
-  --teal: #68D1D4; --teal-deep: #68D1D4; --ink: #14343a; --ink-soft: #5b6b6e;
+  --teal: #2E7E88; --teal-deep: #2E7E88; --ink: #14343a; --ink-soft: #5b6b6e;
   --amber: #fe9800; --bg: #f7f5f1; --card: #fff; --line: #e6e2da;
   --ok: #17795a; --warn: #b06a10; --bad: #b23b3b;
-  --accent: var(--teal-deep); --accent-ink: #2A7779; --on-accent: #14343a; /* sage theme: deep sage for text, dark ink on sage fills */
+  --accent: var(--teal-deep); --accent-ink: #2A7779; --on-accent: #fff; /* sage theme: deep sage for text, dark ink on sage fills */
   --radius: 18px;
   --shadow: 0 2px 10px rgba(20,52,58,.05);
   --shadow-lg: 0 14px 34px rgba(20,52,58,.12);
@@ -53,6 +53,40 @@ img { max-width: 100%; }
 .panel + .panel { margin-top: 18px; }
 .panel__h { margin: 0 0 4px; font-size: 1.06rem; font-weight: 900; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .panel__sub { margin: 0 0 var(--sk-gap-md); color: var(--ink-soft); font-size: .88rem; line-height: 1.7; }
+/* A panel folded to one row (product page reviews / questions): title + one-line
+   status + a button; the form only opens on request. */
+.fold { padding: 0; }
+.fold > .fold__sum { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 16px 20px; border-radius: var(--radius); }
+.fold > .fold__sum::-webkit-details-marker { display: none; }
+.fold > .fold__sum:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.fold > .fold__sum:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.fold__t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fold__t .panel__h { margin: 0; }
+.fold__meta { color: var(--ink-soft); font-size: .86rem; font-weight: 700; }
+.fold__cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; font: 800 .9rem 'Cairo', sans-serif; color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 9%, #fff); border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 999px; padding: 8px 14px; white-space: nowrap; }
+.fold__cta svg { width: 16px; height: 16px; transition: transform .2s; }
+.fold[open] .fold__cta svg { transform: rotate(180deg); }
+.fold__close, .fold[open] .fold__open { display: none; }
+.fold[open] .fold__close { display: inline; }
+.fold__body { padding: 0 20px 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+.fold__send { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.fold__mine { margin-top: 14px; }
+.fold2 { margin: 2px 0 12px; }
+.fold2 > summary { cursor: pointer; font-weight: 800; font-size: .88rem; color: var(--accent-ink); list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+.fold2 > summary::-webkit-details-marker { display: none; }
+.fold2 > summary::before { content: ''; flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+  background:
+    linear-gradient(currentColor, currentColor) center / 10px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 2px 10px no-repeat,
+    color-mix(in srgb, var(--accent) 12%, #fff); }
+.fold2[open] > summary::before { background:
+    linear-gradient(currentColor, currentColor) center / 10px 2px no-repeat,
+    color-mix(in srgb, var(--accent) 12%, #fff); }
+.fold2[open] > summary { margin-bottom: 10px; }
+@media (max-width: 560px) { .fold > .fold__sum { padding: 14px 15px; } .fold__body { padding: 14px 15px 15px; } }
 /* A panel heading followed straight by its control (no subtitle) used to be
    separated by a hardcoded 6px spacer <div> in finder.js, so the gap between a
    question and its answers was 6px on questions with no hint and 16px on the
@@ -77,7 +111,7 @@ img { max-width: 100%; }
 .btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
 .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 .btn--primary { background: var(--amber); color: #241a05; }
-.btn--teal { background: var(--accent); color:#14343a; }
+.btn--teal { background: var(--accent); color:#fff; }
 .btn--ghost { background: color-mix(in srgb, var(--accent) 8%, #fff); color:var(--accent-ink);
   border: 1.5px solid color-mix(in srgb, var(--accent) 32%, transparent); }
 .btn--quiet { background: transparent; color: var(--ink-soft); border: 1.5px solid var(--line); }
@@ -119,7 +153,7 @@ img { max-width: 100%; }
 .opt input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
 .opt span { display: block; cursor: pointer; font: 700 .88rem 'Cairo', sans-serif; padding: 11px 18px;
   border-radius: 999px; background: #fff; border: 1.5px solid var(--line); transition: .15s; }
-.opt input:checked + span { background: var(--accent); color:#14343a; border-color: var(--accent); }
+.opt input:checked + span { background: var(--accent); color:#fff; border-color: var(--accent); }
 .opt input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; }
 .opt span:hover { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 
@@ -185,7 +219,7 @@ img { max-width: 100%; }
 .steps { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .steps b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: .82rem;
   background: #fff; border: 1.5px solid var(--line); color: var(--ink-soft); }
-.steps b.on { background: var(--accent); color:#14343a; border-color: var(--accent); }
+.steps b.on { background: var(--accent); color:#fff; border-color: var(--accent); }
 .steps b.done { background: color-mix(in srgb, var(--ok) 16%, #fff); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 34%, transparent); }
 .steps i { flex: 1 1 14px; height: 2px; background: var(--line); font-style: normal; min-width: 10px; }
 .bar { height: 9px; border-radius: 999px; background: #eceae4; overflow: hidden; }
@@ -202,14 +236,14 @@ img { max-width: 100%; }
 .empty p { margin: 0 0 16px; }
 
 /* ---------- footer ---------- */
-.foot { background: #68D1D4; color: #14343a; margin-top: 40px; }
+.foot { background: #2E7E88; color:#fff; margin-top: 40px; }
 .foot__inner { max-width: 1240px; margin: 0 auto; padding: 38px clamp(16px,4vw,48px); }
 .foot__cols { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(min(100%,200px),1fr)); }
 .foot h4 { margin: 0 0 10px; font-size: .92rem; }
 .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
-.foot a { color: #14343a; text-decoration: none; font-weight: 700; font-size: .86rem; }
+.foot a { color: #fff; text-decoration: none; font-weight: 700; font-size: .86rem; }
 .foot a:hover { text-decoration: underline; }
-.foot__legal { margin-top: 26px; padding-top: 18px; border-top: 1px solid rgba(20,52,58,.18);
+.foot__legal { margin-top: 26px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.22);
   font-size: .78rem; opacity: .75; line-height: 1.8; }
 
 /* ---------- checkout payment options ---------- */
@@ -229,7 +263,7 @@ img { max-width: 100%; }
 .co-coupon .field__l { display: block; margin-bottom: 6px; }
 .co-coupon__row { display: flex; gap: 8px; }
 .co-coupon__row .input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .04em; }
-.co-disc .v { color: var(--teal-ink, #48C7CB); font-weight: 800; }
+.co-disc .v { color: var(--teal-ink, #256A73); font-weight: 800; }
 
 /* ---------- provider sign-in ---------- */
 .prov-slot { display: flex; justify-content: center; min-height: 44px; }
@@ -289,7 +323,7 @@ body.sk-auth-mode { overflow: hidden; }
 /* owner's shortcut into the control room — only rendered when the account is an admin */
 .admin-link { display: flex; align-items: center; gap: 12px; margin: 18px 0 4px; padding: 15px 18px;
   border-radius: 16px; text-decoration: none; color:#14343a;
-  background: linear-gradient(120deg, #48C7CB, #68D1D4); box-shadow: 0 12px 28px rgba(20,52,58,.22); }
+  background: linear-gradient(120deg, #256A73, #2E7E88); box-shadow: 0 12px 28px rgba(20,52,58,.22); }
 .admin-link span { font-weight: 900; font-size: 1rem; }
 .admin-link small { color: rgba(20,52,58,.75); font-size: .8rem; font-weight: 700; }
 .admin-link b { margin-inline-start: auto; font-weight: 900; color: #14343a; white-space: nowrap; }

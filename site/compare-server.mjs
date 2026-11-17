@@ -3926,7 +3926,7 @@ export async function handle(req, res) {
         const st = ecwidStore();
         const live = st ? (await st.allCategories()).map(c => ({ href: 'shop?cat=' + c.id, name: c.name || String(c.id) })) : [];
         return json(200, { built: built.sort((a, b) => a.name.localeCompare(b.name, 'ar')), live,
-          pages: ['shop', 'finder', 'care', 'delivery', 'contact', 'about', 'showrooms', 'warranty']
+          pages: ['shop', 'soon', 'finder', 'care', 'delivery', 'contact', 'about', 'showrooms', 'warranty']
             .map(p => ({ href: p, name: p })) });
       }
 

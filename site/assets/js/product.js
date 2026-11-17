@@ -15,6 +15,8 @@
    ========================================================================== */
 (function () {
   'use strict';
+  // Which reviews / questions folds are open, kept across the re-render that follows a submit.
+  const FOLD_OPEN = {};
 
   /* ---- typical annual consumption models -------------------------------------
      Rule-of-thumb models, not manufacturer figures. Each returns kWh/year and
@@ -519,67 +521,74 @@
       return out;
     }
 
-    /* ---- 6. structured reviews (device-local) ---- */
+    /* ---- 6 + 7. reviews and questions, folded ----
+       Both used to open in full: an explanation, a moderation note, a long
+       form (seven fields) and seed questions, all at once, which made the
+       bottom of every product page bulky. Each is now ONE compact row (title,
+       a one-line status, a button) that opens to the form. The optional review
+       details sit in a second fold inside it. Which folds are open survives
+       the page re-render that follows a submit or a delete (FOLD_OPEN), so the
+       visitor sees what they just sent. */
+    function fold(key, title, meta, cta, body) {
+      return '<details class="panel fold" data-fold="' + key + '"' + (FOLD_OPEN[key] ? ' open' : '') + '>' +
+        '<summary class="fold__sum"><span class="fold__t"><span class="panel__h">' + title + '</span>' +
+          '<span class="fold__meta">' + meta + '</span></span>' +
+          '<span class="fold__cta"><span class="fold__open">' + cta + '</span><span class="fold__close">' + t('إخفاء', 'Hide') + '</span>' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></summary>' +
+        '<div class="fold__body">' + body + '</div></details>';
+    }
+    const optOne = (a, e) => '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>';
+    const optList = list => '<option value=""></option>' + list.map(o => { const [a, e] = o.split('|'); return optOne(a, e); }).join('');
+
     function reviewsPanel(p) {
       const mine = St.reviews.for(p.id);
-      return '<div class="panel"><h2 class="panel__h">' + t('تقييمات المستخدمين', 'Owner reviews') + '</h2>' +
-        '<p class="panel__sub">' + t('التقييم المفيد يذكر لك المدة والاستخدام، لا النجوم وحدها.', 'A useful review tells you how long and how it is used, not just stars.') + '</p>' +
-        '<div class="note note--soft small">' + t(
-          'لا توجد تقييمات منشورة لهذا المنتج بعد. وأى تقييم تكتبه هنا يُسجَّل على جهازك ويُرسَل للمراجعة قبل النشر، ولا يظهر لبقية الزوار مباشرةً.',
-          'No published reviews for this product yet. Anything you write here is saved on your device and queued for moderation. It is not shown to other visitors immediately.') + '</div>' +
-        '<form id="revForm" class="mt16">' +
+      const meta = mine.length
+        ? t(mine.length === 1 ? 'تقييمك فى انتظار المراجعة' : mine.length + ' تقييمات منك فى انتظار المراجعة',
+            mine.length === 1 ? 'Your review is awaiting moderation' : mine.length + ' of your reviews are awaiting moderation')
+        : t('لا توجد تقييمات بعد. كن أول من يقيّم.', 'No reviews yet. Be the first to review.');
+      const body =
+        '<form id="revForm">' +
           '<label class="field"><span class="field__l">' + t('التقييم', 'Rating') + '</span>' +
             '<div class="opts">' + [1, 2, 3, 4, 5].map(n => '<label class="opt"><input type="radio" name="stars" value="' + n + '"' + (n === 5 ? ' checked' : '') + '><span>' + '★'.repeat(n) + '</span></label>').join('') + '</div></label>' +
-          '<div class="row">' +
-            '<label class="field"><span class="field__l">' + t('منذ متى وأنت تستخدمه؟', 'How long have you owned it?') + '</span>' +
-              '<select class="select" name="owned"><option value=""></option>' +
-              ['أقل من شهر|Under a month', 'من شهر لـ ٦ شهور|1–6 months', 'من ٦ شهور لسنة|6–12 months', 'أكتر من سنة|Over a year'].map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>'; }).join('') + '</select></label>' +
-            '<label class="field"><span class="field__l">' + t('عدد أفراد المنزل', 'Household size') + '</span>' +
-              '<input class="input" type="number" name="people" min="1" max="15" placeholder="-"></label>' +
-          '</div>' +
-          '<div class="row">' +
-            '<label class="field"><span class="field__l">' + t('صوته عالى؟', 'Is it noisy?') + '</span>' +
-              '<select class="select" name="noise"><option value=""></option>' + ['هادى|Quiet', 'عادى|Normal', 'صوته عالى|Loud'].map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>'; }).join('') + '</select></label>' +
-            '<label class="field"><span class="field__l">' + t('استهلاك الكهربا', 'Energy use') + '</span>' +
-              '<select class="select" name="energy"><option value=""></option>' + ['موفر|Economical', 'عادى|Average', 'عالى|High'].map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>'; }).join('') + '</select></label>' +
-            '<label class="field"><span class="field__l">' + t('التركيب كان سهل؟', 'Was installation easy?') + '</span>' +
-              '<select class="select" name="install"><option value=""></option>' + ['سهل|Easy', 'محتاج فنى|Needed a technician', 'صعب|Difficult'].map(o => { const [a, e] = o.split('|'); return '<option value="' + esc(a) + '">' + esc(t(a, e)) + '</option>'; }).join('') + '</select></label>' +
-          '</div>' +
           '<label class="field"><span class="field__l">' + t('ما الذى ينبغى أن يعرفه المشترى الجديد؟', 'What should another buyer know?') + '</span>' +
-            '<textarea class="textarea" name="text" maxlength="600" placeholder="' + t('اكتب تجربتك بصراحة…', 'Write your honest experience…') + '"></textarea></label>' +
-          '<button class="btn btn--teal" type="submit">' + t('أرسل للمراجعة', 'Submit for review') + '</button>' +
+            '<textarea class="textarea" name="text" maxlength="600" style="min-height:84px" placeholder="' + t('اكتب تجربتك بصراحة…', 'Write your honest experience…') + '"></textarea></label>' +
+          '<details class="fold2"><summary>' + t('تفاصيل إضافية (اختيارى)', 'More details (optional)') + '</summary>' +
+            '<div class="row">' +
+              '<label class="field"><span class="field__l">' + t('منذ متى وأنت تستخدمه؟', 'How long have you owned it?') + '</span>' +
+                '<select class="select" name="owned">' + optList(['أقل من شهر|Under a month', 'من شهر لـ ٦ شهور|1 to 6 months', 'من ٦ شهور لسنة|6 to 12 months', 'أكتر من سنة|Over a year']) + '</select></label>' +
+              '<label class="field"><span class="field__l">' + t('عدد أفراد المنزل', 'Household size') + '</span>' +
+                '<input class="input" type="number" name="people" min="1" max="15" placeholder="-"></label>' +
+            '</div><div class="row">' +
+              '<label class="field"><span class="field__l">' + t('صوته عالى؟', 'Is it noisy?') + '</span><select class="select" name="noise">' + optList(['هادى|Quiet', 'عادى|Normal', 'صوته عالى|Loud']) + '</select></label>' +
+              '<label class="field"><span class="field__l">' + t('استهلاك الكهربا', 'Energy use') + '</span><select class="select" name="energy">' + optList(['موفر|Economical', 'عادى|Average', 'عالى|High']) + '</select></label>' +
+              '<label class="field"><span class="field__l">' + t('التركيب كان سهل؟', 'Was installation easy?') + '</span><select class="select" name="install">' + optList(['سهل|Easy', 'محتاج فنى|Needed a technician', 'صعب|Difficult']) + '</select></label>' +
+            '</div></details>' +
+          '<div class="fold__send"><button class="btn btn--teal" type="submit">' + t('أرسل للمراجعة', 'Submit for review') + '</button>' +
+            '<span class="tiny muted">' + t('يُراجَع قبل النشر.', 'Checked before it is published.') + '</span></div>' +
         '</form>' +
-        (mine.length ? '<div class="mt16"><h3 class="small" style="font-weight:900">' + t('تقييماتك (فى انتظار المراجعة)', 'Your reviews (awaiting moderation)') + '</h3>' +
+        (mine.length ? '<div class="fold__mine">' +
           mine.map(r => '<div class="note note--soft mt8"><b>' + '★'.repeat(Number(r.stars) || 0) + '</b> ' +
             [r.owned, r.people ? t(r.people + ' أفراد', r.people + ' people') : '', r.noise, r.energy].filter(Boolean).map(esc).join(' · ') +
             (r.text ? '<br>' + esc(r.text) : '') +
-            ' <button class="btn btn--quiet btn--sm" data-delrev="' + esc(r.id) + '">' + t('امسح', 'Delete') + '</button></div>').join('') + '</div>' : '') +
-        '</div>';
+            ' <button class="btn btn--quiet btn--sm" data-delrev="' + esc(r.id) + '">' + t('امسح', 'Delete') + '</button></div>').join('') + '</div>' : '');
+      return fold('rev', t('تقييمات المستخدمين', 'Owner reviews'), meta, t('اكتب تقييماً', 'Write a review'), body);
     }
 
-    /* ---- 7. Q&A ---- */
     function qaPanel(p) {
       const mine = St.qa.for(p.id);
-      const seeds = [
-        t('هل يمر من باب عرضه ٧٠ سم؟', 'Will it fit through a 70 cm doorway?'),
-        t('التركيب متضمن فى السعر؟', 'Is installation included in the price?'),
-        t('الضمان من الشركة المصنّعة ولا من المتجر؟', 'Is the warranty from the manufacturer or the seller?'),
-        t('محتاج خط كهربا خاص؟', 'Does it need a dedicated electrical circuit?'),
-      ];
-      return '<div class="panel"><h2 class="panel__h">' + t('أسئلة عن المنتج', 'Questions about this product') + '</h2>' +
-        '<p class="panel__sub">' + t('اسأل، ويجيبك فريق صادكو أو أحد من اشترى المنتج. ويُذكر مع كل إجابة مصدرها.',
-          'Ask, and SADKO staff or a verified owner answers. Every answer is labelled with its source.') + '</p>' +
-        '<div class="chips">' + seeds.map(s => '<button class="chip" type="button" data-seed="' + esc(s) + '">' + esc(s) + '</button>').join('') + '</div>' +
-        '<form id="qaForm" class="mt16"><label class="field"><span class="field__l">' + t('سؤالك', 'Your question') + '</span>' +
-          '<textarea class="textarea" name="q" maxlength="400" style="min-height:74px" placeholder="' + t('اكتب سؤالك هنا…', 'Type your question…') + '"></textarea></label>' +
-          '<button class="btn btn--teal" type="submit">' + t('أرسل السؤال', 'Send question') + '</button></form>' +
-        '<div class="note note--soft small mt16">' + t(
-          'لا توجد أسئلة منشورة لهذا المنتج بعد. وسؤالك يُسجَّل على جهازك ويُرسَل للمراجعة، وإن احتجت رداً فورياً فاتصل على 19140.',
-          'No published questions for this product yet. Your question is saved on your device and queued for review. For an immediate answer call 19140.') + '</div>' +
-        (mine.length ? '<div class="mt16">' + mine.map(q => '<div class="note note--soft mt8">' + esc(q.text) +
+      const meta = mine.length
+        ? t(mine.length === 1 ? 'سؤالك فى انتظار الرد' : mine.length + ' أسئلة منك فى انتظار الرد',
+            mine.length === 1 ? 'Your question is awaiting an answer' : mine.length + ' of your questions are awaiting answers')
+        : t('لا توجد أسئلة بعد. اسأل فريق صادكو.', 'No questions yet. Ask the SADKO team.');
+      const body =
+        '<form id="qaForm"><label class="field"><span class="field__l">' + t('سؤالك', 'Your question') + '</span>' +
+          '<textarea class="textarea" name="q" maxlength="400" style="min-height:70px" placeholder="' + t('اكتب سؤالك هنا…', 'Type your question…') + '"></textarea></label>' +
+          '<div class="fold__send"><button class="btn btn--teal" type="submit">' + t('أرسل السؤال', 'Send question') + '</button>' +
+            '<span class="tiny muted">' + t('للرد الفورى اتصل على 19140.', 'For an immediate answer call 19140.') + '</span></div></form>' +
+        (mine.length ? '<div class="fold__mine">' + mine.map(q => '<div class="note note--soft mt8">' + esc(q.text) +
           ' <span class="badge">' + t('فى انتظار الرد', 'awaiting answer') + '</span>' +
-          ' <button class="btn btn--quiet btn--sm" data-delq="' + esc(q.id) + '">' + t('امسح', 'Delete') + '</button></div>').join('') + '</div>' : '') +
-        '</div>';
+          ' <button class="btn btn--quiet btn--sm" data-delq="' + esc(q.id) + '">' + t('امسح', 'Delete') + '</button></div>').join('') + '</div>' : '');
+      return fold('qa', t('اسألنا عن هذا المنتج', 'Ask us about this product'), meta, t('اسأل سؤالاً', 'Ask a question'), body);
     }
 
     /* ---- related guides ---- */
@@ -660,6 +669,7 @@
         render(p, s, peers);                       // recompute the cost panel
       });
 
+      root.querySelectorAll('details[data-fold]').forEach(d => d.addEventListener('toggle', () => { FOLD_OPEN[d.dataset.fold] = d.open; }));
       const rf = $('#revForm');
       rf && rf.addEventListener('submit', e => {
         e.preventDefault();
@@ -676,9 +686,6 @@
         const v = new FormData(qf).get('q');
         if (String(v || '').trim()) { St.qa.ask(p.id, v); render(p, s, peers); }
       });
-      root.querySelectorAll('[data-seed]').forEach(b => b.addEventListener('click', () => {
-        const ta = root.querySelector('#qaForm textarea'); if (ta) { ta.value = b.getAttribute('data-seed'); ta.focus(); }
-      }));
       root.querySelectorAll('[data-delq]').forEach(b => b.addEventListener('click', () => { St.qa.remove(p.id, b.getAttribute('data-delq')); render(p, s, peers); }));
     }
   }

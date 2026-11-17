@@ -3,35 +3,59 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* A phone turned sideways gets the DESKTOP layout: the viewport is set to a
+   laptop width (1200px, above the 1080px strap breakpoint) and scaled to fit,
+   so the scenes, appliance markers, copy and bars use their desktop placement
+   instead of a stretched phone layout. Upright again: back to the phone layout. */
+(function () {
+  var m = document.querySelector('meta[name=viewport]'); if (!m) return;
+  var base = m.getAttribute('content'), DESK = 'width=1200';
+  function landscape() {
+    if (screen.orientation && screen.orientation.type) return screen.orientation.type.indexOf('landscape') === 0;
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return window.innerWidth > window.innerHeight;
+  }
+  function apply() {
+    var touch = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+    var phone = touch && Math.min(screen.width, screen.height) <= 500;
+    var want = phone && landscape() ? DESK : base;
+    if (m.getAttribute('content') !== want) m.setAttribute('content', want);
+  }
+  apply();
+  if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', apply);
+  window.addEventListener('orientationchange', function () { setTimeout(apply, 60); });
+})();
+</script>
 <title>الطلبات | صادكو جروب</title>
 <link rel="icon" href="assets/img/sadko-logo-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/category.css?v=c12">
+<link rel="stylesheet" href="assets/css/category.css?v=c13">
 <style>
-:root{--accent:#68D1D4;--accent-ink:#2A7779;--on-accent: #14343a;}
+:root{--accent:#2E7E88;--accent-ink:#2A7779;--on-accent: #fff;}
 .order{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;
-  box-shadow:0 8px 24px rgba(20,52,58,.07);border:1px solid rgba(104,209,212,.1);}
+  box-shadow:0 8px 24px rgba(20,52,58,.07);border:1px solid rgba(46,126,136,.1);}
 .order__head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .order__id{font:800 .92rem 'Cairo',sans-serif;color:#14343a;direction:ltr;}
 .order__date{font:600 .78rem 'Cairo',sans-serif;color:#5b6b6e;}
 .order__status{font:800 .75rem 'Cairo',sans-serif;color:#8a5b12;background:#fdeacc;border-radius:999px;padding:5px 12px;}
 .order ul{margin:0;padding:0;list-style:none;}
-.order li{font:600 .82rem 'Cairo',sans-serif;color:#3f5457;padding:4px 0;border-bottom:1px dashed rgba(104,209,212,.14);}
+.order li{font:600 .82rem 'Cairo',sans-serif;color:#3f5457;padding:4px 0;border-bottom:1px dashed rgba(46,126,136,.14);}
 .order li:last-child{border:0;}
 .order__total{font:800 .95rem 'Cairo',sans-serif;color:#2A7779;margin-top:8px;}
 .track{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:26px;}
 .track a{display:block;text-decoration:none;background:#fff;border-radius:16px;padding:18px;
-  border:1px solid rgba(104,209,212,.12);box-shadow:0 8px 24px rgba(20,52,58,.07);}
-.track a:hover{border-color:#68D1D4;}
+  border:1px solid rgba(46,126,136,.12);box-shadow:0 8px 24px rgba(20,52,58,.07);}
+.track a:hover{border-color:#2E7E88;}
 .track b{display:block;font:800 .95rem 'Cairo',sans-serif;color:#14343a;margin-bottom:6px;}
 .track span{font:600 .8rem 'Cairo',sans-serif;color:#5b6b6e;line-height:1.7;}
 .lookup{margin-top:18px;background:#fff;border-radius:16px;padding:18px;border:1px solid #d7e3e5;}
 .lookup b{display:block;font:800 .95rem 'Cairo',sans-serif;color:#14343a;margin-bottom:10px;}
 .lookup__row{display:flex;flex-wrap:wrap;gap:8px;}
 .lookup input{flex:1 1 160px;min-width:0;font:600 .9rem 'Cairo',sans-serif;padding:10px 12px;border:1px solid #c9d7da;border-radius:10px;}
-.lookup button{font:800 .9rem 'Cairo',sans-serif;background:#68D1D4;color:#14343a;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;}
+.lookup button{font:800 .9rem 'Cairo',sans-serif;background:#2E7E88;color:#fff;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;}
 #trackOut{margin-top:12px;font:600 .88rem 'Cairo',sans-serif;color:#14343a;line-height:1.8;}
 #trackOut a{color:#2A7779;font-weight:800;}
 </style>
@@ -74,7 +98,7 @@
   </div>
 </footer>
 
-<script src="assets/js/nav.js?v=g42" defer></script>
+<script src="assets/js/nav.js?v=g47" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
 <script defer>
 document.addEventListener('DOMContentLoaded', () => {

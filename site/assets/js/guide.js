@@ -402,16 +402,10 @@ function mountGuide(container, api, sections) {
     try { localStorage.setItem(COACH_KEY, '1'); } catch (e) {}   // tour replaces the toast
     setTimeout(openTour, 900);
   };
-  /* First visit: the welcome card asks "home or shop?" before anything else.
-     The tour only follows if they chose to stay in the house; choosing the shop
-     squishes the bar and leaves for the shop. */
-  if (window.skModeBar && window.skModeBar.needsWelcome() && modeBar) {
-    try { localStorage.setItem(COACH_KEY, '1'); } catch (e) {}   // no coach toast under the card
-    window.skModeBar.showWelcome(m => {
-      if (m === 'shop') setTimeout(() => modeBar && modeBar.go('shop'), 380);
-      else startTour();
-    });
-  } else startTour();
+  /* The first-visit welcome card ("home or shop?") was removed 2026-11-18: the
+     tour already introduces the house, so visitors go straight into it.
+     skModeBar.showWelcome() still exists but is no longer called. */
+  startTour();
 
   function escg(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 }

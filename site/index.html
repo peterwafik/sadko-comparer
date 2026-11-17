@@ -30,19 +30,6 @@
 <title>صادكو جروب | منزلك بالكامل</title>
 <meta name="description" content="تجوّل داخل منزل صادكو: كل فئات الأجهزة الكهربائية فى ثلاث غرف. اضغط على أى جهاز وتسوّق من فئته مباشرةً.">
 <link rel="icon" href="assets/img/sadko-logo-256.png">
-<script>
-/* A visitor who chose "Shop view" before lands in the shop when they come back
-   from outside the site. Links inside the site (the logo, "Home", the house in
-   the bottom bar via ?house) still open the house. Runs before anything heavy loads. */
-(function () {
-  try {
-    if (localStorage.getItem('sadko-mode') !== 'shop' || !localStorage.getItem('sadko-welcome-v2') || /[?&](house|spots)\b/.test(location.search)) return;
-    var ref = document.referrer, internal = false;
-    try { internal = !!ref && new URL(ref).origin === location.origin; } catch (e) {}
-    if (!internal) location.replace('shop.html');
-  } catch (e) {}
-})();
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
@@ -52,7 +39,7 @@
 <script src="assets/js/scenes.js?v=g6" defer></script>
 <script src="assets/js/hotspots.js?v=g52" defer></script>
 <script src="assets/js/modebar.js?v=m8" defer></script>
-<script src="assets/js/guide.js?v=g23" defer></script>
+<script src="assets/js/guide.js?v=g24" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g20">
 </head>
 <body>

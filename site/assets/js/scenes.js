@@ -67,14 +67,27 @@
   }
 
   /* Returns true when anything was applied. */
-  function apply(sections, data, en) {
+  /* `copyRev` is the revision of the built-in room text (index.html COPY_REV,
+     also in the bundled data/scenes.json). A saved copy's room text (label,
+     eyebrow, title) is used only when that copy was saved against the same or
+     a newer revision. Without this, the old saved English ("Welcome to SADKO
+     home") replaced the owner's newly approved wording on every visit where
+     the saved copy loaded in time, so the titles seemed to revert after each
+     deploy (2026-11-18). The admin editor stamps the revision when it saves. */
+  function textCurrent(data, copyRev) {
+    if (!copyRev) return true;
+    return !!data.copyRev && String(data.copyRev) >= String(copyRev);
+  }
+
+  function apply(sections, data, en, copyRev) {
     if (!data || !Array.isArray(data.scenes) || !Array.isArray(sections)) return false;
     var any = false;
+    var useText = textCurrent(data, copyRev);
     data.scenes.forEach(function (d) {
       var s = null;
       for (var i = 0; i < sections.length; i++) if (sections[i].id === d.id) s = sections[i];
       if (!s) return;
-      ['label', 'eyebrow', 'title', 'showcaseLabel'].forEach(function (k) {
+      if (useText) ['label', 'eyebrow', 'title', 'showcaseLabel'].forEach(function (k) {
         var v = pick(d[k], en);
         if (v) { s[k] = v; any = true; }
       });
@@ -114,7 +127,7 @@
     return Promise.race([got, timer]);
   }
 
-  var api = { apply: apply, load: load, HREF: HREF, sameImage: sameImage, builtinFor: builtinFor };
+  var api = { apply: apply, load: load, HREF: HREF, sameImage: sameImage, builtinFor: builtinFor, textCurrent: textCurrent };
   root.skScenes = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

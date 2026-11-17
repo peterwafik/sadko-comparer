@@ -133,6 +133,17 @@
           });
         });
       }
+      /* Room text saved before the site's current approved wording (copyRev,
+         see assets/js/scenes.js) is not what the site shows: show the
+         approved wording instead, so a save keeps it. Every save stamps the
+         current revision, so the owner's own edits made here take effect. */
+      const COPY_REV = defs && defs.copyRev;
+      if (COPY_REV && SS && SS.textCurrent && !SS.textCurrent(data, COPY_REV) && defs && Array.isArray(defs.scenes)) {
+        data.scenes.forEach(sc => {
+          const d = defs.scenes.find(x => x.id === sc.id);
+          if (d) ['label', 'eyebrow', 'title', 'showcaseLabel'].forEach(k => { if (d[k]) sc[k] = JSON.parse(JSON.stringify(d[k])); });
+        });
+      }
       const st = { i: 0, view: 'desk', sel: -1, dirty: false, crop: false };
       /* WHAT EACH SCREEN SHOWS. The site fills the screen with the room
          (object-fit:cover), so a screen whose shape differs from the picture
@@ -175,6 +186,7 @@
       const dirty = () => { st.dirty = true; save.disabled = false; save.textContent = t('حفظ التغييرات •', 'Save changes •'); };
       save.onclick = async () => {
         save.disabled = true;
+        if (COPY_REV) data.copyRev = COPY_REV;
         const r = await A.api('PUT', 'content/scenes', { json: JSON.stringify(data, null, 2) });
         if (A.report(r, t('تم الحفظ. يظهر على الموقع خلال دقيقة.', 'Saved. Live on the site within a minute.'))) { st.dirty = false; save.textContent = t('حفظ التغييرات', 'Save changes'); }
         else save.disabled = false;

@@ -158,3 +158,55 @@ test('the admin editor stamps against the same pictures index.html shows', () =>
     assert.ok(S.sameImage(media[s.id].still, s.still), s.id + ' desktop still');
   }
 });
+
+/* The room titles kept "reverting" after deploys: an admin copy saved before the
+   owner approved new wording replaced it whenever it loaded in time. Room text
+   from a saved copy now counts only when saved against the current COPY_REV. */
+const COPY_REV = (/const COPY_REV = '([^']+)'/.exec(html) || [])[1];
+
+test('index.html and the bundled scenes.json carry the same room-text revision', () => {
+  assert.ok(COPY_REV, 'index.html must declare COPY_REV');
+  assert.equal(DATA.copyRev, COPY_REV, 'bump "copyRev" in data/scenes.json together with COPY_REV in index.html');
+});
+
+test('the bundled scenes.json has exactly the built-in room text, in both languages', () => {
+  const a = builtIn();
+  for (const s of a) {
+    const d = DATA.scenes.find(x => x.id === s.id);
+    if (!d) continue;
+    for (const k of ['label', 'eyebrow', 'title']) {
+      if (s[k]) assert.equal(String(d[k] && d[k].ar).trim(), s[k], `${s.id}.${k} (ar)`);
+      const e = EN_TABLE[s.id] && EN_TABLE[s.id][k];
+      if (e) assert.equal(d[k] && d[k].en, e, `${s.id}.${k} (en)`);
+    }
+  }
+});
+
+test('a saved copy older than COPY_REV cannot replace the room text, but its points still apply', () => {
+  const saved = JSON.parse(JSON.stringify(DATA));
+  delete saved.copyRev;
+  saved.scenes[0].title = { ar: 'عنوان قديم', en: 'Old title' };
+  saved.scenes[0].hotspots[0].href = 'soon?c=old-test';
+  const b = builtIn();
+  S.apply(b, saved, false, COPY_REV);
+  assert.equal(b[0].title, builtIn()[0].title, 'old saved title must not show');
+  assert.equal(b[0].hotspots[0].href, 'soon?c=old-test', 'saved points still apply');
+  const older = { ...saved, copyRev: '2000-01-01' };
+  const c = builtIn(); S.apply(c, older, true, COPY_REV);
+  assert.notEqual(c[0].title, 'Old title');
+});
+
+test('a copy saved against the current revision (the owner editing later) does replace it', () => {
+  const saved = JSON.parse(JSON.stringify(DATA));
+  saved.copyRev = COPY_REV;
+  saved.scenes[0].title = { ar: 'عنوان جديد', en: 'New title' };
+  const b = builtIn(); S.apply(b, saved, true, COPY_REV);
+  assert.equal(b[0].title, 'New title');
+});
+
+test('the admin editor stamps the revision on save and shows the approved text for an old copy', () => {
+  const src = readFileSync(new URL('../assets/js/admin/pages-site.js', import.meta.url), 'utf8');
+  assert.match(src, /if \(COPY_REV\) data\.copyRev = COPY_REV;/);
+  assert.match(src, /SS\.textCurrent\(data, COPY_REV\)/);
+  assert.match(html, /window\.skScenes\.apply\(SECTIONS, data, EN, COPY_REV\)/);
+});

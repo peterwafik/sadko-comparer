@@ -1,5 +1,6 @@
 {
   "_note": "Editable parts of the home page scenes (index.html). Edited from the admin portal (Home scenes). Positions are fractions of the picture: fx/fy desktop, mfx/mfy phone. href is a site page or category page. Structure (videos, timings) stays in index.html.",
+  "copyRev": "2026-11-18",
   "scenes": [
     {
       "id": "living",

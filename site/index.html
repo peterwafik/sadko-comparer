@@ -49,7 +49,7 @@
 <script src="assets/js/scrub-engine.js?v=g38" defer></script>
 <script src="assets/js/nav.js?v=g50" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
-<script src="assets/js/scenes.js?v=g5" defer></script>
+<script src="assets/js/scenes.js?v=g6" defer></script>
 <script src="assets/js/hotspots.js?v=g52" defer></script>
 <script src="assets/js/modebar.js?v=m8" defer></script>
 <script src="assets/js/guide.js?v=g23" defer></script>
@@ -247,6 +247,13 @@ window.addEventListener('DOMContentLoaded', () => {
      admin's saved copy both rewrite `label`). Marker tracks are keyed on it. */
   SECTIONS.forEach(s => (s.hotspots || []).forEach(h => { h._ar = h.label; }));
 
+  /* Revision of the built-in room text (eyebrow/title/label, both languages).
+     BUMP THIS whenever that text changes here, and set the same value as
+     "copyRev" in data/scenes.json: an admin copy saved before it is ignored
+     for room text, so a newly approved wording cannot be overridden by an
+     older saved one (scenes.js textCurrent; engine/scenes.test.mjs). */
+  const COPY_REV = '2026-11-18';
+
   /* ---- English mode: overlay the scene copy (labels, titles, hotspot names)
      onto the Arabic-authored config. Language comes from nav.js (skLang). ---- */
   const EN = !!(window.skLang && window.skLang.get() === 'en');
@@ -288,7 +295,11 @@ window.addEventListener('DOMContentLoaded', () => {
      hotspots.js). Without it markers fall back to their single authored point. */
   const loadTracks = window.skScenes ? window.skScenes.load('assets/data/marker-tracks.json', 1500) : Promise.resolve(null);
   Promise.all([loadScenes, loadTracks]).then(([data, tracks]) => {
-  if (!(data && window.skScenes.apply(SECTIONS, data, EN))) applyBuiltInEnglish();
+  /* Built-in English first, then the saved copy over it: the saved room text
+     only counts when it was saved against COPY_REV (see scenes.js), and a
+     skipped saved title must fall back to the built-in English, not Arabic. */
+  applyBuiltInEnglish();
+  if (data) window.skScenes.apply(SECTIONS, data, EN, COPY_REV);
   if (tracks && tracks.clips) SECTIONS.forEach(s => { if (s.clip && tracks.clips[s.clip]) s._track = tracks.clips[s.clip]; });
 
 

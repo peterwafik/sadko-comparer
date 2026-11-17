@@ -1238,28 +1238,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
 
-  /* ---- "Home view / Shop view" bar on every shop page ----
-     The home page mounts the open house itself (guide.js); every other
-     storefront page gets the small closed house beside "Shop view", so going
-     back to the 3D house is always one press away. Not on checkout (keep the
-     payment step calm), admin or the 404 page. */
-  (function modeBar() {
-    const page = pageOf(location.pathname);
-    if (['', 'index', 'admin', 'checkout', '404', '_preview'].includes(page)) return;
-    const go = () => window.skModeBar && window.skModeBar.mount({
-      mode: 'shop',
-      shopHref: P('shop.html'),
-      houseHref: P('index.html?house'),
-      shopIsHere: page === 'shop',
-    });
-    const start = () => {
-      if (window.skModeBar) return go();
-      const s = document.createElement('script');
-      s.src = P('assets/js/modebar.js?v=m7');
-      s.onload = go;
-      document.head.appendChild(s);
-    };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
-    else start();
-  })();
+  /* No bottom bar on the shop pages (owner, 2026-11-17: "distracting"). The
+     Home/Shop bar (modebar.js) lives only on the home page now (guide.js);
+     from the shop, "Home" in the top strap goes back to the house. */
 })();

@@ -148,8 +148,8 @@ function mountGuide(container, api, sections) {
         : (EN ? 'Room buttons: the fastest route' : 'أزرار الغرف: أسرع طريق'),
       body: () => window.skModeBar
         ? (EN
-          ? 'Press any room inside this house to jump to its best view. Any time you like, press “Shop” beside it for the usual product list; the small house there brings you back here.'
-          : 'اضغط على أي غرفة داخل هذا البيت لتنتقل مباشرة إلى أفضل لقطة فيها. وفي أي وقت اضغط «المتجر» بجانبه لتصل إلى قائمة المنتجات العادية، والبيت الصغير هناك يرجعك إلى هنا.')
+          ? 'Press any room inside this house to jump to its best view. Any time you like, press “Shop” beside it for the usual product list; “Home” at the top of the page brings you back here.'
+          : 'اضغط على أي غرفة داخل هذا البيت لتنتقل مباشرة إلى أفضل لقطة فيها. وفي أي وقت اضغط «المتجر» بجانبه لتصل إلى قائمة المنتجات العادية، و«الرئيسية» أعلى الصفحة ترجعك إلى هنا.')
         : EN
         // No longer mentions the side dot rail: index.html passes route:false,
         // so those dots do not exist. A walkthrough that points at absent

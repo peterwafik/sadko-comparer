@@ -42,7 +42,7 @@
     cardSub: 'Pick one. Both have the same products and prices.',
     optHome: 'Walk through the home', optHomeSub: 'Real rooms, tap an appliance',
     optShop: 'Shop the usual way', optShopSub: 'A product list with search',
-    later: 'You can change your mind any time from the bar at the bottom of the screen',
+    later: 'You can change your mind any time from the menu at the top of the page',
   } : {
     home: 'بيت صادكو', shop: 'المتجر', here: 'أنت هنا', go: 'انتقل إلى',
     aria: 'اختر طريقة التسوق: البيت أو المتجر',
@@ -51,7 +51,7 @@
     cardSub: 'اختر طريقة واحدة. الاثنان فيهم نفس المنتجات والأسعار.',
     optHome: 'تجوّل في البيت', optHomeSub: 'غرف حقيقية، اضغط على الجهاز',
     optShop: 'تسوّق بالطريقة العادية', optShopSub: 'قائمة منتجات مع البحث',
-    later: 'تقدر تغيّر رأيك في أي وقت من الشريط أسفل الشاشة',
+    later: 'تقدر تغيّر رأيك في أي وقت من القائمة أعلى الصفحة',
   };
 
   const ls = {

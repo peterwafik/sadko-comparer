@@ -102,7 +102,10 @@ const LIVE_STALE = JSON.parse(JSON.stringify(DATA));
   l.title = { ar: 'أهلاً بك فى بيت صادكو', en: 'Welcome to SADKO home' };
 }
 
-test('unstamped saved phone positions fall back to the built-in ones; texts and desktop edits survive', () => {
+// 2026-11-17: unstamped DESKTOP positions are dropped as well. The live saved
+// copy carried the living room's desktop points from an older picture and beat
+// every fix in index.html after each deploy.
+test('unstamped saved positions (phone AND desktop) fall back to the built-in ones; texts survive', () => {
   const a = builtIn(), b = builtIn();
   S.apply(b, LIVE_STALE, false);
   const ai = a.find(s => s.id === 'living'), bi = b.find(s => s.id === 'living');
@@ -110,8 +113,21 @@ test('unstamped saved phone positions fall back to the built-in ones; texts and 
   bi.hotspots.forEach((h, j) => {
     assert.equal(h.mfx, ai.hotspots[j].mfx, 'mfx #' + j);
     assert.equal(h.mfy, ai.hotspots[j].mfy, 'mfy #' + j);
-    assert.equal(h.fx, 0.4, 'unstamped desktop edit kept #' + j);
+    assert.equal(h.fx, ai.hotspots[j].fx, 'fx #' + j);
+    assert.equal(h.fy, ai.hotspots[j].fy, 'fy #' + j);
   });
+});
+
+test('marker timing always comes from index.html, and the track key survives a renamed label', () => {
+  const a = builtIn(), b = builtIn(), d = JSON.parse(JSON.stringify(LIVE_STALE));
+  const h = d.scenes.find(s => s.id === 'living').hotspots[0];
+  const builtinAr = a.find(s => s.id === 'living').hotspots[0].label;
+  b.forEach(s => (s.hotspots || []).forEach(x => { x._ar = x.label; }));
+  Object.assign(h, { at: 0.77, span: 0.05 });
+  S.apply(b, d, false);
+  const got = b.find(s => s.id === 'living').hotspots[0], want = a.find(s => s.id === 'living').hotspots[0];
+  assert.equal(got.at, want.at); assert.equal(got.span, want.span);
+  assert.equal(got._ar, builtinAr);
 });
 
 test('a saved position stamped with the picture the site shows is used', () => {

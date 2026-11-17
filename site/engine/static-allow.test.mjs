@@ -67,7 +67,8 @@ test('every page in site/ and every data file the browser fetches is allowed', (
   const sources = [...pages.map(p => path.join(SITE, p)), ...walk(path.join(SITE, 'assets', 'js'))];
   const fetched = new Set();
   for (const s of sources) {
-    for (const m of readFileSync(s, 'utf8').matchAll(/data\/([a-z0-9_-]+\.json)/gi)) fetched.add('/data/' + m[1]);
+    // assets/data/*.json are plain static assets (served under assets/**), not /data/ feeds.
+    for (const m of readFileSync(s, 'utf8').matchAll(/(assets\/)?data\/([a-z0-9_-]+\.json)/gi)) fetched.add(m[1] ? '/assets/data/' + m[2] : '/data/' + m[2]);
   }
   assert.ok(fetched.size >= 6, 'expected the browser to fetch at least six data files, found ' + fetched.size);
   for (const p of fetched) assert.equal(isPublicPath(p), true, p + ' is fetched by the browser but would not be served');

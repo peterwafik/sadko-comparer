@@ -29,6 +29,10 @@
   const KEY = 'sadko-mode';
   const ROOMS_KEY = 'sadko-rooms';
   const ARRIVE_KEY = 'sadko-mode-arrive';
+  /* Seen the welcome card. Its own key (v2, 2026-11-17) so every visitor sees it
+     once more: it used to hang off 'sadko-mode', which any click on the bar sets
+     (and ?house links skipped it), so almost nobody was shown it. */
+  const WELCOME_KEY = 'sadko-welcome-v2';
   const isEN = () => !!(window.skLang && window.skLang.get() === 'en');
   const S = () => isEN() ? {
     home: 'SADKO Home', shop: 'Shop', here: 'You are here', go: 'Go to',
@@ -62,6 +66,8 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // "غرفة المعيشة" -> "المعيشة", "Living Room" -> "Living": the bar has to fit a phone
+  /* 'SADKO Home' -> SADKO over Home, 'بيت صادكو' -> بيت over صادكو (first word on top). */
+  const stack = s => { const w = String(s || '').trim().split(/\s+/); return w.length < 2 ? esc(s) : '<span>' + esc(w[0]) + '</span><span>' + esc(w.slice(1).join(' ')) + '</span>'; };
   const shortLabel = l => String(l || '').replace(/^غرفة\s+/, '').replace(/\s+room$/i, '').trim();
 
   const IC = {
@@ -98,7 +104,7 @@
             '<span class="skmb__smoke"><i></i><i></i><i></i></span></div>' +
           '<div class="skmb__walls">' +
             '<span class="skmb__door">' + IC.door + '</span>' +
-            '<span class="skmb__tag"><small></small><b>' + esc(T.home) + '</b></span>' +
+            '<span class="skmb__tag"><small></small><b>' + stack(T.home) + '</b></span>' +
             '<div class="skmb__rooms">' + rooms.map((r, i) =>
               '<button type="button" class="skmb__room" data-room="' + i + '"><em>' + (i + 1) + '</em><span>' + esc(r) + '</span></button>').join('') +
             '</div>' +
@@ -228,7 +234,7 @@
 
   /* ----------------------------------------------------- welcome card ---- */
   function needsWelcome() {
-    return !ls.get(KEY) && !/[?&](house|spots)\b/.test(location.search);
+    return !ls.get(WELCOME_KEY) && !/[?&]spots\b/.test(location.search);
   }
   function showWelcome(onChoose) {
     injectCSS();
@@ -253,7 +259,7 @@
     veil.addEventListener('click', e => {
       const b = e.target.closest('[data-mode]'); if (!b) return;
       const m = b.dataset.mode;
-      ls.set(KEY, m);
+      ls.set(KEY, m); ls.set(WELCOME_KEY, '1');
       root.style.overflow = prevOverflow;
       veil.classList.add('is-out');
       setTimeout(() => veil.remove(), 380);
@@ -293,9 +299,10 @@
   .skmb__house.is-off:hover .skmb__walls{background:#fff6e6;}
   .skmb__door{display:flex;align-items:center;color:#241a05;padding-inline-start:4px;}
   .skmb__door svg{width:24px;height:28px;}
-  .skmb__tag{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;padding:0 10px 0 6px;color:#2A7779;}
+  .skmb__tag{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:start;line-height:1.15;padding:0 10px 0 6px;color:#2A7779;}
   .skmb__tag small{font-size:12.5px;font-weight:800;opacity:.85;}
-  .skmb__tag b{font-size:19px;font-weight:900;}
+  .skmb__tag b{display:flex;flex-direction:column;align-items:flex-start;font-size:19px;font-weight:900;line-height:1.05;}
+  .skmb__tag b span{display:block;}
   .skmb__house.is-on .skmb__tag{border-inline-end:2px solid #E6F0F1;margin-inline-end:4px;padding-inline-end:14px;}
   .skmb__house.is-off .skmb__tag{color:#241a05;padding:0;}
   .skmb__rooms{display:flex;gap:4px;align-items:center;}
@@ -306,12 +313,12 @@
   .skmb__room:hover,.skmb__room:focus-visible{background:#EFF6F6;}
   .skmb__room.is-active{background:#E6F0F1;color:#2A7779;box-shadow:inset 0 0 0 2px #2E7E88;}
   .skmb__room.is-active em{background:#2E7E88;color:#fff;}
-  .skmb__shop{box-sizing:border-box;display:flex;align-items:center;gap:10px;border:0;cursor:pointer;border-radius:20px;
+  .skmb__shop{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:10px;border:0;cursor:pointer;border-radius:20px;
     padding:8px 18px 8px 14px;min-height:64px;background:#fe9800;color:#241a05;text-decoration:none;transition:background-color .35s,color .35s;}
   .skmb__shop svg{width:28px;height:28px;flex:0 0 auto;}
-  .skmb__lab{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;}
+  .skmb__lab{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;}
   .skmb__lab small{font-size:12.5px;font-weight:800;opacity:.85;}
-  .skmb__lab b{font-size:19px;font-weight:900;}
+  .skmb__lab b{display:block;font-size:19px;font-weight:900;line-height:1.05;}
   .skmb__shop.is-on{background:#2E7E88;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.6);}
   span.skmb__shop{cursor:default;}
   .skmb__shop:not(.is-on):hover{background:#ffad33;}
@@ -327,7 +334,7 @@
     .skmb__tag{padding:0 3px;}
     .skmb__house.is-on .skmb__tag{padding-inline-end:clamp(4px,1.5vw,6px);margin-inline-end:0;}
     .skmb__tag small{font-size:clamp(8.5px,2.45vw,9.5px);}
-    .skmb__tag b{font-size:clamp(11.5px,3.45vw,13.5px);}
+    .skmb__tag b{font-size:clamp(12.5px,4vw,15.5px);}
     .skmb__room{padding:8px clamp(3px,1.3vw,5px);font-size:clamp(11.5px,3.6vw,14px);min-height:clamp(42px,12.3vw,48px);border-radius:13px;}
     .skmb__room em{display:none;}
     .skmb__door svg{width:18px;height:22px;}
@@ -335,7 +342,7 @@
     .skmb__shop svg{width:22px;height:22px;}
     .skmb__lab{align-items:center;}
     .skmb__lab small{font-size:clamp(8.5px,2.5vw,10px);}
-    .skmb__lab b{font-size:clamp(11.5px,3.35vw,13px);}
+    .skmb__lab b{font-size:clamp(12.5px,4vw,15.5px);}
     html.skmb-on .sk-foot,html.skmb-on body > footer.foot{padding-bottom:100px;}
   }
 

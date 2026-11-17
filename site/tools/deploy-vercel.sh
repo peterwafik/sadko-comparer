@@ -13,6 +13,15 @@ set -euo pipefail
 SITE="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${TMPDIR:-/tmp}/sadko-vercel-deploy"
 
+# Never ship a failing suite. In particular engine/markers.test.mjs refuses
+# home-page marker tracks that no longer match their clips, anchor points or
+# timings (fix: node tools/track-markers.mjs), which is what used to put the
+# markers back on the walls after a deploy.
+(cd "$SITE" && node --test engine/*.test.mjs >/dev/null 2>&1) || {
+  echo "deploy-vercel: tests failing, not deploying. Run: (cd site && node --test engine/*.test.mjs)" >&2
+  exit 1
+}
+
 rm -rf "$OUT"
 mkdir -p "$OUT"
 # Everything the build needs; never node_modules, databases, logs or secrets.

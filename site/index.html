@@ -36,7 +36,7 @@
    the bottom bar via ?house) still open the house. Runs before anything heavy loads. */
 (function () {
   try {
-    if (localStorage.getItem('sadko-mode') !== 'shop' || /[?&](house|spots)\b/.test(location.search)) return;
+    if (localStorage.getItem('sadko-mode') !== 'shop' || !localStorage.getItem('sadko-welcome-v2') || /[?&](house|spots)\b/.test(location.search)) return;
     var ref = document.referrer, internal = false;
     try { internal = !!ref && new URL(ref).origin === location.origin; } catch (e) {}
     if (!internal) location.replace('shop.html');
@@ -47,12 +47,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="assets/js/scrub-engine.js?v=g38" defer></script>
-<script src="assets/js/nav.js?v=g47" defer></script>
+<script src="assets/js/nav.js?v=g49" defer></script>
 <script src="assets/js/catalog-i18n.js?v=g3" defer></script>
-<script src="assets/js/scenes.js?v=g4" defer></script>
-<script src="assets/js/hotspots.js?v=g51" defer></script>
-<script src="assets/js/modebar.js?v=m5" defer></script>
-<script src="assets/js/guide.js?v=g21" defer></script>
+<script src="assets/js/scenes.js?v=g5" defer></script>
+<script src="assets/js/hotspots.js?v=g52" defer></script>
+<script src="assets/js/modebar.js?v=m7" defer></script>
+<script src="assets/js/guide.js?v=g22" defer></script>
 <link rel="stylesheet" href="assets/css/site.css?v=g20">
 </head>
 <body>
@@ -148,8 +148,8 @@ window.addEventListener('DOMContentLoaded', () => {
       scroll: 1.9, linger: 0.5,
       copyY: 0.46,      // mid-height: clears the top-right AC and the bottom heaters
       mCopyX: 0.50, mCopyY: 0.20,   // phone: standardized top-centre position (same in every room)
-      eyebrow: 'بيتك بالكامل من صادكو',
-      title: 'أهلاً بك فى منزل صادكو',
+      eyebrow: '٤٠ سنة بنعمر بيوت',
+      title: 'أهلاً بك فى بيت صادكو',
       showcase: 0.03,   // the landing frame — the whole entertainment + climate room
       // ...and the page OPENS on it (hotspots.js). The marker coords below were
       // measured on this exact frame, so landing anywhere else shows them off
@@ -191,7 +191,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         // shouting on the way in and faded out by the view it describes
       mCopyX: 0.50, mCopyY: 0.20,   // phone: standardized top-centre position (same in every room)
       eyebrow: 'قلب المنزل',
-      title: 'مطبخ فيه كل شىء… حرفياً',
+      title: 'مطبخ صادكو فيه كل شىء… حرفياً',
       showcase: 0.92,   // the settle: full counter line-up + cooker wall + cold corner
       hotspots: [
         { fx: 0.098, fy: 0.638, at: 0.92, span: 0.26, mfx: 0.088, mfy: 0.539, label: 'ميكروييف', href: SHOP('206629764') },
@@ -243,6 +243,10 @@ window.addEventListener('DOMContentLoaded', () => {
     },
   ];
 
+  /* Every marker's stable identity is its Arabic label (English mode and the
+     admin's saved copy both rewrite `label`). Marker tracks are keyed on it. */
+  SECTIONS.forEach(s => (s.hotspots || []).forEach(h => { h._ar = h.label; }));
+
   /* ---- English mode: overlay the scene copy (labels, titles, hotspot names)
      onto the Arabic-authored config. Language comes from nav.js (skLang). ---- */
   const EN = !!(window.skLang && window.skLang.get() === 'en');
@@ -254,9 +258,9 @@ window.addEventListener('DOMContentLoaded', () => {
     document.documentElement.dir = 'ltr';
     document.title = 'SADKO Group | Your Whole Home';
     const L = {
-      living: { label: 'Living Room', eyebrow: 'Your whole home from SADKO', title: 'Welcome to the SADKO house',
+      living: { label: 'Living Room', eyebrow: '40 years of serving Egyptian families', title: 'Welcome to SADKO Home',
         spots: ['TVs', 'Sound & entertainment', 'Air conditioners', 'Fans & air coolers', 'Space heaters', 'Air purifiers & humidifiers', 'Water dispensers'] },
-      kitchen: { label: 'Kitchen', eyebrow: 'The heart of the home', title: 'A kitchen with everything… literally',
+      kitchen: { label: 'Kitchen', eyebrow: 'The heart of the house', title: 'A kitchen with everything… literally',
         spots: ['Microwaves', 'Blenders', 'Kettles & coffee machines', 'Air fryers', 'Small appliances', 'Dough mixers', 'Food processors', 'Juicers', 'Grills & toasters', 'Dishwashers', 'Ovens & cookers', 'Hoods', 'Refrigerators', 'Electric pots & choppers', 'Freezers'] },
       laundry: { label: 'Laundry Room', eyebrow: 'Laundry & care corner', title: 'Washing, drying, cleaning… and everything with it',
         // no anchor override: this room's copy sits on the bare centre wall in
@@ -279,8 +283,13 @@ window.addEventListener('DOMContentLoaded', () => {
   /* The admin's saved scene text and points, laid over the built-in ones.
      A failed or slow load (over 1.2 s) keeps the built-in scenes. */
   const loadScenes = window.skScenes ? window.skScenes.load('data/scenes.json', 1200) : Promise.resolve(null);
-  loadScenes.then(data => {
+  /* Where each marker's appliance is in every frame of its room's clip
+     (generated by tools/track-markers.mjs from the clips themselves; see
+     hotspots.js). Without it markers fall back to their single authored point. */
+  const loadTracks = window.skScenes ? window.skScenes.load('assets/data/marker-tracks.json', 1500) : Promise.resolve(null);
+  Promise.all([loadScenes, loadTracks]).then(([data, tracks]) => {
   if (!(data && window.skScenes.apply(SECTIONS, data, EN))) applyBuiltInEnglish();
+  if (tracks && tracks.clips) SECTIONS.forEach(s => { if (s.clip && tracks.clips[s.clip]) s._track = tracks.clips[s.clip]; });
 
 
   const api = mountScrollWorld(document.getElementById('world'), {

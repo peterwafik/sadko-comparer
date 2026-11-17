@@ -126,7 +126,7 @@ const page = (id, nameAr, nameEn) => `<!DOCTYPE html>
 </div>
 <footer data-footer></footer>
 <script src="../assets/js/catalog-i18n.js?v=g2" defer></script>
-<script src="../assets/js/nav.js?v=g47" defer></script>
+<script src="../assets/js/nav.js?v=g49" defer></script>
 <script src="../assets/js/appshell.js?v=a7" defer></script>
 <script src="../assets/js/specs.js?v=a6" defer></script>
 <script src="../assets/js/store.js?v=a6" defer></script>

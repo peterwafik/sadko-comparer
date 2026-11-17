@@ -109,6 +109,7 @@ function mountHotspots(container, api, sections) {
       a.addEventListener('click', dismissCoach);
       g.appendChild(a);
       return { el: a, k, uid: i + ':' + k, lab: a.querySelector('.hs-spot__label'),
+               key: String(h._ar || h.label || '').trim(),   // = trackKey() in engine/marker-config.mjs
                fx: h.fx, fy: h.fy, sfx: h.sfx ?? h.fx, sfy: h.sfy ?? h.fy,
                // mfx/mfy: this appliance's spot on the portrait phone scene image
                // (m_<room>.jpg). Falls back to the desktop coords if not given.
@@ -238,8 +239,73 @@ function mountHotspots(container, api, sections) {
      walk away from the products — which is what a 1080x2160 constant did to
      822x1920 footage. */
   const MFRAME_W = 822, MFRAME_H = 1920;
+  /* ---- measured geometry (the primary path) ------------------------------
+     Instead of re-deriving where the picture is from constants and custom
+     properties that mirror the stylesheet (which silently go stale whenever
+     a scene, the stage or the bottom bar changes), measure the picture that
+     is ACTUALLY painted: its element's box (getBoundingClientRect includes
+     any transform: the ken-burns zoom, the portrait punch-in), its intrinsic
+     size and its computed object-fit / object-position. Whatever CSS does to
+     the picture, the markers get the same answer as the pixels.
+     Returns null when nothing measurable is painted yet; callers then fall
+     back to metrics() below. */
+  function painted(seg) {
+    if (!seg || !seg.el) return null;
+    const portrait = containMQ.matches;
+    let el = null, video = false;
+    if (portrait) el = seg.mimg && seg.mimg.naturalWidth ? seg.mimg : null;
+    else {
+      const v = seg.video, img = seg.img;
+      const stillOnTop = img && seg.held && parseFloat(img.style.opacity || '0') > 0.5;
+      /* No readyState test: a scrubbed clip is mid-seek most of the time, which
+         drops readyState to 1 while it goes on showing its last frame. */
+      if (v && seg.el.classList.contains('has-clip') && v.videoWidth && !stillOnTop) { el = v; video = true; }
+      else if (img && img.naturalWidth) el = img;
+    }
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none') return null;
+    const nw = video ? el.videoWidth : el.naturalWidth, nh = video ? el.videoHeight : el.naturalHeight;
+    const b = el.getBoundingClientRect();
+    if (!b.width || !b.height || !nw || !nh) return null;
+    const fit = cs.objectFit;
+    const s = fit === 'contain' ? Math.min(b.width / nw, b.height / nh)
+            : fit === 'fill' ? null : Math.max(b.width / nw, b.height / nh);
+    const dw = s == null ? b.width : nw * s, dh = s == null ? b.height : nh * s;
+    const pos = (cs.objectPosition || '50% 50%').split(/\s+/);
+    const frac = (v, free) => /%$/.test(v) ? parseFloat(v) / 100 : (free ? parseFloat(v) / free : 0.5);
+    const px = frac(pos[0] || '50%', b.width - dw), py = frac(pos[1] || '50%', b.height - dh);
+    const lb = layer.getBoundingClientRect();
+    return { r: stageEl.getBoundingClientRect(), dw, dh,
+             ox: b.left - lb.left + (b.width - dw) * px, oy: b.top - lb.top + (b.height - dh) * py,
+             video: video ? el : null };
+  }
+
+  /* ---- marker tracks (assets/data/marker-tracks.json, tools/track-markers.mjs) ----
+     For each clip: where every marker's appliance is in every frame the marker
+     can be shown on. Used whenever the clip itself is on screen, so a marker
+     follows its appliance through the camera move instead of sitting at one
+     frame's coordinates. A track is ignored if its frame count does not match
+     the clip being played (wrong or re-encoded file). */
+  function trackFor(seg, it) {
+    const T = sections[seg.si] && sections[seg.si]._track;
+    return T && T.points ? T.points[it.key] || null : null;
+  }
+  function trackedPoint(seg, it, video) {
+    const T = sections[seg.si]._track, p = trackFor(seg, it);
+    if (!T || !p || !video) return null;
+    const dur = video.duration;
+    if (isFinite(dur) && dur > 0 && Math.abs(dur * T.fps - T.frames) > 1.5) return null;
+    const f = Math.floor(video.currentTime * T.fps + 1e-3), i = f - p.f0;
+    if (i < 0 || 2 * i + 1 >= p.xy.length) return { off: true };
+    // An admin may have nudged the anchor point: carry the same offset along.
+    return { x: p.xy[2 * i] + (it.fx - p.fx), y: p.xy[2 * i + 1] + (it.fy - p.fy) };
+  }
+
+  /* Fallback only (nothing painted yet): the picture's box re-derived from the
+     stage and the stylesheet's custom properties. Layer-local, like painted(). */
   function metrics() {
-    const r = stageEl.getBoundingClientRect();
+    const r = stageEl.getBoundingClientRect(), lb = layer.getBoundingClientRect();
     if (containMQ.matches) {
       // cover (fill the screen) — mirrors the scene's object-fit:cover — then the
       // stylesheet's portrait punch-in, read from the same custom property the
@@ -248,59 +314,74 @@ function mountHotspots(container, api, sections) {
       // the markers stay welded to their appliances through the zoom.
       const s = Math.max(r.width / MFRAME_W, r.height / MFRAME_H) * mZoom();
       const dw = MFRAME_W * s, dh = MFRAME_H * s;
-      return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * 0.5 };
+      return { r, dw, dh, ox: r.left - lb.left + (r.width - dw) * 0.5, oy: r.top - lb.top + (r.height - dh) * 0.5 };
     }
     const s = Math.max(r.width / FRAME_W, r.height / FRAME_H);
     const dw = FRAME_W * s, dh = FRAME_H * s;
     // Match the scene's ACTUAL object-position Y (--sw-objy) on the desktop cover.
-    return { r, dw, dh, ox: r.left + (r.width - dw) * 0.5, oy: r.top + (r.height - dh) * objY() };
+    return { r, dw, dh, ox: r.left - lb.left + (r.width - dw) * 0.5, oy: r.top - lb.top + (r.height - dh) * objY() };
   }
   function mapPoint(fx, fy, m) {
     m = m || metrics();
     return { x: m.ox + fx * m.dw, y: m.oy + fy * m.dh };
   }
+  /* The picture under the markers keeps changing with no scroll event to
+     re-place them on: the engine eases the clip toward its target for a moment
+     after the last scroll, the 4K still fades off the video at the end of its
+     hold, a lite clip is swapped for the full one. Events miss some of these, so
+     a tiny per-frame check re-places the markers whenever the frame on screen,
+     the picture on top or the clip element of a visible room has changed. */
+  let paintKey = '';
+  (function watchPaint() {
+    let k = '';
+    for (const gr of groups) {
+      if (!gr || !gr.on) continue;
+      const seg = sections[gr.si]._seg;
+      if (!seg) continue;
+      const v = seg.video;
+      // .seeking: currentTime jumps when a seek STARTS; the frame lands later.
+      k += gr.si + ':' + (v ? v.currentTime.toFixed(4) + (v.seeking ? 's' : '') + (v.videoWidth || 0) : '-') + ':' +
+           (seg.img ? seg.img.style.opacity : '') + (seg.el.classList.contains('has-clip') ? 'c' : '') + ';';
+    }
+    if (k !== paintKey) { paintKey = k; if (k) place(); }
+    requestAnimationFrame(watchPaint);
+  })();
+
   function place() {
-    const m = metrics();
-    const reduceSc = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     groups.forEach(gr => {
       if (!gr) return;
       const seg = sections[gr.si]._seg;
       const sc = gr.si === showSi;
-      // Until the clip paints its first frame the engine shows the STILL with a
-      // ken-burns zoom (scale(1 + t*0.14), origin center). Mirror it, or markers
-      // sit visibly off on slow loads / mobile. Must stay in step with
-      // scrub-engine.js's read(): the zoom now starts at IDENTITY and carries no
-      // horizontal offset, so poster and clip frame the room identically and the
-      // markers do not move when the video takes over.
-      let still = null;
-      if (seg && seg.el && !seg.el.classList.contains('has-clip') && !containMQ.matches) {
-        const local = clamp((lastY - seg.start) / (seg.end - seg.start), 0, 1);
-        still = {
-          sc: reduceSc ? 1 : 1 + local * 0.14,
-          tx: 0,
-          cx: m.r.left + m.r.width / 2,
-          cy: m.r.top + m.r.height / 2,
-        };
-      }
       const portrait = containMQ.matches;
+      // The picture actually on screen for this room, measured (see painted()).
+      // Only while nothing is painted yet does the stylesheet-derived box stand in.
+      const meas = painted(seg);
+      const m = meas || metrics();
       const pts = gr.items.map(it => {
-        // Portrait phone → the appliance's spot on the portrait scene image;
-        // showcase → its showcase-frame spot; otherwise its flight coords.
-        let p = portrait ? mapPoint(it.mfx, it.mfy, m)
-                         : (sc ? mapPoint(it.sfx, it.sfy, m) : mapPoint(it.fx, it.fy, m));
-        if (still) p = { x: still.cx + (p.x - still.cx) * still.sc + still.tx,
-                         y: still.cy + (p.y - still.cy) * still.sc };
-        return { it, x: p.x, y: p.y, bx: p.x, by: p.y };
+        let fx, fy, off = false;
+        if (portrait) { fx = it.mfx; fy = it.mfy; }
+        else {
+          /* Clip on screen: the marker follows its appliance's TRACK to the frame
+             being shown. The still (and the fallback box) is the anchor frame
+             itself, so it uses the authored point. A marker with a track but no
+             entry for this frame is hidden: its appliance has left the picture or
+             gone behind something, and a dot on the wall is worse than none. */
+          const t = meas && meas.video ? trackedPoint(seg, it, meas.video) : null;
+          if (t && t.off) off = true;
+          if (t && !t.off) { fx = t.x; fy = t.y; }
+          else { fx = (sc && !trackFor(seg, it)) ? it.sfx : it.fx; fy = (sc && !trackFor(seg, it)) ? it.sfy : it.fy; }
+        }
+        const p = mapPoint(fx, fy, m);
+        return { it, x: p.x, y: p.y, bx: p.x, by: p.y, off };
       });
       /* A marker belongs ON its appliance. When the screen's shape crops that
          appliance out of the picture (a 4:3 monitor loses the edges of a 16:9
-         room; a very wide window loses some top and bottom), the marker is hidden
-         rather than slid in from the edge onto whatever wall happens to be there,
-         which is what made the living room's air-purifier marker "drift" from
-         screen to screen. Same frame geometry as the scene, so this is exact. */
+         room; a very wide window loses some top and bottom), or the camera has
+         carried it out of frame (no track entry), the marker is hidden rather
+         than slid in from the edge onto whatever wall happens to be there. */
       const lw = layer.clientWidth || m.r.width, lh = layer.clientHeight || m.r.height;
       pts.forEach(p => {
-        const out = p.bx < -2 || p.bx > lw + 2 || p.by < -2 || p.by > lh + 2;
+        const out = p.off || p.bx < -2 || p.bx > lw + 2 || p.by < -2 || p.by > lh + 2;
         p.it.cropped = out;
         p.it.el.classList.toggle('hs-spot--cropped', out);
         if (out) p.it.vis = false;
@@ -638,6 +719,9 @@ function mountHotspots(container, api, sections) {
   // Expose showcase controls so companion layers (the room dock / guided tour
   // in guide.js, the engine's own nav) can land users on a room's showcase view.
   api.enterShowcase = enterShowcase;
+  // QA: what the marker layer last drew against (tools / Playwright checks).
+  api.hotspotState = () => ({ paintKey, groups: groups.map(g => g && { si: g.si, on: g.on,
+    items: g.items.map(it => ({ key: it.key, x: it.x, y: it.y, cropped: !!it.cropped, op: it.op })) }) });
   api.exitShowcase = exitShowcase;
 
   /* ---- open ON a room's showcase frame -----------------------------------

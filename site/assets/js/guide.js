@@ -23,11 +23,11 @@
       casual for a retailer talking to a customer it has not met yet; the rest
       of the site's own copy keeps that warmer voice.
       Re-openable any time from a floating "؟" help button.
-      Stored under localStorage 'sadko-guide-v1'; suppressed with ?spots.
+      Stored under localStorage 'sadko-guide-v2'; suppressed with ?spots.
    ========================================================================== */
 
 function mountGuide(container, api, sections) {
-  const GUIDE_KEY = 'sadko-guide-v1';
+  const GUIDE_KEY = 'sadko-guide-v2';
   const COACH_KEY = 'sadko-hs-coach-v1';   // hotspots.js coach toast — the tour covers it
 
   const EN = !!(window.skLang && window.skLang.get() === 'en');

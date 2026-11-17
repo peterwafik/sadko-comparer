@@ -48,8 +48,12 @@
      from index.html, which always ships together with its image. Without
      this, an old saved copy put the living room's phone markers back on the
      previous picture's coordinates after every deploy.
-     Unstamped DESKTOP positions are kept: they were placed in the desktop
-     editor on the current room geometry, unlike the unstamped phone ones. */
+     Unstamped DESKTOP positions are dropped too (since 2026-11-17). They used
+     to be kept, and the live saved copy carried the living room's desktop
+     points from an older picture (speakers at 0.413 instead of 0.605, the air
+     purifier on a bare wall), overriding every fix made in index.html.
+     A marker's TIMING (at/span) is never taken from a saved copy: it belongs to
+     the clip, like the marker tracks (hotspots.js) that depend on it. */
   var norm = function (u) { return String(u || '').split('?')[0].replace(/^\.?\//, ''); };
   function sameImage(stamp, img) { return !!stamp && !!img && norm(stamp) === norm(img); }
   /* The built-in point a saved one corresponds to: same Arabic label, else
@@ -85,12 +89,14 @@
             if (!sameImage(h.mimg, s.stillMobile)) {
               o.mfx = b.mfx != null ? b.mfx : b.fx; o.mfy = b.mfy != null ? b.mfy : b.fy;
             }
-            if (h.dimg && !sameImage(h.dimg, s.still)) {
+            if (!sameImage(h.dimg, s.still)) {
               o.fx = b.fx; o.fy = b.fy;
               if (b.sfx != null) { o.sfx = b.sfx; o.sfy = b.sfy; } else { delete o.sfx; delete o.sfy; }
             }
           }
-          o._ar = pick(h.label, false);
+          if (b) { o.at = b.at != null ? b.at : o.at; o.span = b.span != null ? b.span : o.span; }
+          // The built-in key, so a label renamed in the admin keeps its track.
+          o._ar = (b && b._ar) || pick(h.label, false);
           return o;
         }).filter(Boolean);
         any = true;

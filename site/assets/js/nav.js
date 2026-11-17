@@ -1255,7 +1255,7 @@
     const start = () => {
       if (window.skModeBar) return go();
       const s = document.createElement('script');
-      s.src = P('assets/js/modebar.js?v=m5');
+      s.src = P('assets/js/modebar.js?v=m7');
       s.onload = go;
       document.head.appendChild(s);
     };

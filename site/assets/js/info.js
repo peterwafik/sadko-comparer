@@ -520,7 +520,7 @@
                 [['sadko-profile-v1', 'sadko-profile-v1'], ['إجابات ملف المنزل إن أجبت عنها دون حساب.', 'Home-profile answers if you filled them in without an account.']],
                 [['sadko-qa-v1 / sadko-reviews-v1', 'sadko-qa-v1 / sadko-reviews-v1'], ['الأسئلة والتقييمات التى تكتبها، تُحفظ محلياً ولا تُنشر لأحد.', 'The questions and reviews you write, kept locally and not published to anyone.']],
                 [['sadko-lang', 'sadko-lang'], ['لغة العرض: العربية أم الإنجليزية.', 'The display language: Arabic or English.']],
-                [['sadko-guide-v1 / sadko-hs-coach-v1', 'sadko-guide-v1 / sadko-hs-coach-v1'], ['علامة تفيد أنك شاهدت جولة التعريف فى الصفحة الرئيسية، حتى لا تتكرر.', 'A flag that you have seen the home-page walkthrough, so it does not repeat.']],
+                [['sadko-guide-v2 / sadko-welcome-v2 / sadko-hs-coach-v1', 'sadko-guide-v2 / sadko-welcome-v2 / sadko-hs-coach-v1'], ['علامة تفيد أنك شاهدت جولة التعريف فى الصفحة الرئيسية، حتى لا تتكرر.', 'A flag that you have seen the home-page walkthrough, so it does not repeat.']],
               ]),
             note('warn',
               'ولأن هذا تخزين محلى: إذا مسحت بيانات المتصفح، أو فتحت الموقع من جهاز آخر أو من نافذة تصفح خفى، فلن تجد هذه العناصر. ولا توجد مزامنة بين الأجهزة.',

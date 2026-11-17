@@ -17,8 +17,11 @@ OUT="${TMPDIR:-/tmp}/sadko-vercel-deploy"
 # home-page marker tracks that no longer match their clips, anchor points or
 # timings (fix: node tools/track-markers.mjs), which is what used to put the
 # markers back on the walls after a deploy.
-(cd "$SITE" && node --test engine/*.test.mjs >/dev/null 2>&1) || {
-  echo "deploy-vercel: tests failing, not deploying. Run: (cd site && node --test engine/*.test.mjs)" >&2
+TEST_LOG="${TMPDIR:-/tmp}/sadko-deploy-tests.log"
+(cd "$SITE" && node --test engine/*.test.mjs >"$TEST_LOG" 2>&1) || {
+  echo "deploy-vercel: tests failing, not deploying. Failing tests:" >&2
+  grep -E "^[[:space:]]*✖" "$TEST_LOG" | head -20 >&2
+  echo "Full log: $TEST_LOG" >&2
   exit 1
 }
 
